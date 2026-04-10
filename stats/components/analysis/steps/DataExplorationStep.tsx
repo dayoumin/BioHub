@@ -4,7 +4,7 @@ import { memo, useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText, Table2, TrendingUp, Maximize2, Loader2, CheckCircle2 } from 'lucide-react'
+import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText, Table2, TrendingUp, Maximize2, Loader2 } from 'lucide-react'
 import { ValidationResults, DataRow } from '@/types/analysis'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
@@ -26,11 +26,11 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useDescriptiveStats } from '@/hooks/use-descriptive-stats'
 import { summarizeNormality } from '@/lib/utils/stats-math'
 import { useCorrelationData } from '@/hooks/use-correlation-data'
+import { cn } from '@/lib/utils'
 import { SummaryCard, type CardId } from './exploration/SummaryCard'
 import { useLeveneTest } from '@/hooks/use-levene-test'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /** 기초통계 미리보기에 표시할 최대 변수 수 */
 const MAX_PREVIEW_VARS = 5
@@ -170,7 +170,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 빠른 분석 모드 힌트 (2곳에서 사용)
   const focusHintBanner = isQuickMode && profile.focusHint && data.length > 0 ? (
-    <Card className="border-info-border/70 bg-info-bg/75 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+    <Card className="border-info-border/70 bg-info-bg/75">
       <CardContent className="px-4 py-3">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-info/10">
@@ -384,15 +384,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const columnCount = validationResults?.columnCount ?? Object.keys(data[0] ?? {}).length
 
   return (
-    <div className="space-y-5" data-testid="data-exploration-step">
+    <div className="space-y-4" data-testid="data-exploration-step">
       {/* ── 헤더 ── */}
       <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
       {focusHintBanner}
 
       {/* ── 컴팩트 요약 배지 바 ── */}
-      <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
-        <CardContent className="px-5 py-4">
+      <Card className="border-border/50 bg-surface-container-lowest">
+        <CardContent className="px-4 py-3.5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -417,41 +417,24 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
                 {columnCount} {t.dataExploration.badgeBar.cols}
               </Badge>
-              <Badge variant="outline" className="text-xs gap-1 border-info-border text-info bg-info-bg">
-                <span className="font-mono">{numericVariables.length}</span> {t.dataExploration.badgeBar.numeric}
-              </Badge>
-              <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
-                <span className="font-mono">{categoricalVariables.length}</span> {t.dataExploration.badgeBar.categorical}
-              </Badge>
-              {missingCount > 0 ? (
-                <Badge variant="outline" className="text-xs gap-1 border-warning-border text-warning bg-warning-bg">
-                  {t.dataExploration.badgeBar.missing} <span className="font-mono">{missingCount}</span>
+              {validationResults && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-xs gap-1',
+                    !validationResults.isValid
+                      ? 'border-error-border text-error bg-error-bg'
+                      : (validationResults.warnings?.length ?? 0) > 0
+                        ? 'border-warning-border text-warning bg-warning-bg'
+                        : 'border-success-border text-success bg-success-bg'
+                  )}
+                >
+                  {!validationResults.isValid
+                    ? t.dataExploration.columnPanel.statusError
+                    : (validationResults.warnings?.length ?? 0) > 0
+                      ? t.dataExploration.columnPanel.statusWarning
+                      : t.dataExploration.columnPanel.statusNormal}
                 </Badge>
-              ) : (
-                <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
-                  <CheckCircle2 className="h-3 w-3" />
-                  결측 없음 ✓
-                </Badge>
-              )}
-              {totalOutlierCount > 0 && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant="outline"
-                        role="button"
-                        tabIndex={0}
-                        className="text-xs gap-1 border-error-border text-error bg-error-bg cursor-pointer hover:bg-error-bg/80 transition-colors"
-                        onClick={() => setSelectedCard('descriptive')}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
-                      >
-                        <AlertTriangle className="h-3 w-3" />
-                        {t.dataExploration.badgeBar.outlier} <span className="font-mono">{totalOutlierCount}</span>
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>클릭하면 이상치가 있는 변수와 상세 통계를 바로 확인할 수 있습니다.</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               )}
               {onUploadComplete && (
                 <Button
@@ -472,7 +455,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
       {/* 수치형 변수 부족 경고 */}
       {fewNumericVarsWarning && (
-        <Card className="border-warning-border/70 bg-warning-bg/80 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+        <Card className="border-warning-border/70 bg-warning-bg/80">
           <CardContent className="px-5 py-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/10">
@@ -490,7 +473,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )}
 
       {/* ── 요약 카드 대시보드 ── */}
-      <div className="flex flex-wrap gap-3" role="group" aria-label={t.dataExploration.summaryCards.ariaLabel}>
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4" role="group" aria-label={t.dataExploration.summaryCards.ariaLabel}>
         <SummaryCard
           id="overview"
           icon={Table2}
@@ -560,10 +543,10 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       </div>
 
       {/* ── 상세 패널: 데이터 미리보기 (CSS hidden — state 보존) ── */}
-      <div className={selectedCard === 'overview' ? 'grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start' : 'hidden'}>
+      <div className={selectedCard === 'overview' ? 'grid grid-cols-1 gap-5 items-start lg:grid-cols-[minmax(0,1.08fr)_300px] xl:grid-cols-[minmax(0,1.14fr)_320px]' : 'hidden'}>
           {/* 좌: 데이터 미리보기 */}
           <div className="space-y-4 min-w-0">
-            <Card className="border-border/40 shadow-sm overflow-hidden">
+            <Card className="overflow-hidden border-border/40">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium">{t.dataExploration.preview.title}</CardTitle>
@@ -641,7 +624,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </div>
 
           {/* 우: 컬럼 정보 패널 */}
-          <Card className="border-border/40 shadow-sm lg:sticky lg:top-4">
+          <Card className="border-border/40 lg:sticky lg:top-4">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium">{t.dataExploration.columnPanel.title}</CardTitle>
@@ -654,42 +637,29 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   </Badge>
                 )}
               </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <Badge variant="secondary" className="text-[10px] font-mono">
+                  {numericVariables.length} {t.dataExploration.columnPanel.numeric}
+                </Badge>
+                <Badge variant="secondary" className="text-[10px] font-mono">
+                  {categoricalVariables.length} {t.dataExploration.columnPanel.categorical}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {missingCount} {t.dataExploration.badgeBar.missing}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* 변수 타입 카운트 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-center">
-                <div className="p-2 rounded-lg bg-muted/40">
-                  <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.numeric}</p>
-                  <p className="text-lg font-semibold font-mono tabular-nums">{numericVariables.length}</p>
-                </div>
-                <div className="p-2 rounded-lg bg-muted/40">
-                  <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.categorical}</p>
-                  <p className="text-lg font-semibold font-mono tabular-nums">{categoricalVariables.length}</p>
-                </div>
-              </div>
-
-              {/* 요약 수치 */}
-              <div className="space-y-0 text-sm">
-                <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.sampleSize}</span>
-                  <span className="font-mono tabular-nums font-medium">{data.length}</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.missingValuesLabel}</span>
-                  <span className="font-mono tabular-nums font-medium">{t.dataExploration.columnPanel.missingValues(validationResults?.missingValues ?? 0)}</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.totalColumns}</span>
-                  <span className="font-mono tabular-nums font-medium">{validationResults?.columnCount ?? 0}</span>
-                </div>
-                {data.length > 0 && (
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-muted-foreground">{t.dataExploration.columnPanel.recommendedAnalysis}</span>
-                    <Badge variant="outline" className="text-[10px]">
-                      {recommendedType === 'parametric' ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric}
-                    </Badge>
-                  </div>
-                )}
+              <div className="rounded-lg border border-border/40 bg-surface-container-low/35 px-3 py-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  데이터 상태
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {t.dataExploration.summaryCards.rowsCols(data.length, columnCount)} · {t.dataExploration.summaryCards.numericCategorical(numericVariables.length, categoricalVariables.length)}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {recommendedType === 'parametric' ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric} 접근을 우선 검토할 수 있습니다.
+                </p>
               </div>
 
               {/* 검증 오류 */}

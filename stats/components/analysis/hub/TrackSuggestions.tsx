@@ -43,11 +43,17 @@ interface TrackSuggestionsProps {
   onStartAnalysis?: (example: string) => void
   onUploadClick?: () => void
   showHeader?: boolean
+  showUploadCard?: boolean
 }
 
 // ===== Component =====
 
-export function TrackSuggestions({ onStartAnalysis, onUploadClick, showHeader = true }: TrackSuggestionsProps) {
+export function TrackSuggestions({
+  onStartAnalysis,
+  onUploadClick,
+  showHeader = true,
+  showUploadCard = true,
+}: TrackSuggestionsProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const [sampleSizeOpen, setSampleSizeOpen] = useState(false)
@@ -65,42 +71,47 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick, showHeader = 
       <div>
         {showHeader && <h2 className="text-lg font-bold mb-3">{t.hub.quickStart.title}</h2>}
         <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-3"
+          className={cn(
+            'gap-3',
+            showUploadCard ? 'grid grid-cols-2 md:grid-cols-4' : 'grid grid-cols-1 md:grid-cols-3'
+          )}
           initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           {/* 데이터 업로드 */}
-          <motion.button
-            type="button"
-            onClick={onUploadClick}
-            data-testid="hub-upload-btn"
-            className={cn(actionCardBase, 'min-h-[128px] items-start justify-between px-4 py-4')}
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-          >
-            <div className="flex w-full items-start justify-between gap-3">
-              <div className={iconContainerPrimary}>
-                <Upload className="w-5 h-5" aria-hidden="true" />
+          {showUploadCard && (
+            <motion.button
+              type="button"
+              onClick={onUploadClick}
+              data-testid="hub-upload-btn"
+              className={cn(actionCardBase, 'min-h-[120px] items-start justify-between px-4 py-4')}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+            >
+              <div className="flex w-full items-start justify-between gap-3">
+                <div className={iconContainerPrimary}>
+                  <Upload className="w-5 h-5" aria-hidden="true" />
+                </div>
+                <span className={BADGE_BASE} style={BADGE_ANALYSIS_STYLE}>{t.hub.quickStart.badges.analysis}</span>
               </div>
-              <span className={BADGE_BASE} style={BADGE_ANALYSIS_STYLE}>{t.hub.quickStart.badges.analysis}</span>
-            </div>
-            <div className="w-full text-left">
-              <span className="block font-medium text-sm">{t.hub.quickStart.uploadData}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">분석에 필요한 데이터를 불러옵니다.</span>
-            </div>
-          </motion.button>
+              <div className="w-full text-left">
+                <span className="block font-medium text-sm">{t.hub.quickStart.uploadData}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">분석에 필요한 데이터를 불러옵니다.</span>
+              </div>
+            </motion.button>
+          )}
 
           {/* 표본 크기 계산기 */}
           <motion.button
             type="button"
             onClick={handleOpenSampleSize}
             data-testid="hub-sample-size-card"
-            className={cn(actionCardBase, 'min-h-[128px] items-start justify-between px-4 py-4')}
+            className={cn(actionCardBase, 'min-h-[120px] items-start justify-between px-4 py-4')}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.38 }}
+            transition={{ duration: 0.4, delay: showUploadCard ? 0.38 : 0.3 }}
           >
             <div className="flex w-full items-start justify-between gap-3">
               <div className={iconContainerMuted}>
@@ -119,7 +130,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick, showHeader = 
             className="h-full"
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.46 }}
+            transition={{ duration: 0.4, delay: showUploadCard ? 0.46 : 0.38 }}
           >
             <Link
               href="/graph-studio"
@@ -144,7 +155,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick, showHeader = 
             className="h-full"
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.54 }}
+            transition={{ duration: 0.4, delay: showUploadCard ? 0.54 : 0.46 }}
           >
             <Link
               href="/bio-tools"

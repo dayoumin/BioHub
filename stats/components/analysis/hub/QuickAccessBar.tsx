@@ -289,16 +289,14 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
   const isViz = card.type === 'visualization'
 
   return (
-    <div
-      className={cn(
-        'group flex items-start justify-between gap-4 rounded-2xl border p-4',
-        'bg-surface-container-lowest shadow-[0px_6px_20px_rgba(25,28,30,0.03)]',
-        'hover:shadow-[0px_10px_24px_rgba(25,28,30,0.06)] active:scale-[0.99] transition-all duration-200 cursor-pointer',
-        card.isPinned && 'border-primary/20 bg-primary/[0.03]',
-        isViz
-          ? 'border-l-[3px] border-l-violet-400/60 border-t-border/60 border-r-border/60 border-b-border/60'
-          : 'border-border/50',
-      )}
+      <div
+        className={cn(
+          'group flex items-start justify-between gap-4 rounded-2xl border p-4',
+          'bg-surface-container-lowest',
+          'hover:bg-surface-container-low/30 active:scale-[0.99] transition-all duration-200 cursor-pointer',
+          card.isPinned && 'border-primary/20 bg-primary/[0.03]',
+          'border-border/50',
+        )}
       data-testid={`recent-activity-card-${card.id}`}
       onClick={onClick}
       role="button"
@@ -409,7 +407,13 @@ function StatisticsIcon({ hasResults }: { hasResults: boolean }) {
 function VisualizationIcon({ chartType }: { chartType?: ChartType }) {
   const Icon = getChartIcon(chartType ?? 'bar')
   return (
-    <div className="shrink-0 rounded-xl bg-violet-100 p-2.5 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+    <div
+      className="shrink-0 rounded-xl p-2.5"
+      style={{
+        background: 'color-mix(in oklch, var(--section-accent-graph) 12%, var(--surface-container-lowest))',
+        color: 'var(--section-accent-graph)',
+      }}
+    >
       <Icon className="w-4 h-4" />
     </div>
   )

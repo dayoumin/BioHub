@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Sparkles,
   Copy,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -31,9 +30,6 @@ export interface ResultsHeroCardProps {
   apaFormat: string | null
   uploadedFileName: string | null
   uploadedData: Record<string, unknown>[] | null
-  /** AI 해석 요약 한 줄 (스트리밍 완료 전에는 null) */
-  aiSummary: string | null
-  isInterpreting: boolean
   prefersReducedMotion: boolean
   t: Pick<TerminologyDictionary, 'results'>
 }
@@ -47,8 +43,6 @@ export function ResultsHeroCard({
   apaFormat,
   uploadedFileName,
   uploadedData,
-  aiSummary,
-  isInterpreting,
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
@@ -75,14 +69,14 @@ export function ResultsHeroCard({
       animate={prefersReducedMotion ? undefined : 'visible'}
     >
       <Card className={cn(
-        "overflow-hidden rounded-xl border-0",
+        "overflow-hidden rounded-xl border border-border/40",
         isSignificant || !showBinaryConclusion
-          ? "bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
-          : "bg-surface-container-low shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]"
+          ? "bg-surface-container-lowest"
+          : "bg-surface-container-low"
       )}>
-        <CardContent className="py-4 px-5">
+        <CardContent className="px-4 py-3.5">
           <div className={cn(
-            'mb-3 px-3 py-2.5 rounded-lg',
+            'mb-3 rounded-lg px-3 py-2',
             !assumptionsPassed
               ? 'bg-warning-bg/60'
               : highlightAsSuccess
@@ -104,14 +98,6 @@ export function ResultsHeroCard({
               }
             </p>
           </div>
-
-          {/* AI 요약 한 줄 (해석 완료 시) */}
-          {aiSummary && !isInterpreting && (
-            <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex items-start gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="line-clamp-2">{aiSummary}</span>
-            </p>
-          )}
 
           {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
           <div className="flex items-center gap-3 flex-wrap">
@@ -166,7 +152,7 @@ export function ResultsHeroCard({
 
           {/* 2행: APA + 메타데이터 */}
           {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables || validationMeta) && (
-            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="mt-3 grid gap-2.5 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.95fr)] xl:items-start">
               {apaFormat && (
                 <div className="rounded-xl border border-border/40 bg-surface-container/30 px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -189,53 +175,29 @@ export function ResultsHeroCard({
                 </div>
               )}
 
-              <div className="rounded-xl border border-border/40 bg-surface-container/20 px-4 py-3 space-y-2.5">
-                {(uploadedFileName || uploadedData) && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {uploadedFileName && (
-                      <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                          파일
-                        </p>
-                        <p className="mt-1 text-sm text-foreground/80 break-all">{uploadedFileName}</p>
-                      </div>
-                    )}
-
-                    {uploadedData && (
-                      <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                          데이터 크기
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t.results.metadata.rowsCols(uploadedData.length, uploadedColumnCount)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {statisticalResult.variables && statisticalResult.variables.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                      변수
-                    </p>
-                    <div
-                      className="flex flex-wrap gap-1.5"
-                      title={statisticalResult.variables.join(', ')}
-                    >
-                      {variablePreview.map((variable) => (
-                        <Badge key={variable} variant="outline" className="bg-background/70 text-[11px] font-normal">
-                          {variable}
-                        </Badge>
-                      ))}
-                      {remainingVariableCount > 0 && (
-                        <Badge variant="outline" className="bg-background/70 text-[11px] font-normal">
-                          +{remainingVariableCount}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
+              <div className="rounded-xl border border-border/40 bg-surface-container/20 px-4 py-3 space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {uploadedFileName && (
+                    <Badge variant="outline" className="max-w-full bg-background/70 text-[11px] font-normal" title={uploadedFileName}>
+                      <span className="truncate">파일 · {uploadedFileName}</span>
+                    </Badge>
+                  )}
+                  {uploadedData && (
+                    <Badge variant="outline" className="bg-background/70 text-[11px] font-normal">
+                      {t.results.metadata.rowsCols(uploadedData.length, uploadedColumnCount)}
+                    </Badge>
+                  )}
+                  {variablePreview.map((variable) => (
+                    <Badge key={variable} variant="outline" className="bg-background/70 text-[11px] font-normal">
+                      {variable}
+                    </Badge>
+                  ))}
+                  {remainingVariableCount > 0 && (
+                    <Badge variant="outline" className="bg-background/70 text-[11px] font-normal">
+                      +{remainingVariableCount}
+                    </Badge>
+                  )}
+                </div>
 
                 {validationMeta && (
                   <Tooltip>

@@ -53,7 +53,7 @@ export function ResultsChartsSection({
       initial={prefersReducedMotion ? undefined : 'hidden'}
       animate={prefersReducedMotion ? undefined : 'visible'}
     >
-      <Card className="overflow-hidden border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]" data-testid="detailed-results-section">
+      <Card className="overflow-hidden border border-border/40 bg-surface-container-lowest" data-testid="detailed-results-section">
         <CollapsibleSection
           label={t.results.sections.detailedResults}
           open={detailedResultsOpen}

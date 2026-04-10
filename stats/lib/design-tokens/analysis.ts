@@ -74,23 +74,23 @@ export const SURFACE = {
  */
 export const AI_ACCENT = {
   /** 콜아웃/CTA 배너 배경 (연한) */
-  surface: 'bg-violet-50/40 dark:bg-violet-950/20',
+  surface: 'bg-highlight-bg border border-highlight-border/60',
   /** 요약 히어로 블록 배경 (진한) */
-  surfaceStrong: 'bg-violet-50/60 dark:bg-violet-950/20',
+  surfaceStrong: 'bg-highlight-bg/90 border border-highlight-border/70',
   /** 아이콘 컨테이너 배경 */
-  iconBg: 'bg-violet-50 dark:bg-violet-900/40',
+  iconBg: 'bg-highlight-bg',
   /** 스켈레톤/로딩 아이콘 배경 (연한) */
-  iconBgSubtle: 'bg-violet-50/60 dark:bg-violet-900/20',
+  iconBgSubtle: 'bg-highlight-bg/70',
   /** 아이콘 색상 */
-  icon: 'text-violet-500',
+  icon: 'text-highlight',
   /** 스트리밍 커서 */
-  cursor: 'bg-violet-500',
+  cursor: 'bg-highlight',
   /** 주 라벨 (헤더, 로딩 텍스트) */
-  label: 'text-violet-700 dark:text-violet-300',
+  label: 'text-highlight',
   /** 보조 라벨 (액션 섹션) */
-  labelSecondary: 'text-violet-600 dark:text-violet-400',
+  labelSecondary: 'text-highlight/80',
   /** 활성 pill 배경 */
-  pillActiveBg: 'bg-violet-100 dark:bg-violet-900/40',
+  pillActiveBg: 'bg-highlight-bg border border-highlight-border',
 } as const
 
 export const STEP_STYLES = {

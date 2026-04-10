@@ -370,14 +370,14 @@ export function ChatCentricHub({
   // data-testid="hub-upload-card": E2E 호환용 마커 (컨테이너 가시성 감지).
   return (
     <motion.div
-      className="w-full space-y-6 py-8"
+      className="w-full space-y-4 py-4 lg:py-5"
       data-testid="hub-upload-card"
       {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
     >
       {/* ====== Hero Section + ChatThread + ChatInput ====== */}
       <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
-        <div className="py-8 lg:py-12">
-          <div className="mx-auto max-w-[1120px] rounded-[28px] border border-border/50 bg-surface-container-lowest px-6 py-10 shadow-[0px_16px_48px_rgba(25,28,30,0.05)] lg:px-10">
+        <div className="py-2 lg:py-4">
+          <div className="mx-auto max-w-[1160px] rounded-[24px] border border-border/50 bg-surface-container-lowest px-6 py-7 lg:px-9">
             <div className="flex flex-col items-center text-center">
             {/* Heading */}
               <span className="mb-3 inline-flex items-center rounded-full border border-primary/15 bg-primary/[0.04] px-3 py-1 text-xs font-medium text-primary/80">
@@ -386,7 +386,7 @@ export function ChatCentricHub({
               <h1 className="text-3xl lg:text-4xl font-bold tracking-tight leading-tight mb-2">
                 {t.hub.hero.heading}
               </h1>
-              <p className="text-lg text-muted-foreground mb-10">
+              <p className="mb-7 text-lg text-muted-foreground">
                 {t.hub.hero.subheading}
               </p>
 
@@ -407,7 +407,7 @@ export function ChatCentricHub({
               <DataContextBadge onClear={clearDataContext} />
 
               {/* ChatInput — centered, wider */}
-              <div className="w-full max-w-[720px]">
+              <div className="w-full max-w-[760px]">
                 <ChatInput
                   onSubmit={handleChatSubmit}
                   isProcessing={isProcessing}
@@ -419,15 +419,7 @@ export function ChatCentricHub({
               </div>
 
               {/* 빠른 분석 pills — 주 입력 바로 아래의 보조 액션 */}
-              <div className="mt-7 rounded-2xl border border-border/40 bg-surface-container-low px-4 py-3.5">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
-                    자주 쓰는 분석
-                  </p>
-                  <span className="text-xs text-muted-foreground/70">
-                    바로 시작
-                  </span>
-                </div>
+              <div className="mt-5 w-full max-w-[900px] rounded-2xl border border-border/40 bg-surface-container-low/65 px-5 py-3">
                 <QuickAnalysisPills onQuickAnalysis={onQuickAnalysis} />
               </div>
             </div>
@@ -438,35 +430,40 @@ export function ChatCentricHub({
       {/* 보조 진입 영역 */}
       <motion.div
         {...(prefersReducedMotion ? {} : { variants: itemVariants })}
-        className="grid gap-5 xl:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.98fr)]"
+        className="grid gap-5 xl:grid-cols-[minmax(360px,0.92fr)_minmax(0,1.08fr)]"
       >
-        <section className="rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_8px_24px_rgba(25,28,30,0.04)]">
-          <div className="mb-3 flex items-start justify-between gap-4">
+        <section className="rounded-2xl border border-border/50 bg-surface-container-lowest p-6">
+          <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
-                보조 진입
+                보조 도구
               </p>
-              <h2 className="mt-1 text-lg font-semibold">빠르게 시작하기</h2>
+              <h2 className="mt-1 text-lg font-semibold">분석 외 작업</h2>
             </div>
-            <p className="max-w-[220px] text-right text-sm text-muted-foreground">
-              채팅 없이 바로 실행할 작업만 모았습니다.
+            <p className="max-w-[240px] text-right text-sm text-muted-foreground">
+              계산기와 시각화처럼 보조 성격의 작업만 남겼습니다.
             </p>
           </div>
-          <TrackSuggestions onStartAnalysis={handleStartAnalysis} onUploadClick={onUploadClick} showHeader={false} />
+          <TrackSuggestions
+            onStartAnalysis={handleStartAnalysis}
+            onUploadClick={onUploadClick}
+            showHeader={false}
+            showUploadCard={false}
+          />
         </section>
 
         <section className={cn(
-          'rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_8px_24px_rgba(25,28,30,0.04)]',
-          'min-h-[280px]',
+          'rounded-2xl border border-border/50 bg-surface-container-lowest p-6',
+          'min-h-[228px]',
         )}>
-          <div className="mb-3 flex items-start justify-between gap-4">
+          <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
                 최근 작업
               </p>
               <h2 className="mt-1 text-lg font-semibold">{t.hub.cards.recentTitle}</h2>
             </div>
-            <p className="max-w-[220px] text-right text-sm text-muted-foreground">
+            <p className="max-w-[240px] text-right text-sm text-muted-foreground">
               최근 분석과 시각화를 이어서 열 수 있습니다.
             </p>
           </div>

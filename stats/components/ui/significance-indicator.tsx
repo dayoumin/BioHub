@@ -7,9 +7,9 @@ import { StatusIcon } from './status-icon'
  * Significance Indicator Component
  *
  * Displays statistical significance with appropriate semantic colors.
- * - p < 0.01: Highly significant (deeper muted rose)
- * - p < 0.05: Significant (muted rose)
- * - p >= 0.05: Not significant (muted sage)
+ * - p < 0.01: Highly significant
+ * - p < 0.05: Significant
+ * - p >= 0.05: Not significant
  */
 
 interface SignificanceIndicatorProps {
@@ -42,7 +42,7 @@ export function SignificanceIndicator({
       ? 'Significant'
       : 'Not Significant'
 
-  const status = isSignificant ? 'error' : 'success'
+  const status = isSignificant ? 'success' : 'neutral'
 
   return (
     <span className={cn('inline-flex items-center gap-1', className)}>

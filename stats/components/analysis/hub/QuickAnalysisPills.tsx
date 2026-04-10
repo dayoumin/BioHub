@@ -115,8 +115,8 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
             onClick={() => onQuickAnalysis(method.id)}
             className={cn(
               'h-8 px-3.5 text-xs rounded-full',
-              'border border-border/50 bg-background',
-              'text-foreground/80 hover:text-primary hover:border-primary/35 hover:bg-primary/5',
+              'border border-border/50 bg-surface-container-lowest',
+              'text-foreground/80 hover:text-foreground hover:border-border/70 hover:bg-surface-container-low/50',
               'transition-colors duration-150',
               focusRing
             )}
@@ -131,7 +131,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
           size="sm"
           data-testid="quick-analysis-settings"
           onClick={handleOpenEdit}
-          className="h-8 px-3 gap-1.5 border-border/50 bg-background text-muted-foreground hover:text-foreground"
+          className="h-8 px-3 gap-1.5 border-border/50 bg-surface-container-lowest text-muted-foreground hover:bg-surface-container-low/50 hover:text-foreground"
           title={t.hub.quickAnalysis.editTooltip}
         >
           <Settings2 className="w-3.5 h-3.5" />

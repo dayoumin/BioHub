@@ -9,10 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { proseBase } from '@/components/common/card-styles'
-import { AI_ACCENT } from '@/lib/design-tokens/analysis'
+import { AI_ACCENT } from '@/lib/design-tokens'
 import { sectionRevealVariants } from './results-helpers'
 import type { ChatMessage } from '@/lib/types/chat'
-import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
+import type { TerminologyDictionary } from '@/lib/terminology'
 
 interface FollowUpQASectionProps {
   phase: number
@@ -63,7 +63,7 @@ export function FollowUpQASection({
       initial={prefersReducedMotion ? undefined : 'hidden'}
       animate={prefersReducedMotion ? undefined : 'visible'}
     >
-      <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]" data-testid="follow-up-section">
+      <Card className="border border-border/40 bg-surface-container-lowest" data-testid="follow-up-section">
         <CardHeader className="pb-3 pt-5 px-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             <MessageCircle className="w-4 h-4" />

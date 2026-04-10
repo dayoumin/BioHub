@@ -60,8 +60,8 @@ const SummaryBlock = memo(function SummaryBlock({
   showCursor: boolean
 }): React.ReactElement {
   return (
-    <div className={cn(AI_ACCENT.surfaceStrong, 'rounded-lg p-4')}>
-      <div className={cn(proseBase, 'text-sm leading-relaxed')}>
+    <div className={cn(AI_ACCENT.surfaceStrong, 'rounded-lg px-5 py-4')}>
+      <div className={cn(proseBase, 'max-w-[78ch] text-sm leading-7')}>
         <ReactMarkdown>{summary}</ReactMarkdown>
         {showCursor && <StreamingCursor />}
       </div>
@@ -119,7 +119,7 @@ function SectionContent({
   const Icon = getSectionIcon(section.key)
 
   return (
-    <div className="flex items-start gap-2.5 py-3">
+    <div className="flex items-start gap-2.5 py-3.5">
       <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
         <Icon className="w-3.5 h-3.5 text-muted-foreground" />
       </div>
@@ -127,7 +127,7 @@ function SectionContent({
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {section.label}
         </span>
-        <div className={cn(proseBase, 'text-sm leading-relaxed mt-1')}>
+        <div className={cn(proseBase, 'mt-1 max-w-[76ch] text-sm leading-7')}>
           <ReactMarkdown>{section.content}</ReactMarkdown>
           {section.isStreaming && <StreamingCursor />}
         </div>
@@ -318,11 +318,11 @@ export function AiInterpretationCard({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <Card className="border border-border/40 bg-surface-container-lowest">
               <CardContent className="py-5 space-y-3">
                 <div className="flex items-center gap-3">
                   <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', AI_ACCENT.iconBgSubtle)}>
-                    <Sparkles className="w-4 h-4 text-violet-300 animate-pulse" /> {/* skeleton: 의도적으로 연한 색 유지 */}
+                    <Sparkles className={cn('w-4 h-4 animate-pulse', AI_ACCENT.icon)} />
                   </div>
                   <span className="text-sm text-muted-foreground/50 font-medium">{t.results.ai.loading}</span>
                 </div>
@@ -344,7 +344,7 @@ export function AiInterpretationCard({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <Card className="border border-border/40 bg-surface-container-lowest">
               <CardContent className="py-5 flex items-center gap-3">
                 <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', AI_ACCENT.iconBg)}>
                   <Sparkles className={cn('w-4 h-4 animate-pulse', AI_ACCENT.icon)} />
@@ -363,7 +363,7 @@ export function AiInterpretationCard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+            <Card className="border border-border/40 bg-surface-container-lowest">
               {/* --- Header --- */}
               <CardHeader className="pb-2 pt-5 px-5">
                 <div className="flex items-center justify-between">
@@ -385,7 +385,7 @@ export function AiInterpretationCard({
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-2 pb-5 px-5 space-y-4">
+              <CardContent className="space-y-3.5 px-5 pb-4 pt-2">
                 {/* --- 1. Summary Hero --- */}
                 <SummaryBlock
                   summary={parsedInterpretation.summary}
@@ -410,7 +410,7 @@ export function AiInterpretationCard({
                       onClick={handleShowAll}
                       aria-expanded={showAll}
                       className={cn(
-                        'text-xs h-6 px-2 gap-1 ml-auto',
+                        'ml-auto h-6 gap-1 px-2 text-xs',
                         showAll && AI_ACCENT.labelSecondary,
                       )}
                     >
@@ -429,7 +429,7 @@ export function AiInterpretationCard({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className="bg-surface-container/40 rounded-lg px-4"
+                      className="rounded-lg bg-surface-container/35 px-4"
                     >
                       <SectionContent section={selectedSection} />
                     </motion.div>
@@ -442,7 +442,7 @@ export function AiInterpretationCard({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="bg-surface-container/40 rounded-lg px-4 divide-y divide-surface-container-high/60"
+                      className="rounded-lg bg-surface-container/35 px-4 divide-y divide-surface-container-high/60"
                     >
                       {detailSections.map(section => (
                         <SectionContent key={section.key} section={section} />
@@ -453,7 +453,7 @@ export function AiInterpretationCard({
 
                 {/* --- Fallback: 볼드 소제목 없는 상세 텍스트 --- */}
                 {hasDetail && !hasSections && (
-                  <div className={cn(proseBase, 'text-sm leading-relaxed bg-surface-container/30 rounded-lg p-4')}>
+                  <div className={cn(proseBase, 'max-w-[78ch] rounded-lg bg-surface-container/30 p-4 text-sm leading-7')}>
                     <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
                     {isInterpreting && <StreamingCursor />}
                   </div>

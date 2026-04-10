@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils'
 import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
-import { LAYOUT } from '@/components/common/card-styles'
 import { useTerminology } from '@/hooks/use-terminology'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -93,6 +92,7 @@ export function AnalysisLayout({
   className
 }: AnalysisLayoutProps) {
   const t = useTerminology()
+  const shellWidth = 'mx-auto max-w-[1480px]'
 
   // 4단계 스텝 정의 (terminology 기반)
   const STEPS: StepItem[] = useMemo(() => {
@@ -138,7 +138,7 @@ export function AnalysisLayout({
 
       {/* ===== 헤더 (Sticky, Axiom Slate — tonal bg shift, no border) ===== */}
       <header className="sticky top-0 z-50 w-full bg-surface-container-low/95 backdrop-blur-sm supports-[backdrop-filter]:bg-surface-container-low/80">
-        <div className={cn(LAYOUT.maxWidth, 'px-8')}>
+        <div className={cn(shellWidth, 'px-6')}>
           <div className="flex items-center justify-between h-12">
             {/* 좌: 섹션명 + 아이콘 */}
             <div className="flex items-center gap-2 text-foreground">
@@ -192,9 +192,9 @@ export function AnalysisLayout({
       )}
 
       {/* ===== 메인 콘텐츠 + 히스토리 사이드바 ===== */}
-      <div className={cn(LAYOUT.maxWidth, 'flex gap-8')}>
+      <div className={cn(shellWidth, 'flex gap-6 xl:gap-8')}>
         <main className="min-w-0 flex-1">
-          <div className={cn('px-8 py-10 space-y-8', showFloatingNav && !showHub && onNext && 'pb-24')}>
+          <div className={cn('px-6 py-8 space-y-6', showFloatingNav && !showHub && onNext && 'pb-24')}>
             {/* Analysis 전용 도움말 패널 */}
             {showHelp && onHelpToggle && (
               <Card className="border-info-border bg-info-bg">
@@ -241,7 +241,7 @@ export function AnalysisLayout({
 
         {/* 우측 히스토리 사이드바 (분석 플로우 진입 시만 표시) */}
         {isAnalysisFlow && historySidebar && (
-          <div className="py-10">
+          <div className="py-8">
             {historySidebar}
           </div>
         )}
@@ -250,7 +250,7 @@ export function AnalysisLayout({
       {/* 분석 중 오버레이 */}
       {isAnalyzing && (
         <div className="fixed inset-0 bg-surface/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Card className="w-80 border-0 bg-surface-container-lowest shadow-sm">
+          <Card className="w-80 border border-border/40 bg-surface-container-lowest">
             <CardContent className="pt-6 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -267,7 +267,7 @@ export function AnalysisLayout({
       {/* ===== 하단 네비게이션 바 (Axiom Slate — tonal bg, no border) ===== */}
       {showFloatingNav && !showHub && onNext && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-low/90 backdrop-blur-md">
-          <div className={cn(LAYOUT.maxWidth, 'px-8 py-3 flex items-center justify-end')}>
+          <div className={cn(shellWidth, 'px-6 py-3 flex items-center justify-end')}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>

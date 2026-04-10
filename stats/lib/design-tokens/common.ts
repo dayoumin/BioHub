@@ -17,29 +17,29 @@ export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-
 /** 클릭 가능한 액션 카드 (아이콘 + 라벨 그리드용) */
 export const actionCardBase = cn(
   'relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl',
-  'border border-transparent bg-muted/20',
+  'border border-border/40 bg-surface-container-lowest',
   'transition-all duration-300',
   focusRing,
-  'hover:bg-card hover:border-border hover:shadow-sm hover:-translate-y-0.5',
+  'hover:bg-surface-container-low/30 hover:border-border/60',
   'cursor-pointer group',
 )
 
 /** 추천 카드 (컴팩트 인라인 — 뱃지 + 메서드명 + 분석하기 버튼 한 줄) */
 export const recommendationCardBase = cn(
   'flex items-center gap-2 px-3 py-2 rounded-lg',
-  'border border-border/60 bg-card',
+  'border border-border/40 bg-card',
   'transition-all duration-200',
-  'hover:border-border hover:shadow-sm',
+  'hover:border-border/60 hover:bg-surface-container-low/30',
   'group',
 )
 
 /** 카테고리 브라우저 카드 (아이콘 + 라벨 + 메서드 수) */
 export const categoryCardBase = cn(
   'flex items-center gap-3 p-4 rounded-2xl',
-  'border border-transparent bg-muted/20',
+  'border border-border/40 bg-surface-container-lowest',
   'transition-all duration-300',
   focusRing,
-  'hover:bg-card hover:border-border hover:shadow-sm hover:-translate-y-0.5',
+  'hover:bg-surface-container-low/30 hover:border-border/60',
   'cursor-pointer group',
 )
 
@@ -54,13 +54,13 @@ export const selectableItemBase = cn(
 export const listItemBase = cn(
   'p-3 rounded-2xl border border-border/60 bg-card',
   'transition-all duration-200',
-  'hover:border-border hover:shadow-sm active:scale-[0.98]',
+  'hover:border-border hover:bg-surface-container-low/30 active:scale-[0.98]',
   'cursor-pointer group',
 )
 
 /** 정적 콘텐츠 패널 (가정검정 결과, 상세정보 등 읽기 전용) */
 export const staticPanelBase = cn(
-  'p-4 rounded-xl border border-border/40 bg-background',
+  'p-4 rounded-xl border border-border/40 bg-surface-container-lowest',
 )
 
 /** 마크다운 렌더링 래퍼 (ReactMarkdown 컨테이너) */

@@ -129,3 +129,12 @@
 - [ ] `stats/components/analysis/variable-selector/AnalysisOptions.tsx`
 - [ ] `stats/components/analysis/steps/VariableSelectionStep.tsx`
 - [ ] `stats/components/analysis/steps/AnalysisExecutionStep.tsx`
+
+## 9. Statistics UI Polish Follow-up (2026-04-10)
+
+- [ ] 모바일 해상도에서 Hub hero, 빠른 분석 pills, 보조 도구 카드 밀도 재점검
+- [ ] 결과 화면 우측 히스토리 사이드바 정보 밀도와 액션 노출 수준 재조정
+- [ ] 결과 화면 Hero 메타 영역에서 메서드별 중요 정보 우선순위 재정의
+- [ ] AI 해석 카드의 섹션 pill/전체 보기 동작을 모바일과 긴 텍스트 기준으로 추가 검토
+- [ ] Data Exploration Step에서 업로드 교체 상태와 경고 배너의 시각적 우선순위 재검토
+- [ ] 실제 사용자 시나리오 기준으로 Hub → Step 1 → Result 전체 흐름 e2e 스모크 테스트 추가

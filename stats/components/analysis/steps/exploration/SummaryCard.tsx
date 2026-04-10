@@ -47,10 +47,10 @@ export const SummaryCard = memo(function SummaryCard({
         }
       }}
       className={cn(
-        'relative cursor-pointer transition-all duration-200 p-3',
+        'relative h-full min-h-[102px] cursor-pointer p-3.5 transition-all duration-200',
         focusRing,
-        'hover:border-primary/40 hover:shadow-sm',
-        selected && 'ring-2 ring-primary focus-visible:ring-primary border-primary shadow-sm',
+        'hover:border-border/70 hover:bg-surface-container-low/35',
+        selected && 'ring-2 ring-primary focus-visible:ring-primary border-primary bg-surface-container-low/25',
         !selected && 'border-border/40',
         disabled && 'opacity-40 cursor-not-allowed',
         visibility === 'secondary' && 'opacity-60',

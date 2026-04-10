@@ -797,14 +797,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* ===== 스텝 헤더 (P0-1: Copy + Save 상단 배치) ===== */}
         <StepHeader
           icon={BarChart3}
           title={t.analysis.stepTitles.results}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
           action={
-            <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-surface-container-lowest px-2 py-1.5 shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
+            <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-surface-container-lowest px-2 py-1.5">
               <Button
                 variant="outline"
                 size="sm"
@@ -881,8 +881,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           apaFormat={apaFormat}
           uploadedFileName={uploadedFileName ?? null}
           uploadedData={uploadedData}
-          aiSummary={parsedInterpretation?.summary ?? null}
-          isInterpreting={isInterpreting}
           prefersReducedMotion={prefersReducedMotion}
           t={t}
         />

@@ -24,7 +24,7 @@ export function StatisticCard({ label, tooltip, children, className }: Statistic
     <div className={cn(
       "text-center p-4 rounded-xl",
       "bg-surface-container-lowest",
-      "shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]",
+      "border border-border/40",
       className
     )}>
       <Tooltip>

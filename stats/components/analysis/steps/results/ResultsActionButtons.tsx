@@ -89,7 +89,7 @@ export function ResultsActionButtons({
   return (
     <>
       {/* ===== 액션 버튼 ===== */}
-      <div className="mt-2 rounded-2xl border border-border/50 bg-surface-container-lowest px-4 py-4 shadow-[0px_8px_24px_rgba(25,28,30,0.04)]" data-testid="action-buttons">
+      <div className="rounded-2xl border border-border/50 bg-surface-container-lowest px-4 py-4" data-testid="action-buttons">
         <div className="space-y-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">다음 작업</p>
@@ -129,8 +129,8 @@ export function ResultsActionButtons({
               </div>
             </div>
 
-            <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/75">
+            <div className="rounded-xl border border-border/50 bg-surface-container-low/40 px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
                 새 흐름 시작
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
