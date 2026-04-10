@@ -53,6 +53,7 @@ interface UnifiedVariableSelectorProps {
   data: Record<string, unknown>[]
   selectorType: SelectorType
   onComplete: (mapping: VariableMapping) => void
+  onMappingChange?: (mapping: VariableMapping) => void
   onBack?: () => void
   initialSelection?: Partial<VariableMapping>
   className?: string
@@ -347,6 +348,7 @@ export function UnifiedVariableSelector({
   data,
   selectorType,
   onComplete,
+  onMappingChange,
   onBack,
   initialSelection,
   className,
@@ -406,6 +408,10 @@ export function UnifiedVariableSelector({
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null)
   const [dragItem, setDragItem] = useState<{ name: string; type: AcceptedType } | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+
+  useEffect(() => {
+    onMappingChange?.(buildMappingFromSlots(slots, assignments))
+  }, [slots, assignments, onMappingChange])
 
   const liveValidationErrors = useMemo(() => validateSlots(slots, assignments), [slots, assignments])
   const slotValidationState = useMemo(() => {

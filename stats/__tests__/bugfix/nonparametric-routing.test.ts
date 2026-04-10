@@ -204,6 +204,48 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
       expect(alternative).toBeUndefined()
       expect(alpha).toBeUndefined()
     })
+
+    it('settings의 nullProportion을 우선 전달해야 한다', async () => {
+      mock.oneSampleProportionTest.mockResolvedValue({
+        zStatistic: 1.26,
+        pValueExact: 0.207,
+        sampleProportion: 0.6
+      })
+
+      const data = Array.from({ length: 10 }, (_, i) => ({ result: i < 6 ? 'yes' : 'no' }))
+      const method = STATISTICAL_METHODS['proportion-test']!
+
+      await executor.executeMethod(
+        method,
+        data,
+        { successCount: 6, nullProportion: '0.5', dependent: ['result'] },
+        { nullProportion: 0.3 }
+      )
+
+      const [, , nullProportion] = mock.oneSampleProportionTest.mock.calls[0]
+      expect(nullProportion).toBe(0.3)
+    })
+
+    it('numeric successValue도 명시적으로 성공 기준으로 사용해야 한다', async () => {
+      mock.oneSampleProportionTest.mockResolvedValue({
+        zStatistic: 1.26,
+        pValueExact: 0.207,
+        sampleProportion: 0.4
+      })
+
+      const data = Array.from({ length: 10 }, (_, i) => ({ result: i < 4 ? 0 : 1 }))
+      const method = STATISTICAL_METHODS['proportion-test']!
+
+      await executor.executeMethod(
+        method,
+        data,
+        { dependentVar: 'result' },
+        { successValue: 0 }
+      )
+
+      const [successCount] = mock.oneSampleProportionTest.mock.calls[0]
+      expect(successCount).toBe(4)
+    })
   })
 
   // ─── 3. chi-square-goodness는 여전히 올바른 경로를 사용 ─────────────────

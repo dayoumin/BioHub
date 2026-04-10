@@ -24,6 +24,22 @@ export interface InterpretationContext {
   uploadedFileName?: string
 }
 
+function getTestVariantLabel(results: AnalysisResult): string | null {
+  if (!results.testVariant || results.testVariant === 'standard') return null
+
+  if (results.testVariant === 'welch') {
+    if (results.method === 'welch-t' || results.method === 'two-sample-t' || results.method === 't-test') {
+      return 'Welch t-test'
+    }
+    if (results.method === 'one-way-anova' || results.method === 'anova') {
+      return 'Welch ANOVA'
+    }
+    return 'Welch variant'
+  }
+
+  return results.testVariant
+}
+
 // ============================================
 // 프롬프트 빌더
 // ============================================
@@ -37,8 +53,9 @@ export function buildInterpretationPrompt(ctx: InterpretationContext): string {
 
   // 기본 정보
   parts.push(`## 분석 방법\n${results.method}`)
-  if (results.testVariant) {
-    parts.push(`- 실행 변형: ${results.testVariant === 'welch' ? 'Welch ANOVA' : results.testVariant}`)
+  const testVariantLabel = getTestVariantLabel(results)
+  if (testVariantLabel) {
+    parts.push(`- 실행 변형: ${testVariantLabel}`)
   }
 
   // 핵심 통계량

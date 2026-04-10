@@ -236,12 +236,16 @@ export async function handleNonparametric(
       let successCount = Number.isFinite(parsedSuccessCount) ? parsedSuccessCount : undefined
       const rawSuccessLabel = data.variables?.successLabel
       let successLabel = typeof rawSuccessLabel === 'string' ? rawSuccessLabel : undefined
-      const explicitSuccessValue = typeof settings?.successValue === 'string'
-        ? settings.successValue
+      const explicitSuccessValue = (
+        typeof settings?.successValue === 'string' || typeof settings?.successValue === 'number'
+      )
+        ? String(settings.successValue)
         : undefined
       const totalCount = data.totalN || 1
-      // nullProportion: variableMapping에 string으로 저장 → float 파싱 (기본 0.5)
-      const nullProportion = parseFloat(String(data.variables?.nullProportion ?? '')) || 0.5
+      const nullProportion = parseNumberSetting(settings?.nullProportion)
+        ?? parseNumberSetting(settings?.testProportion)
+        ?? parseNumberSetting(data.variables?.nullProportion)
+        ?? 0.5
       let freqCounts: Record<string, number> = {}
 
       if (successCount === undefined) {

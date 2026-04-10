@@ -21,13 +21,16 @@ vi.mock('@/components/analysis/variable-selector/UnifiedVariableSelector', () =>
   UnifiedVariableSelector: ({
     selectorType,
     onComplete,
+    onMappingChange,
   }: {
     selectorType: string
     onComplete: (mapping: unknown) => void
+    onMappingChange?: (mapping: unknown) => void
   }) => {
     capturedSelectorType = selectorType
     return (
       <div data-testid="unified-variable-selector" data-selector-type={selectorType}>
+        <button onClick={() => onMappingChange?.({ variables: ['x1', 'x2'] })}>Preview update</button>
         <button onClick={() => onComplete({ dependentVar: 'd', groupVar: 'g' })}>Complete</button>
       </div>
     )
@@ -401,8 +404,8 @@ describe('VariableSelectionStep', () => {
 
       expect(screen.getByTestId('analysis-execution-preview')).toBeDefined()
       expect(screen.getByTestId('execution-preview-missing')).toBeDefined()
-      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('종속 변수 (Y)을(를) 선택해야 합니다')
-      expect(screen.getByTestId('execution-preview-missing-factor')).toHaveTextContent('그룹 변수 (X)을(를) 선택해야 합니다')
+      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('종속 변수을(를) 선택해야 합니다')
+      expect(screen.getByTestId('execution-preview-missing-factor')).toHaveTextContent('그룹 변수을(를) 선택해야 합니다')
     })
 
     it('shows minimum count guidance for multi-variable selectors', () => {
@@ -417,6 +420,36 @@ describe('VariableSelectionStep', () => {
       render(<VariableSelectionStep />)
 
       expect(screen.getByTestId('execution-preview-missing-variables')).toHaveTextContent('분석 변수 2개 필요, 현재 1개')
+    })
+
+    it('uses method requirements instead of generic chi-square slots for one-sample-proportion', () => {
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: { id: 'one-sample-proportion', name: 'one-sample-proportion' },
+        detectedVariables: null,
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('이진 변수을(를) 선택해야 합니다')
+      expect(screen.queryByTestId('execution-preview-missing-independent')).toBeNull()
+    })
+
+    it('updates the preview from the selector live mapping before submit', () => {
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: { id: 'correlation', name: 'correlation' },
+        detectedVariables: {
+          numericVars: ['x1'],
+        },
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByTestId('execution-preview-missing-variables')).toHaveTextContent('분석 변수 2개 필요, 현재 1개')
+      fireEvent.click(screen.getByText('Preview update'))
+      expect(screen.queryByTestId('execution-preview-missing-variables')).toBeNull()
+      expect(screen.getByText('변수 2개')).toBeDefined()
     })
   })
 

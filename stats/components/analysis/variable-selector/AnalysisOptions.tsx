@@ -6,7 +6,7 @@
  * Supported controls are derived from `variable-requirements.settings`.
  */
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -104,8 +104,12 @@ export function AnalysisOptionsSection({
     () => ciMethodSetting?.options ?? [],
     [ciMethodSetting?.options]
   )
+  const initializedDefaultsKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
+    const initializationKey = methodRequirements?.id ?? '__no-method__'
+    if (initializedDefaultsKeyRef.current === initializationKey) return
+
     const defaults: {
       alternative?: 'two-sided' | 'less' | 'greater'
       ciMethod?: string
@@ -156,7 +160,10 @@ export function AnalysisOptionsSection({
     if (Object.keys(defaults).length > 0) {
       setAnalysisOptions(defaults)
     }
+
+    initializedDefaultsKeyRef.current = initializationKey
   }, [
+    methodRequirements?.id,
     alternativeSetting?.default,
     ciMethodSetting?.default,
     nullProportionSetting?.default,

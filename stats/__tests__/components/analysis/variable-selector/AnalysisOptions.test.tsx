@@ -156,6 +156,28 @@ describe('AnalysisOptionsSection', () => {
     )
   })
 
+  it('does not re-apply the default testValue while the user is typing a negative value', () => {
+    const { rerender } = render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-sample-t')} />
+    )
+
+    mockSetAnalysisOptions.mockClear()
+    storeState.analysisOptions = {
+      ...storeState.analysisOptions,
+      testValue: undefined,
+    }
+
+    rerender(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-sample-t')} />
+    )
+
+    expect(mockSetAnalysisOptions).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        testValue: 0,
+      })
+    )
+  })
+
   it('renders schema-driven generic controls for select and numeric settings', () => {
     render(
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-way-anova')} />

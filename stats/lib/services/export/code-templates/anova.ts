@@ -14,7 +14,10 @@ export const anovaR: CodeTemplate = {
     const d = dep(input)
     const g = group(input)
     const isWelch = input.options.testVariant === 'welch'
-    const postHocMethod = input.options.postHocMethod ?? (isWelch ? 'games-howell' : 'tukey')
+    const requestedPostHocMethod = input.options.postHocMethod
+    const postHocMethod = isWelch && requestedPostHocMethod === 'tukey'
+      ? 'games-howell'
+      : requestedPostHocMethod ?? (isWelch ? 'games-howell' : 'tukey')
     const analysisBlock = isWelch
       ? `library(rstatix)
 welch_result <- welch_anova_test(data, ${safeRFormula(d)} ~ ${safeRFormula(g)})
@@ -57,7 +60,10 @@ export const anovaPython: CodeTemplate = {
     const d = dep(input)
     const g = group(input)
     const isWelch = input.options.testVariant === 'welch'
-    const postHocMethod = input.options.postHocMethod ?? (isWelch ? 'games-howell' : 'tukey')
+    const requestedPostHocMethod = input.options.postHocMethod
+    const postHocMethod = isWelch && requestedPostHocMethod === 'tukey'
+      ? 'games-howell'
+      : requestedPostHocMethod ?? (isWelch ? 'games-howell' : 'tukey')
     const imports = postHocMethod === 'tukey'
       ? 'from statsmodels.stats.multicomp import pairwise_tukeyhsd'
       : 'import pingouin as pg'

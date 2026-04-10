@@ -166,6 +166,27 @@ describe('code-export', () => {
     expect(pyExport.content).toContain('pairwise_gameshowell')
   })
 
+  it('Welch ANOVA export는 stale tukey metadata를 games-howell로 정규화한다', () => {
+    const result = makeAnalysisResult({
+      testVariant: 'welch',
+      postHocMethod: 'tukey',
+    })
+
+    const rExport = exportCodeFromAnalysis({
+      method: makeMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+      variableMapping: { dependentVar: 'score', groupVar: 'treatment' },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'anova.csv',
+      dataRowCount: 30,
+      results: result,
+    }, 'R')
+
+    expect(rExport.success).toBe(true)
+    expect(rExport.content).toContain('welch_anova_test')
+    expect(rExport.content).toContain('games_howell_test')
+    expect(rExport.content).not.toContain('TukeyHSD(model)')
+  })
+
   it('normality export는 첫 변수에 대해 Shapiro-Wilk만 생성한다', () => {
     const exportResult = exportCodeFromAnalysis({
       method: makeMethod('normality-test', 'Normality Test', 'descriptive'),

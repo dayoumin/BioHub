@@ -7,7 +7,7 @@
  * Uses detectedVariables from Step 2 as initial selection.
  */
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { logger } from '@/lib/utils/logger'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,10 @@ import { AutoConfirmSelector } from '@/components/common/variable-selectors'
 import { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
 import type { SelectorType } from '@/components/analysis/variable-selector/slot-configs'
 import { getSlotConfigs } from '@/components/analysis/variable-selector/slot-configs'
+import {
+  buildSlotsFromMethodRequirements,
+  decorateSlotsWithMethodRequirements,
+} from '@/components/analysis/variable-selector/method-fit'
 import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
@@ -89,6 +93,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const [previewDraftMapping, setPreviewDraftMapping] = useState<VariableMapping | null>(null)
 
   const methodRequirements = useMemo(
     () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
@@ -333,9 +338,21 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     return result
   }, [existingMapping, detectedVariables, selectorType])
 
+  useEffect(() => {
+    setPreviewDraftMapping(null)
+  }, [selectedMethod?.id, selectorType, existingMapping, initialSelection])
+
+  const previewSlots = useMemo(
+    () => decorateSlotsWithMethodRequirements(
+      buildSlotsFromMethodRequirements(selectorType, methodRequirements) ?? getSlotConfigs(selectorType),
+      methodRequirements
+    ),
+    [selectorType, methodRequirements]
+  )
+
   const previewVariableMapping = useMemo(
-    () => (existingMapping ?? initialSelection) as VariableMapping,
-    [existingMapping, initialSelection]
+    () => (previewDraftMapping ?? existingMapping ?? initialSelection) as VariableMapping,
+    [previewDraftMapping, existingMapping, initialSelection]
   )
 
   const { executionSettingEntries } = useMemo(() => buildAnalysisExecutionContext({
@@ -361,7 +378,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const previewMissingRequirements = useMemo(() => {
     if (selectorType === 'auto') return []
 
-    return getSlotConfigs(selectorType).flatMap(slot => {
+    return previewSlots.flatMap(slot => {
       if (!slot.required) return []
 
       const assignedCount = countAssignedValues(previewVariableMapping[slot.mappingKey])
@@ -383,18 +400,17 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       return []
     })
-  }, [selectorType, previewVariableMapping])
+  }, [selectorType, previewSlots, previewVariableMapping])
 
   // F1: 필수 슬롯이 프리필되지 않았을 때 메서드별 가이드 표시
   const needsVariableGuide = useMemo(() => {
     if (!selectedMethod || selectorType === 'auto') return false
-    const slots = getSlotConfigs(selectorType)
-    const requiredSlots = slots.filter(s => s.required)
+    const requiredSlots = previewSlots.filter(s => s.required)
     return requiredSlots.some(slot => {
-      const v = initialSelection[slot.mappingKey]
+      const v = previewVariableMapping[slot.mappingKey]
       return v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
     })
-  }, [selectedMethod, selectorType, initialSelection])
+  }, [selectedMethod, selectorType, previewSlots, previewVariableMapping])
 
   const mismatchHint = useMemo(() => {
     if (!selectedMethod || selectorType !== 'group-comparison' || !detectedVariables) return undefined
@@ -468,6 +484,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         methodName={selectedMethod?.name}
         mismatchHint={mismatchHint}
         onFitAction={mismatchHint ? handleMethodChange : undefined}
+        onMappingChange={setPreviewDraftMapping}
       />
     )
   }
