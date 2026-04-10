@@ -362,8 +362,8 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
         expect(recommendation!.confidence).toBeGreaterThanOrEqual(0.7)
         expect(recommendation!.reasoning.length).toBeGreaterThanOrEqual(1)
 
-        // ANOVA 계열: 'anova'가 One-Way ANOVA의 기본 ID (one-way-anova는 alias)
-        const anovaRelated = ['anova', 'kruskal-wallis', 'welch-anova', 'manova']
+        // ANOVA 계열: canonical은 one-way-anova, 일부 경계층 alias 입력도 허용
+        const anovaRelated = ['one-way-anova', 'anova', 'kruskal-wallis', 'welch-anova', 'manova']
         expect(anovaRelated).toContain(recommendation!.method.id)
 
         // 변수 할당에 실제 컬럼명만 있어야 함

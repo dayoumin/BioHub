@@ -191,6 +191,7 @@ bootSelectorTypes([
   ['chi-square-goodness', 'chi-square'],
   ['chi-square-independence', 'chi-square'],
   ['mcnemar', 'chi-square'],
+  ['one-sample-proportion', 'chi-square'],
   ['proportion-test', 'chi-square'],
 
   ['friedman', 'repeated-measures'],

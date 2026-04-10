@@ -782,8 +782,8 @@ export async function friedmanTest(groups: number[][] | number[]): Promise<Fried
  * 일원 분산분석
  * @worker Worker 3
  */
-export async function oneWayAnova(groups: number[][] | number[]): Promise<OneWayAnovaResult> {
-  return callWorkerMethod<OneWayAnovaResult>(3, 'one_way_anova', { groups })
+export async function oneWayAnova(groups: number[][] | number[], welch?: boolean): Promise<OneWayAnovaResult> {
+  return callWorkerMethod<OneWayAnovaResult>(3, 'one_way_anova', { groups, welch })
 }
 
 /**

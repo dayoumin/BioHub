@@ -11,7 +11,11 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 export type UserLevel = 'beginner' | 'intermediate' | 'expert'
 
 interface SettingsState {
-  /** Whether to use Ollama LLM for analysis method recommendation in Smart Flow */
+  /**
+   * Ollama recommendation path is intentionally dormant for the current product roadmap.
+   * Keep the default as false. Revisit only when the app/internal-network deployment plan
+   * requires local or self-hosted inference (personal workstation or server operation).
+   */
   useOllamaForRecommendation: boolean
 
   /** User expertise level for result interpretation */
@@ -27,7 +31,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      // Default to DecisionTree (faster and more stable)
+      // Keep disabled by default until the future app/internal-network rollout needs it.
       useOllamaForRecommendation: false,
 
       // Default to expert for professional analysis

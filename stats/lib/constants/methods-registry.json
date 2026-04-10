@@ -612,7 +612,8 @@
       },
       "one_way_anova": {
         "params": [
-          "groups"
+          "groups",
+          "welch?"
         ],
         "returns": [
           "fStatistic",

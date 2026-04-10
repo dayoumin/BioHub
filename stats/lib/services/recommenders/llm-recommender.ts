@@ -2,7 +2,7 @@
  * 통합 LLM 추천 서비스
  *
  * - 중앙 프롬프트 (prompts.ts)에서 페르소나별 시스템 프롬프트 사용
- * - 유저 설정에 따라 공급자(OpenRouter/Ollama) 우선순위 결정
+ * - 현재 운영 경로는 OpenRouter 우선. Ollama는 미래 앱/내부망 배포 시점을 위한 보조 경로로만 유지
  * - 모든 공급자 실패 시 Keyword 기반 Fallback
  * - 통합 스트리밍 인터페이스 (AsyncGenerator)
  */
@@ -91,6 +91,8 @@ export class LlmRecommender {
     logger.info(`[LlmRecommender] Starting recommendation in ${isDiagnostic ? 'DIAGNOSTIC' : 'CONSULTANT'} mode`)
 
     // 2. 공급자 우선순위 결정 (설정 반영)
+    // NOTE: Ollama는 당장 활성 개발 대상이 아니다.
+    // 앱화 이후 내부망/오프라인 또는 self-hosted 운영이 필요해질 때만 다시 확장한다.
     const { useOllamaForRecommendation } = useSettingsStore.getState()
 
     if (useOllamaForRecommendation) {
@@ -392,6 +394,8 @@ export class LlmRecommender {
    */
   private useKeywordFallback(userInput: string): LlmRecommendationResult {
     logger.info('[LlmRecommender] AI failed or unavailable, using keyword-based fallback')
+    // NOTE: keyword fallback implementation currently lives in the Ollama module for historical reasons.
+    // This does not mean Ollama is an active first-class provider in the current roadmap.
     const { recommendation, responseText } = ollamaRecommender.keywordBasedRecommend(userInput)
     return { recommendation, responseText, provider: 'keyword' }
   }

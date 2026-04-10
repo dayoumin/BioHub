@@ -739,7 +739,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataTimeseries
       )
 
-      // timeseries는 datetime 컬럼이 없으면 paired-t-test를 추천
+      // timeseries는 datetime 컬럼이 없으면 paired-t를 추천
       expect(result.method.id).toBe('paired-t')
       expect(result.confidence).toBeGreaterThan(0)
     })
