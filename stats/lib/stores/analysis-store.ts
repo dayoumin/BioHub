@@ -58,7 +58,7 @@ export interface DetectedVariables {
 export type { AnalysisHistory } from './history-store'
 export type { AiRecommendationContext } from '@/lib/utils/storage-types'
 
-interface AnalysisState {
+export interface AnalysisState {
   // 현재 단계
   currentStep: number
   completedSteps: number[]

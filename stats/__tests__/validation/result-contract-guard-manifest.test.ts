@@ -16,7 +16,7 @@ describe('result contract guard manifest', () => {
 
     expect(manifest.criticalPaths.length).toBeGreaterThan(0)
     expect(manifest.commands.length).toBeGreaterThan(0)
-    expect(manifest.commands.every((command) => typeof command.name === 'string' && typeof command.run === 'string')).toBe(true)
+    expect(manifest.commands.every((command: { name: unknown; run: unknown }) => typeof command.name === 'string' && typeof command.run === 'string')).toBe(true)
   })
 
   it('critical path matching이 interpreter/export/method identity 변경을 잡는다', () => {

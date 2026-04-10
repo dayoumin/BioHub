@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.41.0",
+  "version": "1.42.0",
   "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
@@ -135,6 +135,19 @@
             "preview",
             "guide",
             "methodRequirements",
+            "regression"
+          ]
+        },
+        {
+          "name": "Typed store fixture 테스트",
+          "purpose": "optional 필드가 있는 store fixture를 명시 타입으로 고정해 narrow inference로 인한 typecheck 회귀를 방지",
+          "code": "import type { AnalysisOptions } from '@/types/analysis';\n\nconst storeState: {\n  analysisOptions: AnalysisOptions;\n  setAnalysisOptions: ReturnType<typeof vi.fn>;\n} = {\n  analysisOptions: {\n    alpha: 0.05,\n    showAssumptions: true,\n    showEffectSize: true,\n    alternative: 'two-sided',\n    methodSettings: {},\n  },\n  setAnalysisOptions: vi.fn(),\n};",
+          "keywords": [
+            "typed fixture",
+            "AnalysisOptions",
+            "typecheck",
+            "store mock",
+            "optional fields",
             "regression"
           ]
         }

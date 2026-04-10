@@ -1,29 +1,49 @@
-import { DEFAULT_ANALYSIS_OPTIONS, type AnalysisOptions, type DiagnosticReport, type StatisticalAssumptions } from '@/types/analysis'
+import {
+  DEFAULT_ANALYSIS_OPTIONS,
+  type AIRecommendation,
+  type AnalysisOptions,
+  type DiagnosticReport,
+  type StatisticalAssumptions,
+  type SuggestedSettings,
+} from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
-import type { DetectedVariables } from './analysis-store'
+import type { AnalysisState, DetectedVariables } from './analysis-store'
 import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
 
-interface AnalysisTransitionPatch {
-  currentStep?: number
-  completedSteps?: number[]
-  selectedMethod?: HistoryLoadResult['selectedMethod']
-  variableMapping?: VariableMapping | null
-  cachedAiRecommendation?: unknown | null
-  detectedVariables?: DetectedVariables | null
-  suggestedSettings?: unknown | null
+export type AnalysisTransitionPatch = Partial<Pick<
+  AnalysisState,
+  | 'currentStep'
+  | 'completedSteps'
+  | 'selectedMethod'
+  | 'variableMapping'
+  | 'cachedAiRecommendation'
+  | 'detectedVariables'
+  | 'suggestedSettings'
+  | 'analysisOptions'
+  | 'assumptionResults'
+  | 'diagnosticReport'
+  | 'results'
+  | 'uploadedData'
+  | 'dataCharacteristics'
+  | 'validationResults'
+  | 'uploadedFile'
+  | 'uploadedFileName'
+  | 'analysisPurpose'
+  | 'isLoading'
+  | 'error'
+>>
+
+const _analysisTransitionTypeHints: {
+  cachedAiRecommendation?: AIRecommendation | null
+  suggestedSettings?: SuggestedSettings | null
   analysisOptions?: AnalysisOptions
   assumptionResults?: StatisticalAssumptions | null
   diagnosticReport?: DiagnosticReport | null
-  results?: HistoryLoadResult['results']
-  uploadedData?: null
-  dataCharacteristics?: null
-  validationResults?: null
-  uploadedFile?: null
-  uploadedFileName?: string | null
-  analysisPurpose?: string
-  isLoading?: boolean
-  error?: string | null
-}
+  variableMapping?: VariableMapping | null
+  detectedVariables?: DetectedVariables | null
+} = {}
+
+void _analysisTransitionTypeHints
 
 export function buildQuickAdvanceState(completedSteps: number[]): {
   completedSteps: number[]

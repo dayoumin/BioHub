@@ -3,10 +3,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
+import type { AnalysisOptions } from '@/types/analysis'
 
 const mockSetAnalysisOptions = vi.fn()
 
-const storeState = {
+const storeState: {
+  analysisOptions: AnalysisOptions
+  setAnalysisOptions: typeof mockSetAnalysisOptions
+} = {
   analysisOptions: {
     alpha: 0.05,
     showAssumptions: true,

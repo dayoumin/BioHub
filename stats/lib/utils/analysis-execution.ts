@@ -148,6 +148,7 @@ export function buildManagedAnalysisOptionDefaults(args: {
   methodRequirements?: StatisticalMethodRequirements
 }): Partial<AnalysisOptions> {
   const defaults: Partial<AnalysisOptions> = {}
+  const typedDefaults = defaults as Record<ManagedAnalysisOptionKey, AnalysisOptions[ManagedAnalysisOptionKey] | undefined>
 
   for (const schema of getManagedExecutionSchemas(args.methodRequirements)) {
     const currentValue = getManagedAnalysisOptionValue(args.analysisOptions, schema.analysisOptionKey)
@@ -158,7 +159,7 @@ export function buildManagedAnalysisOptionDefaults(args: {
 
     const parsedDefault = schema.parseAnalysisOptionValue(defaultValue)
     if (parsedDefault !== undefined) {
-      defaults[schema.analysisOptionKey] = parsedDefault
+      typedDefaults[schema.analysisOptionKey] = parsedDefault
     }
   }
 
