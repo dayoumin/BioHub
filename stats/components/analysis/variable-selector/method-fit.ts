@@ -21,6 +21,7 @@ export interface MethodMismatchHint {
   title: string
   message: string
   actionLabel?: string
+  actionCtaLabel?: string
 }
 
 export interface MethodFitState {
@@ -28,6 +29,7 @@ export interface MethodFitState {
   title: string
   message: string
   actionLabel?: string
+  actionCtaLabel?: string
 }
 
 export interface VariableCandidate {
@@ -435,6 +437,7 @@ export function buildMethodFitState(params: {
       title: mismatchHint.title,
       message: mismatchHint.message,
       actionLabel: mismatchHint.actionLabel,
+      actionCtaLabel: mismatchHint.actionCtaLabel,
     }
   }
 

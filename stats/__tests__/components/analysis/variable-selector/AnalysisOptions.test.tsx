@@ -95,6 +95,67 @@ describe('AnalysisOptionsSection', () => {
     })
   })
 
+  it('initializes managed defaults into analysisOptions state', () => {
+    storeState.analysisOptions = {
+      alpha: 0.05,
+      showAssumptions: true,
+      showEffectSize: true,
+      alternative: 'two-sided',
+      methodSettings: {},
+    }
+
+    render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('proportion-test')} />
+    )
+
+    expect(mockSetAnalysisOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ciMethod: 'wilson',
+        nullProportion: 0.5,
+      })
+    )
+  })
+
+  it('initializes alternative when the store value is undefined', () => {
+    storeState.analysisOptions = {
+      alpha: 0.05,
+      showAssumptions: true,
+      showEffectSize: true,
+      alternative: undefined as unknown as 'two-sided',
+      methodSettings: {},
+    }
+
+    render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('proportion-test')} />
+    )
+
+    expect(mockSetAnalysisOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alternative: 'two-sided',
+      })
+    )
+  })
+
+  it('initializes managed numeric defaults such as testValue', () => {
+    storeState.analysisOptions = {
+      alpha: 0.05,
+      showAssumptions: true,
+      showEffectSize: true,
+      alternative: 'two-sided',
+      methodSettings: {},
+    }
+
+    render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-sample-t')} />
+    )
+
+    expect(mockSetAnalysisOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        testValue: 0,
+      })
+    )
+  })
+
   it('renders schema-driven generic controls for select and numeric settings', () => {
     render(
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-way-anova')} />

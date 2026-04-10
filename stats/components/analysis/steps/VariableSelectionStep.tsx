@@ -25,6 +25,7 @@ import { useModeStore } from '@/lib/stores/mode-store'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
+import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { startPreemptiveAssumptions } from '@/lib/services'
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection, StepHeader } from '@/components/analysis/common'
@@ -44,6 +45,14 @@ function normalizeMapping(m: VariableMapping): Record<string, unknown> {
     }
   }
   return result
+}
+
+function countAssignedValues(value: VariableMapping[keyof VariableMapping]) {
+  if (Array.isArray(value)) return value.length
+  if (typeof value === 'string') {
+    return value.split(',').map(item => item.trim()).filter(Boolean).length
+  }
+  return 0
 }
 
 interface VariableSelectionStepProps {
@@ -67,6 +76,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     variableMapping: existingMapping,
     validationResults,
     analysisOptions,
+    suggestedSettings,
     setVariableMapping,
     updateVariableMappingWithInvalidation,
     goToNextStep,
@@ -131,7 +141,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       if (!validation.isValid) {
         logger.warn('[VariableSelection] Validation errors', { errors: validation.errors })
         setValidationAlert(validation.errors.join(' / '))
-        // Show alert but still allow progression
+        return
       }
     }
 
@@ -323,6 +333,58 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     return result
   }, [existingMapping, detectedVariables, selectorType])
 
+  const previewVariableMapping = useMemo(
+    () => (existingMapping ?? initialSelection) as VariableMapping,
+    [existingMapping, initialSelection]
+  )
+
+  const { executionSettingEntries } = useMemo(() => buildAnalysisExecutionContext({
+    analysisOptions,
+    methodRequirements,
+    selectedMethodId: selectedMethod?.id,
+    suggestedSettings,
+    variableMapping: previewVariableMapping,
+  }), [
+    analysisOptions,
+    methodRequirements,
+    selectedMethod?.id,
+    suggestedSettings,
+    previewVariableMapping,
+  ])
+
+  const previewVariableCount = useMemo(() => {
+    return Object.values(previewVariableMapping ?? {}).reduce((sum, value) => {
+      return sum + countAssignedValues(value)
+    }, 0)
+  }, [previewVariableMapping])
+
+  const previewMissingRequirements = useMemo(() => {
+    if (selectorType === 'auto') return []
+
+    return getSlotConfigs(selectorType).flatMap(slot => {
+      if (!slot.required) return []
+
+      const assignedCount = countAssignedValues(previewVariableMapping[slot.mappingKey])
+      if (assignedCount === 0) {
+        return [{
+          key: slot.id,
+          label: slot.label,
+          detail: `${slot.label}을(를) 선택해야 합니다`,
+        }]
+      }
+
+      if (slot.multiple && slot.minCount !== undefined && assignedCount < slot.minCount) {
+        return [{
+          key: slot.id,
+          label: slot.label,
+          detail: `${slot.label} ${slot.minCount}개 필요, 현재 ${assignedCount}개`,
+        }]
+      }
+
+      return []
+    })
+  }, [selectorType, previewVariableMapping])
+
   // F1: 필수 슬롯이 프리필되지 않았을 때 메서드별 가이드 표시
   const needsVariableGuide = useMemo(() => {
     if (!selectedMethod || selectorType === 'auto') return false
@@ -345,11 +407,17 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         title: '현재 데이터는 대응 비교 구조에 더 가깝습니다',
         message: `선택된 데이터는 ${detectedVariables.pairedVars.join(', ')}처럼 같은 대상의 전후 측정값으로 보입니다. 독립 집단 비교보다 대응표본 t-검정을 먼저 검토하는 편이 안전합니다.`,
         actionLabel: '대응표본 t-검정 또는 Wilcoxon 검정을 검토해보세요.',
+        actionCtaLabel: '분석 방법 다시 선택',
       }
     }
 
     return undefined
   }, [selectedMethod, selectorType, detectedVariables])
+
+  const handleMethodChange = useCallback(() => {
+    prepareManualMethodBrowsing()
+    navigateToStep(2)
+  }, [navigateToStep])
 
   // No data check
   if (!uploadedData || uploadedData.length === 0) {
@@ -378,6 +446,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           onBack={handleBack}
           backLabel={backLabel}
           initialSelection={initialSelection}
+          methodRequirements={methodRequirements}
+          methodName={selectedMethod?.name}
           className="mt-4"
           onComplete={handleComplete}
         />
@@ -397,6 +467,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         methodId={selectedMethod?.id}
         methodName={selectedMethod?.name}
         mismatchHint={mismatchHint}
+        onFitAction={mismatchHint ? handleMethodChange : undefined}
       />
     )
   }
@@ -495,10 +566,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <Button 
             variant="link" 
             className="text-muted-foreground hover:text-primary px-0 h-auto font-normal text-sm"
-            onClick={() => {
-              prepareManualMethodBrowsing()
-              navigateToStep(2)
-            }}
+            onClick={handleMethodChange}
           >
             다른 분석 방법 선택하기
           </Button>
@@ -520,6 +588,60 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           />
         </CollapsibleSection>
       </div>
+
+      {selectedMethod && executionSettingEntries.length > 0 && (
+        <div
+          className="rounded-2xl border border-border/50 bg-surface-container-lowest px-5 py-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]"
+          data-testid="analysis-execution-preview"
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                Step 3
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">다음 단계에서 적용될 실행 설정</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                현재 변수 선택과 분석 옵션 기준으로 Step 4에서 아래 설정이 그대로 사용됩니다.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                변수 {previewVariableCount}개
+              </div>
+              {executionSettingEntries.map(entry => (
+                <div
+                  key={entry.key}
+                  className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                  data-testid={`execution-preview-setting-${entry.key}`}
+                >
+                  {entry.label === entry.value ? entry.label : `${entry.label} ${entry.value}`}
+                </div>
+              ))}
+            </div>
+          </div>
+          {previewMissingRequirements.length > 0 && (
+            <div
+              className="mt-4 rounded-xl border border-warning-border/60 bg-warning-bg/70 px-4 py-3"
+              data-testid="execution-preview-missing"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-warning">
+                실행 전 필요한 항목
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {previewMissingRequirements.map(item => (
+                  <div
+                    key={item.key}
+                    className="rounded-lg border border-warning-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground"
+                    data-testid={`execution-preview-missing-${item.key}`}
+                  >
+                    {item.detail}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

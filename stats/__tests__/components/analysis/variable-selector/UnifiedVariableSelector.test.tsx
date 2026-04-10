@@ -37,6 +37,8 @@ describe('UnifiedVariableSelector', () => {
   })
 
   it('shows mismatch guidance before allowing execution', () => {
+    const onFitAction = vi.fn()
+
     mockAnalyzeDataset.mockReturnValue({
       columns: [
         makeColumn({
@@ -66,15 +68,21 @@ describe('UnifiedVariableSelector', () => {
           title: 'Possible method mismatch',
           message: 'Paired structure detected in this dataset.',
           actionLabel: 'Consider switching to a paired comparison test.',
+          actionCtaLabel: 'Choose a different method',
         }}
+        onFitAction={onFitAction}
         onComplete={vi.fn()}
       />
     )
 
     expect(screen.getByTestId('method-fit-banner')).toHaveTextContent('Paired structure detected in this dataset.')
     expect(screen.getByTestId('method-fit-banner')).toHaveTextContent('Consider switching to a paired comparison test.')
+    expect(screen.getByTestId('method-fit-action')).toHaveTextContent('Choose a different method')
+    fireEvent.click(screen.getByTestId('method-fit-action'))
+    expect(onFitAction).toHaveBeenCalledTimes(1)
     expect(screen.getByTestId('method-guidance-panel')).toBeInTheDocument()
     expect(screen.getByTestId('method-guidance-panel')).toHaveTextContent('Method Guide')
+    expect(screen.getByTestId('method-guidance-panel')).toHaveTextContent('Default settings')
     expect(screen.getByTestId('variable-selection-next')).toBeDisabled()
   })
 

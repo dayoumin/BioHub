@@ -110,6 +110,7 @@ export function AnalysisOptionsSection({
       alternative?: 'two-sided' | 'less' | 'greater'
       ciMethod?: string
       nullProportion?: number
+      testValue?: number
       methodSettings?: Record<string, GenericSettingValue>
     } = {}
 
@@ -128,6 +129,13 @@ export function AnalysisOptionsSection({
       const parsed = Number(nullProportionSetting.default)
       if (Number.isFinite(parsed)) {
         defaults.nullProportion = parsed
+      }
+    }
+
+    if (testValueSetting?.default !== undefined && analysisOptions.testValue === undefined) {
+      const parsed = Number(testValueSetting.default)
+      if (Number.isFinite(parsed)) {
+        defaults.testValue = parsed
       }
     }
 
@@ -152,10 +160,12 @@ export function AnalysisOptionsSection({
     alternativeSetting?.default,
     ciMethodSetting?.default,
     nullProportionSetting?.default,
+    testValueSetting?.default,
     genericSettings,
     analysisOptions.alternative,
     analysisOptions.ciMethod,
     analysisOptions.nullProportion,
+    analysisOptions.testValue,
     analysisOptions.methodSettings,
     setAnalysisOptions,
   ])

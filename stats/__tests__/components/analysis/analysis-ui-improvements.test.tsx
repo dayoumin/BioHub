@@ -85,7 +85,7 @@ vi.mock('@/lib/stores/analysis-store', () => ({
 // Mock data
 const mockMethods: StatisticalMethod[] = [
   {
-    id: 'independent-t-test',
+    id: 'two-sample-t',
     name: '독립표본 t-검정',
     description: '두 독립된 집단 간 평균 비교',
     category: 't-test',
@@ -97,7 +97,7 @@ const mockMethods: StatisticalMethod[] = [
     }
   },
   {
-    id: 'paired-t-test',
+    id: 'paired-t',
     name: '대응표본 t-검정',
     description: '동일 집단의 전후 비교',
     category: 't-test',

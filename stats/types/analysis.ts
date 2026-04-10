@@ -245,8 +245,6 @@ export const DEFAULT_ANALYSIS_OPTIONS: AnalysisOptions = {
   alpha: 0.05,
   showAssumptions: true,
   showEffectSize: true,
-  nullProportion: 0.5,
-  alternative: 'two-sided',
   methodSettings: {},
 }
 
@@ -554,6 +552,7 @@ export interface VisualizationData {
 
 export interface AnalysisResult {
   method: string
+  testVariant?: string
   statistic: number
   statisticName?: string
   pValue: number

@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
+import type { AnalysisOptions } from '@/types/analysis'
 
 let capturedSelectorType: string | null = null
 let capturedAnalysisOptionsProps: Record<string, unknown> | null = null
@@ -62,13 +63,24 @@ const mockUpdateVariableMappingWithInvalidation = vi.fn()
 const mockGoToNextStep = vi.fn()
 const mockGoToPreviousStep = vi.fn()
 
+type TestAnalysisOptions = AnalysisOptions & {
+  nullProportion?: number
+}
+
 const defaultStoreState = {
   uploadedData: [{ x: 1 }] as unknown[],
   selectedMethod: null as { id: string; name: string } | null,
   detectedVariables: null as Record<string, unknown> | null,
   variableMapping: null as Record<string, unknown> | null,
   validationResults: null as unknown,
-  analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true, nullProportion: 0.5 },
+  suggestedSettings: null as Record<string, unknown> | null,
+  analysisOptions: {
+    alpha: 0.05,
+    showAssumptions: true,
+    showEffectSize: true,
+    nullProportion: 0.5,
+    methodSettings: {},
+  } as TestAnalysisOptions,
   setVariableMapping: mockSetVariableMapping,
   updateVariableMappingWithInvalidation: mockUpdateVariableMappingWithInvalidation,
   goToNextStep: mockGoToNextStep,
@@ -349,8 +361,67 @@ describe('VariableSelectionStep', () => {
     })
   })
 
+  describe('execution preview', () => {
+    it('shows Step 3 execution preview using the same merged settings source as Step 4', () => {
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: { id: 'one-sample-t', name: 'One Sample T-Test' },
+        suggestedSettings: { alternative: 'greater' },
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          alternative: 'two-sided',
+          testValue: 10,
+          nullProportion: 0.5,
+          methodSettings: {},
+        },
+        detectedVariables: {
+          dependentCandidate: 'score',
+        },
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByTestId('analysis-execution-preview')).toBeDefined()
+      expect(screen.getByTestId('execution-preview-setting-alpha')).toHaveTextContent('alpha 0.05')
+      expect(screen.getByTestId('execution-preview-setting-testValue')).toHaveTextContent('검정값 (μ₀) 10')
+      expect(screen.getByTestId('execution-preview-setting-alternative')).toHaveTextContent('대립가설 단측 검정 (greater)')
+      expect(screen.getByText('변수 1개')).toBeDefined()
+    })
+
+    it('shows missing required slots when execution is not ready yet', () => {
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: { id: 't-test', name: 't-test' },
+        detectedVariables: null,
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByTestId('analysis-execution-preview')).toBeDefined()
+      expect(screen.getByTestId('execution-preview-missing')).toBeDefined()
+      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('종속 변수 (Y)을(를) 선택해야 합니다')
+      expect(screen.getByTestId('execution-preview-missing-factor')).toHaveTextContent('그룹 변수 (X)을(를) 선택해야 합니다')
+    })
+
+    it('shows minimum count guidance for multi-variable selectors', () => {
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: { id: 'correlation', name: 'correlation' },
+        detectedVariables: {
+          numericVars: ['x1'],
+        },
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByTestId('execution-preview-missing-variables')).toHaveTextContent('분석 변수 2개 필요, 현재 1개')
+    })
+  })
+
   describe('validation alert', () => {
-    it('shows an alert when validateVariableMapping returns errors', () => {
+    it('shows an alert and blocks progression when validateVariableMapping returns errors', () => {
       const mockValidate = vi.mocked(validateVariableMapping)
       mockValidate.mockReturnValueOnce({ isValid: false, errors: ['그룹 변수를 선택해 주세요'] })
 
@@ -369,7 +440,9 @@ describe('VariableSelectionStep', () => {
       fireEvent.click(screen.getByText('Complete'))
 
       expect(screen.getByText('그룹 변수를 선택해 주세요')).toBeDefined()
-      expect(mockGoToNextStep).toHaveBeenCalled()
+      expect(mockGoToNextStep).not.toHaveBeenCalled()
+      expect(mockSetVariableMapping).not.toHaveBeenCalled()
+      expect(mockUpdateVariableMappingWithInvalidation).not.toHaveBeenCalled()
     })
 
     it('does not show an alert for valid mappings', () => {
