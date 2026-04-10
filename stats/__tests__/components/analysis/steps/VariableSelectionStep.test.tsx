@@ -408,6 +408,20 @@ describe('VariableSelectionStep', () => {
       expect(screen.getByTestId('execution-preview-missing-factor')).toHaveTextContent('그룹 변수을(를) 선택해야 합니다')
     })
 
+    it('uses resolved method slots for the guide panel as well as the preview', () => {
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: { id: 't-test', name: 't-test' },
+        detectedVariables: null,
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByText('종속 변수')).toBeDefined()
+      expect(screen.getByText('그룹 변수')).toBeDefined()
+      expect(screen.queryByText('공변량')).toBeNull()
+    })
+
     it('shows minimum count guidance for multi-variable selectors', () => {
       storeState = {
         ...defaultStoreState,

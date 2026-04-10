@@ -22,11 +22,8 @@ import { analyzeDataset } from '@/lib/services'
 import { isRecord } from '@/lib/utils/type-guards'
 import {
   getMethodRequirements,
-  type StatisticalMethodRequirements,
-  type VariableRequirement,
 } from '@/lib/statistics/variable-requirements'
 import {
-  getSlotConfigs,
   toAcceptedType,
   isTypeAccepted,
   buildMappingFromSlots,
@@ -39,14 +36,13 @@ import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { LiveDataSummary } from './LiveDataSummary'
 import { MethodGuidancePanel } from './MethodGuidancePanel'
 import {
-  buildSlotsFromMethodRequirements,
   buildMethodFitState,
   buildVariableCandidates,
-  decorateSlotsWithMethodRequirements,
   type MethodFitState,
   type MethodMismatchHint,
   type SelectorColumnInfo,
   type VariableCandidate,
+  resolveMethodSlots,
 } from './method-fit'
 
 interface UnifiedVariableSelectorProps {
@@ -367,13 +363,9 @@ export function UnifiedVariableSelector({
     [methodId]
   )
 
-  const baseSlots = useMemo(
-    () => buildSlotsFromMethodRequirements(selectorType, methodRequirements) ?? getSlotConfigs(selectorType),
-    [selectorType, methodRequirements]
-  )
   const slots = useMemo(
-    () => decorateSlotsWithMethodRequirements(baseSlots, methodRequirements),
-    [baseSlots, methodRequirements]
+    () => resolveMethodSlots(selectorType, methodRequirements),
+    [selectorType, methodRequirements]
   )
 
   const columns = useMemo((): SelectorColumnInfo[] => {

@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
-import { getSlotConfigs } from '@/components/analysis/variable-selector/slot-configs'
 import {
   buildSlotsFromMethodRequirements,
   buildMethodFitState,
   buildVariableCandidates,
-  decorateSlotsWithMethodRequirements,
+  resolveMethodSlots,
   type SelectorColumnInfo,
 } from '@/components/analysis/variable-selector/method-fit'
 
@@ -14,11 +13,43 @@ function getGroupComparisonSlots() {
   expect(requirements).toBeDefined()
   return {
     requirements,
-    slots: decorateSlotsWithMethodRequirements(getSlotConfigs('group-comparison'), requirements),
+    slots: resolveMethodSlots('group-comparison', requirements),
   }
 }
 
 describe('method-fit helpers', () => {
+  it('derives two-sample-t slots directly from method requirements', () => {
+    const requirements = getMethodRequirements('two-sample-t')
+    expect(requirements).toBeDefined()
+
+    const slots = resolveMethodSlots('group-comparison', requirements)
+    expect(slots).toHaveLength(2)
+    expect(slots.map(slot => slot.id)).toEqual(['dependent', 'factor'])
+  })
+
+  it('falls back to generic repeated-measures slots when method requirements are not representable yet', () => {
+    const requirements = getMethodRequirements('repeated-measures-anova')
+    expect(requirements).toBeDefined()
+
+    const slots = resolveMethodSlots('repeated-measures', requirements)
+    expect(slots).toHaveLength(2)
+    expect(slots.map(slot => slot.id)).toEqual(['variables', 'group'])
+  })
+
+  it('derives analysis and covariate slots for partial-correlation from method requirements', () => {
+    const requirements = getMethodRequirements('partial-correlation')
+    expect(requirements).toBeDefined()
+
+    const slots = resolveMethodSlots('correlation', requirements)
+    expect(slots).toHaveLength(2)
+    expect(slots.map(slot => slot.id)).toEqual(['variables', 'covariate'])
+    expect(slots[1]).toMatchObject({
+      mappingKey: 'covariate',
+      multiple: true,
+      required: true,
+    })
+  })
+
   it('builds a single categorical slot for chi-square-goodness from method requirements', () => {
     const requirements = getMethodRequirements('chi-square-goodness')
     expect(requirements).toBeDefined()

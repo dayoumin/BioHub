@@ -18,11 +18,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { AutoConfirmSelector } from '@/components/common/variable-selectors'
 import { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
 import type { SelectorType } from '@/components/analysis/variable-selector/slot-configs'
-import { getSlotConfigs } from '@/components/analysis/variable-selector/slot-configs'
-import {
-  buildSlotsFromMethodRequirements,
-  decorateSlotsWithMethodRequirements,
-} from '@/components/analysis/variable-selector/method-fit'
+import { resolveMethodSlots } from '@/components/analysis/variable-selector/method-fit'
 import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
@@ -343,10 +339,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }, [selectedMethod?.id, selectorType, existingMapping, initialSelection])
 
   const previewSlots = useMemo(
-    () => decorateSlotsWithMethodRequirements(
-      buildSlotsFromMethodRequirements(selectorType, methodRequirements) ?? getSlotConfigs(selectorType),
-      methodRequirements
-    ),
+    () => resolveMethodSlots(selectorType, methodRequirements),
     [selectorType, methodRequirements]
   )
 
@@ -564,7 +557,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
               {selectedMethod?.name}
             </span>
             <ul className="list-disc pl-5 text-muted-foreground space-y-1">
-              {getSlotConfigs(selectorType).map(slot => (
+              {previewSlots.map(slot => (
                 <li key={slot.id}>
                   <strong className="text-foreground font-medium">{slot.label}</strong>: {slot.description}
                 </li>

@@ -4,7 +4,13 @@ import type {
   VariableType,
 } from '@/lib/statistics/variable-requirements'
 import { isTypeCompatibleWithValues } from '@/lib/utils/variable-type-mapper'
-import type { AcceptedType, SelectorType, SlotColorScheme, SlotConfig } from './slot-configs'
+import {
+  getSlotConfigs,
+  type AcceptedType,
+  type SelectorType,
+  type SlotColorScheme,
+  type SlotConfig,
+} from './slot-configs'
 
 export interface SelectorColumnInfo {
   name: string
@@ -84,71 +90,294 @@ function toAcceptedTypes(types: VariableType[]): AcceptedType[] {
 }
 
 function getSlotDefinition(
+  selectorType: SelectorType,
   requirement: VariableRequirement,
-  index: number
-): Pick<SlotConfig, 'id' | 'mappingKey' | 'colorScheme'> {
-  switch (requirement.role) {
-    case 'dependent':
-      return {
-        id: requirement.multiple ? 'variables' : 'dependent',
-        mappingKey: requirement.multiple ? 'variables' : 'dependentVar',
-        colorScheme: 'info',
+  methodRequirements: StatisticalMethodRequirements
+): Pick<SlotConfig, 'id' | 'mappingKey' | 'colorScheme' | 'multipleFormat'> | null {
+  switch (selectorType) {
+    case 'group-comparison':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'factor':
+        case 'between':
+          return requirement.multiple ? null : {
+            id: 'factor',
+            mappingKey: 'groupVar',
+            colorScheme: 'success',
+          }
+        case 'covariate':
+          return {
+            id: 'covariate',
+            mappingKey: 'covariate',
+            colorScheme: 'muted',
+          }
+        default:
+          return null
       }
-    case 'independent':
-      return {
-        id: requirement.multiple ? 'predictors' : 'independent',
-        mappingKey: 'independentVar',
-        colorScheme: 'highlight',
+
+    case 'correlation':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? {
+            id: 'variables',
+            mappingKey: 'variables',
+            colorScheme: 'highlight',
+          } : null
+        case 'covariate':
+          return requirement.multiple ? {
+            id: 'covariate',
+            mappingKey: 'covariate',
+            colorScheme: 'muted',
+          } : null
+        case 'factor':
+          return requirement.multiple ? null : {
+            id: 'factor',
+            mappingKey: 'groupVar',
+            colorScheme: 'success',
+          }
+        default:
+          return null
       }
-    case 'factor':
-    case 'between':
-      return {
-        id: 'factor',
-        mappingKey: 'groupVar',
-        colorScheme: 'success',
+
+    case 'multiple-regression':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'independent':
+          return {
+            id: 'independent',
+            mappingKey: 'independentVar',
+            colorScheme: 'highlight',
+            multipleFormat: requirement.multiple ? 'comma' : undefined,
+          }
+        case 'weight':
+          return requirement.multiple ? null : {
+            id: 'weight',
+            mappingKey: 'weight',
+            colorScheme: 'muted',
+          }
+        default:
+          return null
       }
-    case 'covariate':
-      return {
-        id: 'covariate',
-        mappingKey: 'covariate',
-        colorScheme: 'muted',
+
+    case 'paired':
+      if (
+        (requirement.role === 'dependent' || requirement.role === 'within')
+        && requirement.multiple
+        && methodRequirements.variables.length === 1
+      ) {
+        return {
+          id: 'variables',
+          mappingKey: 'variables',
+          colorScheme: 'highlight',
+        }
       }
-    case 'time':
-      return {
-        id: 'time',
-        mappingKey: 'timeVar',
-        colorScheme: 'highlight',
+      return null
+
+    case 'one-sample':
+      return requirement.role === 'dependent' && !requirement.multiple
+        ? {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        : null
+
+    case 'chi-square':
+      switch (requirement.role) {
+        case 'independent':
+          return requirement.multiple ? null : {
+            id: 'independent',
+            mappingKey: 'independentVar',
+            colorScheme: 'highlight',
+          }
+        case 'dependent':
+          if (requirement.multiple) {
+            return methodRequirements.variables.length === 1
+              ? {
+                  id: 'variables',
+                  mappingKey: 'variables',
+                  colorScheme: 'highlight',
+                }
+              : null
+          }
+          return {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'weight':
+          return requirement.multiple ? null : {
+            id: 'weight',
+            mappingKey: 'weight',
+            colorScheme: 'muted',
+          }
+        default:
+          return null
       }
-    case 'event':
-      return {
-        id: 'event',
-        mappingKey: 'event',
-        colorScheme: 'info',
+
+    case 'time-series':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'time':
+          return requirement.multiple ? null : {
+            id: 'time',
+            mappingKey: 'timeVar',
+            colorScheme: 'success',
+          }
+        default:
+          return null
       }
-    case 'blocking':
-      return {
-        id: 'random',
-        mappingKey: 'blocking',
-        colorScheme: 'muted',
+
+    case 'mixed-model':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'factor':
+          return requirement.multiple ? {
+            id: 'fixed',
+            mappingKey: 'groupVar',
+            colorScheme: 'success',
+            multipleFormat: 'comma',
+          } : null
+        case 'blocking':
+          return requirement.multiple ? {
+            id: 'random',
+            mappingKey: 'blocking',
+            colorScheme: 'highlight',
+            multipleFormat: 'comma',
+          } : null
+        default:
+          return null
       }
-    case 'weight':
-      return {
-        id: 'weight',
-        mappingKey: 'weight',
-        colorScheme: 'muted',
+
+    case 'survival':
+      switch (requirement.role) {
+        case 'time':
+          return requirement.multiple ? null : {
+            id: 'time',
+            mappingKey: 'timeVar',
+            colorScheme: 'info',
+          }
+        case 'event':
+          return requirement.multiple ? null : {
+            id: 'event',
+            mappingKey: 'event',
+            colorScheme: 'highlight',
+          }
+        case 'factor':
+          return requirement.multiple ? null : {
+            id: 'factor',
+            mappingKey: 'groupVar',
+            colorScheme: 'success',
+          }
+        case 'independent':
+          return requirement.multiple ? {
+            id: 'covariate',
+            mappingKey: 'independentVar',
+            colorScheme: 'muted',
+            multipleFormat: 'comma',
+          } : null
+        default:
+          return null
       }
-    case 'within':
-      return {
-        id: 'variables',
-        mappingKey: 'variables',
-        colorScheme: 'highlight',
+
+    case 'discriminant':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'group',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'independent':
+          return requirement.multiple ? {
+            id: 'predictors',
+            mappingKey: 'independentVar',
+            colorScheme: 'highlight',
+            multipleFormat: 'comma',
+          } : null
+        default:
+          return null
       }
-    default:
-      return {
-        id: `${requirement.role}-${index}`,
-        mappingKey: 'variables',
-        colorScheme: 'muted',
+
+    case 'roc-curve':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'state',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'independent':
+          return requirement.multiple ? null : {
+            id: 'test',
+            mappingKey: 'independentVar',
+            colorScheme: 'highlight',
+          }
+        default:
+          return null
       }
+
+    case 'default':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'independent':
+          return requirement.multiple ? null : {
+            id: 'independent',
+            mappingKey: 'independentVar',
+            colorScheme: 'highlight',
+          }
+        default:
+          return null
+      }
+
+    case 'two-way-anova':
+      switch (requirement.role) {
+        case 'dependent':
+          return requirement.multiple ? null : {
+            id: 'dependent',
+            mappingKey: 'dependentVar',
+            colorScheme: 'info',
+          }
+        case 'factor':
+          return requirement.multiple ? {
+            id: 'factor',
+            mappingKey: 'groupVar',
+            colorScheme: 'success',
+            multipleFormat: 'comma',
+          } : null
+        default:
+          return null
+      }
+
+    case 'repeated-measures':
+    case 'manova':
+    case 'auto':
+      return null
   }
 }
 
@@ -196,10 +425,11 @@ export function buildSlotsFromMethodRequirements(
   methodRequirements?: StatisticalMethodRequirements
 ): SlotConfig[] | null {
   if (!methodRequirements) return null
-  if (selectorType !== 'chi-square') return null
 
-  const slots = methodRequirements.variables.map((requirement, index) => {
-    const definition = getSlotDefinition(requirement, index)
+  const slots = methodRequirements.variables.map((requirement) => {
+    const definition = getSlotDefinition(selectorType, requirement, methodRequirements)
+    if (!definition) return null
+
     return {
       id: definition.id,
       label: requirement.label,
@@ -213,11 +443,32 @@ export function buildSlotsFromMethodRequirements(
       maxCount: requirement.maxCount,
       colorScheme: definition.colorScheme as SlotColorScheme,
       mappingKey: definition.mappingKey,
-      multipleFormat: requirement.multiple ? 'array' : undefined,
+      multipleFormat: definition.multipleFormat ?? (requirement.multiple ? 'array' : undefined),
     } satisfies SlotConfig
   })
 
-  return slots.length > 0 ? slots : null
+  if (slots.some(slot => slot === null)) {
+    return null
+  }
+
+  const resolvedSlots = slots as SlotConfig[]
+  const slotIds = new Set<string>()
+  for (const slot of resolvedSlots) {
+    if (slotIds.has(slot.id)) return null
+    slotIds.add(slot.id)
+  }
+
+  return resolvedSlots.length > 0 ? resolvedSlots : null
+}
+
+export function resolveMethodSlots(
+  selectorType: SelectorType,
+  methodRequirements?: StatisticalMethodRequirements
+): SlotConfig[] {
+  return (
+    buildSlotsFromMethodRequirements(selectorType, methodRequirements)
+    ?? decorateSlotsWithMethodRequirements(getSlotConfigs(selectorType), methodRequirements)
+  )
 }
 
 export function findRequirementForSlot(
