@@ -71,6 +71,34 @@ describe('code-export', () => {
     expect(pyExport.content).toContain('equal_var=False')
   })
 
+  it('독립표본 t-test export는 가정 결과가 없으면 standard t-test를 기본으로 생성한다', () => {
+    const exportResult = exportCodeFromAnalysis({
+      method: makeMethod('t-test', 'Independent t-test', 't-test'),
+      variableMapping: { dependentVar: 'score', groupVar: 'group' },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'scores.csv',
+      dataRowCount: 24,
+      results: makeAnalysisResult(),
+    }, 'python')
+
+    expect(exportResult.success).toBe(true)
+    expect(exportResult.content).toContain('equal_var=True')
+  })
+
+  it('Welch t-test export는 testVariant를 우선 반영한다', () => {
+    const exportResult = exportCodeFromAnalysis({
+      method: makeMethod('two-sample-t', 'Two Sample T-Test', 't-test'),
+      variableMapping: { dependentVar: 'score', groupVar: 'group' },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'scores.csv',
+      dataRowCount: 24,
+      results: makeAnalysisResult({ testVariant: 'welch' }),
+    }, 'R')
+
+    expect(exportResult.success).toBe(true)
+    expect(exportResult.content).toContain('var.equal = FALSE')
+  })
+
   it('ANOVA export는 실제 postHocMethod를 반영한다', () => {
     const historyRecord: HistoryRecord = {
       id: 'h1',
@@ -169,5 +197,35 @@ describe('code-export', () => {
     expect(exportResult.content).toContain('method = "kendall"')
     expect(exportResult.content).toContain('aes(x = .data[["body weight"]], y = .data[["height\\"cm"]])')
     expect(exportResult.content).not.toContain('aes(x = body weight')
+  })
+
+  it('canonical correlation export도 동일한 템플릿으로 생성된다', () => {
+    const exportResult = exportCodeFromAnalysis({
+      method: makeMethod('pearson-correlation', 'Pearson Correlation', 'correlation'),
+      variableMapping: { variables: ['x', 'y'] },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'corr.csv',
+      dataRowCount: 12,
+      results: makeAnalysisResult(),
+    }, 'python')
+
+    expect(exportResult.success).toBe(true)
+    expect(exportResult.fileName).toContain('pearson-correlation')
+    expect(exportResult.content).toContain('stats.pearsonr')
+  })
+
+  it('canonical regression export도 동일한 템플릿으로 생성된다', () => {
+    const exportResult = exportCodeFromAnalysis({
+      method: makeMethod('simple-regression', 'Simple Regression', 'regression'),
+      variableMapping: { dependentVar: 'y', independentVar: ['x1', 'x2'] },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'reg.csv',
+      dataRowCount: 20,
+      results: makeAnalysisResult(),
+    }, 'R')
+
+    expect(exportResult.success).toBe(true)
+    expect(exportResult.fileName).toContain('simple-regression')
+    expect(exportResult.content).toContain('model <- lm')
   })
 })

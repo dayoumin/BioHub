@@ -203,7 +203,7 @@ export function extractDetectedVariables(
     detectedVars.numericVars = numericCols
   } else if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
     detectedVars.factors = categoricalCols.slice(0, 2)
-  } else if (methodId === 'paired-t' || methodId === 'paired-t-test' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
+  } else if (methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
     if (nonIdNumericCols.length >= 2) {
       detectedVars.pairedVars = [nonIdNumericCols[0], nonIdNumericCols[1]]
     }

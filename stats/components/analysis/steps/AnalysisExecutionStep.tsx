@@ -40,10 +40,7 @@ type StageId = typeof STAGE_IDS[number]
 
 const REDUNDANT_CANONICAL_ALIASES = new Set([
   't-test',
-  'one-sample-t-test',
-  'paired-t-test',
   'anova',
-  'welch-anova',
 ])
 
 // 진행률 범위 정의

@@ -683,27 +683,6 @@ describe('store-orchestration', () => {
       expect(state.diagnosticReport).toBeNull()
     })
 
-    it('welch-anova 선택은 canonical one-way-anova와 welch suggestedSettings로 정규화한다', () => {
-      const welchMethod: StatisticalMethod = {
-        id: 'welch-anova',
-        name: 'Welch ANOVA',
-        description: '등분산 가정 미충족 시',
-        category: 'anova',
-      } as StatisticalMethod
-
-      act(() => {
-        confirmMethodSelection(welchMethod, vr)
-      })
-
-      const state = useAnalysisStore.getState()
-      expect(state.selectedMethod?.id).toBe('one-way-anova')
-      expect(state.selectedMethod?.name).toBe('Welch ANOVA')
-      expect(state.suggestedSettings).toEqual({
-        welch: true,
-        postHoc: 'games-howell',
-      })
-    })
-
     it('canonical one-way-anova라도 Welch 표시명을 고르면 일반 ANOVA AI 추천은 재사용하지 않는다', () => {
       const standardAnovaRecommendation: AIRecommendation = {
         ...matchedRecommendation,

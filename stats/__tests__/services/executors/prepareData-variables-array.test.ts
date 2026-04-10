@@ -23,7 +23,6 @@ describe('prepareData variables array handling', () => {
   describe('Paired test methods with variables array', () => {
     const pairedMethods = [
       'paired-t',
-      'paired-t-test',
       'wilcoxon',
       'wilcoxon-signed-rank',
       'sign-test',
@@ -133,7 +132,6 @@ describe('prepareData variables array handling', () => {
     it('should identify paired test methods correctly', () => {
       const pairedMethodIds = [
         'paired-t',
-        'paired-t-test',
         'wilcoxon',
         'wilcoxon-signed-rank',
         'sign-test',
@@ -142,7 +140,6 @@ describe('prepareData variables array handling', () => {
 
       const isPairedMethod = (id: string) =>
         id === 'paired-t' ||
-        id === 'paired-t-test' ||
         id === 'wilcoxon' ||
         id === 'wilcoxon-signed-rank' ||
         id === 'sign-test' ||

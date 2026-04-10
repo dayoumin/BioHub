@@ -3,7 +3,8 @@
  *
  * Canonical method IDs are the primary keys.
  * Active page IDs (e.g., 't-test', 'anova') remain accessible via Proxy aliases.
- * Retired legacy aliases are intentionally removed from internal resolution.
+ * Retired aliases are intentionally removed from internal resolution.
+ * Boundary-only compatibility, when needed, lives in separate normalization helpers.
  *
  * pageId = routing page slug (e.g., 't-test' → /statistics/t-test)
  * id     = canonical method ID (e.g., 'two-sample-t')
@@ -15,7 +16,7 @@
  * - Analysis methods:     46 (가설검정·모델링·분석 기법)
  * - Data tools:            4 (descriptive-stats, explore-data, means-plot, power-analysis)
  * - Embedded (pageId !== id): paired-t, two-way-anova, logistic-regression
- * - Removed as standalone: chi-square (overview), non-parametric (overview), welch-anova (legacy alias of one-way-anova)
+ * - Removed as standalone: chi-square (overview), non-parametric (overview), retired ANOVA overview aliases
  *
  * @see docs/PLAN-METHOD-ID-UNIFICATION.md
  */
@@ -721,7 +722,7 @@ export function registerAliases(canonicalId: string, aliases: string[]): void {
 /**
  * STATISTICAL_METHODS — backward-compatible registry.
  *
- * Bracket access with legacy SM IDs (e.g., `STATISTICAL_METHODS['t-test']`)
+ * Bracket access with compatibility IDs (e.g., `STATISTICAL_METHODS['t-test']`)
  * returns the canonical entry (`two-sample-t`) via Proxy.
  *
  * Object.keys / Object.values / Object.entries return canonical keys only.
@@ -750,7 +751,7 @@ export function getMethod(id: string): StatisticalMethodEntry | null {
 }
 
 /**
- * Get method by any ID (canonical, alias, or legacy SM ID)
+ * Get method by any ID (canonical or compatibility alias)
  */
 export function getMethodByAlias(alias: string): StatisticalMethodEntry | null {
   const direct = _METHODS[alias]
@@ -846,7 +847,6 @@ export function isValidMethodId(id: string): boolean {
  * @returns Korean name or English name as fallback
  */
 export function getKoreanName(id: string): string {
-  if (id === 'welch-anova') return 'Welch ANOVA'
   const method = getMethodByAlias(id)
   return method?.koreanName ?? method?.name ?? id
 }
@@ -857,7 +857,6 @@ export function getKoreanName(id: string): string {
  * @returns Korean description or English description as fallback
  */
 export function getKoreanDescription(id: string): string {
-  if (id === 'welch-anova') return '등분산 가정 위반에 강건한 일원분산분석'
   const method = getMethodByAlias(id)
   return method?.koreanDescription ?? method?.description ?? ''
 }

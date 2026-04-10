@@ -18,17 +18,19 @@ import {
   VariableType,
   STATISTICAL_METHOD_REQUIREMENTS
 } from './variable-requirements'
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 
 
 /**
  * Get compatibility result for a method ID
- * STATISTICAL_METHODS now uses canonical IDs directly — direct lookup only
+ * Compatibility maps are keyed by canonical IDs.
  */
 export function getCompatibilityForMethod(
   compatibilityMap: Map<string, CompatibilityResult>,
   methodId: string
 ): CompatibilityResult | undefined {
-  return compatibilityMap.get(methodId)
+  const canonicalMethodId = getMethodByIdOrAlias(methodId)?.id ?? methodId
+  return compatibilityMap.get(canonicalMethodId)
 }
 
 // ============================================================================
@@ -1233,7 +1235,7 @@ export function applyCompatibilityFilter(
   dataSummary: DataSummary,
   assumptions: AssumptionResults
 ): EnhancedDecisionResult {
-  const canonicalPrimaryId = decisionResult.method.id
+  const canonicalPrimaryId = getMethodByIdOrAlias(decisionResult.method.id)?.id ?? decisionResult.method.id
 
   // Get compatibility for the primary method
   const primaryMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
@@ -1257,7 +1259,7 @@ export function applyCompatibilityFilter(
   if (primaryCompatibility.status === 'incompatible') {
     // Check original alternatives first
     for (const alt of decisionResult.alternatives ?? []) {
-      const canonicalAltId = alt.method.id
+      const canonicalAltId = getMethodByIdOrAlias(alt.method.id)?.id ?? alt.method.id
       const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
         m => m.id === canonicalAltId
       )
@@ -1296,7 +1298,7 @@ export function applyCompatibilityFilter(
   } else {
     // Primary is usable, just include original alternatives with compatibility info
     for (const alt of decisionResult.alternatives ?? []) {
-      const canonicalAltId = alt.method.id
+      const canonicalAltId = getMethodByIdOrAlias(alt.method.id)?.id ?? alt.method.id
       const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
         m => m.id === canonicalAltId
       )

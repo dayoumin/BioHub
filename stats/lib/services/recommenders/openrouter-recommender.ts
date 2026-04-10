@@ -17,6 +17,7 @@ import type {
   ColumnStatistics,
   FlowChatMessage
 } from '@/types/analysis'
+import { normalizeWelchAnovaRecommendation } from '@/lib/utils/welch-anova-variant'
 import {
   STATISTICAL_METHODS,
   getMethodByIdOrAlias,
@@ -125,27 +126,7 @@ export class OpenRouterRecommender {
   }
 
   private normalizeRecommendation(recommendation: AIRecommendation): AIRecommendation {
-    const isWelchAnova = recommendation.method.id === 'welch-anova'
-      || /welch\s*anova/i.test(recommendation.method.name)
-
-    if (!isWelchAnova) {
-      return recommendation
-    }
-
-    return {
-      ...recommendation,
-      method: {
-        ...recommendation.method,
-        id: 'one-way-anova',
-        name: recommendation.method.name || 'Welch ANOVA',
-        category: 'anova',
-      },
-      suggestedSettings: {
-        ...(recommendation.suggestedSettings ?? {}),
-        welch: true,
-        postHoc: 'games-howell',
-      },
-    }
+    return normalizeWelchAnovaRecommendation(recommendation)
   }
 
   /**

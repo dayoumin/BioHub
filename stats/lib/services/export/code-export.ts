@@ -24,7 +24,7 @@ export interface CodeExportParams {
   analysisOptions?: AnalysisOptions | null
   dataFileName: string | null
   dataRowCount: number
-  results?: Pick<AnalysisResult, 'statistic' | 'pValue' | 'effectSize' | 'assumptions' | 'postHocMethod'> | null
+  results?: Pick<AnalysisResult, 'statistic' | 'pValue' | 'effectSize' | 'assumptions' | 'postHocMethod' | 'testVariant'> | null
 }
 
 // ─── 내부 유틸 ───
@@ -104,12 +104,32 @@ function extractEqualVariance(
   return undefined
 }
 
+function resolveEqualVarianceOption(
+  methodId: string,
+  equalVariance: boolean | undefined,
+  testVariant: string | undefined,
+): boolean | undefined {
+  if (methodId === 'welch-t' || testVariant === 'welch') {
+    return false
+  }
+
+  return equalVariance
+}
+
 function extractPostHocMethod(
   results: { postHocMethod?: string } | Record<string, unknown> | null,
 ): string | undefined {
   if (!results) return undefined
   const method = 'postHocMethod' in results ? results.postHocMethod : undefined
   return typeof method === 'string' ? method : undefined
+}
+
+function extractTestVariant(
+  results: { testVariant?: string } | Record<string, unknown> | null,
+): string | undefined {
+  if (!results) return undefined
+  const variant = 'testVariant' in results ? results.testVariant : undefined
+  return typeof variant === 'string' ? variant : undefined
 }
 
 // ─── 코드 헤더 ───
@@ -185,7 +205,8 @@ export function exportCode(
 
   const options = record.analysisOptions ?? {}
   const results = record.results as Record<string, unknown> | null
-  const equalVariance = extractEqualVariance(results)
+  const testVariant = extractTestVariant(results)
+  const equalVariance = resolveEqualVarianceOption(methodId, extractEqualVariance(results), testVariant)
   const postHocMethod = extractPostHocMethod(results) ?? (typeof options.postHocMethod === 'string' ? options.postHocMethod : undefined)
 
   const rawInput: CodeTemplateInput = {
@@ -195,6 +216,7 @@ export function exportCode(
       confidenceLevel: typeof options.confidenceLevel === 'number' ? options.confidenceLevel : 0.95,
       alternative: typeof options.alternative === 'string' ? options.alternative : 'two-sided',
       equalVariance,
+      testVariant,
       postHocMethod,
       testValue: typeof options.testValue === 'number' ? options.testValue : undefined,
     },
@@ -226,7 +248,8 @@ export function exportCodeFromAnalysis(
     return { success: false, error: '분석 메서드 정보가 없습니다.' }
   }
 
-  const equalVariance = extractEqualVariance(params.results ?? null)
+  const testVariant = extractTestVariant(params.results ?? null)
+  const equalVariance = resolveEqualVarianceOption(methodId, extractEqualVariance(params.results ?? null), testVariant)
   const postHocMethod = extractPostHocMethod(params.results ?? null)
 
   const rawInput: CodeTemplateInput = {
@@ -236,6 +259,7 @@ export function exportCodeFromAnalysis(
       confidenceLevel: 1 - (params.analysisOptions?.alpha ?? 0.05),
       alternative: 'two-sided',
       equalVariance,
+      testVariant,
       postHocMethod,
       testValue: params.analysisOptions?.testValue,
     },

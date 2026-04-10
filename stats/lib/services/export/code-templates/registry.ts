@@ -21,6 +21,8 @@ import { normalityR, normalityPython } from './normality'
 const REGISTRY: Record<string, CodeTemplatePair> = {
   // T-Test (3)
   't-test': { R: tTestR, python: tTestPython },
+  'two-sample-t': { R: tTestR, python: tTestPython },
+  'welch-t': { R: tTestR, python: tTestPython },
   'paired-t': { R: pairedTR, python: pairedTPython },
   'one-sample-t': { R: oneSampleTR, python: oneSampleTPython },
 
@@ -30,9 +32,11 @@ const REGISTRY: Record<string, CodeTemplatePair> = {
 
   // Correlation (1)
   'correlation': { R: correlationR, python: correlationPython },
+  'pearson-correlation': { R: correlationR, python: correlationPython },
 
   // Regression (1)
   'regression': { R: regressionR, python: regressionPython },
+  'simple-regression': { R: regressionR, python: regressionPython },
 
   // Nonparametric (3)
   'mann-whitney': { R: mannWhitneyR, python: mannWhitneyPython },

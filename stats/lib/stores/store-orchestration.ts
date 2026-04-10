@@ -14,6 +14,10 @@ import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { toStatisticalAssumptions } from '@/lib/services/diagnostic-pipeline'
 import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
+import {
+  isWelchAnovaPresentation,
+  normalizeWelchAnovaMethod,
+} from '@/lib/utils/welch-anova-variant'
 import type { HistorySnapshot, HistoryLoadResult } from './history-store'
 import type { DataPackage, ColumnMeta } from '@/types/graph-studio'
 import type { AIRecommendation, DiagnosticReport, StatisticalMethod, SuggestedSettings, ValidationResults } from '@/types/analysis'
@@ -51,13 +55,6 @@ export function prepareManualMethodBrowsing(): void {
   useModeStore.getState().setStepTrack('normal')
 }
 
-function isWelchAnovaPresentation(method?: Pick<StatisticalMethod, 'id' | 'name'> | null): boolean {
-  if (!method) return false
-
-  const canonicalId = getMethodByIdOrAlias(method.id)?.id ?? method.id
-  return canonicalId === 'one-way-anova' && /welch\s*anova/i.test(method.name)
-}
-
 function hasWelchAnovaVariant(recommendation?: AIRecommendation | null): boolean {
   if (!recommendation?.method) return false
 
@@ -69,32 +66,7 @@ function normalizeMethodSelection(method: StatisticalMethod): {
   method: StatisticalMethod
   forcedSuggestedSettings: SuggestedSettings | null
 } {
-  const canonical = method.id === 'welch-anova'
-    ? getMethodByIdOrAlias('one-way-anova')
-    : getMethodByIdOrAlias(method.id)
-  if (!canonical) {
-    return { method, forcedSuggestedSettings: null }
-  }
-
-  const isWelchAnovaSelection = method.id === 'welch-anova' || isWelchAnovaPresentation(method)
-  const normalizedMethod: StatisticalMethod = {
-    ...method,
-    id: canonical.id,
-    category: canonical.category,
-    description: method.description || canonical.description,
-  }
-
-  if (canonical.id !== 'one-way-anova' || !isWelchAnovaSelection) {
-    return { method: normalizedMethod, forcedSuggestedSettings: null }
-  }
-
-  return {
-    method: normalizedMethod,
-    forcedSuggestedSettings: {
-      welch: true,
-      postHoc: 'games-howell',
-    },
-  }
+  return normalizeWelchAnovaMethod(method)
 }
 
 /** Step 2 메서드 확정 — AI 추천과 수동 선택을 구분해 관련 상태를 정리 */

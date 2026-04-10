@@ -19,7 +19,7 @@ export const tTestR: CodeTemplate = {
     const g = group(input)
     const alt = input.options.alternative
     const cl = input.options.confidenceLevel
-    const equalVar = input.options.equalVariance ?? false
+    const equalVar = input.options.equalVariance ?? true
     return `library(tidyverse)
 library(effsize)
 
@@ -48,7 +48,7 @@ export const tTestPython: CodeTemplate = {
     const d = dep(input)
     const g = group(input)
     const alt = input.options.alternative
-    const equalVar = input.options.equalVariance ?? false
+    const equalVar = input.options.equalVariance ?? true
     return `import pandas as pd
 from scipy import stats
 

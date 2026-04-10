@@ -223,7 +223,7 @@ describe('StatisticalExecutor Routing', () => {
     it('should pass equalVar=false to tTest when method settings request Welch behavior', async () => {
       const twoGroupData = mockData.filter(d => d.group === 'A' || d.group === 'B')
 
-      await executor.executeMethod(
+      const result = await executor.executeMethod(
         createMethod('two-sample-t', 'Two Sample T-Test', 't-test'),
         twoGroupData,
         { groupVar: 'group', dependentVar: 'score' },
@@ -238,11 +238,14 @@ describe('StatisticalExecutor Routing', () => {
           equalVar: false,
         })
       )
+      expect(result.metadata.method).toBe('two-sample-t')
+      expect(result.metadata.methodName).toContain('Welch')
+      expect(result.additionalInfo.testVariant).toBe('welch')
     })
 
-    it('should route "paired-t-test" correctly', async () => {
+    it('should route "paired-t" correctly', async () => {
       const result = await executor.executeMethod(
-        createMethod('paired-t-test', 'Paired t-test', 't-test'),
+        createMethod('paired-t', 'Paired t-test', 't-test'),
         mockData,
         { variables: ['x', 'y'] }
       )

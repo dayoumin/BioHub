@@ -12,10 +12,38 @@ function parseBooleanSetting(value: unknown): boolean | undefined {
   return undefined
 }
 
+function getTTestMetadata(method: StatisticalMethod, isWelchVariant: boolean) {
+  if (!isWelchVariant) {
+    return {
+      methodId: method.id,
+      methodName: method.name,
+      testVariant: 'standard' as const,
+    }
+  }
+
+  if (method.id === 'welch-t') {
+    return {
+      methodId: method.id,
+      methodName: method.name,
+      testVariant: 'welch' as const,
+    }
+  }
+
+  const methodName = method.name.includes('Welch')
+    ? method.name
+    : `Welch ${method.name}`
+
+  return {
+    methodId: method.id,
+    methodName,
+    testVariant: 'welch' as const,
+  }
+}
+
 export async function handleTTest(method: StatisticalMethod, data: PreparedData, settings?: SuggestedSettings | null): Promise<StatisticalExecutorResult> {
   const alternative = settings?.alternative
-  const isOneSampleT = method.id === 'one-sample-t' || method.id === 'one-sample-t-test'
-  const isPairedT = method.id === 'paired-t' || method.id === 'paired-t-test'
+  const isOneSampleT = method.id === 'one-sample-t'
+  const isPairedT = method.id === 'paired-t'
   // 일표본 t-검정 분기
   if (isOneSampleT) {
     const values = data.arrays.dependent || data.arrays.independent?.[0] || []
@@ -117,6 +145,8 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData,
   const isWelch = method.id === 'welch-t'
   const equalVarSetting = parseBooleanSetting(settings?.equalVar)
   const shouldUseEqualVariance = isWelch ? false : (equalVarSetting ?? true)
+  const isWelchVariant = !isPairedT && !isOneSampleT && !shouldUseEqualVariance
+  const metadata = getTTestMetadata(method, isWelchVariant)
   const result = await pyodideStats.tTest(group1, group2, {
     paired: isPairedT,
     equalVar: shouldUseEqualVariance,
@@ -124,12 +154,12 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData,
   })
 
   const cohensD = calculateCohensD(group1, group2)
-  const effectSizeLabel = isWelch ? "Cohen's d (pooled SD)" : "Cohen's d"
+  const effectSizeLabel = isWelchVariant ? "Cohen's d (pooled SD)" : "Cohen's d"
 
   return {
     metadata: {
-      method: method.id,
-      methodName: method.name,
+      method: metadata.methodId,
+      methodName: metadata.methodName,
       timestamp: '',
       duration: 0,
       dataInfo: {
@@ -156,7 +186,8 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData,
       confidenceInterval: result.confidenceInterval ? {
         ...result.confidenceInterval,
         level: 0.95
-      } : undefined
+      } : undefined,
+      testVariant: metadata.testVariant,
     },
     visualizationData: {
       type: 'boxplot',

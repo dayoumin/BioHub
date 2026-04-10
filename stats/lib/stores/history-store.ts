@@ -215,6 +215,13 @@ function syncAnovaMethodVariant(
   }
 }
 
+function resolveHistoryMethod(
+  method: HistoryRecord['method'] | null | undefined
+): StatisticalMethod | null {
+  if (!method) return null
+  return (getMethodByIdOrAlias(method.id) as StatisticalMethod | null) ?? null
+}
+
 export const useHistoryStore = create<HistoryState>()((set) => ({
   analysisHistory: [],
   currentHistoryId: null,
@@ -322,9 +329,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     if (!record) return null
 
     const migratedResults = migrateResults(record.results) as AnalysisResult | null
-    const selectedMethod = (record.method && typeof record.method === 'object' && 'id' in record.method)
-      ? (getMethodByIdOrAlias(record.method.id as string) as StatisticalMethod | null) ?? null
-      : null
+    const selectedMethod = resolveHistoryMethod(record.method)
 
     const result: HistoryLoadResult = {
       analysisPurpose: record.purpose,
@@ -383,14 +388,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     const record = await getHistory(historyId)
     if (!record) return null
 
-    const selectedMethod = record.method
-      ? (getMethodByIdOrAlias(record.method.id) as StatisticalMethod | null) ?? {
-          id: record.method.id,
-          name: record.method.name,
-          category: record.method.category as StatisticalMethod['category'],
-          description: record.method.description ?? '',
-        }
-      : null
+    const selectedMethod = resolveHistoryMethod(record.method)
 
     return {
       selectedMethod,

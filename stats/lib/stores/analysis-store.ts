@@ -209,7 +209,15 @@ export const useAnalysisStore = create<AnalysisState>()(
       // TD-10-D: 호환성 병합은 useMethodCompatibility 훅이 useMemo로 처리
       setAssumptionResults: (results) => set({ assumptionResults: results }),
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
-      setSelectedMethod: (method) => set({ selectedMethod: method }),
+      setSelectedMethod: (method) => set((state) => ({
+        selectedMethod: method,
+        analysisOptions: {
+          ...DEFAULT_ANALYSIS_OPTIONS,
+          alpha: state.analysisOptions.alpha,
+          showAssumptions: state.analysisOptions.showAssumptions,
+          showEffectSize: state.analysisOptions.showEffectSize,
+        },
+      })),
       setCachedAiRecommendation: (rec) => set({ cachedAiRecommendation: rec }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
       updateVariableMappingWithInvalidation: (mapping) => set((state) => ({

@@ -57,8 +57,8 @@ describe('extractDetectedVariables', () => {
       expect(result.numericVars).toEqual(['체중', '체장', '나이'])
     })
 
-    it('paired-t-test: pairedVars=첫 2개 numeric', () => {
-      const result = extractDetectedVariables('paired-t-test', MIXED_DATA, null)
+    it('paired-t: pairedVars=첫 2개 numeric', () => {
+      const result = extractDetectedVariables('paired-t', MIXED_DATA, null)
 
       expect(result.pairedVars).toEqual(['체중', '체장'])
     })
@@ -153,7 +153,7 @@ describe('extractDetectedVariables', () => {
       expect(result.dependentCandidate).not.toBe('id')
     })
 
-    it('paired-t-test: subject(isId=true) 제외하고 pre, post 선택', () => {
+    it('paired-t: subject(isId=true) 제외하고 pre, post 선택', () => {
       // 회귀 방지: subject+pre+post 패턴에서 ['subject','pre']가 pairedVars로 잘못 설정되던 버그 (2026-03-16 수정)
       const data = {
         columns: [
@@ -162,7 +162,7 @@ describe('extractDetectedVariables', () => {
           makeCol('post', 'numeric'),
         ]
       }
-      const result = extractDetectedVariables('paired-t-test', data, null)
+      const result = extractDetectedVariables('paired-t', data, null)
 
       expect(result.pairedVars).toEqual(['pre', 'post'])
       expect(result.pairedVars).not.toContain('subject')
@@ -223,7 +223,7 @@ describe('extractDetectedVariables', () => {
       const rec = makeRecommendation({
         variableAssignments: { within: ['체중', '체장'] }
       })
-      const result = extractDetectedVariables('paired-t-test', MIXED_DATA, rec)
+      const result = extractDetectedVariables('paired-t', MIXED_DATA, rec)
 
       expect(result.pairedVars).toEqual(['체중', '체장'])
     })
@@ -325,7 +325,7 @@ describe('extractDetectedVariables', () => {
       const rec = makeRecommendation({
         variableAssignments: { within: ['subject', 'pre'] },
       })
-      const result = extractDetectedVariables('paired-t-test', data, rec)
+      const result = extractDetectedVariables('paired-t', data, rec)
 
       // within[0]='subject'가 ID → selectableCol 실패 → within 조건 불충족 → heuristic fallback
       expect(result.pairedVars).toEqual(['pre', 'post'])
@@ -541,9 +541,9 @@ describe('extractDetectedVariables', () => {
       const rec = makeRecommendation({
         variableAssignments: { within: ['체중'] }  // 1개만 → 1순위 무효
       })
-      const result = extractDetectedVariables('paired-t-test', MIXED_DATA, rec)
+      const result = extractDetectedVariables('paired-t', MIXED_DATA, rec)
 
-      // 1순위 유효 결과 없음 → 2순위 → 3순위 paired-t-test heuristic이 설정
+      // 1순위 유효 결과 없음 → 2순위 → 3순위 paired-t heuristic이 설정
       expect(result.pairedVars).toEqual(['체중', '체장'])
     })
   })

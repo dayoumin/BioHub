@@ -22,6 +22,10 @@ import {
   getKoreanDescription,
 } from '@/lib/constants/statistical-methods'
 import { aquaculture } from '@/lib/terminology/domains/aquaculture'
+import {
+  WELCH_ANOVA_DESCRIPTION,
+  WELCH_ANOVA_DISPLAY_NAME,
+} from '@/lib/utils/welch-anova-variant'
 
 // ============================================
 // 헬퍼 함수
@@ -34,7 +38,11 @@ import { aquaculture } from '@/lib/terminology/domains/aquaculture'
  */
 function getMethod(
   idOrAlias: string,
-  options?: { useLegacyId?: boolean; displayAliasId?: string }
+  options?: {
+    useLegacyId?: boolean
+    displayName?: string
+    displayDescription?: string
+  }
 ): StatisticalMethod {
   const method = getMethodByIdOrAlias(idOrAlias)
 
@@ -48,12 +56,10 @@ function getMethod(
     }
   }
 
-  const displayId = options?.displayAliasId ?? method.id
-
   return {
     id: options?.useLegacyId ? idOrAlias : method.id,
-    name: getKoreanName(displayId),
-    description: getKoreanDescription(displayId),
+    name: options?.displayName ?? getKoreanName(method.id),
+    description: options?.displayDescription ?? getKoreanDescription(method.id),
     category: method.category
   }
 }
@@ -103,7 +109,8 @@ interface Alternative {
   id: string
   reason: string
   useLegacyId?: boolean
-  displayAliasId?: string
+  displayName?: string
+  displayDescription?: string
 }
 
 /**
@@ -119,20 +126,23 @@ function createResult(
   alternatives: Alternative[] = [],
   options?: {
     useLegacyId?: boolean
-    displayAliasId?: string
+    displayName?: string
+    displayDescription?: string
     warnings?: string[]
   }
 ): DecisionResult {
   return {
     method: getMethod(methodId, {
       useLegacyId: options?.useLegacyId,
-      displayAliasId: options?.displayAliasId,
+      displayName: options?.displayName,
+      displayDescription: options?.displayDescription,
     }),
     reasoning,
     alternatives: alternatives.map(alt => ({
       method: getMethod(alt.id, {
         useLegacyId: alt.useLegacyId,
-        displayAliasId: alt.displayAliasId,
+        displayName: alt.displayName,
+        displayDescription: alt.displayDescription,
       }),
       reason: alt.reason
     })),
@@ -324,7 +334,12 @@ function decideCompare_MultiGroups_Independent(
     if (homogeneity === 'yes') {
       reasoning.push(STEP_HOMOGENEITY(dt, 'yes', dt.descriptions.oneWayANOVA))
       return createResult('one-way-anova', reasoning, [
-        { id: 'one-way-anova', reason: dt.reasons.noEqualVarianceNeeded, displayAliasId: 'welch-anova' },
+        {
+          id: 'one-way-anova',
+          reason: dt.reasons.noEqualVarianceNeeded,
+          displayName: WELCH_ANOVA_DISPLAY_NAME,
+          displayDescription: WELCH_ANOVA_DESCRIPTION,
+        },
         { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
       ], { useLegacyId: true })
     }
@@ -333,7 +348,11 @@ function decideCompare_MultiGroups_Independent(
     return createResult('one-way-anova', reasoning, [
       { id: 'one-way-anova', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
       { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
-    ], { useLegacyId: true, displayAliasId: 'welch-anova' })
+    ], {
+      useLegacyId: true,
+      displayName: WELCH_ANOVA_DISPLAY_NAME,
+      displayDescription: WELCH_ANOVA_DESCRIPTION,
+    })
   }
 
   reasoning.push(STEP_NORMALITY(dt, false))
@@ -348,7 +367,12 @@ function decideCompare_MultiGroups_Independent(
 
   return createResult('kruskal-wallis', reasoning, [
     { id: 'mood-median', reason: dt.reasons.medianComparisonPurpose },
-    { id: 'one-way-anova', reason: dt.reasons.cltRobustNPerGroup30, displayAliasId: 'welch-anova' }
+    {
+      id: 'one-way-anova',
+      reason: dt.reasons.cltRobustNPerGroup30,
+      displayName: WELCH_ANOVA_DISPLAY_NAME,
+      displayDescription: WELCH_ANOVA_DESCRIPTION,
+    }
   ], { useLegacyId: true })
 }
 

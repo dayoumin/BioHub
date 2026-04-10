@@ -151,6 +151,21 @@ describe('history-store — paperDraft 라이프사이클', () => {
     })
   })
 
+  it('retired legacy method id는 양쪽 복원 경로 모두 selectedMethod를 null로 처리한다', async () => {
+    const legacyRecord = makeRecord({
+      method: { id: 'independent-t-test', name: '독립표본 t-검정', category: 't-test' },
+    })
+
+    mockGetHistory.mockResolvedValueOnce(legacyRecord)
+    const fullResult = await useHistoryStore.getState().loadFromHistory('test-history-1')
+
+    mockGetHistory.mockResolvedValueOnce(legacyRecord)
+    const settingsResult = await useHistoryStore.getState().loadSettingsFromHistory('test-history-1')
+
+    expect(fullResult?.selectedMethod).toBeNull()
+    expect(settingsResult?.selectedMethod).toBeNull()
+  })
+
   // ── 3. 구버전 데이터 호환성 ────────────────────────────────────────────────
 
   it('구버전 레코드(postHocDisplay 없음)를 로드하면 postHocDisplay가 undefined다 → 컴포넌트 fallback 필요', async () => {
@@ -258,9 +273,9 @@ describe('history-store — paperDraft 라이프사이클', () => {
     vi.mocked(getAllHistory).mockResolvedValueOnce([makeRecord()])
 
     const snapshot = {
-      results: { method: 'independent-t-test', pValue: 0.023 } as never,
+      results: { method: 'two-sample-t', pValue: 0.023 } as never,
       analysisPurpose: '집단 간 차이',
-      selectedMethod: { id: 'independent-t-test', name: '독립표본 t-검정', category: 't-test' as const, description: '' },
+      selectedMethod: { id: 'two-sample-t', name: '독립표본 t-검정', category: 't-test' as const, description: '' },
       uploadedFileName: 'test.csv',
       uploadedDataLength: 50,
       variableMapping: null,
@@ -279,6 +294,7 @@ describe('history-store — paperDraft 라이프사이클', () => {
     // saveHistory가 호출될 때 paperDraft가 포함됐는지 확인
     expect(mockSaveHistory).toHaveBeenCalledTimes(1)
     const savedRecord = mockSaveHistory.mock.calls[0][0] as HistoryRecord
+    expect(savedRecord.method?.id).toBe('two-sample-t')
     expect(savedRecord.paperDraft).not.toBeNull()
     expect(savedRecord.paperDraft?.methods).toBe('독립표본 t-검정을 실시하였다.')
     expect(savedRecord.paperDraft?.postHocDisplay).toBe('significant-only')
@@ -289,9 +305,9 @@ describe('history-store — paperDraft 라이프사이클', () => {
     vi.mocked(getAllHistory).mockResolvedValueOnce([makeRecord({ paperDraft: null })])
 
     const snapshot = {
-      results: { method: 'independent-t-test', pValue: 0.023 } as never,
+      results: { method: 'two-sample-t', pValue: 0.023 } as never,
       analysisPurpose: '집단 간 차이',
-      selectedMethod: { id: 'independent-t-test', name: '독립표본 t-검정', category: 't-test' as const, description: '' },
+      selectedMethod: { id: 'two-sample-t', name: '독립표본 t-검정', category: 't-test' as const, description: '' },
       uploadedFileName: 'test.csv',
       uploadedDataLength: 50,
       variableMapping: null,
@@ -304,6 +320,7 @@ describe('history-store — paperDraft 라이프사이클', () => {
     })
 
     const savedRecord = mockSaveHistory.mock.calls[0][0] as HistoryRecord
+    expect(savedRecord.method?.id).toBe('two-sample-t')
     expect(savedRecord.paperDraft).toBeNull()
   })
 

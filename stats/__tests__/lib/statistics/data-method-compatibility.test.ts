@@ -1596,6 +1596,19 @@ describe('ID Mapping Layer', () => {
       expect(result?.status).toBe('compatible')
     })
 
+    it('should resolve active page ids to canonical compatibility entries', () => {
+      const data = createDataSummary({
+        sampleSize: 50,
+        continuousCount: 2,
+      })
+
+      const map = getStructuralCompatibilityMap(data)
+
+      const correlation = getCompatibilityForMethod(map, 'correlation')
+      expect(correlation).toBeDefined()
+      expect(correlation?.methodId).toBe('pearson-correlation')
+    })
+
     it('should not resolve retired welch-anova alias', () => {
       const data = createDataSummary({
         sampleSize: 50,
@@ -1661,6 +1674,34 @@ describe('applyCompatibilityFilter', () => {
     expect(result.compatibility.methodId).toBe('one-way-anova')
     expect(result.alternatives.some(alt => alt.methodId === 'one-way-anova')).toBe(true)
     expect(result.alternatives.some(alt => alt.methodId === 'kruskal-wallis')).toBe(true)
+  })
+
+  it('should canonicalize active page ids returned by the decision tree', () => {
+    const data = createDataSummary({
+      sampleSize: 80,
+      continuousCount: 2,
+    })
+    const assumptions = createAssumptions()
+
+    const result = applyCompatibilityFilter({
+      method: {
+        id: 'correlation',
+        name: 'Correlation Analysis',
+        description: 'Page-level recommendation',
+        category: 'correlation'
+      },
+      reasoning: [],
+      alternatives: [
+        {
+          method: { id: 'descriptive', name: 'Descriptive Statistics' },
+          reason: 'summary fallback'
+        }
+      ]
+    }, data, assumptions)
+
+    expect(result.methodId).toBe('pearson-correlation')
+    expect(result.compatibility.methodId).toBe('pearson-correlation')
+    expect(result.alternatives.some(alt => alt.methodId === 'descriptive-stats')).toBe(true)
   })
 })
 

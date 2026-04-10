@@ -223,10 +223,10 @@ describe('OpenRouterRecommender', () => {
       expect(result!.suggestedSettings).toEqual({ alpha: 0.01 })
     })
 
-    it('Welch ANOVA 응답은 canonical one-way-anova와 welch 설정으로 정규화한다', () => {
+    it('Welch ANOVA 표시명은 canonical one-way-anova와 welch 설정으로 정규화한다', () => {
       const content = `\`\`\`json
 {
-  "methodId": "welch-anova",
+  "methodId": "one-way-anova",
   "methodName": "Welch ANOVA",
   "confidence": 0.91,
   "reasoning": ["정규성은 충족하지만 등분산성은 충족되지 않았습니다."]
@@ -243,10 +243,10 @@ describe('OpenRouterRecommender', () => {
       })
     })
 
-    it('Welch ANOVA 응답은 잘못된 postHoc가 와도 games-howell로 고정한다', () => {
+    it('Welch ANOVA 표시명은 잘못된 postHoc가 와도 games-howell로 고정한다', () => {
       const content = `\`\`\`json
 {
-  "methodId": "welch-anova",
+  "methodId": "one-way-anova",
   "methodName": "Welch ANOVA",
   "confidence": 0.91,
   "reasoning": ["정규성은 충족하지만 등분산성은 충족되지 않았습니다."],

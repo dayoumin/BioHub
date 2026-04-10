@@ -454,7 +454,7 @@ export class StatisticalExecutor {
     // dependent/independent가 없고 variables가 있으면 자동 변환
     if (variablesArray.length > 0 && dependent.length === 0 && independent.length === 0) {
       // 대응표본 검정 (paired-t, wilcoxon, mcnemar): variables[0] -> dependent, variables[1] -> independent
-      if (variablesArray.length === 2 && (method.id === 'paired-t' || method.id === 'paired-t-test' || method.id === 'wilcoxon' || method.id === 'wilcoxon-signed-rank' || method.id === 'sign-test' || method.id === 'mcnemar')) {
+      if (variablesArray.length === 2 && (method.id === 'paired-t' || method.id === 'wilcoxon' || method.id === 'wilcoxon-signed-rank' || method.id === 'sign-test' || method.id === 'mcnemar')) {
         arrays.dependent = data.map(row =>
           Number(row[variablesArray[0]])
         ).filter(v => !isNaN(v))
