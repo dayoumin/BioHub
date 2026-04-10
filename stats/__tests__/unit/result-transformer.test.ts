@@ -36,6 +36,34 @@ describe('result-transformer', () => {
       expect(result.interpretation).toBe('두 그룹 간 유의한 차이가 있습니다.')
     })
 
+    it('should preserve canonical/display/variant identity separately', () => {
+      const executorResult: ExecutorResult = {
+        metadata: {
+          method: 'anova',
+          methodName: 'One-Way ANOVA',
+          timestamp: new Date().toISOString(),
+          duration: 200,
+          dataSize: 60
+        },
+        mainResults: {
+          statistic: 5.67,
+          pvalue: 0.005,
+          interpretation: '그룹 간 차이 있음'
+        },
+        additionalInfo: {
+          testVariant: 'welch'
+        }
+      }
+
+      const result = transformExecutorResult(executorResult)
+
+      expect(result.method).toBe('anova')
+      expect(result.canonicalMethodId).toBe('one-way-anova')
+      expect(result.displayMethodName).toBe('Welch ANOVA')
+      expect(result.executionVariant).toBe('welch')
+      expect(result.testVariant).toBe('welch')
+    })
+
     it('should transform effect size info correctly', () => {
       const executorResult: ExecutorResult = {
         metadata: {

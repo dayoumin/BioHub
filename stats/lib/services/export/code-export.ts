@@ -15,6 +15,7 @@ import type {
 } from './code-template-types'
 import { getCodeTemplate } from './code-templates/registry'
 import { downloadBlob } from './export-data-builder'
+import { resolveMethodIdentity } from '@/lib/utils/method-identity'
 
 // ─── 현재 분석 상태에서 코드 내보내기용 입력 ───
 
@@ -24,7 +25,7 @@ export interface CodeExportParams {
   analysisOptions?: AnalysisOptions | null
   dataFileName: string | null
   dataRowCount: number
-  results?: Pick<AnalysisResult, 'statistic' | 'pValue' | 'effectSize' | 'assumptions' | 'postHocMethod' | 'testVariant'> | null
+  results?: Pick<AnalysisResult, 'statistic' | 'pValue' | 'effectSize' | 'assumptions' | 'postHocMethod' | 'testVariant' | 'executionVariant' | 'displayMethodName' | 'canonicalMethodId'> | null
 }
 
 // ─── 내부 유틸 ───
@@ -125,10 +126,12 @@ function extractPostHocMethod(
 }
 
 function extractTestVariant(
-  results: { testVariant?: string } | Record<string, unknown> | null,
+  results: { testVariant?: string; executionVariant?: string } | Record<string, unknown> | null,
 ): string | undefined {
   if (!results) return undefined
-  const variant = 'testVariant' in results ? results.testVariant : undefined
+  const variant = 'executionVariant' in results && typeof results.executionVariant === 'string'
+    ? results.executionVariant
+    : 'testVariant' in results ? results.testVariant : undefined
   return typeof variant === 'string' ? variant : undefined
 }
 
@@ -198,14 +201,20 @@ export function exportCode(
   record: HistoryRecord,
   language: CodeLanguage,
 ): CodeExportResult {
-  const methodId = record.method?.id
-  if (!methodId) {
+  const rawMethodId = record.method?.id
+  if (!rawMethodId) {
     return { success: false, error: '분석 메서드 정보가 없습니다.' }
   }
 
   const options = record.analysisOptions ?? {}
   const results = record.results as Record<string, unknown> | null
   const testVariant = extractTestVariant(results)
+  const methodIdentity = resolveMethodIdentity({
+    methodId: rawMethodId,
+    methodName: record.method?.name,
+    testVariant,
+  })
+  const methodId = methodIdentity.canonicalMethodId
   const equalVariance = resolveEqualVarianceOption(methodId, extractEqualVariance(results), testVariant)
   const postHocMethod = extractPostHocMethod(results) ?? (typeof options.postHocMethod === 'string' ? options.postHocMethod : undefined)
 
@@ -227,12 +236,12 @@ export function exportCode(
     ),
     meta: {
       generatedAt: new Date().toISOString().slice(0, 10),
-      methodName: record.method?.name ?? 'Unknown',
+      methodName: methodIdentity.displayMethodName,
       dataRowCount: record.dataRowCount,
     },
   }
 
-  return generateAndDownload(methodId, record.method?.name ?? methodId, rawInput, language)
+  return generateAndDownload(methodId, methodIdentity.displayMethodName, rawInput, language)
 }
 
 /**
@@ -243,12 +252,18 @@ export function exportCodeFromAnalysis(
   params: CodeExportParams,
   language: CodeLanguage,
 ): CodeExportResult {
-  const methodId = params.method?.id
-  if (!methodId) {
+  const rawMethodId = params.method?.id
+  if (!rawMethodId) {
     return { success: false, error: '분석 메서드 정보가 없습니다.' }
   }
 
   const testVariant = extractTestVariant(params.results ?? null)
+  const methodIdentity = resolveMethodIdentity({
+    methodId: rawMethodId,
+    methodName: params.results?.displayMethodName ?? params.method?.name,
+    testVariant,
+  })
+  const methodId = methodIdentity.canonicalMethodId
   const equalVariance = resolveEqualVarianceOption(methodId, extractEqualVariance(params.results ?? null), testVariant)
   const postHocMethod = extractPostHocMethod(params.results ?? null)
 
@@ -266,12 +281,12 @@ export function exportCodeFromAnalysis(
     expectedResults: buildExpectedResults(params.results ?? null),
     meta: {
       generatedAt: new Date().toISOString().slice(0, 10),
-      methodName: params.method?.name ?? 'Unknown',
+      methodName: methodIdentity.displayMethodName,
       dataRowCount: params.dataRowCount,
     },
   }
 
-  return generateAndDownload(methodId, params.method?.name ?? methodId, rawInput, language)
+  return generateAndDownload(methodId, methodIdentity.displayMethodName, rawInput, language)
 }
 
 /**

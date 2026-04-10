@@ -12,6 +12,7 @@ import {
 } from '@/types/analysis'
 import { ExecutorAnalysisResult } from '@/lib/services/executors/types'
 import type { StatisticalExecutorResult } from '@/lib/services/statistical-executor'
+import { resolveMethodIdentity } from '@/lib/utils/method-identity'
 
 /**
  * additionalInfo의 안전한 접근을 위한 헬퍼 타입
@@ -43,6 +44,9 @@ export function transformExecutorResult(
 ): AnalysisResult {
   // additionalInfo를 안전하게 접근하기 위해 타입 캐스팅
   const additionalInfo = executorResult.additionalInfo as AdditionalInfoAccessor
+  const testVariant = typeof additionalInfo?.testVariant === 'string'
+    ? additionalInfo.testVariant
+    : undefined
 
   // 효과크기 변환 (eta-squared)
   let effectSize: number | EffectSizeInfo | undefined
@@ -161,6 +165,11 @@ export function transformExecutorResult(
   // metadata를 any로 캐스팅하여 assumptions 접근 (두 타입의 메타데이터 구조가 다름)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const metadata = executorResult.metadata as any
+  const methodIdentity = resolveMethodIdentity({
+    methodId: typeof metadata?.method === 'string' ? metadata.method : undefined,
+    methodName: typeof metadata?.methodName === 'string' ? metadata.methodName : undefined,
+    testVariant,
+  })
   if (metadata?.assumptions) {
     const metaAssump = metadata.assumptions
     assumptions = {
@@ -245,9 +254,10 @@ export function transformExecutorResult(
 
   return {
     method: executorResult.metadata.method,
-    testVariant: typeof additionalInfo?.testVariant === 'string'
-      ? additionalInfo.testVariant
-      : undefined,
+    canonicalMethodId: methodIdentity.canonicalMethodId,
+    displayMethodName: methodIdentity.displayMethodName,
+    executionVariant: methodIdentity.executionVariant,
+    testVariant,
     statistic: mainResults.statistic,
     statisticName: mainResults.statisticName,
     pValue: mainResults.pvalue,

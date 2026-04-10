@@ -552,6 +552,9 @@ export interface VisualizationData {
 
 export interface AnalysisResult {
   method: string
+  canonicalMethodId?: string
+  displayMethodName?: string
+  executionVariant?: string
   testVariant?: string
   statistic: number
   statisticName?: string

@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.39.0",
+  "version": "1.40.0",
   "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
@@ -185,6 +185,19 @@
             "testValue",
             "execution context",
             "regression"
+          ]
+        },
+        {
+          "name": "Method identity 정규화 회귀 테스트",
+          "purpose": "canonical method id, display name, execution variant가 transformer/interpreter/export에서 같은 규칙으로 유지되도록 고정",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { resolveMethodIdentity } from '@/lib/utils/method-identity';\n\ndescribe('resolveMethodIdentity', () => {\n  it('anova alias + welch variant를 canonical/display/variant로 분리한다', () => {\n    const identity = resolveMethodIdentity({\n      methodId: 'anova',\n      methodName: 'One-Way ANOVA',\n      testVariant: 'welch',\n    });\n\n    expect(identity.canonicalMethodId).toBe('one-way-anova');\n    expect(identity.displayMethodName).toBe('Welch ANOVA');\n    expect(identity.executionVariant).toBe('welch');\n    expect(identity.executionVariantLabel).toBe('Welch ANOVA');\n  });\n});",
+          "keywords": [
+            "method identity",
+            "canonicalMethodId",
+            "displayMethodName",
+            "executionVariant",
+            "welch",
+            "result-transformer"
           ]
         }
       ]

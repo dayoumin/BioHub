@@ -159,9 +159,11 @@ describe('code-export', () => {
     }, 'python')
 
     expect(rExport.success).toBe(true)
+    expect(rExport.content).toContain('Method: Welch ANOVA')
     expect(rExport.content).toContain('welch_anova_test')
     expect(rExport.content).toContain('games_howell_test')
     expect(pyExport.success).toBe(true)
+    expect(pyExport.content).toContain('Method: Welch ANOVA')
     expect(pyExport.content).toContain('pg.welch_anova')
     expect(pyExport.content).toContain('pairwise_gameshowell')
   })

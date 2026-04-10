@@ -8,6 +8,7 @@
 export interface ExecutorAnalysisResult {
   metadata: {
     method: string
+    methodName?: string
     timestamp: string
     duration: number
     dataSize: number

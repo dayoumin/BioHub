@@ -46,7 +46,8 @@ describe('buildInterpretationPrompt: 기본 구조', () => {
       method: 'one-way-anova',
       testVariant: 'welch',
     })))
-    expect(prompt).toContain('실행 변형: Welch ANOVA')
+    expect(prompt).toContain('## 분석 방법\nWelch ANOVA')
+    expect(prompt).not.toContain('실행 변형: Welch ANOVA')
   })
 
   it('t-test의 welch variant는 Welch t-test로 표시된다', () => {
@@ -54,8 +55,18 @@ describe('buildInterpretationPrompt: 기본 구조', () => {
       method: 'welch-t',
       testVariant: 'welch',
     })))
-    expect(prompt).toContain('실행 변형: Welch t-test')
+    expect(prompt).toContain('## 분석 방법\nWelch t-Test')
+    expect(prompt).not.toContain('실행 변형: Welch t-test')
     expect(prompt).not.toContain('Welch ANOVA')
+  })
+
+  it('displayMethodName이 있으면 raw method 대신 표시명을 사용한다', () => {
+    const prompt = buildInterpretationPrompt(makeContext(makeResult({
+      method: 'two-sample-t',
+      displayMethodName: 'Independent Samples t-Test',
+    })))
+    expect(prompt).toContain('## 분석 방법\nIndependent Samples t-Test')
+    expect(prompt).not.toContain('## 분석 방법\ntwo-sample-t')
   })
 
   it('standard variant는 프롬프트에 노출하지 않는다', () => {

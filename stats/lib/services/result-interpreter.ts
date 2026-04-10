@@ -11,6 +11,7 @@ import { llmRecommender, type LlmStreamResult, type LlmProvider } from './recomm
 import { logger } from '@/lib/utils/logger'
 import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'
 import { compressChatHistory } from './ai/chat-history-compressor'
+import { resolveMethodIdentity } from '@/lib/utils/method-identity'
 
 export interface FollowUpMessage {
   role: 'user' | 'assistant'
@@ -24,20 +25,25 @@ export interface InterpretationContext {
   uploadedFileName?: string
 }
 
-function getTestVariantLabel(results: AnalysisResult): string | null {
-  if (!results.testVariant || results.testVariant === 'standard') return null
+function getPromptMethodIdentity(results: AnalysisResult) {
+  return resolveMethodIdentity({
+    methodId: results.canonicalMethodId ?? results.method,
+    methodName: results.displayMethodName ?? results.method,
+    testVariant: results.executionVariant ?? results.testVariant,
+  })
+}
 
-  if (results.testVariant === 'welch') {
-    if (results.method === 'welch-t' || results.method === 'two-sample-t' || results.method === 't-test') {
-      return 'Welch t-test'
-    }
-    if (results.method === 'one-way-anova' || results.method === 'anova') {
-      return 'Welch ANOVA'
-    }
-    return 'Welch variant'
+function getTestVariantLabel(results: AnalysisResult): string | null {
+  const methodIdentity = getPromptMethodIdentity(results)
+  if (!methodIdentity.executionVariantLabel) return null
+
+  const displayMethod = methodIdentity.displayMethodName.toLowerCase()
+  const variantLabel = methodIdentity.executionVariantLabel.toLowerCase()
+  if (displayMethod.includes(variantLabel)) {
+    return null
   }
 
-  return results.testVariant
+  return methodIdentity.executionVariantLabel
 }
 
 // ============================================
@@ -50,9 +56,10 @@ function getTestVariantLabel(results: AnalysisResult): string | null {
 export function buildInterpretationPrompt(ctx: InterpretationContext): string {
   const { results } = ctx
   const parts: string[] = []
+  const methodIdentity = getPromptMethodIdentity(results)
 
   // 기본 정보
-  parts.push(`## 분석 방법\n${results.method}`)
+  parts.push(`## 분석 방법\n${methodIdentity.displayMethodName}`)
   const testVariantLabel = getTestVariantLabel(results)
   if (testVariantLabel) {
     parts.push(`- 실행 변형: ${testVariantLabel}`)
