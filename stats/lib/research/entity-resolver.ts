@@ -14,7 +14,7 @@
  */
 
 import type { ProjectEntityRef, ProjectEntityKind } from '@/lib/types/research'
-import { getTabEntry } from '@/lib/research/entity-tab-registry'
+import { getTabEntry } from '.'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 
 // ── 공통 타입 ──
@@ -49,7 +49,17 @@ export interface BlastRawData {
   topHits: Array<{ species: string; identity: number; accession: string }>
 }
 
-export type EntityRawData = AnalysisRawData | BlastRawData
+export interface ProteinResultRawData {
+  kind: 'protein-result'
+  analysisName: string
+  sequenceLength: number
+  molecularWeight: number
+  isoelectricPoint: number
+  isStable: boolean
+  accession?: string
+}
+
+export type EntityRawData = AnalysisRawData | BlastRawData | ProteinResultRawData
 
 export interface ResolvedEntity {
   ref: ProjectEntityRef
@@ -90,6 +100,17 @@ export interface BlastEntryLike {
     description: string
     topHits: Array<{ species: string; identity: number; accession: string }>
   }
+}
+
+export interface ProteinHistoryLike {
+  id: string
+  analysisName: string
+  sequenceLength: number
+  molecularWeight: number
+  isoelectricPoint: number
+  isStable: boolean
+  accession?: string
+  createdAt: number
 }
 
 // ── 유틸 ──
@@ -245,6 +266,46 @@ function resolveBlast(
   }
 }
 
+function resolveProteinResult(
+  ref: ProjectEntityRef,
+  dataMap: Map<string, ProteinHistoryLike>,
+): ResolvedEntity {
+  const entry = dataMap.get(ref.entityId)
+  if (!entry) return makeDangling(ref)
+
+  const ts = entry.createdAt
+  const subtitle = [
+    `${entry.sequenceLength} aa`,
+    `${(entry.molecularWeight / 1000).toFixed(2)} kDa`,
+    `pI ${entry.isoelectricPoint.toFixed(2)}`,
+  ].join(' · ')
+
+  return {
+    ref,
+    loaded: true,
+    summary: {
+      title: entry.analysisName || ref.label || '단백질 분석',
+      subtitle,
+      badge: entry.isStable
+        ? { label: 'Stable', variant: 'success' }
+        : { label: 'Unstable', variant: 'warning' },
+      date: fmtDate(ts),
+      timestamp: ts,
+      navigateTo: `/genetics/protein?history=${encodeURIComponent(ref.entityId)}`,
+      ...kindMeta(ref.entityKind),
+    },
+    rawData: {
+      kind: 'protein-result',
+      analysisName: entry.analysisName,
+      sequenceLength: entry.sequenceLength,
+      molecularWeight: entry.molecularWeight,
+      isoelectricPoint: entry.isoelectricPoint,
+      isStable: entry.isStable,
+      accession: entry.accession,
+    },
+  }
+}
+
 function makeDangling(ref: ProjectEntityRef): ResolvedEntity {
   const ts = normalizeTimestamp(ref.createdAt)
   return {
@@ -338,6 +399,7 @@ interface EntityKindDescriptors {
   analysis: { optionKey: 'analysisHistory'; data: HistoryRecordLike }
   figure: { optionKey: 'graphProjects'; data: GraphProjectLike }
   'blast-result': { optionKey: 'blastHistory'; data: BlastEntryLike }
+  'protein-result': { optionKey: 'proteinHistory'; data: ProteinHistoryLike }
   'bio-tool-result': { optionKey: 'bioToolHistory'; data: BioToolEntryLike }
   draft: { optionKey: 'draftDocuments'; data: DraftEntryLike }
 }
@@ -364,7 +426,6 @@ const _GENERIC_ONLY_KINDS: Record<GenericOnlyEntityKind, true> = {
   'phylogeny-result': true,
   'bold-result': true,
   'translation-result': true,
-  'protein-result': true,
 }
 
 /** entity-loader.ts 전용. kind·optionKey·load 반환 타입을 묶는 discriminated union. */
@@ -399,6 +460,9 @@ export function resolveEntities(
   const blastMap = new Map(
     (options.blastHistory ?? []).map(e => [e.id, e])
   )
+  const proteinMap = new Map(
+    (options.proteinHistory ?? []).map(e => [e.id, e])
+  )
   const bioToolMap = new Map(
     (options.bioToolHistory ?? []).map(e => [e.id, e])
   )
@@ -414,6 +478,8 @@ export function resolveEntities(
         return resolveFigure(ref, graphMap)
       case 'blast-result':
         return resolveBlast(ref, blastMap)
+      case 'protein-result':
+        return resolveProteinResult(ref, proteinMap)
       case 'bio-tool-result':
         return resolveBioTool(ref, bioToolMap)
       case 'draft':
@@ -427,4 +493,3 @@ export function resolveEntities(
     }
   })
 }
-

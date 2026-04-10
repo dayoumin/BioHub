@@ -11,18 +11,16 @@ import { Badge } from '@/components/ui/badge'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   saveGeneticsHistory,
-} from '@/lib/genetics/analysis-history'
-import {
   consumeTransferredSequence,
   storeSequenceForTransfer,
   formatTransferSource,
-} from '@/lib/genetics/sequence-transfer'
+} from '@/lib/genetics'
+import { PyodideWorker } from '@/lib/services'
 import { CopyButton } from '@/components/genetics/CopyButton'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
-import { focusRing } from '@/lib/design-tokens/common'
+import { focusRing } from '@/lib/design-tokens'
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -106,6 +104,7 @@ export default function TranslationContent(): React.ReactElement {
   // ── Shared state ─────────────────────────────────────────
   const [rawText, setRawText] = useState('')
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+  const [transferredAccession, setTransferredAccession] = useState<string | null>(null)
   const [geneticCode, setGeneticCode] = useState(1)
   const [activeTab, setActiveTab] = useState<AnalysisTab>('translate')
 
@@ -130,6 +129,7 @@ export default function TranslationContent(): React.ReactElement {
     const transferred = consumeTransferredSequence()
     if (transferred && transferred.sequenceType !== 'protein') {
       setRawText(transferred.sequence)
+      setTransferredAccession(transferred.accession ?? null)
       toast.info(`${formatTransferSource(transferred.source)}에서 서열이 전달되었습니다.`)
     }
   }, [])
@@ -148,6 +148,7 @@ export default function TranslationContent(): React.ReactElement {
       if (typeof text === 'string') {
         setRawText(text)
         setUploadedFileName(file.name)
+        setTransferredAccession(null)
       }
     }
     reader.readAsText(file)
@@ -161,6 +162,7 @@ export default function TranslationContent(): React.ReactElement {
     setCodonResult(null)
     setSelectedOrfIdx(null)
     setErrorMsg(null)
+    setTransferredAccession(null)
   }, [])
 
   // ── Clean sequence for validation display ────────────────
@@ -256,9 +258,12 @@ export default function TranslationContent(): React.ReactElement {
 
   // ── Navigate to protein page ─────────────────────────────
   const navigateToProtein = useCallback((protein: string) => {
-    storeSequenceForTransfer(protein, 'translation', { sequenceType: 'protein' })
+    storeSequenceForTransfer(protein, 'translation', {
+      sequenceType: 'protein',
+      ...(transferredAccession ? { accession: transferredAccession } : {}),
+    })
     router.push('/genetics/protein')
-  }, [router])
+  }, [router, transferredAccession])
 
   const handleRunClick = useCallback(() => {
     void runAnalysis(activeTab)
@@ -280,7 +285,8 @@ export default function TranslationContent(): React.ReactElement {
   const handleSequenceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRawText(e.target.value)
     if (uploadedFileName) setUploadedFileName(null)
-  }, [uploadedFileName])
+    if (transferredAccession) setTransferredAccession(null)
+  }, [uploadedFileName, transferredAccession])
 
   // ═══════════════════════════════════════════════════════════
   // Render
@@ -788,7 +794,6 @@ interface CodonUsageViewProps {
 }
 
 function CodonUsageView({ result }: CodonUsageViewProps): React.ReactElement {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const ax = useMemo(() => resolveAxisColors(), [])
 
   // Group codons by amino acid

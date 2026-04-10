@@ -4,20 +4,47 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  saveGeneticsHistory,
+  saveGeneticsHistoryEntry,
   loadGeneticsHistory,
   hydrateGeneticsHistoryFromCloud,
-} from '@/lib/genetics/analysis-history'
-import type { ProteinHistoryEntry } from '@/lib/genetics/analysis-history'
-import { consumeTransferredSequence, formatTransferSource } from '@/lib/genetics/sequence-transfer'
-import { cleanProteinSequence, validateProteinSequence as validateProtein } from '@/lib/genetics/validate-sequence'
+  updateProteinHistoryReport,
+  consumeTransferredSequence,
+  formatTransferSource,
+  cleanProteinSequence,
+  validateProteinSequence as validateProtein,
+  fetchAlphaFoldPrediction,
+  AlphaFoldError,
+  fetchUniProtSummaryForAccession,
+  UniProtError,
+  fetchQuickGoTermSummary,
+  QuickGoError,
+  fetchStringInteractionPartners,
+  StringError,
+  fetchPdbStructureSummaries,
+  PdbError,
+  buildProteinInterpretationMarkdown,
+  fetchReactomePathwaysForUniProt,
+  fetchReactomePathwayEnrichment,
+  ReactomeError,
+  type ProteinHistoryEntry,
+  type AlphaFoldPredictionSummary,
+  type UniProtSummary,
+  type UniProtGoTerm,
+  type QuickGoTermSummary,
+  type StringPartnerSummary,
+  type PdbStructureSummary,
+  type ReactomeEnrichmentResult,
+  type ReactomePathwaySummary,
+} from '@/lib/genetics'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { PyodideWorker } from '@/lib/services'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors, resolveChartPalette, resolveCssVar } from '@/lib/charts/chart-color-resolver'
+import { downloadTextFile } from '@/lib/utils/download-file'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, RotateCcw, Upload, Atom } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Loader2, RotateCcw, Upload, Atom, Database, ArrowUpRight, RefreshCw, Network, Copy, Download } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ── 타입 ──
@@ -77,6 +104,7 @@ export default function ProteinContent(): React.ReactElement {
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null)
   const [transferredAccession, setTransferredAccession] = useState<string | null>(null)
   const [transferredSource, setTransferredSource] = useState<string | null>(null)
+  const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null)
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
   // Sequence transfer from other pages
@@ -105,8 +133,17 @@ export default function ProteinContent(): React.ReactElement {
       if (entry) {
         setDeepLinkError(null)
         setAnalysisName(entry.analysisName)
-        setState({ step: 'input' })
-        toast.info(`${entry.analysisName} 기록을 불러왔습니다. 서열을 다시 입력하여 분석하세요.`)
+        setTransferredAccession(entry.accession ?? null)
+        setTransferredSource(null)
+        setCurrentHistoryId(entry.id)
+        if (entry.resultData) {
+          setRawText(entry.resultData.sequence)
+          setState({ step: 'result', result: entry.resultData, analysisName: entry.analysisName })
+          toast.info(`${entry.analysisName} 기록을 불러왔습니다.`)
+        } else {
+          setState({ step: 'input' })
+          toast.info(`${entry.analysisName} 기록을 불러왔습니다. 저장된 전체 결과가 없어 서열을 다시 입력하여 분석하세요.`)
+        }
       } else {
         setDeepLinkError('요청한 분석 기록을 찾을 수 없습니다.')
       }
@@ -123,6 +160,8 @@ export default function ProteinContent(): React.ReactElement {
       const text = reader.result
       if (typeof text === 'string') {
         setRawText(text)
+        setTransferredAccession(null)
+        setTransferredSource(null)
         toast.success(`${file.name} 파일을 불러왔습니다.`)
       }
     }
@@ -166,7 +205,7 @@ export default function ProteinContent(): React.ReactElement {
 
       setState({ step: 'result', result, analysisName: autoName })
 
-      const saved = saveGeneticsHistory({
+      const savedEntry = saveGeneticsHistoryEntry({
         type: 'protein',
         analysisName: autoName,
         sequenceLength: result.sequenceLength,
@@ -174,9 +213,15 @@ export default function ProteinContent(): React.ReactElement {
         isoelectricPoint: result.isoelectricPoint,
         isStable: result.isStable,
         accession: transferredAccession ?? undefined,
+        resultData: result,
         projectId: activeResearchProjectId ?? undefined,
       })
-      if (!saved) toast.warning('저장 공간 부족으로 히스토리에 저장되지 않았습니다.')
+      if (!savedEntry) {
+        setCurrentHistoryId(null)
+        toast.warning('저장 공간 부족으로 히스토리에 저장되지 않았습니다.')
+      } else {
+        setCurrentHistoryId(savedEntry.id)
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
       setState({ step: 'error', message: msg })
@@ -189,6 +234,7 @@ export default function ProteinContent(): React.ReactElement {
     setAnalysisName('')
     setTransferredAccession(null)
     setTransferredSource(null)
+    setCurrentHistoryId(null)
   }, [])
 
   const handleDismissError = useCallback(() => { setDeepLinkError(null) }, [])
@@ -243,7 +289,11 @@ export default function ProteinContent(): React.ReactElement {
             <textarea
               id="proteinSeq"
               value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
+              onChange={(e) => {
+                setRawText(e.target.value)
+                if (transferredAccession) setTransferredAccession(null)
+                if (transferredSource) setTransferredSource(null)
+              }}
               placeholder={`FASTA 형식 또는 순수 아미노산 서열을 입력하세요.\n\n>sp|P68871|HBB_HUMAN Hemoglobin subunit beta\nMVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTADAVMGNPKVKAHGKKVLG\nAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVAN\nALAHKYH`}
               rows={8}
               className="w-full rounded-lg bg-card px-3 py-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -301,6 +351,8 @@ export default function ProteinContent(): React.ReactElement {
         <ProteinResultView
           result={state.result}
           analysisName={state.analysisName}
+          accession={transferredAccession}
+          historyEntryId={currentHistoryId}
           onReset={handleReset}
         />
       )}
@@ -315,14 +367,59 @@ export default function ProteinContent(): React.ReactElement {
 interface ProteinResultViewProps {
   result: ProteinResult
   analysisName: string
+  accession: string | null
+  historyEntryId: string | null
   onReset: () => void
 }
 
-function ProteinResultView({ result, analysisName, onReset }: ProteinResultViewProps): React.ReactElement {
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 프로젝트 전체 컨벤션: 마운트 시 1회 해석
+function ProteinResultView({ result, analysisName, accession, historyEntryId, onReset }: ProteinResultViewProps): React.ReactElement {
   const ax = useMemo(() => resolveAxisColors(), [])
   const palette = useMemo(() => resolveChartPalette(4), [])
   const bgColor = useMemo(() => resolveCssVar('--background', '#ffffff'), [])
+  const [uniProt, setUniProt] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'
+    summary: UniProtSummary | null
+    message: string | null
+  }>({
+    status: 'idle',
+    summary: null,
+    message: null,
+  })
+
+  useEffect(() => {
+    setUniProt({
+      status: 'idle',
+      summary: null,
+      message: null,
+    })
+  }, [accession])
+
+  const handleLoadUniProt = useCallback(async () => {
+    if (!accession || uniProt.status === 'loading') return
+
+    setUniProt({ status: 'loading', summary: null, message: null })
+
+    try {
+      const summary = await fetchUniProtSummaryForAccession(accession)
+      setUniProt({
+        status: 'success',
+        summary,
+        message: null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof UniProtError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'UniProt 조회 중 알 수 없는 오류가 발생했습니다.'
+      setUniProt({
+        status: 'error',
+        summary: null,
+        message,
+      })
+    }
+  }, [accession, uniProt.status])
 
   // ── Summary Cards ──
 
@@ -540,6 +637,69 @@ function ProteinResultView({ result, analysisName, onReset }: ProteinResultViewP
         ))}
       </div>
 
+      <section>
+        <h3 className="mb-3 text-base font-semibold">UniProt 기능 주석</h3>
+        {!accession ? (
+          <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-5">
+            <p className="text-sm text-muted-foreground">
+              이 결과에는 accession이 없어 UniProt 기능 주석을 바로 조회할 수 없습니다.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/80">
+              GenBank나 accession이 유지된 Translation 경로에서 넘어온 단백질만 자동 연결됩니다.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono text-xs">{accession}</Badge>
+                  {uniProt.summary?.primaryAccession && (
+                    <Badge variant="secondary" className="font-mono text-xs">
+                      {uniProt.summary.primaryAccession}
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  NCBI accession을 UniProtKB로 매핑해 기능, GO, 구조 연계를 요약합니다.
+                </p>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={() => { void handleLoadUniProt() }}
+                disabled={uniProt.status === 'loading'}
+              >
+                {uniProt.status === 'loading'
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : uniProt.status === 'success'
+                    ? <RefreshCw className="h-4 w-4" />
+                    : <Database className="h-4 w-4" />}
+                {uniProt.status === 'success' ? '다시 조회' : 'UniProt 조회'}
+              </Button>
+            </div>
+
+            {uniProt.status === 'loading' && <UniProtSkeleton />}
+
+            {uniProt.status === 'error' && (
+              <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+                <p className="text-sm text-destructive">{uniProt.message}</p>
+              </div>
+            )}
+
+            {uniProt.status === 'success' && uniProt.summary && (
+              <UniProtSummaryPanel
+                summary={uniProt.summary}
+                result={result}
+                analysisName={analysisName}
+                accession={accession}
+                historyEntryId={historyEntryId}
+              />
+            )}
+          </div>
+        )}
+      </section>
+
       {/* Amino Acid Composition */}
       <section>
         <h3 className="mb-3 text-base font-semibold">아미노산 조성</h3>
@@ -652,4 +812,1296 @@ function StructureBar({ label, fraction, color }: StructureBarProps): React.Reac
       </div>
     </div>
   )
+}
+
+const GO_ASPECT_LABELS: Record<UniProtGoTerm['aspect'], string> = {
+  function: 'Molecular Function',
+  process: 'Biological Process',
+  component: 'Cellular Component',
+}
+
+const QUICKGO_ASPECT_LABELS: Record<QuickGoTermSummary['aspect'], string> = {
+  molecular_function: 'Molecular Function',
+  biological_process: 'Biological Process',
+  cellular_component: 'Cellular Component',
+}
+
+function UniProtSkeleton(): React.ReactElement {
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-24 rounded-xl" />
+      </div>
+      <Skeleton className="h-20 rounded-xl" />
+      <Skeleton className="h-28 rounded-xl" />
+    </div>
+  )
+}
+
+function UniProtSummaryPanel({
+  summary,
+  result,
+  analysisName,
+  accession,
+  historyEntryId,
+}: {
+  summary: UniProtSummary
+  result: ProteinResult
+  analysisName: string
+  accession: string | null
+  historyEntryId: string | null
+}): React.ReactElement {
+  const topFunctions = summary.functions.slice(0, 3)
+  const topKeywords = summary.keywords.slice(0, 10)
+  const topGoTerms = summary.goTerms.slice(0, 9)
+  const topPdbIds = summary.pdbIds.slice(0, 8)
+  const [quickGo, setQuickGo] = useState<{
+    selectedId: string | null
+    status: 'idle' | 'loading' | 'success' | 'error'
+    summary: QuickGoTermSummary | null
+    message: string | null
+  }>({
+    selectedId: null,
+    status: 'idle',
+    summary: null,
+    message: null,
+  })
+  const [stringState, setStringState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'
+    partners: StringPartnerSummary[]
+    message: string | null
+  }>({
+    status: 'idle',
+    partners: [],
+    message: null,
+  })
+  const [reactomeState, setReactomeState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'
+    pathways: ReactomePathwaySummary[]
+    message: string | null
+  }>({
+    status: 'idle',
+    pathways: [],
+    message: null,
+  })
+  const [pdbState, setPdbState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'
+    structures: PdbStructureSummary[]
+    message: string | null
+  }>({
+    status: 'idle',
+    structures: [],
+    message: null,
+  })
+  const [alphaFoldState, setAlphaFoldState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'
+    prediction: AlphaFoldPredictionSummary | null
+    message: string | null
+  }>({
+    status: 'idle',
+    prediction: null,
+    message: null,
+  })
+  const [reactomeNetworkState, setReactomeNetworkState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'
+    result: ReactomeEnrichmentResult | null
+    message: string | null
+  }>({
+    status: 'idle',
+    result: null,
+    message: null,
+  })
+
+  useEffect(() => {
+    setQuickGo({
+      selectedId: null,
+      status: 'idle',
+      summary: null,
+      message: null,
+    })
+    setStringState({
+      status: 'idle',
+      partners: [],
+      message: null,
+    })
+    setReactomeState({
+      status: 'idle',
+      pathways: [],
+      message: null,
+    })
+    setPdbState({
+      status: 'idle',
+      structures: [],
+      message: null,
+    })
+    setAlphaFoldState({
+      status: 'idle',
+      prediction: null,
+      message: null,
+    })
+    setReactomeNetworkState({
+      status: 'idle',
+      result: null,
+      message: null,
+    })
+  }, [summary.primaryAccession])
+
+  const handleSelectGoTerm = useCallback(async (goId: string) => {
+    setQuickGo((previous) => ({
+      selectedId: goId,
+      status: 'loading',
+      summary: previous.selectedId === goId ? previous.summary : null,
+      message: null,
+    }))
+
+    try {
+      const quickGoSummary = await fetchQuickGoTermSummary(goId)
+      setQuickGo({
+        selectedId: goId,
+        status: 'success',
+        summary: quickGoSummary,
+        message: null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof QuickGoError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'QuickGO 조회 중 알 수 없는 오류가 발생했습니다.'
+      setQuickGo((previous) => ({
+        selectedId: goId,
+        status: 'error',
+        summary: previous.selectedId === goId ? previous.summary : null,
+        message,
+      }))
+    }
+  }, [])
+
+  const handleLoadString = useCallback(async () => {
+    if (stringState.status === 'loading') return
+
+    const queryIdentifier = summary.geneNames[0] || summary.primaryAccession
+    if (!queryIdentifier || !summary.taxonId) {
+      setStringState({
+        status: 'error',
+        partners: [],
+        message: 'STRING 조회에 필요한 gene/accession 또는 taxon ID가 없습니다.',
+      })
+      return
+    }
+
+    setStringState((previous) => ({
+      status: 'loading',
+      partners: previous.partners,
+      message: null,
+    }))
+
+    try {
+      const partners = await fetchStringInteractionPartners(queryIdentifier, summary.taxonId, {
+        requiredScore: 700,
+        limit: 10,
+      })
+      setStringState({
+        status: 'success',
+        partners,
+        message: partners.length === 0 ? 'STRING 파트너가 없습니다.' : null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof StringError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'STRING 조회 중 알 수 없는 오류가 발생했습니다.'
+      setStringState((previous) => ({
+        status: 'error',
+        partners: previous.partners,
+        message,
+      }))
+    }
+  }, [stringState.status, summary.geneNames, summary.primaryAccession, summary.taxonId])
+
+  const stringGraphOption = useMemo(() => {
+    if (stringState.partners.length === 0) return null
+
+    const centerName = summary.geneNames[0] || summary.uniProtId || summary.primaryAccession
+    const nodes = [
+      {
+        id: centerName,
+        name: centerName,
+        symbolSize: 52,
+        value: 1,
+        itemStyle: { color: '#2563eb' },
+      },
+      ...stringState.partners.map((partner) => ({
+        id: partner.partnerName,
+        name: partner.partnerName,
+        symbolSize: 24 + Math.round(partner.score * 16),
+        value: partner.score,
+        itemStyle: { color: '#14b8a6' },
+      })),
+    ]
+
+    const links = stringState.partners.map((partner) => ({
+      source: centerName,
+      target: partner.partnerName,
+      value: partner.score,
+      lineStyle: {
+        width: 1 + partner.score * 4,
+        opacity: 0.35 + partner.score * 0.45,
+      },
+    }))
+
+    return {
+      tooltip: {
+        formatter: (params: unknown) => {
+          const item = params as { dataType?: string; data?: { name?: string; value?: number }; value?: number }
+          if (item.dataType === 'edge') {
+            return `Combined score: ${(Number(item.value) * 1000).toFixed(0)}`
+          }
+          return item.data?.name ?? ''
+        },
+      },
+      series: [{
+        type: 'graph' as const,
+        layout: 'force' as const,
+        roam: true,
+        data: nodes,
+        links,
+        force: {
+          repulsion: 230,
+          edgeLength: [60, 130],
+          gravity: 0.08,
+        },
+        label: {
+          show: true,
+          position: 'right' as const,
+          formatter: '{b}',
+          fontSize: 11,
+        },
+        lineStyle: {
+          color: '#94a3b8',
+          curveness: 0.08,
+        },
+      }],
+    }
+  }, [stringState.partners, summary.geneNames, summary.uniProtId, summary.primaryAccession])
+
+  const handleLoadReactome = useCallback(async () => {
+    if (reactomeState.status === 'loading') return
+
+    setReactomeState((previous) => ({
+      status: 'loading',
+      pathways: previous.pathways,
+      message: null,
+    }))
+
+    try {
+      const pathways = await fetchReactomePathwaysForUniProt(summary.primaryAccession)
+      setReactomeState({
+        status: 'success',
+        pathways,
+        message: null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof ReactomeError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'Reactome 조회 중 알 수 없는 오류가 발생했습니다.'
+      setReactomeState((previous) => ({
+        status: 'error',
+        pathways: previous.pathways,
+        message,
+      }))
+    }
+  }, [reactomeState.status, summary.primaryAccession])
+
+  const handleLoadPdb = useCallback(async () => {
+    if (pdbState.status === 'loading') return
+
+    if (topPdbIds.length === 0) {
+      setPdbState({
+        status: 'error',
+        structures: [],
+        message: 'RCSB PDB로 조회할 구조 ID가 없습니다.',
+      })
+      return
+    }
+
+    setPdbState((previous) => ({
+      status: 'loading',
+      structures: previous.structures,
+      message: null,
+    }))
+
+    try {
+      const structures = await fetchPdbStructureSummaries(topPdbIds, { limit: 4 })
+      setPdbState({
+        status: 'success',
+        structures,
+        message: null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof PdbError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'RCSB PDB 조회 중 알 수 없는 오류가 발생했습니다.'
+      setPdbState((previous) => ({
+        status: 'error',
+        structures: previous.structures,
+        message,
+      }))
+    }
+  }, [pdbState.status, topPdbIds])
+
+  const handleLoadAlphaFold = useCallback(async () => {
+    if (alphaFoldState.status === 'loading') return
+
+    setAlphaFoldState((previous) => ({
+      status: 'loading',
+      prediction: previous.prediction,
+      message: null,
+    }))
+
+    try {
+      const prediction = await fetchAlphaFoldPrediction(summary.primaryAccession)
+      setAlphaFoldState({
+        status: 'success',
+        prediction,
+        message: null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof AlphaFoldError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'AlphaFold 조회 중 알 수 없는 오류가 발생했습니다.'
+      setAlphaFoldState((previous) => ({
+        status: 'error',
+        prediction: previous.prediction,
+        message,
+      }))
+    }
+  }, [alphaFoldState.status, summary.primaryAccession])
+
+  const reactomeNetworkIdentifiers = useMemo(() => {
+    const identifiers = [
+      summary.geneNames[0] || summary.primaryAccession,
+      ...stringState.partners.map((partner) => partner.partnerName),
+    ]
+
+    const uniqueIdentifiers: string[] = []
+    const seen = new Set<string>()
+    for (const identifier of identifiers) {
+      const value = identifier.trim()
+      if (!value) continue
+      const key = value.toUpperCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      uniqueIdentifiers.push(value)
+    }
+
+    return uniqueIdentifiers.slice(0, 12)
+  }, [stringState.partners, summary.geneNames, summary.primaryAccession])
+
+  const directPathwayIds = useMemo(
+    () => new Set(reactomeState.pathways.map((pathway) => pathway.stId)),
+    [reactomeState.pathways],
+  )
+
+  const reactomeOverlapCount = useMemo(() => {
+    if (!reactomeNetworkState.result) return 0
+    return reactomeNetworkState.result.pathways.reduce(
+      (count, pathway) => count + (directPathwayIds.has(pathway.stId) ? 1 : 0),
+      0,
+    )
+  }, [directPathwayIds, reactomeNetworkState.result])
+
+  const proteinReportMarkdown = useMemo(() => buildProteinInterpretationMarkdown({
+    analysisName,
+    accession,
+    result,
+    uniProtSummary: summary,
+    quickGoSummary: quickGo.status === 'success' ? quickGo.summary : null,
+    stringPartners: stringState.partners,
+    reactomePathways: reactomeState.pathways,
+    reactomeEnrichment: reactomeNetworkState.result,
+    pdbStructures: pdbState.structures,
+    alphaFoldPrediction: alphaFoldState.prediction,
+  }), [
+    accession,
+    alphaFoldState.prediction,
+    analysisName,
+    pdbState.structures,
+    quickGo.status,
+    quickGo.summary,
+    reactomeNetworkState.result,
+    reactomeState.pathways,
+    result,
+    stringState.partners,
+    summary,
+  ])
+
+  useEffect(() => {
+    if (!historyEntryId) return
+    if (
+      quickGo.status === 'loading'
+      || stringState.status === 'loading'
+      || reactomeState.status === 'loading'
+      || reactomeNetworkState.status === 'loading'
+      || pdbState.status === 'loading'
+      || alphaFoldState.status === 'loading'
+    ) {
+      return
+    }
+    updateProteinHistoryReport(historyEntryId, proteinReportMarkdown)
+  }, [
+    alphaFoldState.status,
+    historyEntryId,
+    pdbState.status,
+    proteinReportMarkdown,
+    quickGo.status,
+    reactomeNetworkState.status,
+    reactomeState.status,
+    stringState.status,
+  ])
+
+  const handleCopyProteinReport = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(proteinReportMarkdown)
+      toast.success('단백질 해석 요약을 클립보드에 복사했습니다.')
+    } catch {
+      toast.error('단백질 해석 요약 복사에 실패했습니다.')
+    }
+  }, [proteinReportMarkdown])
+
+  const handleDownloadProteinReport = useCallback(() => {
+    const safeName = analysisName.replace(/[^a-zA-Z0-9가-힣 ]/g, '').trim() || 'protein-report'
+    downloadTextFile(proteinReportMarkdown, `${safeName}.md`, 'text/markdown;charset=utf-8')
+    toast.success('단백질 해석 요약을 Markdown으로 저장했습니다.')
+  }, [analysisName, proteinReportMarkdown])
+
+  const handleLoadReactomeNetwork = useCallback(async () => {
+    if (reactomeNetworkState.status === 'loading') return
+
+    if (reactomeNetworkIdentifiers.length < 2) {
+      setReactomeNetworkState({
+        status: 'error',
+        result: null,
+        message: 'Reactome 네트워크 해석에는 중심 단백질과 STRING 파트너가 필요합니다.',
+      })
+      return
+    }
+
+    setReactomeNetworkState((previous) => ({
+      status: 'loading',
+      result: previous.result,
+      message: null,
+    }))
+
+    try {
+      const result = await fetchReactomePathwayEnrichment(reactomeNetworkIdentifiers, { limit: 8 })
+      setReactomeNetworkState({
+        status: 'success',
+        result,
+        message: null,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const message = error instanceof ReactomeError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'Reactome 네트워크 해석 중 알 수 없는 오류가 발생했습니다.'
+      setReactomeNetworkState((previous) => ({
+        status: 'error',
+        result: previous.result,
+        message,
+      }))
+    }
+  }, [reactomeNetworkIdentifiers, reactomeNetworkState.status])
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/10 p-4">
+        <div>
+          <h4 className="text-sm font-semibold">리포트용 해석 요약</h4>
+          <p className="mt-1 text-xs text-muted-foreground">
+            현재 열린 UniProt, GO, STRING, Reactome, 구조 정보를 Markdown으로 묶습니다.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => { void handleCopyProteinReport() }}>
+            <Copy className="h-4 w-4" />
+            요약 복사
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleDownloadProteinReport}>
+            <Download className="h-4 w-4" />
+            Markdown 저장
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-xl bg-background/80 p-4">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant={summary.reviewed ? 'default' : 'secondary'}>
+              {summary.reviewed ? 'Swiss-Prot reviewed' : 'Unreviewed'}
+            </Badge>
+            {summary.annotationScore != null && (
+              <Badge variant="outline">Annotation {summary.annotationScore.toFixed(1)}</Badge>
+            )}
+          </div>
+          <h4 className="text-base font-semibold">{summary.proteinName}</h4>
+          <p className="mt-1 text-sm text-muted-foreground">{summary.organismName}</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="rounded-md bg-muted px-2 py-1 font-mono">{summary.uniProtId}</span>
+            <span className="rounded-md bg-muted px-2 py-1">{summary.sequenceLength} aa</span>
+            {summary.geneNames.length > 0 && (
+              <span className="rounded-md bg-muted px-2 py-1">Gene: {summary.geneNames.join(', ')}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-background/80 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold">UniProt 엔트리</h4>
+              <p className="mt-1 text-xs text-muted-foreground">{summary.entryType}</p>
+            </div>
+            <a
+              href={summary.entryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              열기
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+          {summary.alternativeNames.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-muted-foreground">Alternative names</p>
+              <p className="mt-1 text-sm text-foreground/90">
+                {summary.alternativeNames.slice(0, 3).join(', ')}
+              </p>
+            </div>
+          )}
+          {summary.sourceDatabase && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Mapping source: {summary.sourceDatabase} ({summary.sourceAccession})
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl bg-background/80 p-4">
+          <h4 className="text-sm font-semibold">기능 요약</h4>
+          {topFunctions.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">기능 설명이 제공되지 않았습니다.</p>
+          ) : (
+            <ul className="mt-2 space-y-2 text-sm text-foreground/90">
+              {topFunctions.map((item) => (
+                <li key={item} className="rounded-lg bg-muted/40 px-3 py-2 leading-relaxed">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl bg-background/80 p-4">
+          <h4 className="text-sm font-semibold">키워드</h4>
+          {topKeywords.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">키워드가 제공되지 않았습니다.</p>
+          ) : (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {topKeywords.map((keyword) => (
+                <Badge key={keyword} variant="secondary">{keyword}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-background/80 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold">STRING 상호작용 네트워크</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {summary.geneNames[0] || summary.primaryAccession} · taxon {summary.taxonId ?? 'unknown'} 기준 상위 파트너를 조회합니다.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => { void handleLoadString() }}
+            disabled={stringState.status === 'loading'}
+          >
+            {stringState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Network className="h-4 w-4" />}
+            {stringState.status === 'success' ? '다시 조회' : 'STRING 조회'}
+          </Button>
+        </div>
+
+        {stringState.status === 'idle' && (
+          <p className="mt-4 text-sm text-muted-foreground">상호작용 파트너를 보려면 STRING 조회를 실행하세요.</p>
+        )}
+
+        {stringState.status === 'loading' && (
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+          </div>
+        )}
+
+        {stringState.status === 'error' && (
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">{stringState.message}</p>
+          </div>
+        )}
+
+        {stringState.status === 'success' && (
+          <div className="mt-4 space-y-4">
+            {stringGraphOption && (
+              <div className="rounded-xl bg-muted/20 p-3">
+                <LazyReactECharts
+                  option={stringGraphOption}
+                  style={{ height: 280 }}
+                  opts={{ renderer: 'svg' }}
+                />
+              </div>
+            )}
+
+            {stringState.partners.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{stringState.message ?? 'STRING 파트너가 없습니다.'}</p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl bg-muted/20">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th className="px-4 py-3 font-medium">Partner</th>
+                      <th className="px-4 py-3 font-medium">Combined</th>
+                      <th className="px-4 py-3 font-medium">Top Evidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stringState.partners.map((partner) => (
+                      <tr key={partner.partnerStringId} className="border-t border-border/50">
+                        <td className="px-4 py-3 font-medium">{partner.partnerName}</td>
+                        <td className="px-4 py-3 font-mono tabular-nums">{partner.score.toFixed(3)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {formatTopStringEvidence(partner)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl bg-background/80 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold">Reactome Pathways</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {summary.primaryAccession} 기준으로 Reactome pathway 매핑을 조회합니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { void handleLoadReactome() }}
+              disabled={reactomeState.status === 'loading'}
+            >
+              {reactomeState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
+              {reactomeState.status === 'success' ? '다시 조회' : 'Reactome 조회'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { void handleLoadReactomeNetwork() }}
+              disabled={reactomeNetworkState.status === 'loading' || reactomeNetworkIdentifiers.length < 2}
+            >
+              {reactomeNetworkState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Network className="h-4 w-4" />}
+              {reactomeNetworkState.status === 'success' ? '네트워크 다시 해석' : '네트워크 해석'}
+            </Button>
+          </div>
+        </div>
+
+        {reactomeState.status === 'idle' && (
+          <p className="mt-4 text-sm text-muted-foreground">경로 요약을 보려면 Reactome 조회를 실행하세요.</p>
+        )}
+
+        {reactomeState.status === 'loading' && (
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+          </div>
+        )}
+
+        {reactomeState.status === 'error' && (
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">{reactomeState.message}</p>
+          </div>
+        )}
+
+        {reactomeState.status === 'success' && (
+          <div className="mt-4 space-y-3">
+            {reactomeState.pathways.slice(0, 8).map((pathway) => (
+              <div key={pathway.stId} className="rounded-xl bg-muted/20 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-xs">{pathway.stId}</Badge>
+                      {pathway.hasDiagram && <Badge variant="secondary">Diagram</Badge>}
+                      {pathway.isInDisease && <Badge variant="destructive">Disease</Badge>}
+                      {pathway.isInferred && <Badge variant="outline">Inferred</Badge>}
+                    </div>
+                    <h5 className="mt-2 text-sm font-semibold">{pathway.displayName}</h5>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span>{pathway.speciesName}</span>
+                      {pathway.maxDepth != null && <span>Depth {pathway.maxDepth}</span>}
+                      {pathway.releaseDate && <span>Release {pathway.releaseDate}</span>}
+                    </div>
+                  </div>
+                  <a
+                    href={pathway.pathwayUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                  >
+                    열기
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+                {pathway.doi && (
+                  <p className="mt-2 text-xs text-muted-foreground">DOI: {pathway.doi}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-5 border-t border-border/60 pt-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h5 className="text-sm font-semibold">STRING 기반 경로 해석</h5>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {reactomeNetworkIdentifiers.length > 0
+                  ? `${reactomeNetworkIdentifiers.slice(0, 4).join(', ')}${reactomeNetworkIdentifiers.length > 4 ? ' …' : ''}를 Reactome에 투영합니다.`
+                  : '먼저 STRING 파트너를 불러오면 경로 해석을 실행할 수 있습니다.'}
+              </p>
+            </div>
+            {reactomeNetworkState.result && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="secondary">{reactomeNetworkState.result.pathwaysFound} pathways</Badge>
+                <Badge variant="outline">{reactomeNetworkState.result.queryIdentifiers.length} identifiers</Badge>
+                {reactomeOverlapCount > 0 && <Badge variant="outline">{reactomeOverlapCount} direct overlap</Badge>}
+              </div>
+            )}
+          </div>
+
+          {reactomeNetworkState.status === 'idle' && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              {stringState.status === 'success' && stringState.partners.length > 0
+                ? '현재 STRING 네트워크를 Reactome pathway enrichment로 해석할 수 있습니다.'
+                : 'STRING 상호작용 파트너를 먼저 조회하면 경로 enrichment를 볼 수 있습니다.'}
+            </p>
+          )}
+
+          {reactomeNetworkState.status === 'loading' && (
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" />
+            </div>
+          )}
+
+          {reactomeNetworkState.status === 'error' && (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="text-sm text-destructive">{reactomeNetworkState.message}</p>
+            </div>
+          )}
+
+          {reactomeNetworkState.status === 'success' && reactomeNetworkState.result && (
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl bg-muted/20 p-4">
+                  <p className="text-xs font-medium text-muted-foreground">Enriched pathways</p>
+                  <p className="mt-2 font-mono text-2xl tabular-nums">{reactomeNetworkState.result.pathwaysFound}</p>
+                </div>
+                <div className="rounded-xl bg-muted/20 p-4">
+                  <p className="text-xs font-medium text-muted-foreground">Identifiers used</p>
+                  <p className="mt-2 font-mono text-2xl tabular-nums">{reactomeNetworkState.result.queryIdentifiers.length}</p>
+                  {reactomeNetworkState.result.identifiersNotFound > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {reactomeNetworkState.result.identifiersNotFound} identifiers not mapped
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl bg-muted/20 p-4">
+                  <p className="text-xs font-medium text-muted-foreground">Direct overlap</p>
+                  <p className="mt-2 font-mono text-2xl tabular-nums">{reactomeOverlapCount}</p>
+                </div>
+              </div>
+
+              {reactomeNetworkState.result.warnings.length > 0 && (
+                <div className="rounded-xl border border-border/60 bg-muted/10 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    {reactomeNetworkState.result.warnings.join(' ')}
+                  </p>
+                </div>
+              )}
+
+              <div className="overflow-x-auto rounded-xl bg-muted/20">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th className="px-4 py-3 font-medium">Pathway</th>
+                      <th className="px-4 py-3 font-medium">Entities</th>
+                      <th className="px-4 py-3 font-medium">FDR</th>
+                      <th className="px-4 py-3 font-medium">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reactomeNetworkState.result.pathways.slice(0, 8).map((pathway) => (
+                      <tr key={`network-${pathway.stId}`} className="border-t border-border/50 align-top">
+                        <td className="px-4 py-3">
+                          <div className="flex min-w-[18rem] flex-col gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <a
+                                href={pathway.pathwayUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-primary hover:underline"
+                              >
+                                {pathway.name}
+                              </a>
+                              <Badge variant="outline" className="font-mono text-[11px]">{pathway.stId}</Badge>
+                              {directPathwayIds.has(pathway.stId) && <Badge variant="secondary">Direct</Badge>}
+                              {pathway.inDisease && <Badge variant="destructive">Disease</Badge>}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{pathway.speciesName}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono tabular-nums">
+                          {pathway.entitiesFound}/{pathway.entitiesTotal}
+                        </td>
+                        <td className="px-4 py-3 font-mono tabular-nums">
+                          {formatScientificMetric(pathway.fdr)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          P={formatScientificMetric(pathway.pValue)}
+                          {pathway.lowLevelPathway ? ' · low-level pathway' : ''}
+                          {pathway.reactionsFound > 0 ? ` · reactions ${pathway.reactionsFound}/${pathway.reactionsTotal}` : ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+        <div className="rounded-xl bg-background/80 p-4">
+          <h4 className="text-sm font-semibold">GO Terms</h4>
+          {topGoTerms.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">GO 주석이 제공되지 않았습니다.</p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground">
+                    <th className="py-2 font-medium">GO ID</th>
+                    <th className="py-2 font-medium">Aspect</th>
+                    <th className="py-2 font-medium">Term</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topGoTerms.map((term) => (
+                    <tr key={term.id} className="border-t border-border/50 align-top">
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        <button
+                          type="button"
+                          onClick={() => { void handleSelectGoTerm(term.id) }}
+                          className={`rounded px-1.5 py-0.5 text-left transition-colors hover:bg-primary/10 hover:text-primary ${
+                            quickGo.selectedId === term.id ? 'bg-primary/10 text-primary' : ''
+                          }`}
+                        >
+                          {term.id}
+                        </button>
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">{GO_ASPECT_LABELS[term.aspect]}</td>
+                      <td className="py-2">{term.term}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl bg-background/80 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold">구조 연계</h4>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {topPdbIds.length > 0
+                  ? 'UniProt cross-reference에서 연결된 PDB 구조의 메타데이터를 조회합니다.'
+                  : 'PDB 구조가 없으면 AlphaFold 예측 모델을 fallback으로 조회합니다.'}
+              </p>
+            </div>
+            {topPdbIds.length > 0 ? (
+              <Button
+                variant="outline"
+                onClick={() => { void handleLoadPdb() }}
+                disabled={pdbState.status === 'loading' || topPdbIds.length === 0}
+              >
+                {pdbState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                {pdbState.status === 'success' ? 'RCSB 다시 조회' : 'RCSB 조회'}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => { void handleLoadAlphaFold() }}
+                disabled={alphaFoldState.status === 'loading'}
+              >
+                {alphaFoldState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Atom className="h-4 w-4" />}
+                {alphaFoldState.status === 'success' ? 'AlphaFold 다시 조회' : 'AlphaFold 조회'}
+              </Button>
+            )}
+          </div>
+
+          {topPdbIds.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">연결된 PDB 구조가 없어 AlphaFold fallback을 사용할 수 있습니다.</p>
+          ) : (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {topPdbIds.map((pdbId) => (
+                <a
+                  key={pdbId}
+                  href={`https://www.rcsb.org/structure/${pdbId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-mono text-primary hover:underline"
+                >
+                  {pdbId}
+                  <ArrowUpRight className="h-3 w-3" />
+                </a>
+              ))}
+            </div>
+          )}
+
+          {pdbState.status === 'idle' && topPdbIds.length > 0 && (
+            <p className="mt-4 text-sm text-muted-foreground">대표 구조의 실험법과 해상도를 보려면 RCSB 조회를 실행하세요.</p>
+          )}
+
+          {pdbState.status === 'loading' && (
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </div>
+          )}
+
+          {pdbState.status === 'error' && (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="text-sm text-destructive">{pdbState.message}</p>
+            </div>
+          )}
+
+          {pdbState.status === 'success' && (
+            <div className="mt-4 space-y-3">
+              {pdbState.structures.map((structure) => (
+                <div key={structure.pdbId} className="rounded-xl bg-muted/20 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-xs">{structure.pdbId}</Badge>
+                        {structure.resolutionAngstrom != null && (
+                          <Badge variant="secondary">{structure.resolutionAngstrom.toFixed(2)} A</Badge>
+                        )}
+                        {structure.assemblyCount != null && (
+                          <Badge variant="outline">{structure.assemblyCount} assemblies</Badge>
+                        )}
+                      </div>
+                      <h5 className="mt-2 text-sm font-semibold">{structure.title}</h5>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        {structure.experimentalMethods.length > 0 && <span>{structure.experimentalMethods.join(', ')}</span>}
+                        {structure.proteinEntityCount != null && <span>{structure.proteinEntityCount} protein entities</span>}
+                        {structure.releaseDate && <span>Release {structure.releaseDate.slice(0, 10)}</span>}
+                      </div>
+                      {structure.keywords.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {structure.keywords.slice(0, 3).map((keyword) => (
+                            <Badge key={`${structure.pdbId}-${keyword}`} variant="secondary">{keyword}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <a
+                      href={structure.entryUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                    >
+                      열기
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                  {structure.citationDoi && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      DOI: {structure.citationDoi}
+                      {structure.citationYear != null ? ` · ${structure.citationYear}` : ''}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {topPdbIds.length === 0 && alphaFoldState.status === 'idle' && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              {summary.primaryAccession} 기준 AlphaFold 모델 요약을 보려면 조회를 실행하세요.
+            </p>
+          )}
+
+          {topPdbIds.length === 0 && alphaFoldState.status === 'loading' && (
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+            </div>
+          )}
+
+          {topPdbIds.length === 0 && alphaFoldState.status === 'error' && (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="text-sm text-destructive">{alphaFoldState.message}</p>
+            </div>
+          )}
+
+          {topPdbIds.length === 0 && alphaFoldState.status === 'success' && alphaFoldState.prediction && (
+            <div className="mt-4 rounded-xl bg-muted/20 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="font-mono text-xs">{alphaFoldState.prediction.entryId}</Badge>
+                    {alphaFoldState.prediction.meanPlddt != null && (
+                      <Badge variant="secondary">mean pLDDT {alphaFoldState.prediction.meanPlddt.toFixed(1)}</Badge>
+                    )}
+                    {alphaFoldState.prediction.latestVersion != null && (
+                      <Badge variant="outline">v{alphaFoldState.prediction.latestVersion}</Badge>
+                    )}
+                    {alphaFoldState.prediction.isReviewed && <Badge variant="outline">Reviewed</Badge>}
+                  </div>
+                  <h5 className="mt-2 text-sm font-semibold">{alphaFoldState.prediction.proteinName}</h5>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {alphaFoldState.prediction.geneName && <span>Gene {alphaFoldState.prediction.geneName}</span>}
+                    <span>{alphaFoldState.prediction.organismName}</span>
+                    {alphaFoldState.prediction.modelCreatedDate && (
+                      <span>Model {alphaFoldState.prediction.modelCreatedDate.slice(0, 10)}</span>
+                    )}
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg bg-background/80 px-3 py-2 text-xs">
+                      <p className="font-medium text-muted-foreground">Confidence Split</p>
+                      <p className="mt-1 font-mono tabular-nums">
+                        VH {(alphaFoldState.prediction.fractionVeryHigh * 100).toFixed(1)}% ·
+                        C {(alphaFoldState.prediction.fractionConfident * 100).toFixed(1)}% ·
+                        L {((alphaFoldState.prediction.fractionLow + alphaFoldState.prediction.fractionVeryLow) * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-background/80 px-3 py-2 text-xs">
+                      <p className="font-medium text-muted-foreground">Downloads</p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {alphaFoldState.prediction.pdbUrl && (
+                          <a href={alphaFoldState.prediction.pdbUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">PDB</a>
+                        )}
+                        {alphaFoldState.prediction.cifUrl && (
+                          <a href={alphaFoldState.prediction.cifUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CIF</a>
+                        )}
+                        {alphaFoldState.prediction.paeDocUrl && (
+                          <a href={alphaFoldState.prediction.paeDocUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">PAE JSON</a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href={alphaFoldState.prediction.entryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  열기
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {topGoTerms.length > 0 && (
+        <div className="rounded-xl bg-background/80 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold">QuickGO 상세</h4>
+              <p className="mt-1 text-xs text-muted-foreground">GO ID를 클릭하면 정의와 ontology 맥락을 불러옵니다.</p>
+            </div>
+            {quickGo.selectedId && (
+              <Badge variant="outline" className="font-mono text-xs">{quickGo.selectedId}</Badge>
+            )}
+          </div>
+
+          {quickGo.status === 'idle' && (
+            <p className="mt-4 text-sm text-muted-foreground">상세를 보려면 GO term을 선택하세요.</p>
+          )}
+
+          {quickGo.status === 'loading' && (
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </div>
+          )}
+
+          {quickGo.status === 'error' && (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="text-sm text-destructive">{quickGo.message}</p>
+            </div>
+          )}
+
+          {quickGo.status === 'success' && quickGo.summary && (
+            <QuickGoSummaryPanel summary={quickGo.summary} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function QuickGoSummaryPanel({ summary }: { summary: QuickGoTermSummary }): React.ReactElement {
+  const topAncestors = summary.ancestors.slice(0, 8)
+  const topChildren = summary.children.slice(0, 8)
+  const topSynonyms = summary.synonyms.slice(0, 8)
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="rounded-xl bg-muted/20 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{QUICKGO_ASPECT_LABELS[summary.aspect]}</Badge>
+          {summary.isObsolete && <Badge variant="destructive">Obsolete</Badge>}
+          {summary.usage && <Badge variant="outline">{summary.usage}</Badge>}
+        </div>
+        <h5 className="mt-3 text-base font-semibold">{summary.name}</h5>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/90">{summary.definition}</p>
+        {summary.comment && (
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{summary.comment}</p>
+        )}
+      </div>
+
+      {topSynonyms.length > 0 && (
+        <div className="rounded-xl bg-muted/20 p-4">
+          <h5 className="text-sm font-semibold">동의어</h5>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {topSynonyms.map((synonym) => (
+              <Badge key={`${synonym.name}-${synonym.type ?? 'none'}`} variant="outline">
+                {synonym.name}
+                {synonym.type ? ` (${synonym.type})` : ''}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl bg-muted/20 p-4">
+          <h5 className="text-sm font-semibold">상위 Term</h5>
+          {topAncestors.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">상위 term 정보가 없습니다.</p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {topAncestors.map((term) => (
+                <li key={term.id} className="rounded-lg bg-background/80 px-3 py-2">
+                  <span className="font-mono text-xs text-primary">{term.id}</span>
+                  <span className="ml-2">{term.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl bg-muted/20 p-4">
+          <h5 className="text-sm font-semibold">직계 하위 Term</h5>
+          {topChildren.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">하위 term 정보가 없습니다.</p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {topChildren.map((term) => (
+                <li key={term.id} className="rounded-lg bg-background/80 px-3 py-2">
+                  <span className="font-mono text-xs text-primary">{term.id}</span>
+                  <span className="ml-2">{term.name}</span>
+                  {term.relation && (
+                    <span className="ml-2 text-xs text-muted-foreground">({term.relation})</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {summary.pathToRoot.length > 0 && (
+        <div className="rounded-xl bg-muted/20 p-4">
+          <h5 className="text-sm font-semibold">Root Path</h5>
+          <div className="mt-3 space-y-2 text-sm">
+            {summary.pathToRoot.map((step, index) => (
+              <div key={`${step.child}-${step.parent}-${index}`} className="rounded-lg bg-background/80 px-3 py-2">
+                <span className="font-mono text-xs text-primary">{step.child}</span>
+                <span className="mx-2 text-muted-foreground">→</span>
+                <span className="font-mono text-xs text-primary">{step.parent}</span>
+                <span className="ml-2 text-xs text-muted-foreground">({step.relationship})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function formatTopStringEvidence(partner: StringPartnerSummary): string {
+  const entries = Object.entries(partner.evidence)
+    .sort((a, b) => b[1] - a[1])
+    .filter(([, value]) => value > 0)
+
+  if (entries.length === 0) return 'No evidence breakdown'
+
+  const [label, value] = entries[0]
+  const labelMap: Record<string, string> = {
+    neighborhood: 'Neighborhood',
+    fusion: 'Fusion',
+    phylogeny: 'Phylogeny',
+    coexpression: 'Coexpression',
+    experimental: 'Experimental',
+    database: 'Database',
+    textmining: 'Text mining',
+  }
+
+  return `${labelMap[label] ?? label} (${value.toFixed(3)})`
+}
+
+function formatScientificMetric(value: number | null): string {
+  if (value == null || Number.isNaN(value)) return 'n/a'
+  if (value === 0) return '0'
+  if (value >= 0.001 && value < 1) return value.toFixed(3)
+  return value.toExponential(2)
 }

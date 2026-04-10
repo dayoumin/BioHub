@@ -100,6 +100,15 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
     emptyActionLabel: 'BOLD 분석 시작하기',
   },
   {
+    id: 'protein-result',
+    label: '단백질 해석',
+    icon: '🧫',
+    defaultVisible: true,
+    emptyMessage: '아직 단백질 해석 결과가 없습니다.',
+    emptyActionPath: '/genetics/protein',
+    emptyActionLabel: '단백질 분석 시작하기',
+  },
+  {
     id: 'species-validation',
     label: '종 검증',
     icon: '📝',

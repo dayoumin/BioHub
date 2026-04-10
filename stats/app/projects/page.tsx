@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
+import { Suspense, useState, useCallback, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, FolderOpen, Archive, Trash2, Pencil, MoreHorizontal, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ import {
 import type { ResearchProject } from '@/lib/types/research'
 import { toast } from 'sonner'
 import { TOAST } from '@/lib/constants/toast-messages'
-import { listProjectEntityRefs } from '@/lib/research/project-storage'
+import { hydrateResearchProjectsFromCloud, listProjectEntityRefs } from '@/lib/research'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { ProjectDetailContent } from '@/components/projects/ProjectDetailContent'
 
@@ -300,20 +300,25 @@ function ProjectsListView() {
 
   useEffect(() => {
     refreshProjects()
+    void hydrateResearchProjectsFromCloud().then(() => {
+      refreshProjects()
+    }).catch((error) => {
+      console.warn('[projects] cloud project hydration failed:', error)
+    })
   }, [refreshProjects])
 
   const activeProjects = projects.filter(p => p.status === 'active')
   const archivedProjects = projects.filter(p => p.status === 'archived')
   const displayedProjects = showArchived ? archivedProjects : activeProjects
 
-  const refCountMap = useMemo(() => {
+  const refCountMap = (() => {
     const allRefs = listProjectEntityRefs()
     const counts = new Map<string, number>()
     for (const ref of allRefs) {
       counts.set(ref.projectId, (counts.get(ref.projectId) ?? 0) + 1)
     }
     return counts
-  }, [projects])
+  })()
 
   const handleSelect = useCallback(
     (project: ResearchProject) => {

@@ -20,6 +20,8 @@
 | 다종 유사도 행렬 | `/genetics/similarity` | 완료 |
 | 계통수 시각화 | `/genetics/phylogeny` | 완료 |
 | BOLD ID 종 동정 | `/genetics/bold-id` | 완료 |
+| Translation 워크벤치 | `/genetics/translation` | 완료 |
+| 단백질 특성 분석 | `/genetics/protein` | 완료 |
 
 ### /bio-tools/ 집단유전학
 
@@ -70,9 +72,16 @@
 
 ### 분자생물학 도구 (BioPython 활용)
 
-- [ ] `/genetics/translation` — DNA→Protein 워크벤치 (번역 + ORF + 코돈 분석 탭) — [plans/biopython-tools.md](plans/biopython-tools.md)
-- [ ] `/genetics/protein` — 단백질 특성 분석 (ProtParam: MW, pI, GRAVY, 아미노산 조성)
-- [ ] UniProt 연동 — 단백질 → 기능 주석 조회 (protein 페이지 확장). 상세: [../../docs/databases/uniprot.md](../../docs/databases/uniprot.md)
+- [x] `/genetics/translation` — DNA→Protein 워크벤치 (번역 + ORF + 코돈 분석 탭) — [plans/biopython-tools.md](plans/biopython-tools.md)
+- [x] `/genetics/protein` — 단백질 특성 분석 (ProtParam: MW, pI, GRAVY, 아미노산 조성)
+- [x] UniProt 연동 — 단백질 → 기능 주석 조회 (protein 페이지 확장). 상세: [../../docs/databases/uniprot.md](../../docs/databases/uniprot.md)
+- [x] QuickGO 연동 — GO term 정의/ontology 확장. 상세: [../../docs/databases/quickgo.md](../../docs/databases/quickgo.md)
+- [x] STRING 연동 — 상호작용 파트너 조회. 상세: [../../docs/databases/string.md](../../docs/databases/string.md)
+- [x] Reactome 연동 — direct pathway + STRING network enrichment 요약. 상세: [../../docs/databases/reactome.md](../../docs/databases/reactome.md)
+- [x] RCSB PDB 연동 — 구조 메타데이터 조회. 상세: [../../docs/databases/pdb.md](../../docs/databases/pdb.md)
+- [x] AlphaFold 연동 — PDB 없을 때 fallback 예측 구조 카드. 상세: [../../docs/databases/alphafold.md](../../docs/databases/alphafold.md)
+- [x] Protein 해석 Markdown export — 현재 열린 annotation/network/structure 상태를 리포트용으로 저장
+- [x] Protein 해석 snapshot persistence — 프로젝트 보고서가 저장 시점의 live annotation markdown을 재사용
 - [ ] genetics 랜딩 페이지 "서열 분석 도구" / "분자생물학 도구" 카드 그룹 분리
 
 ### 외부 연동 / 고급 기능

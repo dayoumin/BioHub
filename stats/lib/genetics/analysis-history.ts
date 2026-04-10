@@ -155,6 +155,23 @@ export interface TranslationHistoryEntry {
 }
 
 /** Protein Properties 히스토리 */
+export interface ProteinHistoryResultSnapshot {
+  molecularWeight: number
+  isoelectricPoint: number
+  gravy: number
+  aromaticity: number
+  instabilityIndex: number
+  isStable: boolean
+  extinctionCoeffReduced: number
+  extinctionCoeffOxidized: number
+  aminoAcidComposition: Record<string, number>
+  aminoAcidPercent: Record<string, number>
+  secondaryStructureFraction: { helix: number; turn: number; sheet: number }
+  hydropathyProfile: Array<{ position: number; score: number }>
+  sequenceLength: number
+  sequence: string
+}
+
 export interface ProteinHistoryEntry {
   id: string
   type: 'protein'
@@ -164,6 +181,9 @@ export interface ProteinHistoryEntry {
   isoelectricPoint: number
   isStable: boolean
   accession?: string
+  resultData?: ProteinHistoryResultSnapshot
+  reportMarkdown?: string
+  reportUpdatedAt?: number
   pinned?: boolean
   projectId?: string
   createdAt: number
@@ -370,6 +390,9 @@ function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
         isoelectricPoint: (obj.isoelectricPoint ?? 0) as number,
         isStable: (obj.isStable ?? true) as boolean,
         accession: obj.accession as string | undefined,
+        resultData: obj.resultData as ProteinHistoryResultSnapshot | undefined,
+        reportMarkdown: typeof obj.reportMarkdown === 'string' ? obj.reportMarkdown : undefined,
+        reportUpdatedAt: typeof obj.reportUpdatedAt === 'number' ? obj.reportUpdatedAt : undefined,
         pinned: obj.pinned as boolean | undefined,
         projectId: obj.projectId as string | undefined,
         createdAt: obj.createdAt as number,
@@ -451,11 +474,7 @@ function removeRefsForEntries(entries: GeneticsHistoryEntry[]): void {
 }
 
 function syncSaveToCloud(entry: GeneticsHistoryEntry): void {
-  // Fix: projectId는 로컬 ref 전용 — D1 projects 테이블에 없으므로 cloud에는 null로 전송
-  const cloudEntry = entry.projectId
-    ? { ...entry, projectId: undefined }
-    : entry
-  void upsertCloudGeneticsHistory(cloudEntry).catch((error) => {
+  void upsertCloudGeneticsHistory(entry).catch((error) => {
     console.warn('[genetics-history] cloud save failed:', error)
   })
 }
@@ -548,9 +567,8 @@ export type SaveGeneticsHistoryInput =
   | Omit<TranslationHistoryEntry, 'id' | 'createdAt'>
   | Omit<ProteinHistoryEntry, 'id' | 'createdAt'>
 
-/** 범용 히스토리 저장 — type별 MAX 적용 */
-export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
-  const newEntry: GeneticsHistoryEntry = {
+function buildNewHistoryEntry(entry: SaveGeneticsHistoryInput): GeneticsHistoryEntry {
+  return {
     ...entry,
     // 서열 길이 cap — localStorage quota 보호 (15개 × 2KB = 30KB)
     ...((entry.type === 'blast' || entry.type === 'bold') && entry.sequence.length > MAX_STORED_SEQUENCE_LENGTH
@@ -559,6 +577,11 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
     id: `${entry.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: Date.now(),
   } as GeneticsHistoryEntry
+}
+
+/** 범용 히스토리 저장 — 저장된 entry 반환, 실패 시 null */
+export function saveGeneticsHistoryEntry(entry: SaveGeneticsHistoryInput): GeneticsHistoryEntry | null {
+  const newEntry = buildNewHistoryEntry(entry)
 
   let overflow: GeneticsHistoryEntry[] = []
   try {
@@ -574,7 +597,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
     saveToStorage(sortEntries([...kept, ...otherType]))
   } catch (err) {
     console.warn('[genetics-history] localStorage save failed — quota may be exceeded:', err)
-    return false
+    return null
   }
 
   removeRefsForEntries(overflow)
@@ -604,7 +627,37 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
 
   notifyChange()
   syncSaveToCloud(newEntry)
-  return true
+  return newEntry
+}
+
+/** 범용 히스토리 저장 — type별 MAX 적용 */
+export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
+  return saveGeneticsHistoryEntry(entry) !== null
+}
+
+export function updateProteinHistoryReport(id: string, reportMarkdown: string): ProteinHistoryEntry | null {
+  try {
+    const entries = parseAll()
+    const existing = entries.find((entry): entry is ProteinHistoryEntry => entry.id === id && entry.type === 'protein')
+    if (!existing) return null
+
+    if (existing.reportMarkdown === reportMarkdown) {
+      return existing
+    }
+
+    const updated: ProteinHistoryEntry = {
+      ...existing,
+      reportMarkdown,
+      reportUpdatedAt: Date.now(),
+    }
+    const nextEntries = entries.map((entry) => entry.id === id ? updated : entry)
+    saveToStorage(sortEntries(nextEntries))
+    notifyChange()
+    syncSaveToCloud(updated)
+    return updated
+  } catch {
+    return null
+  }
 }
 
 /** 전체 히스토리에서 다중 삭제 */
@@ -651,4 +704,3 @@ export function loadAnalysisHistory(preloadedRaw?: string | null): BarcodingHist
 export function saveAnalysisHistory(entry: Omit<BarcodingHistoryEntry, 'id' | 'createdAt' | 'type'>): boolean {
   return saveGeneticsHistory({ ...entry, type: 'barcoding' })
 }
-

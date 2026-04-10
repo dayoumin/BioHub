@@ -1,6 +1,14 @@
 import type { ProjectEntityKind, ProjectEntityRef, ResearchProject } from '@/lib/types/research'
 import { generateId } from '@/lib/utils/generate-id'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
+import {
+  deleteCloudResearchProject,
+  fetchCloudProjectDetail,
+  linkCloudProjectEntityRef,
+  listCloudResearchProjects,
+  unlinkCloudProjectEntityRef,
+  upsertCloudResearchProject,
+} from './project-cloud'
 
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
@@ -8,6 +16,8 @@ const PROJECTS_KEY = STORAGE_KEYS.research.projects
 const PROJECT_REFS_KEY = STORAGE_KEYS.research.projectEntityRefs
 
 const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
+let lastProjectsHydrateAt = 0
+const PROJECTS_HYDRATE_TTL_MS = 30_000
 
 export function listResearchProjects(): ResearchProject[] {
   return readJson<ResearchProject[]>(PROJECTS_KEY, [])
@@ -20,6 +30,7 @@ export function loadResearchProject(projectId: string): ResearchProject | null {
 export function saveResearchProject(project: ResearchProject): void {
   const projects = listResearchProjects()
   const index = projects.findIndex(existing => existing.id === project.id)
+  const isCreate = index < 0
 
   if (index >= 0) {
     projects[index] = project
@@ -28,6 +39,9 @@ export function saveResearchProject(project: ResearchProject): void {
   }
 
   writeJson(PROJECTS_KEY, projects)
+  void upsertCloudResearchProject(project, isCreate).catch((error) => {
+    console.warn('[research-project-storage] cloud project save failed:', error)
+  })
 }
 
 export function deleteResearchProject(projectId: string): void {
@@ -49,6 +63,10 @@ export function deleteResearchProject(projectId: string): void {
     }
     throw error
   }
+
+  void deleteCloudResearchProject(projectId).catch((error) => {
+    console.warn('[research-project-storage] cloud project delete failed:', error)
+  })
 }
 
 export const generateResearchProjectId = (): string => generateId('research')
@@ -79,6 +97,9 @@ export function upsertProjectEntityRef(
     }
     refs[index] = updated
     writeJson(PROJECT_REFS_KEY, refs)
+    void linkCloudProjectEntityRef(input).catch((error) => {
+      console.warn('[research-project-storage] cloud entity link failed:', error)
+    })
     return updated
   }
 
@@ -90,6 +111,9 @@ export function upsertProjectEntityRef(
   }
   refs.push(created)
   writeJson(PROJECT_REFS_KEY, refs)
+  void linkCloudProjectEntityRef(input).catch((error) => {
+    console.warn('[research-project-storage] cloud entity link failed:', error)
+  })
   return created
 }
 
@@ -113,6 +137,11 @@ export function removeProjectEntityRefs(
     ref => !targetSet.has(`${ref.projectId}|${ref.entityKind}|${ref.entityId}`)
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
+  for (const target of targets) {
+    void unlinkCloudProjectEntityRef(target).catch((error) => {
+      console.warn('[research-project-storage] cloud entity unlink failed:', error)
+    })
+  }
 }
 
 export function removeProjectEntityRefsByEntityIds(
@@ -121,8 +150,59 @@ export function removeProjectEntityRefsByEntityIds(
 ): void {
   if (entityIds.length === 0) return
   const idSet = new Set(entityIds)
-  const nextRefs = listProjectEntityRefs().filter(
+  const existingRefs = listProjectEntityRefs()
+  const removedRefs = existingRefs.filter(
+    ref => ref.entityKind === entityKind && idSet.has(ref.entityId)
+  )
+  const nextRefs = existingRefs.filter(
     ref => !(ref.entityKind === entityKind && idSet.has(ref.entityId))
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
+  for (const ref of removedRefs) {
+    void unlinkCloudProjectEntityRef({
+      projectId: ref.projectId,
+      entityKind: ref.entityKind,
+      entityId: ref.entityId,
+    }).catch((error) => {
+      console.warn('[research-project-storage] cloud entity unlink failed:', error)
+    })
+  }
+}
+
+function mergeProjects(local: ResearchProject[], remote: ResearchProject[]): ResearchProject[] {
+  const merged = new Map<string, ResearchProject>()
+  for (const project of remote) merged.set(project.id, project)
+  for (const project of local) merged.set(project.id, project)
+  return [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
+function replaceProjectEntityRefs(projectId: string, refs: ProjectEntityRef[]): void {
+  const existing = listProjectEntityRefs()
+  const remaining = existing.filter((ref) => ref.projectId !== projectId)
+  writeJson(PROJECT_REFS_KEY, [...remaining, ...refs])
+}
+
+export async function hydrateResearchProjectsFromCloud(force = false): Promise<ResearchProject[]> {
+  if (typeof window === 'undefined') return []
+  if (!force && Date.now() - lastProjectsHydrateAt < PROJECTS_HYDRATE_TTL_MS) {
+    return listResearchProjects()
+  }
+
+  const remote = await listCloudResearchProjects()
+  const merged = mergeProjects(listResearchProjects(), remote)
+  writeJson(PROJECTS_KEY, merged)
+  lastProjectsHydrateAt = Date.now()
+  return merged
+}
+
+export async function hydrateProjectRefsFromCloud(projectId: string): Promise<ProjectEntityRef[]> {
+  if (typeof window === 'undefined') return []
+
+  const { project, entities } = await fetchCloudProjectDetail(projectId)
+  if (project) {
+    const projects = mergeProjects(listResearchProjects(), [project])
+    writeJson(PROJECTS_KEY, projects)
+  }
+  replaceProjectEntityRefs(projectId, entities)
+  return entities
 }

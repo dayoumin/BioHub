@@ -10,12 +10,21 @@
 import type { WorkerEnv } from '../lib/worker-utils'
 import { jsonResponse, parseJsonBody, authenticateRequest, verifyProjectOwnership } from '../lib/worker-utils'
 
-type GeneticsHistoryType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny' | 'bold'
+type GeneticsHistoryType =
+  | 'barcoding'
+  | 'blast'
+  | 'genbank'
+  | 'seq-stats'
+  | 'similarity'
+  | 'phylogeny'
+  | 'bold'
+  | 'translation'
+  | 'protein'
 
 function isGeneticsHistoryType(value: unknown): value is GeneticsHistoryType {
   return value === 'barcoding' || value === 'blast' || value === 'genbank'
     || value === 'seq-stats' || value === 'similarity' || value === 'phylogeny'
-    || value === 'bold'
+    || value === 'bold' || value === 'translation' || value === 'protein'
 }
 
 function entityKindForGeneticsType(type: GeneticsHistoryType): string {
@@ -25,6 +34,8 @@ function entityKindForGeneticsType(type: GeneticsHistoryType): string {
     case 'similarity': return 'similarity-result'
     case 'phylogeny': return 'phylogeny-result'
     case 'bold': return 'bold-result'
+    case 'translation': return 'translation-result'
+    case 'protein': return 'protein-result'
     default: return 'blast-result'
   }
 }
@@ -38,6 +49,9 @@ function labelForGeneticsEntry(entry: Record<string, unknown>, type: GeneticsHis
     const database = typeof entry.database === 'string' ? entry.database : ''
     if (!program && !database) return null
     return [program, database].filter(Boolean).join(' · ')
+  }
+  if (type === 'translation' || type === 'protein') {
+    return typeof entry.analysisName === 'string' ? entry.analysisName : null
   }
   return typeof entry.accession === 'string' ? entry.accession : null
 }
@@ -129,6 +143,9 @@ async function handleUpsertGeneticsHistory(
   const createdAt = typeof rawEntry.createdAt === 'number' ? rawEntry.createdAt : null
   const projectId = typeof rawEntry.projectId === 'string' ? rawEntry.projectId : null
   const pinned = rawEntry.pinned === true
+  const clientUpdatedAt = typeof rawEntry.reportUpdatedAt === 'number'
+    ? rawEntry.reportUpdatedAt
+    : createdAt
 
   if (!id || !isGeneticsHistoryType(type) || createdAt == null) {
     return jsonResponse({ error: 'id, type, createdAt이 필요합니다.' }, 400)
@@ -147,7 +164,6 @@ async function handleUpsertGeneticsHistory(
     return jsonResponse({ error: '같은 id를 가진 genetics history가 이미 존재합니다.' }, 409)
   }
 
-  const now = Date.now()
   const payloadJson = JSON.stringify(rawEntry)
 
   await db.prepare(
@@ -160,7 +176,8 @@ async function handleUpsertGeneticsHistory(
        pinned = excluded.pinned,
        created_at = excluded.created_at,
        updated_at = excluded.updated_at,
-       payload_json = excluded.payload_json`
+       payload_json = excluded.payload_json
+     WHERE excluded.updated_at >= genetics_history.updated_at`
   ).bind(
     id,
     userId,
@@ -168,7 +185,7 @@ async function handleUpsertGeneticsHistory(
     projectId,
     pinned ? 1 : 0,
     createdAt,
-    now,
+    clientUpdatedAt,
     payloadJson,
   ).run()
 
@@ -178,6 +195,7 @@ async function handleUpsertGeneticsHistory(
 
   if (projectId) {
     const refId = `pref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const nowIso = new Date().toISOString()
     await db.prepare(
       `INSERT INTO project_entity_refs
        (id, project_id, entity_kind, entity_id, label, created_at, updated_at)
@@ -188,8 +206,8 @@ async function handleUpsertGeneticsHistory(
       entityKindForGeneticsType(type),
       id,
       labelForGeneticsEntry(rawEntry, type),
-      new Date(now).toISOString(),
-      new Date(now).toISOString(),
+      nowIso,
+      nowIso,
     ).run()
   }
 

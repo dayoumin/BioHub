@@ -63,7 +63,16 @@ async function handleCreateProject(
   userId: string,
   request: Request
 ): Promise<Response> {
-  const body = await parseJsonBody<{ name?: string; description?: string; primaryDomain?: string; tags?: string[] }>(request)
+  const body = await parseJsonBody<{
+    id?: string
+    name?: string
+    description?: string
+    status?: string
+    primaryDomain?: string
+    tags?: string[]
+    paperConfig?: unknown
+    presentation?: unknown
+  }>(request)
   if (body instanceof Response) return body
 
   if (!body.name?.trim()) {
@@ -72,16 +81,19 @@ async function handleCreateProject(
 
   const ts = Date.now()
   const now = new Date(ts).toISOString()
-  const id = `proj_${ts}_${Math.random().toString(36).slice(2, 8)}`
+  const id = body.id?.trim() || `proj_${ts}_${Math.random().toString(36).slice(2, 8)}`
 
   await db.prepare(
-    `INSERT INTO projects (id, user_id, name, description, status, primary_domain, tags, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?)`
+    `INSERT INTO projects (id, user_id, name, description, status, primary_domain, tags, paper_config, presentation, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, userId, body.name.trim(),
     body.description?.trim() || null,
+    body.status === 'archived' ? 'archived' : 'active',
     body.primaryDomain || null,
     body.tags ? JSON.stringify(body.tags) : null,
+    body.paperConfig ? JSON.stringify(body.paperConfig) : null,
+    body.presentation ? JSON.stringify(body.presentation) : null,
     now, now
   ).run()
 

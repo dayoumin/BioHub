@@ -8,6 +8,7 @@
  */
 
 import { downloadTextFile } from '@/lib/utils/download-file'
+import { buildProteinInterpretationSectionMarkdown, loadGeneticsHistory } from '@/lib/genetics'
 import type { ResolvedEntity } from './entity-resolver'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import type { ProjectReport, ReportSection, RenderedContent } from './report-types'
@@ -52,6 +53,8 @@ function renderEntityContent(entity: ResolvedEntity): RenderedContent {
       return renderFigure(entity)
     case 'blast-result':
       return renderBlast(entity)
+    case 'protein-result':
+      return renderProtein(entity)
     default:
       return renderGeneric(entity)
   }
@@ -91,6 +94,61 @@ function renderBlast(entity: ResolvedEntity): RenderedContent {
     heading: entity.summary.title,
     body: lines.join('\n'),
   }
+}
+
+function renderProtein(entity: ResolvedEntity): RenderedContent {
+  if (entity.rawData?.kind === 'protein-result') {
+    const snapshotMarkdown = loadProteinReportSnapshot(entity.ref.entityId, entity.summary.title)
+    return {
+      heading: entity.summary.title,
+      body: snapshotMarkdown
+        ?? buildProteinInterpretationSectionMarkdown({
+          analysisName: entity.rawData.analysisName,
+          accession: entity.rawData.accession ?? null,
+          result: {
+            molecularWeight: entity.rawData.molecularWeight,
+            isoelectricPoint: entity.rawData.isoelectricPoint,
+            isStable: entity.rawData.isStable,
+            sequenceLength: entity.rawData.sequenceLength,
+          },
+        }),
+    }
+  }
+
+  return {
+    heading: entity.summary.title,
+    body: entity.summary.subtitle ?? '',
+  }
+}
+
+function loadProteinReportSnapshot(entityId: string, sectionHeading: string): string | null {
+  const entry = loadGeneticsHistory('protein').find((item) => item.id === entityId)
+  if (!entry || entry.type !== 'protein') return null
+  return normalizeProteinReportSnapshot(entry.reportMarkdown, sectionHeading)
+}
+
+function normalizeProteinReportSnapshot(reportMarkdown: string | undefined, sectionHeading: string): string | null {
+  if (!reportMarkdown) return null
+
+  const trimmed = reportMarkdown.trim()
+  if (!trimmed) return null
+
+  const withoutHeading = trimmed.replace(/^#\s+.+?\r?\n(?:\r?\n)?/, '')
+  if (withoutHeading.trim()) return deepenMarkdownHeadingLevels(withoutHeading.trim())
+
+  const fallback = trimmed.replace(new RegExp(`^#\\s+${escapeRegExp(sectionHeading)}\\s*$`, 'm'), '').trim()
+  return fallback ? deepenMarkdownHeadingLevels(fallback) : null
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function deepenMarkdownHeadingLevels(markdown: string): string {
+  return markdown.replace(/^(#{2,6})(\s+)/gm, (match, hashes: string, space: string) => {
+    if (hashes.length >= 6) return match
+    return `${hashes}#${space}`
+  })
 }
 
 function renderGeneric(entity: ResolvedEntity): RenderedContent {
@@ -213,7 +271,7 @@ function markdownToSimpleHtml(md: string): string {
     // blockquote
     if (line.startsWith('> ')) { flushTable(); out.push(`<blockquote>${escapeHtml(line.slice(2))}</blockquote>`); continue }
     // 테이블 구분선 (|---|) → 이전 행이 헤더였음을 표시
-    if (/^\|[\s-|]+\|$/.test(line)) { headerRowPending = true; continue }
+    if (/^\|(?:\s*:?-+:?\s*\|)+$/.test(line)) { headerRowPending = true; continue }
     // 테이블 행
     if (line.startsWith('|') && line.endsWith('|')) {
       const cells = line.slice(1, -1).split('|').map(c => c.trim())
@@ -242,4 +300,3 @@ function formatInline(text: string): string {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
 }
-

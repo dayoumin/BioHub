@@ -3,11 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
-import { listProjectEntityRefs, removeProjectEntityRef } from '@/lib/research/project-storage'
-import { resolveEntities } from '@/lib/research/entity-resolver'
-import { loadEntityHistories } from '@/lib/research/entity-loader'
-import type { ResolvedEntity } from '@/lib/research/entity-resolver'
-import type { ProjectEntityRef } from '@/lib/types/research'
+import { hydrateProjectRefsFromCloud, hydrateResearchProjectsFromCloud, listProjectEntityRefs, loadEntityHistories, removeProjectEntityRef, resolveEntities } from '@/lib/research'
+import type { ResolvedEntity } from '@/lib/research'
 import { ProjectHeader } from './ProjectHeader'
 import { EntityBrowser } from './EntityBrowser'
 import { toast } from 'sonner'
@@ -27,14 +24,13 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
     [projects, projectId],
   )
 
-  const [refs, setRefs] = useState<ProjectEntityRef[]>([])
   const [entities, setEntities] = useState<ResolvedEntity[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadEntities = useCallback(async () => {
     try {
+      await hydrateProjectRefsFromCloud(projectId)
       const projectRefs = listProjectEntityRefs(projectId)
-      setRefs(projectRefs)
 
       if (projectRefs.length === 0) {
         setEntities([])
@@ -55,7 +51,10 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
 
   useEffect(() => {
     refreshProjects()
-    loadEntities()
+    void hydrateResearchProjectsFromCloud().finally(() => {
+      refreshProjects()
+      void loadEntities()
+    })
   }, [refreshProjects, loadEntities])
 
   const handleBack = useCallback(() => {

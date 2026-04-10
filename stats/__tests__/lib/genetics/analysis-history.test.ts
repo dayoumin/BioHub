@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   saveAnalysisHistory,
   saveGeneticsHistory,
+  saveGeneticsHistoryEntry,
   loadGeneticsHistory,
   loadAnalysisHistory,
   hydrateGeneticsHistoryFromCloud,
   deleteGeneticsEntries,
   toggleGeneticsPin,
+  updateProteinHistoryReport,
   HISTORY_KEY,
 } from '@/lib/genetics/analysis-history'
 import type {
@@ -243,7 +245,7 @@ describe('analysis-history', () => {
   })
 
   describe('cloud sync 버그 수정', () => {
-    it('Fix #1: syncSaveToCloud는 projectId를 제거하여 전송', () => {
+    it('Fix #1: syncSaveToCloud는 projectId를 유지하여 전송', () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
 
       saveGeneticsHistory({
@@ -260,13 +262,13 @@ describe('analysis-history', () => {
       // fetch POST 호출 확인 (upsert)
       const postCall = fetchSpy.mock.calls.find(c => {
         const opts = c[1] as RequestInit | undefined
-        return opts?.method === 'POST'
+        return opts?.method === 'POST' && String(c[0]).includes('/api/history/genetics')
       })
       expect(postCall).toBeDefined()
 
-      // body에 projectId가 없어야 함
+      // body에 projectId가 유지되어야 함
       const body = JSON.parse(postCall![1]!.body as string)
-      expect(body.entry.projectId).toBeUndefined()
+      expect(body.entry.projectId).toBe('local-project-1')
     })
 
     it('Fix #2: overflow 엔트리는 cloud에서도 삭제', () => {
@@ -321,6 +323,76 @@ describe('analysis-history', () => {
     })
   })
 
+  describe('protein report snapshot', () => {
+    it('protein history entry에 report markdown snapshot을 저장한다', () => {
+      const savedEntry = saveGeneticsHistoryEntry({
+        type: 'protein',
+        analysisName: 'Protein snapshot',
+        sequenceLength: 147,
+        molecularWeight: 15867.2,
+        isoelectricPoint: 6.75,
+        isStable: true,
+        accession: 'P68871',
+      })
+
+      expect(savedEntry).not.toBeNull()
+
+      const markdown = '# Protein snapshot\n\n## UniProt Summary\n\n- Entry: P68871'
+      const updated = updateProteinHistoryReport(savedEntry!.id, markdown)
+
+      expect(updated).not.toBeNull()
+      expect(updated?.reportMarkdown).toBe(markdown)
+      expect(updated?.reportUpdatedAt).toBeTypeOf('number')
+
+      const proteinHistory = loadGeneticsHistory('protein')
+      expect(proteinHistory[0]).toMatchObject({
+        id: savedEntry!.id,
+        type: 'protein',
+        reportMarkdown: markdown,
+      })
+    })
+
+    it('protein full result snapshot을 round-trip 저장한다', () => {
+      const savedEntry = saveGeneticsHistoryEntry({
+        type: 'protein',
+        analysisName: 'Protein restore',
+        sequenceLength: 147,
+        molecularWeight: 15867.2,
+        isoelectricPoint: 6.75,
+        isStable: true,
+        accession: 'P68871',
+        resultData: {
+          molecularWeight: 15867.2,
+          isoelectricPoint: 6.75,
+          gravy: -0.423,
+          aromaticity: 0.081,
+          instabilityIndex: 32.1,
+          isStable: true,
+          extinctionCoeffReduced: 12560,
+          extinctionCoeffOxidized: 12685,
+          aminoAcidComposition: { A: 10, C: 2 },
+          aminoAcidPercent: { A: 0.1, C: 0.02 },
+          secondaryStructureFraction: { helix: 0.3, turn: 0.1, sheet: 0.2 },
+          hydropathyProfile: [{ position: 1, score: -0.4 }],
+          sequenceLength: 147,
+          sequence: 'MVHLTPEEKSAVTALW',
+        },
+      })
+
+      expect(savedEntry).not.toBeNull()
+
+      const [entry] = loadGeneticsHistory('protein')
+      expect(entry).toMatchObject({
+        id: savedEntry!.id,
+        type: 'protein',
+        resultData: expect.objectContaining({
+          sequence: 'MVHLTPEEKSAVTALW',
+          gravy: -0.423,
+        }),
+      })
+    })
+  })
+
   describe('기존 테스트 — 저장 실패 시 ref 보호', () => {
     it('히스토리 저장 실패 시 overflow 대상 ref를 지우지 않아야 함', () => {
       const oldestLinkedEntry = makeBarcodingEntry(1, { projectId: 'project-1' })
@@ -358,6 +430,27 @@ describe('analysis-history', () => {
           entityId: oldestLinkedEntry.id,
         }),
       ])
+    })
+
+    it('saveGeneticsHistory는 localStorage 실패 시 false를 반환한다', () => {
+      const originalSetItem = Storage.prototype.setItem
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string): void {
+        if (key === HISTORY_KEY) {
+          throw new DOMException('quota exceeded', 'QuotaExceededError')
+        }
+        return originalSetItem.call(this, key, value)
+      })
+
+      const saved = saveGeneticsHistory({
+        type: 'protein',
+        analysisName: 'Quota fail',
+        sequenceLength: 147,
+        molecularWeight: 15867.2,
+        isoelectricPoint: 6.75,
+        isStable: true,
+      })
+
+      expect(saved).toBe(false)
     })
   })
 })
