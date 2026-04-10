@@ -10,6 +10,7 @@ import { useModeStore } from './mode-store'
 import { useHistoryStore } from './history-store'
 import { useHubChatStore } from './hub-chat-store'
 import { useGraphStudioStore } from './graph-studio-store'
+import { createManualMethodBrowsingPatch } from './analysis-transitions'
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { toStatisticalAssumptions } from '@/lib/services/diagnostic-pipeline'
@@ -48,10 +49,7 @@ function buildAiRecContext(rec: AIRecommendation | null): AiRecommendationContex
 
 /** 수동 메서드 브라우징 진입 전 stale diagnostic 상태 정리 */
 export function prepareManualMethodBrowsing(): void {
-  const analysisStore = useAnalysisStore.getState()
-  analysisStore.setAssumptionResults(null)
-  analysisStore.setSuggestedSettings(null)
-  analysisStore.setDiagnosticReport(null)
+  useAnalysisStore.setState(createManualMethodBrowsingPatch())
   useModeStore.getState().setStepTrack('normal')
 }
 

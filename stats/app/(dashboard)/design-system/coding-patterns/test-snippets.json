@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.38.0",
+  "version": "1.39.0",
   "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
@@ -59,6 +59,19 @@
             "suggestedSettings",
             "diagnosticReport",
             "zustand"
+          ]
+        },
+        {
+          "name": "Pure transition patch 테스트",
+          "purpose": "upload/manual/history 전이 규칙을 store 밖의 pure helper로 고정해 lifecycle reset drift를 방지",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { createDiagnosticUploadReplacementPatch, createManualMethodBrowsingPatch } from '@/lib/stores/analysis-transitions';\n\ndescribe('analysis transition helpers', () => {\n  it('diagnostic upload replacement는 stale execution state를 한 번에 비운다', () => {\n    expect(createDiagnosticUploadReplacementPatch()).toEqual(expect.objectContaining({\n      currentStep: 1,\n      selectedMethod: null,\n      variableMapping: null,\n      suggestedSettings: null,\n      diagnosticReport: null,\n      results: null,\n    }));\n  });\n\n  it('manual method browsing은 diagnostic guidance만 비우고 분석 provenance는 유지한다', () => {\n    expect(createManualMethodBrowsingPatch()).toEqual({\n      assumptionResults: null,\n      suggestedSettings: null,\n      diagnosticReport: null,\n    });\n  });\n});",
+          "keywords": [
+            "analysis-transitions",
+            "pure helper",
+            "state patch",
+            "diagnostic upload",
+            "manual browsing",
+            "lifecycle"
           ]
         }
       ]

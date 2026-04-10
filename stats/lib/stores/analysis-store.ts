@@ -24,6 +24,10 @@ import { SESSION_STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import { useModeStore } from './mode-store'
 import { useHistoryStore } from './history-store'
 import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
+import {
+  createHistoryRestorePatch,
+  createHistorySettingsRestorePatch,
+} from './analysis-transitions'
 
 /**
  * 핵심 분석 상태 관리
@@ -238,51 +242,11 @@ export const useAnalysisStore = create<AnalysisState>()(
 
       // 히스토리 복원 (history-store가 로드한 데이터를 수신)
       restoreFromHistory: (data) => {
-        set({
-          analysisPurpose: data.analysisPurpose,
-          selectedMethod: data.selectedMethod,
-          variableMapping: data.variableMapping,
-          results: data.results,
-          uploadedFileName: data.uploadedFileName,
-          currentStep: data.currentStep,
-          completedSteps: data.completedSteps,
-          uploadedData: null,
-          dataCharacteristics: null,
-          validationResults: null,
-          assumptionResults: null,
-          uploadedFile: null,
-          cachedAiRecommendation: null,
-          detectedVariables: null,
-          suggestedSettings: null,
-          analysisOptions: data.analysisOptions,
-          diagnosticReport: null,
-          isLoading: false,
-          error: null,
-        })
+        set(createHistoryRestorePatch(data))
       },
 
       restoreSettingsFromHistory: (data) => {
-        set({
-          uploadedData: null,
-          uploadedFile: null,
-          uploadedFileName: null,
-          validationResults: null,
-          results: null,
-          error: null,
-          dataCharacteristics: null,
-          assumptionResults: null,
-          selectedMethod: data.selectedMethod,
-          variableMapping: data.variableMapping,
-          analysisPurpose: data.analysisPurpose,
-          cachedAiRecommendation: null,
-          detectedVariables: null,
-          suggestedSettings: null,
-          analysisOptions: data.analysisOptions,
-          diagnosticReport: null,
-          isLoading: false,
-          currentStep: 1,
-          completedSteps: [],
-        })
+        set(createHistorySettingsRestorePatch(data))
       },
 
       // 네비게이션 — U1-1: canNavigateToStep과 동일 규칙 사용 (우회 없음)

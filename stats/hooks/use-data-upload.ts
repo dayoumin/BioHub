@@ -22,38 +22,19 @@ import { useHubChatStore } from '@/lib/stores/hub-chat-store'
 import { buildHubDataContext } from '@/lib/utils/hub-data-context'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
-import { DEFAULT_ANALYSIS_OPTIONS, type DataRow } from '@/types/analysis'
+import type { DataRow } from '@/types/analysis'
+import {
+  buildQuickAdvanceState,
+  createDiagnosticUploadReplacementPatch,
+} from '@/lib/stores/analysis-transitions'
 
 interface UseDataUploadReturn {
   handleUploadComplete: (file: File, data: DataRow[]) => Promise<void>
   reanalysisCompatibility: CompatibilityResult | null
 }
 
-export function buildQuickAdvanceState(completedSteps: number[]): {
-  completedSteps: number[]
-  currentStep: number
-} {
-  return {
-    completedSteps: [...new Set([...completedSteps, 1, 2])],
-    currentStep: 3,
-  }
-}
-
-export function createDiagnosticUploadResetPatch() {
-  return {
-    currentStep: 1,
-    completedSteps: [],
-    selectedMethod: null,
-    variableMapping: null,
-    cachedAiRecommendation: null,
-    detectedVariables: null,
-    suggestedSettings: null,
-    analysisOptions: { ...DEFAULT_ANALYSIS_OPTIONS },
-    assumptionResults: null,
-    diagnosticReport: null,
-    results: null,
-  }
-}
+export { buildQuickAdvanceState } from '@/lib/stores/analysis-transitions'
+export const createDiagnosticUploadResetPatch = createDiagnosticUploadReplacementPatch
 
 export function useDataUpload(): UseDataUploadReturn {
   const t = useTerminology()
@@ -112,7 +93,7 @@ export function useDataUpload(): UseDataUploadReturn {
       }
 
       if (currentMode.stepTrack === 'diagnostic') {
-        useAnalysisStore.setState(createDiagnosticUploadResetPatch())
+        useAnalysisStore.setState(createDiagnosticUploadReplacementPatch())
         useModeStore.getState().setStepTrack('normal')
       }
 
