@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BioHub Test Suite Overview</title>
+    <style>
+      :root {
+        --bg: #f5f1e8;
+        --panel: #fffdf8;
+        --panel-strong: #f0e8d7;
+        --ink: #1f2933;
+        --muted: #5f6c76;
+        --line: #d7ccb7;
+        --accent: #a64826;
+        --accent-soft: #f4ddd4;
+        --ok: #1f6b52;
+        --warn: #8a5b10;
+        --shadow: 0 16px 40px rgba(53, 42, 29, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top right, rgba(166, 72, 38, 0.1), transparent 28%),
+          linear-gradient(180deg, #fbf7ef 0%, var(--bg) 100%);
+      }
+
+      main {
+        width: min(1320px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0 64px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 20px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 253, 248, 0.92);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .sidebar h2 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+      }
+
+      .sidebar nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      .sidebar a {
+        display: block;
+        padding: 10px 12px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: var(--ink);
+        background: transparent;
+        transition: background 120ms ease, transform 120ms ease;
+      }
+
+      .sidebar a:hover {
+        background: var(--panel-strong);
+        transform: translateX(2px);
+      }
+
+      .sidebar small {
+        display: block;
+        margin-top: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .content {
+        min-width: 0;
+      }
+
+      .hero {
+        padding: 32px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(255, 253, 248, 0.98), rgba(240, 232, 215, 0.92));
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 16px 0 10px;
+        font-size: clamp(32px, 5vw, 52px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 860px;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.7;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        margin-top: 20px;
+      }
+
+      .grid.cards {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .grid.two {
+        grid-template-columns: 1.05fr 0.95fr;
+      }
+
+      .card {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .card h2,
+      .card h3 {
+        margin: 0 0 12px;
+        letter-spacing: -0.02em;
+      }
+
+      .metric {
+        font-size: 40px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .label {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .assessment {
+        margin-top: 20px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .assessment-item {
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--panel-strong);
+      }
+
+      .assessment-item strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .badge {
+        display: inline-block;
+        min-width: 74px;
+        margin-right: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .good {
+        background: rgba(31, 107, 82, 0.12);
+        color: var(--ok);
+      }
+
+      .warn {
+        background: rgba(138, 91, 16, 0.12);
+        color: var(--warn);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 18px;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 13px;
+        color: var(--muted);
+        background: rgba(240, 232, 215, 0.55);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li {
+        margin: 8px 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: #f3ede1;
+        color: #5d3423;
+        font-family: "Cascadia Code", "Consolas", monospace;
+        font-size: 13px;
+      }
+
+      .callout {
+        margin-top: 18px;
+        padding: 18px 20px;
+        border-left: 4px solid var(--accent);
+        border-radius: 16px;
+        background: #fff7f3;
+      }
+
+      .section-title {
+        margin: 28px 0 12px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .concept-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .concept {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+
+      .concept h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .concept p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 920px) {
+        .layout,
+        .grid.cards,
+        .grid.two {
+          grid-template-columns: 1fr;
+        }
+
+        .concept-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="layout">
+        <aside class="sidebar">
+          <h2>문서 메뉴</h2>
+          <nav>
+            <a href="#overview">개요</a>
+            <a href="#summary">요약 지표</a>
+            <a href="#concepts">테스트 개념</a>
+            <a href="#assessment">적절성 체크</a>
+            <a href="#folders">폴더별 규모</a>
+            <a href="#practical">실무 기준 분류</a>
+            <a href="#commands">자주 보는 명령</a>
+          </nav>
+          <small>
+            이 문서는 “테스트가 왜 많은지”, “Vitest/Playwright/validation이 각각 뭘 하는지”,
+            “실무에서는 무엇을 언제 돌려야 하는지”를 한 페이지에서 읽도록 만든 안내 문서입니다.
+          </small>
+        </aside>
+
+        <div class="content">
+          <section class="hero" id="overview">
+            <span class="eyebrow">Test Map</span>
+            <h1>BioHub 테스트 스위트 한눈에 보기</h1>
+            <p>
+              이 프로젝트의 테스트는 “화면 확인”만 위한 구성이 아닙니다. 통계 계산, selector-실행기 매핑,
+              Pyodide worker, 상태 저장, AI 추천, export, validation까지 함께 검증하는 구조입니다.
+              그래서 테스트 수가 많은 편이지만, 위험이 큰 영역에 테스트가 집중된 점은 대체로 합리적입니다.
+            </p>
+          </section>
+
+          <section class="grid cards" id="summary" aria-label="요약 지표">
+            <article class="card">
+              <div class="metric">286</div>
+              <div class="label">전체 테스트 파일 수</div>
+            </article>
+            <article class="card">
+              <div class="metric">230</div>
+              <div class="label">TypeScript 테스트</div>
+            </article>
+            <article class="card">
+              <div class="metric">55</div>
+              <div class="label">TSX UI 테스트</div>
+            </article>
+            <article class="card">
+              <div class="metric">172</div>
+              <div class="label">`lib + components + services` 집중 영역</div>
+            </article>
+          </section>
+
+          <div class="section-title" id="concepts">테스트 개념 정리</div>
+          <section class="concept-grid">
+            <article class="concept">
+              <h3>Vitest</h3>
+              <p>
+                이 프로젝트의 기본 테스트 러너입니다. 빠르게 실행되는 단위 테스트, 훅 테스트, 컴포넌트 테스트,
+                회귀 테스트 대부분이 여기에 들어갑니다. 보통 <code>pnpm test</code>가 이 범위를 뜻합니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>Playwright</h3>
+              <p>
+                실제 브라우저를 띄워서 사용자의 클릭 흐름을 확인하는 E2E 도구입니다. Vitest보다 느리지만,
+                “페이지가 진짜로 움직이는지”를 보는 데 필요합니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>단위 테스트</h3>
+              <p>
+                함수 하나, 작은 컴포넌트 하나가 의도대로 동작하는지 확인합니다. 실패 원인을 좁게 잡을 수 있어서
+                가장 자주 실행하는 테스트입니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>회귀 테스트</h3>
+              <p>
+                예전에 고친 버그가 다시 나오지 않게 잠그는 테스트입니다. 파일명에 <code>bugfix</code>,
+                <code>regression</code>, <code>scenario</code>가 많이 붙습니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>통합 테스트</h3>
+              <p>
+                업로드, method 선택, variable mapping, executor 같은 여러 층을 같이 묶어 봅니다.
+                단위 테스트보다 느리지만 실제 사용자 흐름에 더 가깝습니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>계약 테스트</h3>
+              <p>
+                모듈 간 약속이 깨지지 않는지 검증합니다. 예를 들어 method id, selector mapping, schema,
+                variable requirements 같은 “인터페이스”를 고정하는 역할입니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>Golden Value 테스트</h3>
+              <p>
+                계산 결과를 Python/R 기준값과 비교하는 테스트입니다. 통계 앱에서는 UI 테스트보다 더 중요할 때가 많습니다.
+                “보기에 맞는지”가 아니라 “숫자가 맞는지”를 확인합니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>Validation Runner</h3>
+              <p>
+                단일 테스트 파일이 아니라, 별도 스크립트로 여러 메서드를 기준값과 대조하는 검증 계층입니다.
+                일반 Vitest와 달리 정확도 중심의 검증 축으로 이해하면 됩니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>Coverage</h3>
+              <p>
+                코드가 얼마나 테스트를 통해 실행됐는지를 보는 지표입니다. 품질을 보조하는 숫자일 뿐,
+                coverage가 높다고 정확도까지 보장되는 것은 아닙니다.
+              </p>
+            </article>
+            <article class="concept">
+              <h3>Skipped 테스트</h3>
+              <p>
+                일시적으로 건너뛴 테스트입니다. 전체 실행에서 숫자는 보이지만 실제 검증은 하지 않습니다.
+                누적되면 품질 부채가 되므로 주기적으로 정리해야 합니다.
+              </p>
+            </article>
+          </section>
+
+          <section class="grid two" id="assessment">
+            <article class="card">
+              <h2>적절성 체크</h2>
+              <div class="assessment">
+                <div class="assessment-item">
+                  <strong><span class="badge good">적절</span>핵심 리스크에 테스트가 몰려 있음</strong>
+                  `lib(87)`, `components(56)`, `services(29)`에 가장 많이 분포합니다. 이 프로젝트에서 실제 장애가 자주 나는
+                  계산 로직, selector 매핑, 실행기 연결, 복잡한 UI 흐름에 테스트가 집중된 구조입니다.
+                </div>
+                <div class="assessment-item">
+                  <strong><span class="badge good">적절</span>테스트 층이 분리돼 있음</strong>
+                  Vitest 단위/회귀 테스트, Playwright E2E, golden value, validation runner가 따로 있어
+                  “빠른 피드백”과 “정확도 검증”이 구분되어 있습니다.
+                </div>
+                <div class="assessment-item">
+                  <strong><span class="badge warn">정리 필요</span>디렉터리 의미가 섞여 있음</strong>
+                  `bugfix`, `simulation`, `session-c`, `graph-studio` 같은 폴더는 역사적 맥락은 남기지만,
+                  신규 기여자가 “어디에 테스트를 추가해야 하는지” 판단하기 어렵게 만듭니다.
+                </div>
+                <div class="assessment-item">
+                  <strong><span class="badge warn">정리 필요</span>실행 정책 문서화가 부족함</strong>
+                  어떤 테스트를 “매일”, “PR 전”, “야간 검증”으로 돌려야 하는지 코드만 보고 알기 어렵습니다.
+                  운영 기준을 별도로 정리해 두는 편이 좋습니다.
+                </div>
+              </div>
+            </article>
+
+            <article class="card" id="folders">
+              <h2>폴더별 규모</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>영역</th>
+                    <th>파일 수</th>
+                    <th>의미</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>lib</td><td>87</td><td>핵심 유틸, 해석 엔진, registry, export, 내부 서비스</td></tr>
+                  <tr><td>components</td><td>56</td><td>분석 UI, 카드, 단계 화면, 시각화 컴포넌트</td></tr>
+                  <tr><td>services</td><td>29</td><td>실행기, 추천기, hub/data 서비스, handler</td></tr>
+                  <tr><td>statistics</td><td>17</td><td>계산 helper, 통계 통합, 정확도 회귀</td></tr>
+                  <tr><td>hooks</td><td>13</td><td>업로드, 안내, 복구, 단계 흐름</td></tr>
+                  <tr><td>unit</td><td>12</td><td>작은 단위 로직과 parser, rechunking, formatter</td></tr>
+                  <tr><td>stores</td><td>9</td><td>Zustand 상태, 저장/복원, navigation</td></tr>
+                  <tr><td>나머지</td><td>63</td><td>integration, contracts, pyodide, cross-validation, e2e 등</td></tr>
+                </tbody>
+              </table>
+            </article>
+          </section>
+
+          <section class="grid two" id="practical">
+            <article class="card">
+              <h2>실무 기준 분류</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>운영 구분</th>
+                    <th>무엇을 포함할지</th>
+                    <th>추천 명령</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>매일 로컬</td>
+                    <td>현재 수정한 파일 주변의 컴포넌트/훅/서비스 테스트</td>
+                    <td><code>pnpm vitest run path/to/test</code></td>
+                  </tr>
+                  <tr>
+                    <td>PR 전 필수</td>
+                    <td>회귀 가능성이 큰 Vitest 묶음 + contract 검사</td>
+                    <td><code>pnpm test</code>, <code>pnpm validate:result-contracts</code></td>
+                  </tr>
+                  <tr>
+                    <td>정확도 검증</td>
+                    <td>golden value, validation runner, Pyodide 기준 비교</td>
+                    <td><code>pnpm test:golden-values</code>, <code>pnpm test:validation</code></td>
+                  </tr>
+                  <tr>
+                    <td>브라우저 검증</td>
+                    <td>실제 페이지 흐름, 주요 사용자 시나리오</td>
+                    <td><code>pnpm e2e</code>, <code>pnpm e2e:stats</code></td>
+                  </tr>
+                  <tr>
+                    <td>느리지만 중요</td>
+                    <td>coverage, performance, full e2e, pyodide golden</td>
+                    <td><code>pnpm test:coverage</code>, <code>pnpm test:performance</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article class="card">
+              <h2>추천 운영 원칙</h2>
+              <ul>
+                <li>새 버그를 고칠 때는 일반 테스트보다 먼저 회귀 테스트 1개를 추가하고 수정에 들어갑니다.</li>
+                <li>`contracts`, `registry`, `validation`, `golden-values`는 “정확도 방어선”이므로 CI에서 빠지면 안 됩니다.</li>
+                <li>`bugfix`, `simulation` 폴더는 당장 없애기보다, 새 테스트부터는 기능 소유 폴더로 옮겨 적재하는 편이 안전합니다.</li>
+                <li>매일 전체 스위트를 전부 돌리기보다, 로컬은 타깃 실행, PR/merge는 전체 실행으로 역할을 나누는 편이 효율적입니다.</li>
+              </ul>
+              <div class="callout">
+                <strong>한 줄 판단</strong><br />
+                지금 테스트 수가 “과하게 많은 것”이라기보다, 복잡한 통계 앱에 필요한 검증 축이 많아서 생긴 결과에 가깝습니다.
+                다만 폴더 네이밍과 실행 정책은 더 명확하게 다듬을 여지가 있습니다.
+              </div>
+            </article>
+          </section>
+
+          <section class="card" id="commands">
+            <h2>자주 보는 명령</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>명령</th>
+                  <th>의도</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>pnpm test</code></td><td>Vitest 전체 실행</td></tr>
+                <tr><td><code>pnpm test:coverage</code></td><td>전체 커버리지 포함 실행</td></tr>
+                <tr><td><code>pnpm test:performance</code></td><td>성능 테스트만 별도 실행</td></tr>
+                <tr><td><code>pnpm test:golden-values</code></td><td>골든 값 비교</td></tr>
+                <tr><td><code>pnpm test:validation</code></td><td>validation runner 실행</td></tr>
+                <tr><td><code>pnpm validate:result-contracts</code></td><td>결과 schema/contract 검사</td></tr>
+                <tr><td><code>pnpm e2e</code></td><td>Playwright 전체 E2E</td></tr>
+                <tr><td><code>pnpm e2e:stats</code></td><td>통계 관련 E2E만 실행</td></tr>
+              </tbody>
+            </table>
+            <p class="footer-note">
+              기준 시점: 2026-04-10 로컬 워크스페이스 집계. `__tests__` 기준 테스트 파일 286개를 바탕으로 정리했습니다.
+            </p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
