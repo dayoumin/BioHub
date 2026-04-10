@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.35.0",
-  "lastUpdated": "2026-04-09",
+  "version": "1.36.0",
+  "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -46,6 +46,19 @@
             "quick",
             "hub-data-context",
             "state transition"
+          ]
+        },
+        {
+          "name": "히스토리 복원 시 stale AI 상태 정리",
+          "purpose": "restoreFromHistory/restoreSettingsFromHistory가 이전 추천/설정/진단 상태를 비워 다음 실행에 스며들지 않게 검증",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { useAnalysisStore } from '@/lib/stores/analysis-store';\n\ndescribe('history restore hygiene', () => {\n  it('복원 시 stale AI execution state를 비운다', () => {\n    act(() => {\n      useAnalysisStore.setState({\n        cachedAiRecommendation: { method: { id: 'one-way-anova', name: 'Welch ANOVA', description: '', category: 'anova' }, confidence: 0.9, reasoning: ['stale'], assumptions: [] },\n        detectedVariables: { dependentCandidate: 'old_score' },\n        suggestedSettings: { welch: true, postHoc: 'games-howell' },\n        diagnosticReport: { summary: 'stale' } as never,\n      });\n      useAnalysisStore.getState().restoreFromHistory({\n        analysisPurpose: 'compare',\n        selectedMethod: { id: 'two-sample-t', name: 'Independent Samples t-Test', description: '', category: 't-test' },\n        variableMapping: null,\n        results: null,\n        uploadedFileName: 'history.csv',\n        currentStep: 2,\n        completedSteps: [1],\n        analysisOptions: useAnalysisStore.getState().analysisOptions,\n      });\n    });\n\n    const state = useAnalysisStore.getState();\n    expect(state.cachedAiRecommendation).toBeNull();\n    expect(state.detectedVariables).toBeNull();\n    expect(state.suggestedSettings).toBeNull();\n    expect(state.diagnosticReport).toBeNull();\n  });\n});",
+          "keywords": [
+            "history restore",
+            "stale state",
+            "cachedAiRecommendation",
+            "suggestedSettings",
+            "diagnosticReport",
+            "zustand"
           ]
         }
       ]

@@ -35,7 +35,7 @@ stats/app/(dashboard)/design-system/
 │   ├── type-guards.json              (18개 타입 가드 함수)
 │   ├── statistics-page-pattern.json  (통계 페이지 코딩 표준)
 │   ├── test-snippets.json            (12개 테스트 패턴)
-│   ├── statistical-methods.json      (51개 통계 방법 정의)
+│   ├── statistical-methods.json      (canonical method/page metadata)
 │   └── statistical-formatting.json   (통계 포맷팅 규칙)
 ├── sections/
 │   ├── TypeGuardsSection.tsx
@@ -173,11 +173,14 @@ stats/app/(dashboard)/design-system/
 ```json
 {
   "lastUpdated": "2025-12-01",
-  "totalMethods": 48,
+  "summary": {
+    "totalDefinitions": 50,
+    "pageRoutes": 47
+  },
   "categories": [
     {
       "name": "t-test",
-      "methods": ["t-test", "welch-t", "one-sample-t", "paired-t"]
+      "methods": ["two-sample-t", "welch-t", "one-sample-t", "paired-t"]
     }
   ],
   "idNamingRules": [...]

@@ -1259,9 +1259,10 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 | 규칙 | 설명 |
 |------|------|
-| ID = 페이지 경로 | `t-test` → `/statistics/t-test` |
+| `pageId` = 페이지 경로 | `t-test` → `/statistics/t-test` |
+| canonical `id` = 내부 키 | `two-sample-t` → `pageId: t-test` |
 | kebab-case | `mann-whitney` ✅, `mann_whitney` ❌ |
-| aliases로 호환 | 기존 ID는 aliases에 추가 |
+| aliases는 호환 입력 전용 | compatibility 입력은 aliases로만 흡수 |
 | 임의 ID 금지 | 공통 파일에서만 정의 |
 
 ### 20.3 상세 규칙
@@ -1273,7 +1274,7 @@ app/(dashboard)/design-system/coding-patterns/statistical-methods.json
 ```
 
 이 JSON 파일에 다음 내용이 정의되어 있습니다:
-- 48개 통계 방법 카테고리 구조
+- canonical method / pageId / compatibility alias 구조
 - ID 명명 규칙 (idNamingRules)
 - 금지 패턴 (forbiddenPatterns)
 - 관련 문서 링크
@@ -1282,7 +1283,7 @@ app/(dashboard)/design-system/coding-patterns/statistical-methods.json
 
 1. `lib/constants/statistical-methods.ts`에 코드 추가
 2. `statistical-methods.json` 메타데이터 업데이트 (lastUpdated 필수)
-3. 기존 ID가 있다면 `aliases` 필드 활용
+3. route slug가 필요하면 `pageId`, compatibility 입력이 필요하면 `aliases` 사용
 
 ---
 
