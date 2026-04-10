@@ -38,6 +38,7 @@ describe('buildProteinInterpretationMarkdown', () => {
         id: 'GO:0005344',
         name: 'oxygen carrier activity',
         aspect: 'molecular_function',
+        isObsolete: false,
         definition: 'Binding to oxygen and delivering it.',
         usage: null,
         comment: null,

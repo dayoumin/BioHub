@@ -635,7 +635,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
           { value: 'true', label: 'Student t-검정', description: '등분산 가정 사용 (두 집단의 분산이 같다고 가정)' },
           { value: 'false', label: 'Welch t-검정', description: '등분산 가정 미사용 (분산이 다를 수 있음, 더 안전한 선택)' }
         ],
-        default: 'false'
+        default: 'true'
       }
     },
     sampleData: {

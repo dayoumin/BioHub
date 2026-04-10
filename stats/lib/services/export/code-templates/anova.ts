@@ -1,5 +1,5 @@
 /**
- * ANOVA 코드 템플릿 (1개)
+ * ANOVA 코드 템플릿(1개)
  * - anova (일원분산분석 + Tukey 사후검정)
  */
 
@@ -33,7 +33,9 @@ print(games_howell_test(data, ${safeRFormula(d)} ~ ${safeRFormula(g)}))`
 print(pairwise.t.test(data[[${safeRString(d)}]], data[[${safeRString(g)}]], p.adjust.method = "bonferroni"))`
         : `# 사후검정 (Tukey HSD)
 print(TukeyHSD(model))`
-    const effectSizeBlock = `model <- aov(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
+    const effectSizeBlock = isWelch
+      ? 'cat("Welch ANOVA effect size is not reported here because classical eta-squared from standard ANOVA does not match the Welch model.\\n")'
+      : `model <- aov(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
 ss <- summary(model)[[1]]
 eta_sq <- ss[["Sum Sq"]][1] / sum(ss[["Sum Sq"]])
 cat(sprintf("Eta-squared: %.4f\\n", eta_sq))`
@@ -47,7 +49,7 @@ ${analysisBlock}
 
 ${postHocBlock}
 
-# 효과 크기 (Eta-squared)
+# 효과 크기 (${isWelch ? 'Welch note' : 'Eta-squared'})
 ${effectSizeBlock}`
   },
 }
@@ -87,6 +89,13 @@ print(posthoc)`
 posthoc = pairwise_tukeyhsd(endog=data["${safePy(d)}"], groups=data["${safePy(g)}"], alpha=${(1 - input.options.confidenceLevel).toFixed(2)})
 print("\\nPost-hoc (Tukey HSD):")
 print(posthoc.summary())`
+    const effectSizeBlock = isWelch
+      ? 'print("\\nWelch ANOVA effect size is not reported here because classical eta-squared from standard ANOVA does not match the Welch model.")'
+      : `grand_mean = ${safePyCol('data', d)}.mean()
+ss_between = sum(len(grp) * (grp.mean() - grand_mean)**2 for _, grp in data.groupby("${safePy(g)}")["${safePy(d)}"])
+ss_total = ((${safePyCol('data', d)} - grand_mean)**2).sum()
+eta_sq = ss_between / ss_total
+print(f"\\nEta-squared: {eta_sq:.4f}")`
     return `import pandas as pd
 from scipy import stats
 ${imports}
@@ -103,11 +112,7 @@ print(f"p-value: {p_value:.4f}")
 
 ${postHocBlock}
 
-# 효과 크기 (Eta-squared)
-grand_mean = ${safePyCol('data', d)}.mean()
-ss_between = sum(len(grp) * (grp.mean() - grand_mean)**2 for _, grp in data.groupby("${safePy(g)}")["${safePy(d)}"])
-ss_total = ((${safePyCol('data', d)} - grand_mean)**2).sum()
-eta_sq = ss_between / ss_total
-print(f"\\nEta-squared: {eta_sq:.4f}")`
+# 효과 크기 (${isWelch ? 'Welch note' : 'Eta-squared'})
+${effectSizeBlock}`
   },
 }

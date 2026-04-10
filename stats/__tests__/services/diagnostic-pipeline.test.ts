@@ -174,6 +174,208 @@ describe('buildPendingClarification', () => {
     const categorical = result!.candidateColumns.find(c => c.column === '사료종류')
     expect(categorical?.sampleGroups).toEqual(['A', 'B', 'C'])
   })
+  it('집단 비교 요청인데 그룹 열이 없고 수치형 열이 여러 개면 반복측정 대안을 제안한다', () => {
+    const repeatedMeasuresValidation = {
+      ...mockValidationResults,
+      columns: [
+        { name: 'time1', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+        { name: 'time2', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+        { name: 'time3', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+      ] as unknown as ValidationResults['columns'],
+    } as unknown as ValidationResults
+
+    const result = buildPendingClarification(
+      '어떤 그룹으로 비교할까요?',
+      { dependent: ['time1'] },
+      repeatedMeasuresValidation,
+      '집단간 비교를 하고 싶어',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'repeated-measures-anova',
+      'friedman',
+    ])
+  })
+
+  it('범주형 비율 비교 요청이면 카이제곱 대안을 제안한다', () => {
+    const categoricalValidation = {
+      ...mockValidationResults,
+      columns: [
+        {
+          name: 'sex', type: 'categorical', uniqueValues: 2, missingCount: 0,
+          topCategories: [{ value: 'M', count: 60 }, { value: 'F', count: 60 }],
+        },
+        {
+          name: 'pass', type: 'categorical', uniqueValues: 2, missingCount: 0,
+          topCategories: [{ value: 'yes', count: 70 }, { value: 'no', count: 50 }],
+        },
+      ] as unknown as ValidationResults['columns'],
+    } as unknown as ValidationResults
+
+    const result = buildPendingClarification(
+      '무엇을 비교할까요?',
+      null,
+      categoricalValidation,
+      '집단간 비율 차이를 보고 싶어',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'chi-square-independence',
+    ])
+  })
+
+  it('그룹 열은 보이지만 측정값 선택이 안 된 경우 그룹 수에 맞는 평균 비교 대안을 제안한다', () => {
+    const result = buildPendingClarification(
+      '비교할 값을 선택해 주세요.',
+      { factor: ['?щ즺醫낅쪟'] },
+      mockValidationResults,
+      '그룹 평균 비교를 하고 싶어',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'one-way-anova',
+      'kruskal-wallis',
+    ])
+  })
+})
+
+describe('buildPendingClarification regression cases', () => {
+  it('keeps the detected 3-level factor when suggesting alternatives', () => {
+    const validationResults = {
+      ...mockValidationResults,
+      columns: [
+        {
+          name: 'sex',
+          type: 'categorical',
+          uniqueValues: 2,
+          missingCount: 0,
+          topCategories: [{ value: 'M', count: 60 }, { value: 'F', count: 60 }],
+        },
+        {
+          name: 'treatment',
+          type: 'categorical',
+          uniqueValues: 3,
+          missingCount: 0,
+          topCategories: [
+            { value: 'A', count: 40 },
+            { value: 'B', count: 40 },
+            { value: 'C', count: 40 },
+          ],
+        },
+        { name: 'outcome', type: 'numeric', uniqueValues: 100, missingCount: 0 },
+      ] as unknown as ValidationResults['columns'],
+    } as unknown as ValidationResults
+
+    const result = buildPendingClarification(
+      'Compare the groups.',
+      { dependent: ['outcome'], factor: ['treatment'] },
+      validationResults,
+      'Compare the groups.',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'one-way-anova',
+      'kruskal-wallis',
+    ])
+  })
+
+  it('keeps chi-square available for mixed datasets when the user explicitly asks for categorical comparison', () => {
+    const validationResults = {
+      ...mockValidationResults,
+      columns: [
+        {
+          name: 'sex',
+          type: 'categorical',
+          uniqueValues: 2,
+          missingCount: 0,
+          topCategories: [{ value: 'M', count: 60 }, { value: 'F', count: 60 }],
+        },
+        {
+          name: 'pass',
+          type: 'categorical',
+          uniqueValues: 2,
+          missingCount: 0,
+          topCategories: [{ value: 'yes', count: 70 }, { value: 'no', count: 50 }],
+        },
+        { name: 'age', type: 'numeric', uniqueValues: 60, missingCount: 0 },
+      ] as unknown as ValidationResults['columns'],
+    } as unknown as ValidationResults
+
+    const result = buildPendingClarification(
+      'I want to compare proportions.',
+      null,
+      validationResults,
+      'I want to compare proportions.',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'chi-square-independence',
+    ])
+  })
+
+  it('still suggests repeated-measures alternatives when group comparison is requested without a grouping column', () => {
+    const validationResults = {
+      ...mockValidationResults,
+      columns: [
+        { name: 'time1', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+        { name: 'time2', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+        { name: 'time3', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+      ] as unknown as ValidationResults['columns'],
+    } as unknown as ValidationResults
+
+    const result = buildPendingClarification(
+      'I want to compare groups over time.',
+      { dependent: ['time1'] },
+      validationResults,
+      'I want to compare groups over time.',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'repeated-measures-anova',
+      'friedman',
+    ])
+  })
+
+  it('prefers repeated-measures alternatives over incidental categorical columns when the user asks for time-based comparison', () => {
+    const validationResults = {
+      ...mockValidationResults,
+      columns: [
+        {
+          name: 'sex',
+          type: 'categorical',
+          uniqueValues: 2,
+          missingCount: 0,
+          topCategories: [{ value: 'M', count: 8 }, { value: 'F', count: 7 }],
+        },
+        { name: 'time1', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+        { name: 'time2', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+        { name: 'time3', type: 'numeric', uniqueValues: 15, missingCount: 0 },
+      ] as unknown as ValidationResults['columns'],
+    } as unknown as ValidationResults
+
+    const result = buildPendingClarification(
+      '시점별로 비교할까요?',
+      { dependent: ['time1'] },
+      validationResults,
+      '전후 시점 비교를 하고 싶어',
+    )
+
+    expect(result?.suggestedAnalyses?.map((item) => item.methodId)).toEqual([
+      'repeated-measures-anova',
+      'friedman',
+    ])
+  })
+
+  it('does not claim factor is missing when independent is already detected', () => {
+    const result = buildPendingClarification(
+      '어떤 값을 분석할까요?',
+      { independent: ['age'] },
+      mockValidationResults,
+      '연속형 설명 변수로 결과를 예측하고 싶어',
+    )
+
+    expect(result?.missingRoles).toEqual(['dependent'])
+  })
 })
 
 // ===== mergeVariableAssignments =====

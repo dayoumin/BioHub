@@ -494,6 +494,7 @@ export interface DiagnosticReport {
       uniqueValues?: number
       sampleGroups?: string[]
     }>
+    suggestedAnalyses?: MethodRecommendation[]
   } | null
 }
 

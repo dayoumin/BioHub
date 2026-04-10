@@ -27,9 +27,11 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
   const [entities, setEntities] = useState<ResolvedEntity[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadEntities = useCallback(async () => {
+  const loadEntities = useCallback(async (refreshFromCloud = true) => {
     try {
-      await hydrateProjectRefsFromCloud(projectId)
+      if (refreshFromCloud) {
+        await hydrateProjectRefsFromCloud(projectId)
+      }
       const projectRefs = listProjectEntityRefs(projectId)
 
       if (projectRefs.length === 0) {
@@ -74,8 +76,17 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
       entity.ref.entityKind,
       entity.ref.entityId,
     )
+    setEntities(current =>
+      current.filter(item =>
+        !(
+          item.ref.projectId === entity.ref.projectId
+          && item.ref.entityKind === entity.ref.entityKind
+          && item.ref.entityId === entity.ref.entityId
+        )
+      )
+    )
     toast.success(TOAST.project.unlinked)
-    loadEntities()
+    void loadEntities(false)
   }, [loadEntities])
 
   return (

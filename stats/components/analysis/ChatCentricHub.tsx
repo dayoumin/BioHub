@@ -14,13 +14,13 @@
  * - data-testid="hub-upload-card" 유지
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { cn } from '@/lib/utils'
 import { intentRouter, getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services'
 import { bridgeDiagnosticToSmartFlow, prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
-import { getKoreanName } from '@/lib/constants/statistical-methods'
+import { getKoreanName, STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
 import type { ResolvedIntent, DiagnosticReport, AIRecommendation, MethodRecommendation } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -100,6 +100,24 @@ function findPendingDiagnosticReport(messages: HubChatMessage[]): DiagnosticRepo
   return null
 }
 
+function findActivePendingDiagnosticMessage(
+  messages: HubChatMessage[],
+  uploadNonce: number,
+): HubChatMessage | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    if (
+      msg.role === 'assistant'
+      && msg.diagnosticReport?.pendingClarification
+      && msg.diagnosticReport.uploadNonce === uploadNonce
+    ) {
+      return msg
+    }
+  }
+
+  return null
+}
+
 // ===== Animation =====
 
 const containerVariants = {
@@ -142,11 +160,18 @@ export function ChatCentricHub({
   const setHasSeenUploadSuggestion = useHubChatStore((s) => s.setHasSeenUploadSuggestion)
   const setStreaming = useHubChatStore((s) => s.setStreaming)
   const dataContext = useHubChatStore((s) => s.dataContext)
+  const uploadNonce = useAnalysisStore((s) => s.uploadNonce)
 
   // 인라인 데이터 업로드
   const { handleFileSelected, clearDataContext } = useHubDataUpload()
 
   const setStreamingStatus = useHubChatStore((s) => s.setStreamingStatus)
+  const messages = useHubChatStore((s) => s.messages)
+  const activePendingMessage = useMemo(
+    () => (dataContext ? findActivePendingDiagnosticMessage(messages, uploadNonce) : null),
+    [dataContext, messages, uploadNonce]
+  )
+  const pendingClarification = activePendingMessage?.diagnosticReport?.pendingClarification ?? null
 
   // 채팅 입력 제출 → resume 감지 → Intent Router 분류 → 트랙별 처리
   const handleChatSubmit = useCallback(async (message: string, directAssignments?: NonNullable<AIRecommendation['variableAssignments']>) => {
@@ -167,8 +192,9 @@ export function ChatCentricHub({
       setStreaming(true)
 
       // ── [1단계] Resume 감지 (intentRouter 호출 전, deterministic) ──
-      const pendingReport = findPendingDiagnosticReport(priorMessages)
-      const uploadNonce = useAnalysisStore.getState().uploadNonce
+      const pendingReport = dataContext
+        ? findActivePendingDiagnosticMessage(priorMessages, uploadNonce)?.diagnosticReport ?? null
+        : null
       const uploadedData = useAnalysisStore.getState().uploadedData
 
       if (pendingReport && dataContext && pendingReport.uploadNonce === uploadNonce) {
@@ -367,6 +393,40 @@ export function ChatCentricHub({
     void handleChatSubmit(pseudoMessage, assignments)
   }, [handleChatSubmit])
 
+  const handleSuggestedMethodSelect = useCallback((report: DiagnosticReport, suggestion: MethodRecommendation) => {
+    const method = STATISTICAL_METHODS[suggestion.methodId]
+    const { uploadedData, uploadNonce: currentUploadNonce } = useAnalysisStore.getState()
+    const currentDataContext = useHubChatStore.getState().dataContext
+
+    if (!uploadedData || !currentDataContext || report.uploadNonce !== currentUploadNonce) {
+      toast.error('데이터가 만료되었습니다. CSV를 다시 업로드해 주세요.')
+      return
+    }
+
+    if (!method) {
+      toast.error('추천된 분석 방법을 찾을 수 없습니다.')
+      return
+    }
+
+    const recommendation: AIRecommendation = {
+      userQuery: report.originUserMessage,
+      method,
+      confidence: 1,
+      reasoning: suggestion.reason ? [suggestion.reason] : [],
+      assumptions: [],
+      alternatives: [],
+      variableAssignments: report.variableAssignments ?? undefined,
+    }
+
+    bridgeDiagnosticToSmartFlow(
+      {
+        ...report,
+        pendingClarification: null,
+      },
+      recommendation,
+    )
+  }, [])
+
   // data-testid="hub-upload-card": E2E 호환용 마커 (컨테이너 가시성 감지).
   return (
     <motion.div
@@ -392,6 +452,7 @@ export function ChatCentricHub({
 
               {/* ChatThread — 대화 히스토리 (메시지 있을 때만) */}
               <ChatThread
+                activeClarificationMessageId={activePendingMessage?.id ?? null}
                 onMethodSelect={onQuickAnalysis}
                 onUploadClick={onUploadClick}
                 onFileSelected={handleFileSelected}
@@ -401,6 +462,7 @@ export function ChatCentricHub({
                 onAlternativeSearch={handleAlternativeSearch}
                 onVariableConfirm={handleVariableConfirm}
                 onClarificationCancel={handleClarificationCancel}
+                onSuggestedMethodSelect={handleSuggestedMethodSelect}
               />
 
               {/* DataContextBadge — 데이터 로드됨 표시 */}
@@ -408,14 +470,30 @@ export function ChatCentricHub({
 
               {/* ChatInput — centered, wider */}
               <div className="w-full max-w-[760px]">
-                <ChatInput
-                  onSubmit={handleChatSubmit}
-                  isProcessing={isProcessing}
-                  externalValue={externalValue}
-                  onExternalValueConsumed={handleExternalValueConsumed}
-                  onUploadClick={onUploadClick}
-                  onFileSelected={handleFileSelected}
-                />
+                {pendingClarification ? (
+                  <div
+                    data-testid="hub-clarification-lock"
+                    className="rounded-2xl border border-border/60 bg-surface-container-low px-5 py-4 text-left"
+                  >
+                    <p className="text-sm font-medium text-foreground">
+                      위 선택 카드에서 필요한 열을 먼저 골라 주세요.
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      현재는 자유 입력보다 변수 선택이 우선입니다. 위 카드의 대안 분석을 바로 선택하거나, 직접 다시 설명하고 싶다면 카드의{' '}
+                      <span className="font-medium text-foreground">다시 질문하기</span>{' '}
+                      버튼으로 자유 입력 모드로 돌아갈 수 있습니다.
+                    </p>
+                  </div>
+                ) : (
+                  <ChatInput
+                    onSubmit={handleChatSubmit}
+                    isProcessing={isProcessing}
+                    externalValue={externalValue}
+                    onExternalValueConsumed={handleExternalValueConsumed}
+                    onUploadClick={onUploadClick}
+                    onFileSelected={handleFileSelected}
+                  />
+                )}
               </div>
 
               {/* 빠른 분석 pills — 주 입력 바로 아래의 보조 액션 */}

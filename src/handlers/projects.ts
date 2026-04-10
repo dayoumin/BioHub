@@ -8,7 +8,7 @@
  * DELETE /api/projects/:id   — 삭제 (CASCADE)
  */
 
-import type { WorkerEnv } from '../lib/worker-utils'
+import type { D1Database, WorkerEnv } from '../lib/worker-utils'
 import { jsonResponse, parseJsonBody, authenticateRequest } from '../lib/worker-utils'
 
 export async function handleProjectsApi(
@@ -158,9 +158,13 @@ async function handleUpdateProject(
   values.push(new Date().toISOString())
   values.push(projectId, userId)
 
-  await db.prepare(
+  const result = await db.prepare(
     `UPDATE projects SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`
   ).bind(...values).run()
+
+  if (result.meta.changes === 0) {
+    return jsonResponse({ error: '?꾨줈?앺듃瑜?李얠쓣 ???놁뒿?덈떎.' }, 404)
+  }
 
   return jsonResponse({ ok: true }, 200)
 }

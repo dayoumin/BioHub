@@ -133,8 +133,10 @@ describe('statistical-methods.ts', () => {
     })
 
     it('제거된 레거시 alias는 더 이상 해석하지 않아야 함', () => {
+      expect(getMethodByIdOrAlias('independent-t-test')?.id).toBe('two-sample-t')
+      expect(getMethodByIdOrAlias('paired-t-test')?.id).toBe('paired-t')
+      expect(getMethodByIdOrAlias('one-sample-t-test')?.id).toBe('one-sample-t')
       expect(getMethodByIdOrAlias('independent-t')).toBeNull()
-      expect(getMethodByIdOrAlias('independent-t-test')).toBeNull()
       expect(getMethodByIdOrAlias('welch-anova')).toBeNull()
     })
 

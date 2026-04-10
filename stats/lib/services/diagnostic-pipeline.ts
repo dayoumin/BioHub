@@ -22,6 +22,7 @@ import type {
   ColumnStatistics,
   DiagnosticAssumptions,
   DiagnosticReport,
+  MethodRecommendation,
   StatisticalAssumptions,
 } from '@/types/analysis'
 import type { WorkerNumber } from '@/lib/constants/methods-registry.types'
@@ -35,6 +36,7 @@ import { logger } from '@/lib/utils/logger'
 import { MIN_GROUP_SIZE, resolveGroupVariable } from '@/lib/constants/statistical-constants'
 import { ensurePyodideReady } from '@/lib/services/pyodide/ensure-pyodide-ready'
 import type { TestAssumptionsWorkerResult, NormalityWorkerResult } from '@/lib/services/pyodide/worker-result-types'
+import { STATISTICAL_METHODS, getKoreanName } from '@/lib/constants/statistical-methods'
 
 // ===== Types =====
 
@@ -92,6 +94,7 @@ export async function runDiagnosticPipeline(
         detectionResult.clarificationNeeded,
         detectionResult.variableAssignments,
         validationResults,
+        userMessage,
       ),
     }
   }
@@ -145,6 +148,7 @@ export async function resumeDiagnosticPipeline(
         '어떤 값을 비교하고 싶으신가요?',
         previousReport.variableAssignments,
         validationResults,
+        previousReport.originUserMessage ?? userAnswer,
       ),
     }
   }
@@ -170,6 +174,7 @@ export async function resumeDiagnosticPipeline(
         question,
         merged,
         validationResults,
+        previousReport.originUserMessage ?? userAnswer,
       ),
     }
   }
@@ -395,24 +400,224 @@ export function parseVariableDetectionResponse(
 // ===== Internal: pendingClarification 구성 =====
 
 /** 기본 필수 역할: LLM이 아무것도 감지하지 못했을 때 사용 */
-const DEFAULT_REQUIRED_ROLES = ['dependent', 'factor'] as const
 type VariableRole = DiagnosticReport['pendingClarification'] extends { missingRoles: Array<infer R> } | null ? R : string
+
+const GROUP_COMPARE_PATTERN = /(집단|그룹|비교|차이|평균|전후|before|after|compare|difference|mean)/i
+const RELATIONSHIP_PATTERN = /(관계|상관|연관|예측|영향|correlation|relationship|regression|predict)/i
+const CATEGORICAL_PATTERN = /(비율|빈도|교차표|독립성|범주형|카이제곱|fisher|chi-square|proportion|count|categorical|association)/i
+const REPEATED_MEASURES_PATTERN = /(반복|시점|전후|before|after|time|longitudinal|repeated|paired)/i
+
+function buildClarificationMethodRecommendation(
+  methodId: string,
+  reason: string,
+  badge: MethodRecommendation['badge'] = 'alternative',
+): MethodRecommendation | null {
+  const method = STATISTICAL_METHODS[methodId]
+  if (!method) return null
+
+  return {
+    methodId,
+    methodName: method.name,
+    koreanName: getKoreanName(methodId),
+    reason,
+    badge,
+  }
+}
+
+function dedupeClarificationRecommendations(
+  recommendations: Array<MethodRecommendation | null>
+): MethodRecommendation[] {
+  const unique = new Map<string, MethodRecommendation>()
+
+  for (const recommendation of recommendations) {
+    if (!recommendation || unique.has(recommendation.methodId)) continue
+    unique.set(recommendation.methodId, recommendation)
+  }
+
+  return Array.from(unique.values()).slice(0, 2)
+}
+
+function buildClarificationAlternatives(args: {
+  userMessage?: string
+  partialAssignments: AIRecommendation['variableAssignments'] | null
+  validationResults: ValidationResults
+  missingRoles: VariableRole[]
+}): MethodRecommendation[] {
+  const message = args.userMessage ?? ''
+  const columns = (args.validationResults.columns ?? []).filter((column) => !column.idDetection?.isId)
+  const numericColumns = columns.filter((column) => column.type === 'numeric')
+  const categoricalColumns = columns.filter((column) => column.type === 'categorical')
+  const groupCandidates = categoricalColumns.filter((column) => {
+    const uniqueValues = column.uniqueValues ?? 0
+    return uniqueValues >= 2 && uniqueValues <= 30
+  })
+  const needsGroup = args.missingRoles.includes('factor') || args.missingRoles.includes('independent')
+  const needsDependent = args.missingRoles.includes('dependent')
+  const asksGroupComparison = GROUP_COMPARE_PATTERN.test(message)
+  const asksRelationship = RELATIONSHIP_PATTERN.test(message)
+  const asksCategorical = CATEGORICAL_PATTERN.test(message)
+  const asksRepeatedMeasures = REPEATED_MEASURES_PATTERN.test(message)
+  const selectedGroupCount = resolveDetectedGroupCount(args.partialAssignments, args.validationResults)
+  const primaryGroupCount = selectedGroupCount ?? groupCandidates[0]?.uniqueValues ?? 0
+
+  if (asksRelationship && numericColumns.length >= 2) {
+    return dedupeClarificationRecommendations([
+      buildClarificationMethodRecommendation(
+        'pearson-correlation',
+        '현재 데이터에는 수치형 열이 여러 개 있어 변수 간 관계를 보는 상관 분석이 더 자연스럽습니다.',
+        'recommended',
+      ),
+      buildClarificationMethodRecommendation(
+        'simple-regression',
+        '한 변수가 다른 변수를 설명하거나 예측하는지 보려면 회귀 분석으로 바로 이어갈 수 있습니다.',
+      ),
+    ])
+  }
+
+  if (asksCategorical && categoricalColumns.length >= 2) {
+    return dedupeClarificationRecommendations([
+      buildClarificationMethodRecommendation(
+        'chi-square-independence',
+        '현재 데이터는 범주형 열 중심이라 집단 평균 비교보다 범주형 연관성 검정이 더 적합합니다.',
+        'recommended',
+      ),
+    ])
+  }
+
+  if (
+    (needsGroup || asksGroupComparison)
+    && numericColumns.length >= 2
+    && (groupCandidates.length === 0 || (selectedGroupCount === null && asksRepeatedMeasures))
+  ) {
+    if (numericColumns.length === 2) {
+      return dedupeClarificationRecommendations([
+        buildClarificationMethodRecommendation(
+          'paired-t',
+          '그룹 열 없이 수치형 열이 두 개라면 같은 대상의 전후 비교처럼 paired t-test가 더 가깝습니다.',
+          'recommended',
+        ),
+        buildClarificationMethodRecommendation(
+          'wilcoxon-signed-rank',
+          '정규성 가정이 불안하면 Wilcoxon signed-rank 검정으로 바로 바꿀 수 있습니다.',
+        ),
+      ])
+    }
+
+    return dedupeClarificationRecommendations([
+      buildClarificationMethodRecommendation(
+        'repeated-measures-anova',
+        '그룹 열 없이 시점별 수치형 열이 여러 개라면 반복측정 ANOVA가 더 자연스럽습니다.',
+        'recommended',
+      ),
+      buildClarificationMethodRecommendation(
+        'friedman',
+        '반복측정 구조이지만 비모수 접근이 필요하면 Friedman 검정을 대안으로 사용할 수 있습니다.',
+      ),
+    ])
+  }
+
+  if ((needsDependent || asksGroupComparison) && numericColumns.length > 0 && primaryGroupCount >= 2) {
+    if (primaryGroupCount === 2) {
+      return dedupeClarificationRecommendations([
+        buildClarificationMethodRecommendation(
+          'two-sample-t',
+          '현재 데이터에는 두 집단 비교에 쓸 수 있는 그룹 열이 보여서 독립표본 t-test가 가장 가깝습니다.',
+          'recommended',
+        ),
+        buildClarificationMethodRecommendation(
+          'mann-whitney',
+          '분포 가정이 애매하면 Mann-Whitney U 검정으로 바로 전환할 수 있습니다.',
+        ),
+      ])
+    }
+
+    return dedupeClarificationRecommendations([
+      buildClarificationMethodRecommendation(
+        'one-way-anova',
+        '현재 데이터에는 세 집단 이상 비교가 가능한 그룹 열이 보여서 일원분산분석이 더 적합합니다.',
+        'recommended',
+      ),
+      buildClarificationMethodRecommendation(
+        'kruskal-wallis',
+        '정규성이나 등분산 가정이 맞지 않을 수 있으면 Kruskal-Wallis 검정을 대안으로 볼 수 있습니다.',
+      ),
+    ])
+  }
+
+  return []
+}
+
+function resolveDetectedGroupCount(
+  partialAssignments: AIRecommendation['variableAssignments'] | null,
+  validationResults: ValidationResults,
+): number | null {
+  const assignedGroupColumns = [
+    ...(partialAssignments?.factor ?? []),
+    ...(partialAssignments?.independent ?? []),
+    ...(partialAssignments?.between ?? []),
+  ]
+
+  if (assignedGroupColumns.length === 0) return null
+
+  const columnsByName = new Map(
+    (validationResults.columns ?? []).map((column) => [column.name, column] as const),
+  )
+
+  for (const columnName of assignedGroupColumns) {
+    const column = columnsByName.get(columnName)
+    if (!column || column.type !== 'categorical') continue
+
+    const uniqueValues = column.uniqueValues ?? 0
+    if (uniqueValues >= 2 && uniqueValues <= 30) {
+      return uniqueValues
+    }
+  }
+
+  return null
+}
+
+function resolvePreferredGroupRole(
+  question: string,
+  partialAssignments: AIRecommendation['variableAssignments'] | null,
+  userMessage?: string,
+): Extract<VariableRole, 'factor' | 'independent' | 'between'> {
+  if ((partialAssignments?.between?.length ?? 0) > 0) return 'between'
+  if ((partialAssignments?.independent?.length ?? 0) > 0) return 'independent'
+  if ((partialAssignments?.factor?.length ?? 0) > 0) return 'factor'
+
+  const source = `${question} ${userMessage ?? ''}`
+  if (/(독립|설명|예측|회귀|independent|predict|regression|explanatory)/i.test(source)) {
+    return 'independent'
+  }
+
+  return 'factor'
+}
 
 /** @internal 테스트용 export */
 export function buildPendingClarification(
   question: string,
   partialAssignments: AIRecommendation['variableAssignments'] | null,
   validationResults: ValidationResults,
+  userMessage?: string,
 ): DiagnosticReport['pendingClarification'] {
   const columns = validationResults.columns ?? []
 
   // 이미 감지된 역할을 제외하고 누락된 역할만 계산
-  const detectedRoles = new Set(
-    Object.entries(partialAssignments ?? {})
-      .filter(([, cols]) => Array.isArray(cols) && cols.length > 0)
-      .map(([role]) => role)
-  )
-  const missingRoles = (DEFAULT_REQUIRED_ROLES.filter(r => !detectedRoles.has(r)) as VariableRole[])
+  const hasDependent = (partialAssignments?.dependent?.length ?? 0) > 0
+    || (partialAssignments?.time?.length ?? 0) > 0
+  const hasGroupingRole = (partialAssignments?.factor?.length ?? 0) > 0
+    || (partialAssignments?.independent?.length ?? 0) > 0
+    || (partialAssignments?.between?.length ?? 0) > 0
+  const preferredGroupRole = resolvePreferredGroupRole(question, partialAssignments, userMessage)
+  const missingRoles: VariableRole[] = []
+
+  if (!hasDependent) {
+    missingRoles.push('dependent')
+  }
+
+  if (!hasGroupingRole) {
+    missingRoles.push(preferredGroupRole)
+  }
 
   const candidateColumns = columns
     .filter(c => !c.idDetection?.isId)
@@ -426,10 +631,20 @@ export function buildPendingClarification(
       }),
     }))
 
+  const resolvedMissingRoles = missingRoles.length > 0
+    ? missingRoles
+    : (hasGroupingRole ? ['dependent'] : ['dependent', preferredGroupRole]) as VariableRole[]
+
   return {
     question,
-    missingRoles: missingRoles.length > 0 ? missingRoles : [...DEFAULT_REQUIRED_ROLES] as VariableRole[],
+    missingRoles: resolvedMissingRoles,
     candidateColumns,
+    suggestedAnalyses: buildClarificationAlternatives({
+      userMessage,
+      partialAssignments,
+      validationResults,
+      missingRoles: resolvedMissingRoles,
+    }),
   }
 }
 

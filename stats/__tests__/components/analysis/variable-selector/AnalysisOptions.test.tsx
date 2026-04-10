@@ -191,6 +191,18 @@ describe('AnalysisOptionsSection', () => {
     expect(screen.getByTestId('setting-welch-select')).toBeInTheDocument()
   })
 
+  it('materializes the plain two-sample-t equalVar default as Student t-test', () => {
+    render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('two-sample-t')} />
+    )
+
+    expect(mockSetAnalysisOptions).toHaveBeenCalledWith({
+      methodSettings: {
+        equalVar: 'true',
+      },
+    })
+  })
+
   it('updates generic numeric settings through methodSettings', () => {
     render(
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('power-analysis')} />

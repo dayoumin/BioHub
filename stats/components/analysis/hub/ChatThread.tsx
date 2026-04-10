@@ -24,6 +24,7 @@ import type { DiagnosticReport, MethodRecommendation, AIRecommendation } from '@
 // ===== Props =====
 
 interface ChatThreadProps {
+  activeClarificationMessageId?: string | null
   /** 추천 카드 클릭 → 분석 시작 */
   onMethodSelect: (methodId: string) => void
   /** 업로드 유도 CTA 클릭 (fallback — Step 1 이동) */
@@ -40,6 +41,7 @@ interface ChatThreadProps {
   onAlternativeSearch?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
   onVariableConfirm?: (assignments: NonNullable<AIRecommendation['variableAssignments']>) => void
   onClarificationCancel?: () => void
+  onSuggestedMethodSelect?: (report: DiagnosticReport, recommendation: MethodRecommendation) => void
 }
 
 // ===== Animation =====
@@ -53,6 +55,7 @@ const bubbleVariants = {
 // ===== Component =====
 
 export function ChatThread({
+  activeClarificationMessageId,
   onMethodSelect,
   onUploadClick,
   onFileSelected,
@@ -62,6 +65,7 @@ export function ChatThread({
   onAlternativeSearch,
   onVariableConfirm,
   onClarificationCancel,
+  onSuggestedMethodSelect,
 }: ChatThreadProps) {
   const messages = useHubChatStore((s) => s.messages)
   const isStreaming = useHubChatStore((s) => s.isStreaming)
@@ -110,6 +114,7 @@ export function ChatThread({
             <MessageBubble
               key={msg.id}
               message={msg}
+              isActiveClarification={msg.id === activeClarificationMessageId}
               onMethodSelect={onMethodSelect}
               onUploadClick={onUploadClick}
               onFileSelected={onFileSelected}
@@ -118,6 +123,7 @@ export function ChatThread({
               onAlternativeSearch={onAlternativeSearch}
               onVariableConfirm={onVariableConfirm}
               onClarificationCancel={onClarificationCancel}
+              onSuggestedMethodSelect={onSuggestedMethodSelect}
             />
           ))}
         </AnimatePresence>
@@ -149,6 +155,7 @@ export function ChatThread({
 
 interface MessageBubbleProps {
   message: HubChatMessage
+  isActiveClarification: boolean
   onMethodSelect: (methodId: string) => void
   onUploadClick?: () => void
   onFileSelected?: (file: File) => void
@@ -157,10 +164,12 @@ interface MessageBubbleProps {
   onAlternativeSearch?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
   onVariableConfirm?: (assignments: NonNullable<AIRecommendation['variableAssignments']>) => void
   onClarificationCancel?: () => void
+  onSuggestedMethodSelect?: (report: DiagnosticReport, recommendation: MethodRecommendation) => void
 }
 
 function MessageBubble({
   message,
+  isActiveClarification,
   onMethodSelect,
   onUploadClick,
   onFileSelected,
@@ -169,6 +178,7 @@ function MessageBubble({
   onAlternativeSearch,
   onVariableConfirm,
   onClarificationCancel,
+  onSuggestedMethodSelect,
 }: MessageBubbleProps) {
   const { role, content, recommendations, isError, suggestUpload, diagnosticReport, diagnosticRecommendation } = message
 
@@ -266,13 +276,19 @@ function MessageBubble({
         )}
 
         {/* pendingClarification 선택지 */}
-        {diagnosticReport?.pendingClarification && (
+        {diagnosticReport?.pendingClarification && isActiveClarification && (
           <VariablePicker
             candidateColumns={diagnosticReport.pendingClarification.candidateColumns}
             partialAssignments={diagnosticReport.variableAssignments ?? null}
             missingRoles={diagnosticReport.pendingClarification.missingRoles}
+            suggestedAnalyses={diagnosticReport.pendingClarification.suggestedAnalyses}
             onConfirm={onVariableConfirm!}
             onCancel={onClarificationCancel!}
+            onSelectSuggestedMethod={
+              onSuggestedMethodSelect
+                ? (recommendation) => onSuggestedMethodSelect(diagnosticReport, recommendation)
+                : undefined
+            }
           />
         )}
 

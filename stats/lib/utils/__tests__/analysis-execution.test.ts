@@ -40,6 +40,23 @@ describe('buildAnalysisExecutionContext', () => {
     expect(result.effectiveExecutionSettings.alternative).toBe('less')
   })
 
+  it('explicitly re-selecting the default alternative overrides suggestedSettings.alternative', () => {
+    const result = buildAnalysisExecutionContext({
+      analysisOptions: makeAnalysisOptions({
+        alternative: 'two-sided',
+        methodSettings: {
+          __managedAnalysisOptionOverrides: 'alternative',
+        },
+      }),
+      methodRequirements: getMethodRequirements('one-sample-t'),
+      selectedMethodId: 'one-sample-t',
+      suggestedSettings: { alternative: 'greater' },
+      variableMapping: { dependentVar: 'score' },
+    })
+
+    expect(result.effectiveExecutionSettings.alternative).toBe('two-sided')
+  })
+
   it('proportion methods carry only the schema-managed nullProportion into execution variables', () => {
     const result = buildAnalysisExecutionContext({
       analysisOptions: makeAnalysisOptions({ testValue: 42 }),
@@ -92,5 +109,36 @@ describe('buildAnalysisExecutionContext', () => {
         { key: 'showEffectSize', label: '효과크기', value: '표시' },
       ])
     )
+  })
+
+  it('does not pass the materialized equalVar default through plain two-sample-t execution', () => {
+    const result = buildAnalysisExecutionContext({
+      analysisOptions: makeAnalysisOptions({
+        methodSettings: {
+          equalVar: 'true',
+        },
+      }),
+      methodRequirements: getMethodRequirements('two-sample-t'),
+      selectedMethodId: 'two-sample-t',
+      variableMapping: { dependentVar: 'score', groupVar: 'group' },
+    })
+
+    expect(result.effectiveExecutionSettings.equalVar).toBeUndefined()
+  })
+
+  it('preserves explicit equalVar overrides for plain two-sample-t execution', () => {
+    const result = buildAnalysisExecutionContext({
+      analysisOptions: makeAnalysisOptions({
+        methodSettings: {
+          equalVar: 'false',
+          __explicitMethodSettingKeys: 'equalVar',
+        },
+      }),
+      methodRequirements: getMethodRequirements('two-sample-t'),
+      selectedMethodId: 'two-sample-t',
+      variableMapping: { dependentVar: 'score', groupVar: 'group' },
+    })
+
+    expect(result.effectiveExecutionSettings.equalVar).toBe('false')
   })
 })

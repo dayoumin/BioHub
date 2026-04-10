@@ -225,7 +225,8 @@ export function downloadReportAsHtml(report: ProjectReport): void {
 <style>
 body { font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.8; color: #333; }
 h1 { border-bottom: 2px solid #333; padding-bottom: 8px; }
-h2 { border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-top: 32px; }
+ h2 { border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-top: 32px; }
+ h3, h4, h5, h6 { margin-top: 24px; }
 table { border-collapse: collapse; width: 100%; margin: 16px 0; }
 th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
 th { background: #f5f5f5; font-weight: 600; }
@@ -265,9 +266,13 @@ function markdownToSimpleHtml(md: string): string {
 
   for (const line of lines) {
     // 헤더
-    if (line.startsWith('# ')) { flushTable(); out.push(`<h1>${escapeHtml(line.slice(2))}</h1>`); continue }
-    if (line.startsWith('## ')) { flushTable(); out.push(`<h2>${escapeHtml(line.slice(3))}</h2>`); continue }
-    if (line.startsWith('### ')) { flushTable(); out.push(`<h3>${escapeHtml(line.slice(4))}</h3>`); continue }
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch) {
+      flushTable()
+      const level = headingMatch[1].length
+      out.push(`<h${level}>${escapeHtml(headingMatch[2])}</h${level}>`)
+      continue
+    }
     // blockquote
     if (line.startsWith('> ')) { flushTable(); out.push(`<blockquote>${escapeHtml(line.slice(2))}</blockquote>`); continue }
     // 테이블 구분선 (|---|) → 이전 행이 헤더였음을 표시

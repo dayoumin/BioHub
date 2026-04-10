@@ -124,6 +124,10 @@ describe('report-export protein-result', () => {
       '',
       '## STRING Partners',
       '',
+      '### Functions',
+      '',
+      '- Oxygen transport',
+      '',
       '| Partner | Combined score |',
       '| --- | ---: |',
       '| HBA1 | 0.999 |',
@@ -170,6 +174,7 @@ describe('report-export protein-result', () => {
     expect(html).toContain('<table>')
     expect(html).toContain('<thead>')
     expect(html).toContain('<tbody>')
+    expect(html).toContain('<h4>Functions</h4>')
     expect(html).toContain('<th>Partner</th>')
     expect(html).toContain('<td>HBA1</td>')
     expect(html).toContain('<td>0.999</td>')

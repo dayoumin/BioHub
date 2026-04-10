@@ -17,7 +17,7 @@ import type { ProjectEntityRef } from '@/lib/types/research'
 import type { ResolveOptions, EntityLoaderEntry } from './entity-resolver'
 import { getAllHistory } from '@/lib/utils/storage'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio'
-import { loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics'
+import { hydrateGeneticsHistoryFromCloud, loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics'
 import { loadBioToolHistory } from '@/lib/bio-tools'
 import { loadAllDocumentBlueprints } from '.'
 
@@ -31,7 +31,11 @@ const ENTITY_LOADERS: readonly EntityLoaderEntry[] = [
   { kind: 'analysis', optionKey: 'analysisHistory', load: getAllHistory },
   { kind: 'figure', optionKey: 'graphProjects', load: listGraphProjects },
   { kind: 'blast-result', optionKey: 'blastHistory', load: loadAnalysisHistory },
-  { kind: 'protein-result', optionKey: 'proteinHistory', load: () => loadGeneticsHistory('protein') },
+  {
+    kind: 'protein-result',
+    optionKey: 'proteinHistory',
+    load: () => loadGeneticsHistory('protein') as NonNullable<ResolveOptions['proteinHistory']>,
+  },
   { kind: 'bio-tool-result', optionKey: 'bioToolHistory', load: loadBioToolHistory },
   { kind: 'draft', optionKey: 'draftDocuments', load: loadAllDocumentBlueprints },
 ]
@@ -51,6 +55,11 @@ export async function loadEntityHistories(
   refs: ProjectEntityRef[],
 ): Promise<ResolveOptions> {
   const kindsPresent = new Set(refs.map(r => r.entityKind))
+  const needsGeneticsHydration = kindsPresent.has('blast-result') || kindsPresent.has('protein-result')
+
+  if (needsGeneticsHydration) {
+    await hydrateGeneticsHistoryFromCloud()
+  }
 
   const needed = ENTITY_LOADERS.filter(entry => kindsPresent.has(entry.kind))
 

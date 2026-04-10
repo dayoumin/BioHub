@@ -6,6 +6,8 @@ export type ExecutionSettingValue = string | number | boolean | undefined
 export type ExecutionSettingsRecord = Record<string, ExecutionSettingValue>
 export type ManagedAnalysisOptionKey = 'testValue' | 'nullProportion' | 'alternative' | 'ciMethod'
 export type ManagedRequirementSettingKey = 'testValue' | 'testProportion' | 'alternative' | 'ciMethod'
+const MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY = '__managedAnalysisOptionOverrides'
+const EXPLICIT_METHOD_SETTING_KEYS = '__explicitMethodSettingKeys'
 
 export const MANAGED_REQUIREMENT_SETTING_KEYS = new Set<ManagedRequirementSettingKey>([
   'testValue',
@@ -115,6 +117,48 @@ function getManagedAnalysisOptionValue(
   return analysisOptions[key]
 }
 
+function parseTrackedKeys(value: string | number | boolean | undefined): Set<string> {
+  if (typeof value !== 'string' || value.length === 0) {
+    return new Set<string>()
+  }
+
+  return new Set(
+    value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0),
+  )
+}
+
+function getManagedAnalysisOptionOverrides(analysisOptions: AnalysisOptions): Set<string> {
+  return parseTrackedKeys(analysisOptions.methodSettings?.[MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY])
+}
+
+function getExplicitMethodSettingKeys(analysisOptions: AnalysisOptions): Set<string> {
+  return parseTrackedKeys(analysisOptions.methodSettings?.[EXPLICIT_METHOD_SETTING_KEYS])
+}
+
+function stripInternalMethodSettings(
+  methodSettings: AnalysisOptions['methodSettings']
+): ExecutionSettingsRecord {
+  const sanitized = {
+    ...(methodSettings ?? {}),
+  }
+
+  delete sanitized[MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY]
+  delete sanitized[EXPLICIT_METHOD_SETTING_KEYS]
+
+  return sanitized
+}
+
+function valuesMatch(left: unknown, right: unknown): boolean {
+  if (left === right) {
+    return true
+  }
+
+  return String(left) === String(right)
+}
+
 function getSettingOptionLabel(
   options: Array<{ value: string | number | boolean; label: string; description: string }> | undefined,
   value: unknown
@@ -127,16 +171,18 @@ function resolveManagedSettingValue({
   defaultValue,
   suggestedValue,
   userValue,
+  isExplicitSelection,
 }: {
   defaultValue: unknown
   suggestedValue: unknown
   userValue: unknown
+  isExplicitSelection: boolean
 }): unknown {
   if (userValue === undefined) {
     return suggestedValue ?? defaultValue
   }
 
-  if (suggestedValue === undefined || userValue !== defaultValue) {
+  if (isExplicitSelection || suggestedValue === undefined || !valuesMatch(userValue, defaultValue)) {
     return userValue
   }
 
@@ -169,11 +215,14 @@ export function buildManagedAnalysisOptionDefaults(args: {
 function buildEffectiveExecutionSettings({
   analysisOptions,
   methodRequirements,
+  selectedMethodId,
   suggestedSettings,
-}: Omit<BuildAnalysisExecutionContextArgs, 'selectedMethodId' | 'variableMapping'>): ExecutionSettingsRecord {
+}: Omit<BuildAnalysisExecutionContextArgs, 'variableMapping'>): ExecutionSettingsRecord {
+  const sanitizedMethodSettings = stripInternalMethodSettings(analysisOptions.methodSettings)
+  const managedOverrides = getManagedAnalysisOptionOverrides(analysisOptions)
   const merged: ExecutionSettingsRecord = {
     ...((suggestedSettings ?? {}) as ExecutionSettingsRecord),
-    ...(analysisOptions.methodSettings ?? {}),
+    ...sanitizedMethodSettings,
     alpha: analysisOptions.alpha,
   }
 
@@ -184,6 +233,7 @@ function buildEffectiveExecutionSettings({
       defaultValue: methodRequirements?.settings?.[schema.requirementSettingKey]?.default,
       suggestedValue: suggestedSettings?.[schema.executionKey as keyof SuggestedSettings],
       userValue: getManagedAnalysisOptionValue(analysisOptions, schema.analysisOptionKey),
+      isExplicitSelection: managedOverrides.has(schema.analysisOptionKey),
     })
     if (resolvedValue === undefined || resolvedValue === null) continue
 
@@ -191,6 +241,16 @@ function buildEffectiveExecutionSettings({
     if (serialized !== undefined) {
       merged[schema.executionKey] = serialized
     }
+  }
+
+  if (
+    selectedMethodId === 'two-sample-t' &&
+    sanitizedMethodSettings.equalVar !== undefined &&
+    !getExplicitMethodSettingKeys(analysisOptions).has('equalVar') &&
+    suggestedSettings?.equalVar === undefined &&
+    valuesMatch(sanitizedMethodSettings.equalVar, methodRequirements?.settings?.equalVar?.default)
+  ) {
+    delete merged.equalVar
   }
 
   return merged

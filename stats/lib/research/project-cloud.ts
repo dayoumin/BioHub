@@ -124,11 +124,20 @@ export async function upsertCloudResearchProject(project: ResearchProject, isCre
     presentation: project.presentation,
   }
 
-  const res = await fetch(isCreate ? PROJECTS_API : `${PROJECTS_API}/${encodeURIComponent(project.id)}`, {
-    method: isCreate ? 'POST' : 'PATCH',
-    headers: buildHeaders(true),
-    body: JSON.stringify(isCreate ? body : body),
-  })
+  const saveProject = async (mode: 'POST' | 'PATCH'): Promise<Response> => fetch(
+    mode === 'POST' ? PROJECTS_API : `${PROJECTS_API}/${encodeURIComponent(project.id)}`,
+    {
+      method: mode,
+      headers: buildHeaders(true),
+      body: JSON.stringify(body),
+    }
+  )
+
+  let res = await saveProject(isCreate ? 'POST' : 'PATCH')
+
+  if (!isCreate && res.status === 404) {
+    res = await saveProject('POST')
+  }
 
   if (!res.ok) {
     throw new Error(`failed to save project (${res.status})`)

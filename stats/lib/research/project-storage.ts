@@ -18,6 +18,37 @@ const PROJECT_REFS_KEY = STORAGE_KEYS.research.projectEntityRefs
 const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
 let lastProjectsHydrateAt = 0
 const PROJECTS_HYDRATE_TTL_MS = 30_000
+const pendingEntityUnlinks = new Set<string>()
+
+function parseIsoTimestamp(value: string | undefined): number {
+  if (!value) return 0
+  const parsed = Date.parse(value)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function projectEntityRefKey(input: {
+  projectId: string
+  entityKind: ProjectEntityKind
+  entityId: string
+}): string {
+  return `${input.projectId}|${input.entityKind}|${input.entityId}`
+}
+
+function projectFreshness(project: ResearchProject): number {
+  return Math.max(parseIsoTimestamp(project.updatedAt), parseIsoTimestamp(project.createdAt))
+}
+
+function projectRefFreshness(ref: ProjectEntityRef): number {
+  return Math.max(parseIsoTimestamp(ref.updatedAt), parseIsoTimestamp(ref.createdAt))
+}
+
+function pickNewerProject(local: ResearchProject, remote: ResearchProject): ResearchProject {
+  return projectFreshness(local) > projectFreshness(remote) ? local : remote
+}
+
+function pickNewerProjectRef(local: ProjectEntityRef, remote: ProjectEntityRef): ProjectEntityRef {
+  return projectRefFreshness(local) > projectRefFreshness(remote) ? local : remote
+}
 
 export function listResearchProjects(): ResearchProject[] {
   return readJson<ResearchProject[]>(PROJECTS_KEY, [])
@@ -97,6 +128,7 @@ export function upsertProjectEntityRef(
     }
     refs[index] = updated
     writeJson(PROJECT_REFS_KEY, refs)
+    pendingEntityUnlinks.delete(projectEntityRefKey(input))
     void linkCloudProjectEntityRef(input).catch((error) => {
       console.warn('[research-project-storage] cloud entity link failed:', error)
     })
@@ -111,6 +143,7 @@ export function upsertProjectEntityRef(
   }
   refs.push(created)
   writeJson(PROJECT_REFS_KEY, refs)
+  pendingEntityUnlinks.delete(projectEntityRefKey(input))
   void linkCloudProjectEntityRef(input).catch((error) => {
     console.warn('[research-project-storage] cloud entity link failed:', error)
   })
@@ -138,8 +171,13 @@ export function removeProjectEntityRefs(
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
   for (const target of targets) {
+    const key = projectEntityRefKey(target)
+    pendingEntityUnlinks.add(key)
     void unlinkCloudProjectEntityRef(target).catch((error) => {
+      pendingEntityUnlinks.delete(key)
       console.warn('[research-project-storage] cloud entity unlink failed:', error)
+    }).then(() => {
+      pendingEntityUnlinks.delete(key)
     })
   }
 }
@@ -159,27 +197,56 @@ export function removeProjectEntityRefsByEntityIds(
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
   for (const ref of removedRefs) {
+    const key = projectEntityRefKey(ref)
+    pendingEntityUnlinks.add(key)
     void unlinkCloudProjectEntityRef({
       projectId: ref.projectId,
       entityKind: ref.entityKind,
       entityId: ref.entityId,
     }).catch((error) => {
+      pendingEntityUnlinks.delete(key)
       console.warn('[research-project-storage] cloud entity unlink failed:', error)
+    }).then(() => {
+      pendingEntityUnlinks.delete(key)
     })
   }
 }
 
 function mergeProjects(local: ResearchProject[], remote: ResearchProject[]): ResearchProject[] {
   const merged = new Map<string, ResearchProject>()
-  for (const project of remote) merged.set(project.id, project)
-  for (const project of local) merged.set(project.id, project)
+  for (const project of remote) {
+    merged.set(project.id, project)
+  }
+  for (const project of local) {
+    const existing = merged.get(project.id)
+    merged.set(project.id, existing ? pickNewerProject(project, existing) : project)
+  }
   return [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
-function replaceProjectEntityRefs(projectId: string, refs: ProjectEntityRef[]): void {
+function mergeProjectEntityRefs(projectId: string, refs: ProjectEntityRef[]): void {
   const existing = listProjectEntityRefs()
   const remaining = existing.filter((ref) => ref.projectId !== projectId)
-  writeJson(PROJECT_REFS_KEY, [...remaining, ...refs])
+  const localProjectRefs = existing.filter((ref) => ref.projectId === projectId)
+  const merged = new Map<string, ProjectEntityRef>()
+
+  for (const ref of refs) {
+    const key = projectEntityRefKey(ref)
+    if (!pendingEntityUnlinks.has(key)) {
+      merged.set(key, ref)
+    }
+  }
+
+  for (const ref of localProjectRefs) {
+    const key = projectEntityRefKey(ref)
+    if (pendingEntityUnlinks.has(key)) {
+      continue
+    }
+    const existingRef = merged.get(key)
+    merged.set(key, existingRef ? pickNewerProjectRef(ref, existingRef) : ref)
+  }
+
+  writeJson(PROJECT_REFS_KEY, [...remaining, ...merged.values()])
 }
 
 export async function hydrateResearchProjectsFromCloud(force = false): Promise<ResearchProject[]> {
@@ -203,6 +270,6 @@ export async function hydrateProjectRefsFromCloud(projectId: string): Promise<Pr
     const projects = mergeProjects(listResearchProjects(), [project])
     writeJson(PROJECTS_KEY, projects)
   }
-  replaceProjectEntityRefs(projectId, entities)
+  mergeProjectEntityRefs(projectId, entities)
   return entities
 }

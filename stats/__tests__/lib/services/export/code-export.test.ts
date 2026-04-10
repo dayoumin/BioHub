@@ -162,10 +162,16 @@ describe('code-export', () => {
     expect(rExport.content).toContain('Method: Welch ANOVA')
     expect(rExport.content).toContain('welch_anova_test')
     expect(rExport.content).toContain('games_howell_test')
+    expect(rExport.content).toContain('Welch ANOVA effect size is not reported here')
+    expect(rExport.content).not.toContain('Eta-squared: %.4f')
+    expect(rExport.content).not.toContain('model <- aov(score ~ treatment, data = data)\nss <- summary(model)[[1]]')
     expect(pyExport.success).toBe(true)
     expect(pyExport.content).toContain('Method: Welch ANOVA')
     expect(pyExport.content).toContain('pg.welch_anova')
     expect(pyExport.content).toContain('pairwise_gameshowell')
+    expect(pyExport.content).toContain('Welch ANOVA effect size is not reported here')
+    expect(pyExport.content).not.toContain('Eta-squared: {eta_sq:.4f}')
+    expect(pyExport.content).not.toContain('ss_between = sum(len(grp) * (grp.mean() - grand_mean)**2')
   })
 
   it('Welch ANOVA export는 stale tukey metadata를 games-howell로 정규화한다', () => {

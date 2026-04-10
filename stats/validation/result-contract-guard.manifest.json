@@ -18,6 +18,7 @@
     "stats/lib/services/pyodide-statistics.adapters.ts",
     "stats/lib/services/result-interpreter.ts",
     "stats/lib/services/export/code-export.ts",
+    "stats/lib/services/recommenders/**",
     "stats/lib/research/report-apa-format.ts",
     "stats/lib/utils/result-transformer.ts",
     "stats/lib/utils/method-identity.ts",
@@ -53,6 +54,12 @@
     "stats/__tests__/integration/method-id-unification-simulation.test.ts",
     "stats/__tests__/lib/services/result-interpreter.test.ts",
     "stats/__tests__/lib/services/export/code-export.test.ts",
+    "stats/__tests__/lib/services/decision-tree-recommender.test.ts",
+    "stats/__tests__/lib/services/openrouter-recommender.test.ts",
+    "stats/__tests__/lib/services/llm-recommender.test.ts",
+    "stats/__tests__/services/llm-recommender-simulation.test.ts",
+    "stats/__tests__/services/phase4-expected-keywords.test.ts",
+    "stats/__tests__/integration/llm-recommendation.test.ts",
     "stats/__tests__/unit/result-transformer.test.ts",
     "stats/__tests__/validation/result-contract-guard-manifest.test.ts",
     "stats/lib/research/__tests__/report-apa-format.test.ts",
@@ -88,6 +95,11 @@
       "name": "Run interpretation, export, and APA tests",
       "workingDirectory": "stats",
       "run": "pnpm test --run __tests__/lib/services/result-interpreter.test.ts __tests__/lib/services/export/code-export.test.ts lib/research/__tests__/report-apa-format.test.ts"
+    },
+    {
+      "name": "Run recommender normalization tests",
+      "workingDirectory": "stats",
+      "run": "pnpm test --run __tests__/lib/services/decision-tree-recommender.test.ts __tests__/lib/services/openrouter-recommender.test.ts __tests__/lib/services/llm-recommender.test.ts __tests__/services/llm-recommender-simulation.test.ts __tests__/services/phase4-expected-keywords.test.ts __tests__/integration/llm-recommendation.test.ts"
     },
     {
       "name": "Run validation smoke",

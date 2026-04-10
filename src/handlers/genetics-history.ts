@@ -7,7 +7,7 @@
  * DELETE /api/history/genetics/:id   — 히스토리 삭제
  */
 
-import type { WorkerEnv } from '../lib/worker-utils'
+import type { D1Database, WorkerEnv } from '../lib/worker-utils'
 import { jsonResponse, parseJsonBody, authenticateRequest, verifyProjectOwnership } from '../lib/worker-utils'
 
 type GeneticsHistoryType =
@@ -115,7 +115,7 @@ async function handleListGeneticsHistory(
     ).bind(userId)
 
   const result = await query.all<{ payload_json: string }>()
-  const entries = result.results.flatMap((row) => {
+  const entries = result.results.flatMap((row: { payload_json: string }) => {
     try {
       return [JSON.parse(row.payload_json)]
     } catch {
@@ -147,6 +147,8 @@ async function handleUpsertGeneticsHistory(
     ? rawEntry.reportUpdatedAt
     : createdAt
 
+  const effectiveUpdatedAt = clientUpdatedAt ?? createdAt ?? 0
+
   if (!id || !isGeneticsHistoryType(type) || createdAt == null) {
     return jsonResponse({ error: 'id, type, createdAt이 필요합니다.' }, 400)
   }
@@ -157,16 +159,20 @@ async function handleUpsertGeneticsHistory(
   }
 
   const existing = await db.prepare(
-    'SELECT user_id, project_id, entry_type FROM genetics_history WHERE id = ?'
-  ).bind(id).first<{ user_id: string; project_id: string | null; entry_type: string }>()
+    'SELECT user_id, project_id, entry_type, updated_at FROM genetics_history WHERE id = ?'
+  ).bind(id).first<{ user_id: string; project_id: string | null; entry_type: string; updated_at: number }>()
 
   if (existing && existing.user_id !== userId) {
     return jsonResponse({ error: '같은 id를 가진 genetics history가 이미 존재합니다.' }, 409)
   }
 
+  if (existing && effectiveUpdatedAt < existing.updated_at) {
+    return jsonResponse({ ok: true, id, applied: false }, 200)
+  }
+
   const payloadJson = JSON.stringify(rawEntry)
 
-  await db.prepare(
+  const upsertResult = await db.prepare(
     `INSERT INTO genetics_history
      (id, user_id, entry_type, project_id, pinned, created_at, updated_at, payload_json)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -185,25 +191,38 @@ async function handleUpsertGeneticsHistory(
     projectId,
     pinned ? 1 : 0,
     createdAt,
-    clientUpdatedAt,
+    effectiveUpdatedAt,
     payloadJson,
   ).run()
 
-  await db.prepare(
-    'DELETE FROM project_entity_refs WHERE entity_id = ?'
-  ).bind(id).run()
+  if (upsertResult.meta.changes === 0) {
+    return jsonResponse({ ok: true, id, applied: false }, 200)
+  }
+
+  const entityKind = entityKindForGeneticsType(type)
+  const previousEntityKind = existing && isGeneticsHistoryType(existing.entry_type)
+    ? entityKindForGeneticsType(existing.entry_type)
+    : null
+
+  if (existing?.project_id && previousEntityKind && (
+    existing.project_id !== projectId || previousEntityKind !== entityKind
+  )) {
+    await db.prepare(
+      'DELETE FROM project_entity_refs WHERE project_id = ? AND entity_kind = ? AND entity_id = ?'
+    ).bind(existing.project_id, previousEntityKind, id).run()
+  }
 
   if (projectId) {
     const refId = `pref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const nowIso = new Date().toISOString()
     await db.prepare(
-      `INSERT INTO project_entity_refs
+      `INSERT OR REPLACE INTO project_entity_refs
        (id, project_id, entity_kind, entity_id, label, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       refId,
       projectId,
-      entityKindForGeneticsType(type),
+      entityKind,
       id,
       labelForGeneticsEntry(rawEntry, type),
       nowIso,

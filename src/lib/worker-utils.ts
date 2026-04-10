@@ -4,6 +4,23 @@
  * 모든 핸들러가 공유하는 타입, 인증, 보안, 직렬화 헬퍼.
  */
 
+// ── Worker platform types ──
+
+export interface Fetcher {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>
+}
+
+export interface D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement
+  first<T = Record<string, unknown>>(): Promise<T | null>
+  all<T = Record<string, unknown>>(): Promise<{ results: T[] }>
+  run(): Promise<{ meta: { changes: number } }>
+}
+
+export interface D1Database {
+  prepare(query: string): D1PreparedStatement
+}
+
 // ── Env ──
 
 export interface WorkerEnv {

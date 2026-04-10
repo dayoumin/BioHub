@@ -38,6 +38,35 @@ import {
 
 // Smart Flow 총 단계 수
 const MAX_STEPS = 4
+const MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY = '__managedAnalysisOptionOverrides'
+const EXPLICIT_METHOD_SETTING_KEYS = '__explicitMethodSettingKeys'
+const MANAGED_ANALYSIS_OPTION_KEYS = new Set<keyof AnalysisOptions>([
+  'testValue',
+  'nullProportion',
+  'alternative',
+  'ciMethod',
+])
+
+function parseTrackedKeys(value: string | number | boolean | undefined): Set<string> {
+  if (typeof value !== 'string' || value.length === 0) {
+    return new Set<string>()
+  }
+
+  return new Set(
+    value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0),
+  )
+}
+
+function serializeTrackedKeys(keys: Set<string>): string | undefined {
+  if (keys.size === 0) {
+    return undefined
+  }
+
+  return Array.from(keys).sort().join(',')
+}
 
 /**
  * AI가 Step 2에서 감지한 변수 정보
@@ -233,9 +262,59 @@ export const useAnalysisStore = create<AnalysisState>()(
       setDetectedVariables: (vars) => set({ detectedVariables: vars }),
       setSuggestedSettings: (settings) => set({ suggestedSettings: settings }),
       setDiagnosticReport: (report) => set({ diagnosticReport: report }),
-      setAnalysisOptions: (options) => set((state) => ({
-        analysisOptions: { ...state.analysisOptions, ...options },
-      })),
+      setAnalysisOptions: (options) => set((state) => {
+        const managedOverrides = parseTrackedKeys(
+          state.analysisOptions.methodSettings?.[MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY]
+        )
+        const explicitMethodSettingKeys = parseTrackedKeys(
+          state.analysisOptions.methodSettings?.[EXPLICIT_METHOD_SETTING_KEYS]
+        )
+
+        for (const key of MANAGED_ANALYSIS_OPTION_KEYS) {
+          if (!(key in options)) continue
+          if (state.analysisOptions[key] !== undefined) {
+            managedOverrides.add(key)
+          }
+        }
+
+        const nextMethodSettings = {
+          ...(state.analysisOptions.methodSettings ?? {}),
+          ...(options.methodSettings ?? {}),
+        }
+
+        if (options.methodSettings) {
+          for (const key of Object.keys(options.methodSettings)) {
+            if (key === MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY || key === EXPLICIT_METHOD_SETTING_KEYS) {
+              continue
+            }
+            if (state.analysisOptions.methodSettings?.[key] !== undefined) {
+              explicitMethodSettingKeys.add(key)
+            }
+          }
+        }
+
+        const serializedManagedOverrides = serializeTrackedKeys(managedOverrides)
+        if (serializedManagedOverrides) {
+          nextMethodSettings[MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY] = serializedManagedOverrides
+        } else {
+          delete nextMethodSettings[MANAGED_ANALYSIS_OPTION_OVERRIDE_KEY]
+        }
+
+        const serializedExplicitMethodSettings = serializeTrackedKeys(explicitMethodSettingKeys)
+        if (serializedExplicitMethodSettings) {
+          nextMethodSettings[EXPLICIT_METHOD_SETTING_KEYS] = serializedExplicitMethodSettings
+        } else {
+          delete nextMethodSettings[EXPLICIT_METHOD_SETTING_KEYS]
+        }
+
+        return {
+          analysisOptions: {
+            ...state.analysisOptions,
+            ...options,
+            methodSettings: nextMethodSettings,
+          },
+        }
+      }),
       setResults: (results) => set({ results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error }),
@@ -331,7 +410,7 @@ export const useAnalysisStore = create<AnalysisState>()(
     }),
     {
       name: SESSION_STORAGE_KEYS.analysis.store,
-      version: 4,
+      version: 5,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<AnalysisState>
         if (version < 2) {
@@ -340,8 +419,12 @@ export const useAnalysisStore = create<AnalysisState>()(
           }
         }
         if (version < 4) {
-          state.detectedVariables = null
-          state.suggestedSettings = null
+          state.detectedVariables = state.detectedVariables ?? null
+          state.suggestedSettings = state.suggestedSettings ?? null
+        }
+        if (version < 5) {
+          state.detectedVariables = state.detectedVariables ?? null
+          state.suggestedSettings = state.suggestedSettings ?? null
         }
         // v2 → v3: history/mode 필드 제거 (이전 persist에 남아있을 수 있음)
         // 이전 persist 데이터에서 mode/history 필드 무시 — 자동으로 drop됨
@@ -383,6 +466,8 @@ export const useAnalysisStore = create<AnalysisState>()(
         validationResults: state.validationResults,
         selectedMethod: state.selectedMethod,
         variableMapping: state.variableMapping,
+        detectedVariables: state.detectedVariables,
+        suggestedSettings: state.suggestedSettings,
         analysisOptions: state.analysisOptions,
         results: state.results,
         uploadedFileName: state.uploadedFileName,

@@ -2,7 +2,7 @@ import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Settings2, Zap } from 'lucide-react'
+import { Check, Settings2, Zap } from 'lucide-react'
 import type { StatisticalMethod } from '@/types/analysis'
 
 interface ReanalysisBannerProps {
@@ -60,6 +60,13 @@ export function QuickAnalysisBanner({ method, onNormalMode, onChangeMethod, t }:
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">{t.badge}</Badge>
               <span className="font-medium">{method.name}</span>
+            </div>
+            <div
+              data-testid="quick-analysis-selected-method"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm ring-1 ring-amber-200/60 dark:bg-background/20 dark:ring-amber-800/60"
+            >
+              <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              선택된 방법
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {t.description}

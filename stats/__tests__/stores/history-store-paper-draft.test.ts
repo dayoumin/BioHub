@@ -151,7 +151,7 @@ describe('history-store — paperDraft 라이프사이클', () => {
     })
   })
 
-  it('retired legacy method id는 양쪽 복원 경로 모두 selectedMethod를 null로 처리한다', async () => {
+  it('legacy t-test method id도 양쪽 복원 경로에서 canonical method로 복원한다', async () => {
     const legacyRecord = makeRecord({
       method: { id: 'independent-t-test', name: '독립표본 t-검정', category: 't-test' },
     })
@@ -162,8 +162,8 @@ describe('history-store — paperDraft 라이프사이클', () => {
     mockGetHistory.mockResolvedValueOnce(legacyRecord)
     const settingsResult = await useHistoryStore.getState().loadSettingsFromHistory('test-history-1')
 
-    expect(fullResult?.selectedMethod).toBeNull()
-    expect(settingsResult?.selectedMethod).toBeNull()
+    expect(fullResult?.selectedMethod?.id).toBe('two-sample-t')
+    expect(settingsResult?.selectedMethod?.id).toBe('two-sample-t')
   })
 
   // ── 3. 구버전 데이터 호환성 ────────────────────────────────────────────────
