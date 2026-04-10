@@ -66,7 +66,8 @@ const RECOMMENDATION_JSON_SCHEMA = `
   "suggestedSettings": {
     "alpha": 0.05,
     "postHoc": "tukey",
-    "alternative": "two-sided"
+    "alternative": "two-sided",
+    "welch": false
   },
   "warnings": ["쉬운 말로 된 주의사항"],
   "dataPreprocessing": ["쉬운 말로 된 전처리 제안"],
@@ -79,7 +80,7 @@ const RECOMMENDATION_JSON_SCHEMA = `
 
 ## 필드 설명
 - variableAssignments: 데이터 컬럼명을 분석 역할에 매핑. 실제 존재하는 컬럼명만 사용.
-- suggestedSettings: 분석 설정 제안. alpha, postHoc(tukey/bonferroni/scheffe), alternative(two-sided/less/greater).
+- suggestedSettings: 분석 설정 제안. alpha, postHoc(tukey/bonferroni/scheffe/games-howell), alternative(two-sided/less/greater), welch(boolean).
 - warnings: 주의사항. 비전문가도 이해할 수 있게 작성. 없으면 빈 배열.
 - dataPreprocessing: 데이터 정리 제안. 없으면 빈 배열.
 - ambiguityNote: 질문이 여러 해석 가능할 때만 포함. 명확하면 생략.
@@ -87,6 +88,8 @@ const RECOMMENDATION_JSON_SCHEMA = `
 
 ## 주의사항
 - methodId는 아래 목록에서 정확히 일치하는 ID만 사용하세요.
+- Welch ANOVA가 적합하면 methodId는 "one-way-anova"로 유지하고 suggestedSettings.welch=true를 사용하세요.
+- Welch ANOVA의 사후검정은 suggestedSettings.postHoc="games-howell"을 우선 사용하세요.
 - confidence: 데이터 적합도 반영 (0.9+ 매우 확신, 0.7-0.9 확신, 0.5-0.7 보통)
 - variableAssignments에는 데이터 요약에 나온 실제 컬럼명만 사용하세요.
 - 반드시 한국어로 응답하세요. reasoning, warnings, ambiguityNote는 비전문가도 이해할 수 있게 작성하세요.`

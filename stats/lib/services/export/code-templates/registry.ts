@@ -6,6 +6,7 @@
  */
 
 import type { CodeLanguage, CodeTemplate, CodeTemplatePair } from '../code-template-types'
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 
 import { tTestR, tTestPython, pairedTR, pairedTPython, oneSampleTR, oneSampleTPython } from './t-test'
 import { anovaR, anovaPython } from './anova'
@@ -25,6 +26,7 @@ const REGISTRY: Record<string, CodeTemplatePair> = {
 
   // ANOVA (1)
   'anova': { R: anovaR, python: anovaPython },
+  'one-way-anova': { R: anovaR, python: anovaPython },
 
   // Correlation (1)
   'correlation': { R: correlationR, python: correlationPython },
@@ -47,12 +49,21 @@ const REGISTRY: Record<string, CodeTemplatePair> = {
 
 // ─── 공개 API ───
 
+function normalizeSupportedMethodId(methodId: string): string {
+  if (methodId in REGISTRY) {
+    return methodId
+  }
+
+  const canonicalId = getMethodByIdOrAlias(methodId)?.id
+  return canonicalId && canonicalId in REGISTRY ? canonicalId : methodId
+}
+
 /** methodId + 언어로 템플릿 조회. 미지원 시 null. */
 export function getCodeTemplate(
   methodId: string,
   language: CodeLanguage,
 ): CodeTemplate | null {
-  const pair = REGISTRY[methodId]
+  const pair = REGISTRY[normalizeSupportedMethodId(methodId)]
   return pair?.[language] ?? null
 }
 
@@ -63,5 +74,5 @@ export function getSupportedMethodIds(): string[] {
 
 /** 메서드가 코드 내보내기를 지원하는지 확인 */
 export function isMethodSupported(methodId: string): boolean {
-  return methodId in REGISTRY
+  return normalizeSupportedMethodId(methodId) in REGISTRY
 }

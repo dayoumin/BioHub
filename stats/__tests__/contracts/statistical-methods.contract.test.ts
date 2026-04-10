@@ -83,13 +83,11 @@ describe('statistical-methods contract', () => {
   })
 
   // ============================================================================
-  // 4. Alias 해석 계약: 주요 alias가 올바른 메서드로 연결
+  // 4. Alias 해석 계약: 현재 유지 중인 page/option alias가 올바른 메서드로 연결
   // ============================================================================
 
   describe('alias 해석', () => {
     const aliasMap: [string, string][] = [
-      ['independent-t', 'two-sample-t'],
-      ['student-t', 'two-sample-t'],
       ['t-test', 'two-sample-t'],
       ['anova', 'one-way-anova'],
       ['mann-whitney-u', 'mann-whitney'],
@@ -112,6 +110,14 @@ describe('statistical-methods contract', () => {
       const resolved = getMethodByIdOrAlias(alias)
       expect(resolved).not.toBeNull()
       expect(resolved!.id).toBe(expectedId)
+    })
+
+    it('retired legacy alias는 더 이상 해석하지 않아야 함', () => {
+      expect(getMethodByIdOrAlias('independent-t')).toBeNull()
+      expect(getMethodByIdOrAlias('independent-t-test')).toBeNull()
+      expect(getMethodByIdOrAlias('paired-t-test')).toBeNull()
+      expect(getMethodByIdOrAlias('welch-anova')).toBeNull()
+      expect(getMethodByIdOrAlias('repeated-anova')).toBeNull()
     })
 
     it('존재하지 않는 alias는 null을 반환해야 함', () => {

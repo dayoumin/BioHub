@@ -346,6 +346,47 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
     expect(saveHistoryMock.mock.calls[0][0].aiRecommendation?.userQuery).toBe('첫 번째 질문')
     expect(saveHistoryMock.mock.calls[1][0].aiRecommendation).toBeNull()
   })
+
+  it('Welch ANOVA 결과를 저장하면 methodSettings.welch=true로 함께 저장한다', async () => {
+    const welchResult = makeMinimalResult({
+      method: 'one-way-anova',
+      testVariant: 'welch',
+    })
+
+    await act(async () => {
+      await useHistoryStore.getState().saveToHistory({
+        results: welchResult,
+        analysisPurpose: '집단 평균 비교',
+        selectedMethod: {
+          id: 'one-way-anova',
+          name: 'One-way ANOVA',
+          description: 'desc',
+          category: 'anova',
+        },
+        uploadedFileName: 'anova.csv',
+        uploadedDataLength: 24,
+        variableMapping: null,
+        lastAiRecommendation: null,
+        analysisOptions: {
+          ...DEFAULT_ANALYSIS_OPTIONS,
+          methodSettings: {
+            postHoc: 'games-howell',
+          },
+        },
+      }, 'Welch 분석')
+    })
+
+    expect(saveHistoryMock).toHaveBeenCalledTimes(1)
+    expect(saveHistoryMock.mock.calls[0][0].analysisOptions).toEqual({
+      alpha: 0.05,
+      showAssumptions: true,
+      showEffectSize: true,
+      methodSettings: {
+        postHoc: 'games-howell',
+        welch: true,
+      },
+    })
+  })
 })
 
 // ============================================================
@@ -421,6 +462,63 @@ describe('loadFromHistory / loadSettingsFromHistory — lastAiRecommendation 초
     expect(useAnalysisStore.getState().selectedMethod?.id).toBe('two-sample-t')
     // 결과는 비워짐 (재분석 목적)
     expect(useAnalysisStore.getState().results).toBeNull()
+  })
+
+  it('loadSettingsFromHistory는 Welch ANOVA 결과를 methodSettings.welch=true로 복원한다', async () => {
+    getHistoryMock.mockResolvedValueOnce(makeHistoryRecord({
+      method: { id: 'one-way-anova', name: 'One-way ANOVA', category: 'anova' },
+      results: makeMinimalResult({
+        method: 'one-way-anova',
+        testVariant: 'welch',
+      }),
+      analysisOptions: {
+        alpha: 0.05,
+        methodSettings: {
+          postHoc: 'games-howell',
+        },
+      },
+    }))
+
+    const result = await useHistoryStore.getState().loadSettingsFromHistory('test-record-001')
+
+    expect(result?.analysisOptions).toEqual({
+      alpha: 0.05,
+      showAssumptions: true,
+      showEffectSize: true,
+      methodSettings: {
+        postHoc: 'games-howell',
+        welch: true,
+      },
+    })
+  })
+
+  it('loadFromHistory는 standard ANOVA 결과면 stale welch=true를 false로 덮어쓴다', async () => {
+    getHistoryMock.mockResolvedValueOnce(makeHistoryRecord({
+      method: { id: 'one-way-anova', name: 'One-way ANOVA', category: 'anova' },
+      results: makeMinimalResult({
+        method: 'one-way-anova',
+        testVariant: 'standard',
+      }),
+      analysisOptions: {
+        alpha: 0.05,
+        methodSettings: {
+          welch: true,
+          postHoc: 'tukey',
+        },
+      },
+    }))
+
+    const result = await useHistoryStore.getState().loadFromHistory('test-record-001')
+
+    expect(result?.analysisOptions).toEqual({
+      alpha: 0.05,
+      showAssumptions: true,
+      showEffectSize: true,
+      methodSettings: {
+        welch: false,
+        postHoc: 'tukey',
+      },
+    })
   })
 
   it('startFreshAnalysisSession은 히스토리 열람 상태를 새 세션 기본값으로 초기화한다', () => {
@@ -658,6 +756,7 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
       alpha: 0.01,
       showAssumptions: true,
       showEffectSize: false,
+      methodSettings: {},
     })
   })
 

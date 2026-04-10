@@ -34,7 +34,7 @@ describe('Result Schema Validator', () => {
 
     it('should map t-test variants to comparison category', () => {
       expect(getCategoryForMethod('t-test')).toBe('comparison')
-      expect(getCategoryForMethod('independent-t')).toBe('comparison')
+      expect(getCategoryForMethod('two-sample-t')).toBe('comparison')
       expect(getCategoryForMethod('paired-t')).toBe('comparison')
       expect(getCategoryForMethod('welch-t')).toBe('comparison')
     })

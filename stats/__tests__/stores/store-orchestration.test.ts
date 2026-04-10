@@ -682,5 +682,95 @@ describe('store-orchestration', () => {
       expect(state.assumptionResults).toBeNull()
       expect(state.diagnosticReport).toBeNull()
     })
+
+    it('welch-anova 선택은 canonical one-way-anova와 welch suggestedSettings로 정규화한다', () => {
+      const welchMethod: StatisticalMethod = {
+        id: 'welch-anova',
+        name: 'Welch ANOVA',
+        description: '등분산 가정 미충족 시',
+        category: 'anova',
+      } as StatisticalMethod
+
+      act(() => {
+        confirmMethodSelection(welchMethod, vr)
+      })
+
+      const state = useAnalysisStore.getState()
+      expect(state.selectedMethod?.id).toBe('one-way-anova')
+      expect(state.selectedMethod?.name).toBe('Welch ANOVA')
+      expect(state.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+    })
+
+    it('canonical one-way-anova라도 Welch 표시명을 고르면 일반 ANOVA AI 추천은 재사용하지 않는다', () => {
+      const standardAnovaRecommendation: AIRecommendation = {
+        ...matchedRecommendation,
+        method: {
+          id: 'one-way-anova',
+          name: 'One-Way ANOVA',
+          description: '세 그룹 이상 평균 비교',
+          category: 'anova',
+        },
+        suggestedSettings: { alpha: 0.01, postHoc: 'tukey' },
+      }
+
+      act(() => {
+        useAnalysisStore.getState().setCachedAiRecommendation(standardAnovaRecommendation)
+      })
+
+      act(() => {
+        confirmMethodSelection({
+          id: 'one-way-anova',
+          name: 'Welch ANOVA',
+          description: '등분산 가정 미충족 시',
+          category: 'anova',
+        } as StatisticalMethod, vr)
+      })
+
+      const state = useAnalysisStore.getState()
+      expect(state.selectedMethod?.id).toBe('one-way-anova')
+      expect(state.selectedMethod?.name).toBe('Welch ANOVA')
+      expect(state.cachedAiRecommendation).toBeNull()
+      expect(state.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+    })
+
+    it('canonical one-way-anova + Welch 표시명의 AI 추천은 welch suggestedSettings가 없어도 재사용한다', () => {
+      const welchNamedRecommendation: AIRecommendation = {
+        ...matchedRecommendation,
+        method: {
+          id: 'one-way-anova',
+          name: 'Welch ANOVA',
+          description: '등분산 가정 미충족 시',
+          category: 'anova',
+        },
+        suggestedSettings: undefined,
+      }
+
+      act(() => {
+        useAnalysisStore.getState().setCachedAiRecommendation(welchNamedRecommendation)
+      })
+
+      act(() => {
+        confirmMethodSelection({
+          id: 'one-way-anova',
+          name: 'Welch ANOVA',
+          description: '등분산 가정 미충족 시',
+          category: 'anova',
+        } as StatisticalMethod, vr)
+      })
+
+      const state = useAnalysisStore.getState()
+      expect(state.selectedMethod?.id).toBe('one-way-anova')
+      expect(state.cachedAiRecommendation?.method.name).toBe('Welch ANOVA')
+      expect(state.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+    })
   })
 })

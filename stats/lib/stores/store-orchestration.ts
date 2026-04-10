@@ -13,9 +13,10 @@ import { useGraphStudioStore } from './graph-studio-store'
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { toStatisticalAssumptions } from '@/lib/services/diagnostic-pipeline'
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 import type { HistorySnapshot, HistoryLoadResult } from './history-store'
 import type { DataPackage, ColumnMeta } from '@/types/graph-studio'
-import type { AIRecommendation, DiagnosticReport, StatisticalMethod, ValidationResults } from '@/types/analysis'
+import type { AIRecommendation, DiagnosticReport, StatisticalMethod, SuggestedSettings, ValidationResults } from '@/types/analysis'
 import type { AiRecommendationContext } from '@/lib/utils/storage-types'
 
 /** AIRecommendation → 히스토리 저장용 AiRecommendationContext 변환 */
@@ -50,26 +51,84 @@ export function prepareManualMethodBrowsing(): void {
   useModeStore.getState().setStepTrack('normal')
 }
 
+function isWelchAnovaPresentation(method?: Pick<StatisticalMethod, 'id' | 'name'> | null): boolean {
+  if (!method) return false
+
+  const canonicalId = getMethodByIdOrAlias(method.id)?.id ?? method.id
+  return canonicalId === 'one-way-anova' && /welch\s*anova/i.test(method.name)
+}
+
+function hasWelchAnovaVariant(recommendation?: AIRecommendation | null): boolean {
+  if (!recommendation?.method) return false
+
+  return recommendation.suggestedSettings?.welch === true
+    || isWelchAnovaPresentation(recommendation.method)
+}
+
+function normalizeMethodSelection(method: StatisticalMethod): {
+  method: StatisticalMethod
+  forcedSuggestedSettings: SuggestedSettings | null
+} {
+  const canonical = method.id === 'welch-anova'
+    ? getMethodByIdOrAlias('one-way-anova')
+    : getMethodByIdOrAlias(method.id)
+  if (!canonical) {
+    return { method, forcedSuggestedSettings: null }
+  }
+
+  const isWelchAnovaSelection = method.id === 'welch-anova' || isWelchAnovaPresentation(method)
+  const normalizedMethod: StatisticalMethod = {
+    ...method,
+    id: canonical.id,
+    category: canonical.category,
+    description: method.description || canonical.description,
+  }
+
+  if (canonical.id !== 'one-way-anova' || !isWelchAnovaSelection) {
+    return { method: normalizedMethod, forcedSuggestedSettings: null }
+  }
+
+  return {
+    method: normalizedMethod,
+    forcedSuggestedSettings: {
+      welch: true,
+      postHoc: 'games-howell',
+    },
+  }
+}
+
 /** Step 2 메서드 확정 — AI 추천과 수동 선택을 구분해 관련 상태를 정리 */
 export function confirmMethodSelection(
   method: StatisticalMethod,
   validationResults: ValidationResults | null,
 ): void {
   const { cachedAiRecommendation } = useAnalysisStore.getState()
-  const matchedAiRecommendation = cachedAiRecommendation?.method?.id === method.id
+  const { method: normalizedMethod, forcedSuggestedSettings } = normalizeMethodSelection(method)
+  const requestedWelchVariant = forcedSuggestedSettings?.welch === true
+  const cachedCanonicalId = cachedAiRecommendation?.method
+    ? getMethodByIdOrAlias(cachedAiRecommendation.method.id)?.id ?? cachedAiRecommendation.method.id
+    : null
+  const cachedWelchVariant = hasWelchAnovaVariant(cachedAiRecommendation)
+  const matchedAiRecommendation = cachedAiRecommendation
+    && cachedCanonicalId === normalizedMethod.id
+    && (!requestedWelchVariant || cachedWelchVariant)
     ? cachedAiRecommendation
     : null
 
   const detectedVariables = validationResults
-    ? extractDetectedVariables(method.id, validationResults, matchedAiRecommendation)
+    ? extractDetectedVariables(normalizedMethod.id, validationResults, matchedAiRecommendation)
     : null
 
+  const suggestedSettings = matchedAiRecommendation?.suggestedSettings
+    ? { ...matchedAiRecommendation.suggestedSettings, ...(forcedSuggestedSettings ?? {}) }
+    : forcedSuggestedSettings
+
   useAnalysisStore.setState({
-    selectedMethod: method,
+    selectedMethod: normalizedMethod,
     variableMapping: null,
     detectedVariables,
     cachedAiRecommendation: matchedAiRecommendation,
-    suggestedSettings: matchedAiRecommendation?.suggestedSettings ?? null,
+    suggestedSettings: suggestedSettings ?? null,
     assumptionResults: null,
     diagnosticReport: null,
   })

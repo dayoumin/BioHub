@@ -223,6 +223,47 @@ describe('OpenRouterRecommender', () => {
       expect(result!.suggestedSettings).toEqual({ alpha: 0.01 })
     })
 
+    it('Welch ANOVA 응답은 canonical one-way-anova와 welch 설정으로 정규화한다', () => {
+      const content = `\`\`\`json
+{
+  "methodId": "welch-anova",
+  "methodName": "Welch ANOVA",
+  "confidence": 0.91,
+  "reasoning": ["정규성은 충족하지만 등분산성은 충족되지 않았습니다."]
+}
+\`\`\``
+      const result = recommender.parseResponse(content)
+
+      expect(result).not.toBeNull()
+      expect(result!.method.id).toBe('one-way-anova')
+      expect(result!.method.name).toBe('Welch ANOVA')
+      expect(result!.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+    })
+
+    it('Welch ANOVA 응답은 잘못된 postHoc가 와도 games-howell로 고정한다', () => {
+      const content = `\`\`\`json
+{
+  "methodId": "welch-anova",
+  "methodName": "Welch ANOVA",
+  "confidence": 0.91,
+  "reasoning": ["정규성은 충족하지만 등분산성은 충족되지 않았습니다."],
+  "suggestedSettings": {
+    "postHoc": "tukey"
+  }
+}
+\`\`\``
+      const result = recommender.parseResponse(content)
+
+      expect(result).not.toBeNull()
+      expect(result!.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+    })
+
     it('잘못된 JSON이면 null을 반환한다', () => {
       const content = '이것은 JSON이 아닙니다.'
       const result = recommender.parseResponse(content)

@@ -327,6 +327,30 @@ describe('DecisionTreeRecommender', () => {
       expect(result.reasoning.some(r => r.includes('등분산'))).toBe(true)
     })
 
+    it('should recommend Welch ANOVA (3+ groups, normal, unequal variance)', () => {
+      const assumptions: StatisticalAssumptions = {
+        normality: mockNormalityPassed,
+        homogeneity: mockHomogeneityFailed
+      }
+
+      const result = DecisionTreeRecommender.recommend(
+        'compare',
+        assumptions,
+        mockValidationResults3Groups,
+        mockData3Groups
+      )
+
+      expect(result.method.id).toBe('one-way-anova')
+      expect(result.method.name).toBe('Welch ANOVA')
+      expect(result.confidence).toBeGreaterThanOrEqual(0.9)
+      expect(result.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+      expect(result.reasoning.some(r => r.includes('Welch ANOVA'))).toBe(true)
+      expect(result.reasoning.some(r => r.includes('등분산성 미충족'))).toBe(true)
+    })
+
     it('should recommend Kruskal-Wallis (3+ groups, non-normal)', () => {
       const assumptions: StatisticalAssumptions = {
         normality: mockNormalityFailed,

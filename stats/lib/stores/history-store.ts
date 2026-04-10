@@ -187,6 +187,34 @@ function normalizeAnalysisOptions(
   return normalized as unknown as AnalysisOptions
 }
 
+function syncAnovaMethodVariant(
+  analysisOptions: Record<string, unknown> | undefined,
+  methodId?: string | null,
+  results?: AnalysisResult | null
+): AnalysisOptions {
+  const normalized = normalizeAnalysisOptions(analysisOptions)
+  const canonicalMethodId = methodId ? (getMethodByIdOrAlias(methodId)?.id ?? methodId) : methodId
+
+  if (canonicalMethodId !== 'one-way-anova') {
+    return normalized
+  }
+
+  const methodSettings = {
+    ...(normalized.methodSettings ?? {}),
+  }
+
+  if (results?.testVariant === 'welch') {
+    methodSettings.welch = true
+  } else if (results?.testVariant === 'standard') {
+    methodSettings.welch = false
+  }
+
+  return {
+    ...normalized,
+    methodSettings,
+  }
+}
+
 export const useHistoryStore = create<HistoryState>()((set) => ({
   analysisHistory: [],
   currentHistoryId: null,
@@ -218,6 +246,11 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     }
 
     const historyId = `analysis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const syncedAnalysisOptions = syncAnovaMethodVariant(
+      snapshot.analysisOptions as unknown as Record<string, unknown>,
+      snapshot.selectedMethod?.id,
+      snapshot.results
+    )
 
     // Evidence 조립 (AI 추천 근거 + AI 해석 출처)
     const evidenceRecords = buildAnalysisEvidence({
@@ -246,7 +279,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
       aiInterpretation: metadata?.aiInterpretation ?? null,
       apaFormat: metadata?.apaFormat ?? null,
       variableMapping: snapshot.variableMapping,
-      analysisOptions: snapshot.analysisOptions as Record<string, unknown> & typeof snapshot.analysisOptions,
+      analysisOptions: syncedAnalysisOptions as Record<string, unknown> & typeof snapshot.analysisOptions,
       analysisPurpose: snapshot.analysisPurpose,
       aiRecommendation: snapshot.lastAiRecommendation ?? null,
       interpretationChat: metadata?.interpretationChat?.length ? metadata.interpretationChat : undefined,
@@ -289,14 +322,19 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     if (!record) return null
 
     const migratedResults = migrateResults(record.results) as AnalysisResult | null
+    const selectedMethod = (record.method && typeof record.method === 'object' && 'id' in record.method)
+      ? (getMethodByIdOrAlias(record.method.id as string) as StatisticalMethod | null) ?? null
+      : null
 
     const result: HistoryLoadResult = {
       analysisPurpose: record.purpose,
-      selectedMethod: (record.method && typeof record.method === 'object' && 'id' in record.method)
-        ? (getMethodByIdOrAlias(record.method.id as string) as StatisticalMethod | null) ?? null
-        : null,
+      selectedMethod,
       variableMapping: record.variableMapping ?? null,
-      analysisOptions: normalizeAnalysisOptions(record.analysisOptions),
+      analysisOptions: syncAnovaMethodVariant(
+        record.analysisOptions,
+        selectedMethod?.id ?? record.method?.id ?? null,
+        migratedResults
+      ),
       results: migratedResults,
       uploadedFileName: record.dataFileName,
       currentStep: MAX_STEPS,
@@ -345,16 +383,24 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     const record = await getHistory(historyId)
     if (!record) return null
 
+    const selectedMethod = record.method
+      ? (getMethodByIdOrAlias(record.method.id) as StatisticalMethod | null) ?? {
+          id: record.method.id,
+          name: record.method.name,
+          category: record.method.category as StatisticalMethod['category'],
+          description: record.method.description ?? '',
+        }
+      : null
+
     return {
-      selectedMethod: record.method ? {
-        id: record.method.id,
-        name: record.method.name,
-        category: record.method.category as StatisticalMethod['category'],
-        description: record.method.description ?? ''
-      } : null,
+      selectedMethod,
       variableMapping: record.variableMapping ?? null,
       analysisPurpose: record.analysisPurpose ?? '',
-      analysisOptions: normalizeAnalysisOptions(record.analysisOptions),
+      analysisOptions: syncAnovaMethodVariant(
+        record.analysisOptions,
+        selectedMethod?.id ?? record.method?.id ?? null,
+        record.results as AnalysisResult | null
+      ),
     }
   },
 

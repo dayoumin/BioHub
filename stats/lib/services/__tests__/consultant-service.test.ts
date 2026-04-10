@@ -91,6 +91,13 @@ describe('consultant-service', () => {
       expect(result.recommendations[0]?.methodId).toBe('power-analysis')
     })
 
+    it('"등분산이 다른 세 그룹 비교" → canonical one-way-anova + Welch 표시', () => {
+      const result = getRecommendations('등분산이 다른 세 그룹 비교')
+      expect(result.recommendations[0]?.methodId).toBe('one-way-anova')
+      expect(result.recommendations[0]?.koreanName).toBe('Welch ANOVA')
+      expect(result.recommendations[0]?.reason).toContain('등분산')
+    })
+
     it('2차 매칭 없으면 원래 순서 유지', () => {
       const result = getRecommendations('비교')
       expect(result.recommendations[0]?.methodId).toBe('two-sample-t')

@@ -217,6 +217,18 @@ function buildPostHocText(
   return ` ${method} 사후검정 결과, 다음 집단 간에 유의한 차이가 있었다: ${pairTexts.join(', ')}.`
 }
 
+function isWelchAnovaResult(r: AnalysisResult, methodId: string): boolean {
+  void methodId
+  return r.testVariant === 'welch'
+}
+
+function getAnovaMethodLabel(r: AnalysisResult, methodId: string, lang: 'ko' | 'en'): string {
+  if (!isWelchAnovaResult(r, methodId)) {
+    return getMethodDisplayName(methodId, lang)
+  }
+  return lang === 'en' ? 'Welch ANOVA' : 'Welch ANOVA'
+}
+
 /** 그림 캡션 빌더 (vizType별) */
 function buildFigureCaption(
   vizType: string,
@@ -597,12 +609,13 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
 
 const ANOVA_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    const methodName = getMethodDisplayName(methodId, lang)
+    const methodName = getAnovaMethodLabel(r, methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
     const spherTests = grouped.sphericity ?? []
     const depVar = depVarName(ctx, lang)
+    const isWelch = isWelchAnovaResult(r, methodId)
 
     if (lang === 'en') {
       const intro = ctx.researchContext
@@ -612,6 +625,9 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
       if (normTests.length) parts.push(buildNormalityText(normTests, lang, true))
       if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
       if (spherTests.length) parts.push(buildSphericityText(spherTests, lang))
+      if (isWelch) {
+        parts.push('Welch ANOVA was selected to provide a variance-robust test under unequal variances.')
+      }
       if (r.postHocMethod) {
         parts.push(`Post hoc comparisons were performed using the ${r.postHocMethod} method for significant main effects.`)
       }
@@ -627,6 +643,9 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
     if (normTests.length) parts.push(buildNormalityText(normTests, lang))
     if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
     if (spherTests.length) parts.push(buildSphericityText(spherTests, lang))
+    if (isWelch) {
+      parts.push(`등분산 가정 위반에 강건한 Welch ANOVA를 사용하였다.`)
+    }
     if (r.postHocMethod) {
       parts.push(`유의한 주효과에 대해서는 ${r.postHocMethod} 방법으로 사후검정을 실시하였다.`)
     }
@@ -644,9 +663,12 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
     const es = esValue(esInput)
     const esLbl = esLabel(esInput, 'η²')
     const phMode = options.postHocDisplay ?? 'significant-only'
+    const resultLead = r.testVariant === 'welch'
+      ? (lang === 'en' ? 'The Welch ANOVA' : 'Welch ANOVA')
+      : (lang === 'en' ? 'The ANOVA' : '분산분석')
 
     if (lang === 'en') {
-      let text = `The ANOVA revealed a statistically ${significant ? 'significant' : 'non-significant'} effect of group on ${depVar} `
+      let text = `${resultLead} revealed a statistically ${significant ? 'significant' : 'non-significant'} effect of group on ${depVar} `
       text += `(*F*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
       if (es !== undefined) text += `, ${esLbl} = ${fmt(es)}`
       text += ').'
@@ -656,7 +678,7 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
       return text
     }
 
-    let text = `분산분석 결과, ${depVar}에 대한 집단 간 차이가 `
+    let text = `${resultLead} 결과, ${depVar}에 대한 집단 간 차이가 `
     text += `통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
     text += `(*F*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
     if (es !== undefined) text += `, ${esLbl} = ${fmt(es)}`

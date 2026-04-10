@@ -34,6 +34,12 @@ describe('사용자 관점 UX 감사', () => {
       expect(topMethod('A, B, C 세 그룹의 차이를 보고 싶어요')).toBe('one-way-anova')
     })
 
+    it('등분산이 다른 세 그룹 평균 비교 → canonical one-way-anova 유지', () => {
+      const result = getRecommendations('등분산이 다른 세 그룹 평균 비교를 하고 싶어요')
+      expect(result.recommendations[0]?.methodId).toBe('one-way-anova')
+      expect(result.recommendations[0]?.koreanName).toBe('Welch ANOVA')
+    })
+
     it('같은 환자 3번 반복 측정 → repeated-measures-anova', () => {
       expect(topMethod('같은 환자를 3번 반복 측정했어요')).toBe('repeated-measures-anova')
     })

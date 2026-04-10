@@ -24,7 +24,8 @@ import {
   extractAssumptionResults,
   checkStructuralCompatibility,
   getStructuralCompatibilityMap,
-  mergeAssumptionResults
+  mergeAssumptionResults,
+  applyCompatibilityFilter
 } from '@/lib/statistics/data-method-compatibility'
 
 import { STATISTICAL_METHOD_REQUIREMENTS } from '@/lib/statistics/variable-requirements'
@@ -1595,6 +1596,20 @@ describe('ID Mapping Layer', () => {
       expect(result?.status).toBe('compatible')
     })
 
+    it('should not resolve retired welch-anova alias', () => {
+      const data = createDataSummary({
+        sampleSize: 50,
+        continuousCount: 1,
+        categoricalCount: 1,
+        groupLevels: new Map([['treatment', 4]])
+      })
+
+      const map = getStructuralCompatibilityMap(data)
+
+      const result = getCompatibilityForMethod(map, 'welch-anova')
+      expect(result).toBeUndefined()
+    })
+
     it('should look up Mann-Whitney by canonical ID', () => {
       const data = createDataSummary({
         sampleSize: 30,
@@ -1609,6 +1624,43 @@ describe('ID Mapping Layer', () => {
       expect(result).toBeDefined()
       expect(result?.status).toBe('compatible')
     })
+  })
+})
+
+describe('applyCompatibilityFilter', () => {
+  it('should preserve canonical primary and alternatives', () => {
+    const data = createDataSummary({
+      sampleSize: 60,
+      continuousCount: 1,
+      categoricalCount: 1,
+      groupLevels: new Map([['treatment', 4]])
+    })
+    const assumptions = createAssumptions()
+
+    const result = applyCompatibilityFilter({
+      method: {
+        id: 'one-way-anova',
+        name: 'One-Way ANOVA',
+        description: 'Canonical method',
+        category: 'compare'
+      },
+      reasoning: [],
+      alternatives: [
+        {
+          method: { id: 'one-way-anova', name: 'One-Way ANOVA' },
+          reason: 'canonical method'
+        },
+        {
+          method: { id: 'kruskal-wallis', name: 'Kruskal-Wallis' },
+          reason: 'nonparametric alternative'
+        }
+      ]
+    }, data, assumptions)
+
+    expect(result.methodId).toBe('one-way-anova')
+    expect(result.compatibility.methodId).toBe('one-way-anova')
+    expect(result.alternatives.some(alt => alt.methodId === 'one-way-anova')).toBe(true)
+    expect(result.alternatives.some(alt => alt.methodId === 'kruskal-wallis')).toBe(true)
   })
 })
 

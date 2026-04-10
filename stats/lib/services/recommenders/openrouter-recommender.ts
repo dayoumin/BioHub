@@ -124,6 +124,30 @@ export class OpenRouterRecommender {
     return headers
   }
 
+  private normalizeRecommendation(recommendation: AIRecommendation): AIRecommendation {
+    const isWelchAnova = recommendation.method.id === 'welch-anova'
+      || /welch\s*anova/i.test(recommendation.method.name)
+
+    if (!isWelchAnova) {
+      return recommendation
+    }
+
+    return {
+      ...recommendation,
+      method: {
+        ...recommendation.method,
+        id: 'one-way-anova',
+        name: recommendation.method.name || 'Welch ANOVA',
+        category: 'anova',
+      },
+      suggestedSettings: {
+        ...(recommendation.suggestedSettings ?? {}),
+        welch: true,
+        postHoc: 'games-howell',
+      },
+    }
+  }
+
   /**
    * Health check: API 키 존재 여부 확인 + 경량 API 검증 + 캐싱
    *
@@ -555,7 +579,7 @@ ${userInput}`
         confidence: recommendation.confidence
       })
 
-      return recommendation
+      return this.normalizeRecommendation(recommendation)
     } catch (error) {
       logger.error('[OpenRouter] JSON parsing failed', {
         error: error instanceof Error ? error.message : 'Unknown error'

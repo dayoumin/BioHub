@@ -136,6 +136,21 @@ describe('history-store — paperDraft 라이프사이클', () => {
     expect(useHistoryStore.getState().loadedPaperDraft).toBeNull()
   })
 
+  it('loadSettingsFromHistory는 anova page ID를 canonical one-way-anova로 복원하고 Welch variant를 동기화한다', async () => {
+    mockGetHistory.mockResolvedValueOnce(makeRecord({
+      method: { id: 'anova', name: 'ANOVA', category: 'anova' },
+      results: { method: 'anova', testVariant: 'welch', pValue: 0.023 },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true, methodSettings: {} },
+    }))
+
+    const result = await useHistoryStore.getState().loadSettingsFromHistory('test-history-1')
+
+    expect(result?.selectedMethod?.id).toBe('one-way-anova')
+    expect(result?.analysisOptions.methodSettings).toEqual({
+      welch: true,
+    })
+  })
+
   // ── 3. 구버전 데이터 호환성 ────────────────────────────────────────────────
 
   it('구버전 레코드(postHocDisplay 없음)를 로드하면 postHocDisplay가 undefined다 → 컴포넌트 fallback 필요', async () => {

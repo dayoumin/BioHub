@@ -17,7 +17,16 @@ type PostHocRunner = (groups: number[][], groupNames: string[]) => Promise<{
   method: string
 }>
 
-function createPostHocRunners(preferredMethod?: string): PostHocRunner[] {
+function parseBooleanSetting(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    if (value === 'true') return true
+    if (value === 'false') return false
+  }
+  return undefined
+}
+
+function createPostHocRunners(preferredMethod?: string, options: { welch?: boolean } = {}): PostHocRunner[] {
   const gamesHowell: PostHocRunner = async (groups, groupNames) => {
     const r = await pyodideStats.gamesHowellTest(groups, groupNames)
     return { comparisons: normalizePostHocComparisons(r?.comparisons), method: 'games-howell' }
@@ -42,8 +51,13 @@ function createPostHocRunners(preferredMethod?: string): PostHocRunner[] {
     scheffe,
   }
 
-  // 기본 순서: Games-Howell → Tukey → Bonferroni
-  const defaultOrder: PostHocRunner[] = [gamesHowell, tukey, bonferroni]
+  const defaultOrder: PostHocRunner[] = options.welch
+    ? [gamesHowell, bonferroni, tukey]
+    : [tukey, bonferroni, gamesHowell]
+
+  if (options.welch) {
+    return defaultOrder
+  }
 
   if (!preferredMethod) return defaultOrder
 
@@ -575,15 +589,17 @@ export async function handleANOVA(
     }
   }
 
+  const isWelchAnova = parseBooleanSetting(settings?.welch) === true
   const result = await pyodideStats.anova(groups, {
-    type: method.id === 'two-way-anova' ? 'two-way' : 'one-way'
+    type: method.id === 'two-way-anova' ? 'two-way' : 'one-way',
+    welch: isWelchAnova,
   })
 
   // 유의한 경우 사후검정 (settings.postHoc로 선호 방법 지정 가능)
   let postHoc: ReturnType<typeof normalizePostHocComparisons> | undefined
   let postHocMethod: string | undefined
   if (result.pValue < 0.05 && groups.length > 2) {
-    const runners = createPostHocRunners(settings?.postHoc)
+    const runners = createPostHocRunners(settings?.postHoc, { welch: isWelchAnova })
     for (const runner of runners) {
       try {
         const r = await runner(groups, groupNames)
@@ -599,7 +615,7 @@ export async function handleANOVA(
   return {
     metadata: {
       method: method.id,
-      methodName: method.name,
+      methodName: isWelchAnova ? `${method.name} (Welch)` : method.name,
       timestamp: '',
       duration: 0,
       dataInfo: {
@@ -614,8 +630,8 @@ export async function handleANOVA(
       df: Array.isArray(result.df) ? result.df as [number, number] : result.df,
       significant: result.pValue < 0.05,
       interpretation: result.pValue < 0.05 ?
-        `그룹 간 유의한 차이가 있습니다 (F=${result.fStatistic.toFixed(2)})` :
-        '그룹 간 유의한 차이가 없습니다'
+        `${isWelchAnova ? 'Welch ANOVA 기준으로 ' : ''}그룹 간 유의한 차이가 있습니다 (F=${result.fStatistic.toFixed(2)})` :
+        `${isWelchAnova ? 'Welch ANOVA 기준으로 ' : ''}그룹 간 유의한 차이가 없습니다`
     },
     additionalInfo: {
       effectSize: {
@@ -623,6 +639,7 @@ export async function handleANOVA(
         value: result.etaSquared || 0,
         interpretation: interpretEtaSquared(result.etaSquared || 0)
       },
+      testVariant: isWelchAnova ? 'welch' : 'standard',
       postHoc: postHoc,
       postHocMethod,
     },

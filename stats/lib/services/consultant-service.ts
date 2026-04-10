@@ -168,16 +168,34 @@ export function getRecommendations(
     const category = PURPOSE_CATEGORIES.find(c => c.id === categoryId)
     if (!category) continue
 
-    const methodScores: MethodScore[] = category.methodIds
-      .map((methodId, idx) => {
-        const keywords = METHOD_KEYWORDS[methodId]
-        if (!keywords) return { methodId, score: 0, matchedKeywords: [], originalIndex: idx }
+    const dedupedMethodScores = new Map<string, MethodScore>()
 
-        const matched = keywords.filter(kw =>
-          normalizedMessage.includes(kw.toLowerCase())
-        )
-        return { methodId, score: matched.length, matchedKeywords: matched, originalIndex: idx }
-      })
+    category.methodIds.forEach((rawMethodId, idx) => {
+      const methodId = canonicalizeMethodIdForMessage(rawMethodId, normalizedMessage)
+      const keywords = METHOD_KEYWORDS[rawMethodId]
+      if (!keywords) {
+        if (!dedupedMethodScores.has(methodId)) {
+          dedupedMethodScores.set(methodId, { methodId, score: 0, matchedKeywords: [], originalIndex: idx })
+        }
+        return
+      }
+
+      const matched = keywords.filter(kw =>
+        normalizedMessage.includes(kw.toLowerCase())
+      )
+
+      const existing = dedupedMethodScores.get(methodId)
+      if (!existing || matched.length > existing.score) {
+        dedupedMethodScores.set(methodId, {
+          methodId,
+          score: matched.length,
+          matchedKeywords: matched,
+          originalIndex: idx,
+        })
+      }
+    })
+
+    const methodScores: MethodScore[] = Array.from(dedupedMethodScores.values())
       .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
 
     methodScoresPerCategory.set(categoryId, methodScores)
@@ -215,15 +233,18 @@ export function getRecommendations(
 
       usedMethodIds.add(methodId)
 
+      const welchContext = isWelchAnovaContext(normalizedMessage, methodId)
       const desc = getKoreanDescription(methodId)
-      const reason = desc
-        ? `${desc} — ${category.label}`
-        : `${category.label} 분야의 분석 방법입니다.`
+      const reason = welchContext
+        ? `등분산 가정 위반에 강건한 일원분산분석 — ${category.label}`
+        : desc
+          ? `${desc} — ${category.label}`
+          : `${category.label} 분야의 분석 방법입니다.`
 
       recommendations.push({
         methodId,
         methodName: method.name,
-        koreanName: method.koreanName ?? method.name,
+        koreanName: welchContext ? 'Welch ANOVA' : method.koreanName ?? method.name,
         reason,
         badge: recommendations.length === 0 ? 'recommended' : 'alternative',
       })
@@ -239,6 +260,44 @@ export function getRecommendations(
     : undefined
 
   return { recommendations, summary, clarification }
+}
+
+function isWelchAnovaContext(message: string, methodId: string): boolean {
+  if (methodId !== 'one-way-anova') return false
+
+  const welchKeywords = [
+    'welch',
+    'welch anova',
+    '등분산 없',
+    '등분산 위반',
+    '분산 다른',
+    '분산이 다른',
+    'unequal variance',
+  ]
+
+  return welchKeywords.some(keyword => message.includes(keyword))
+}
+
+function canonicalizeMethodIdForMessage(methodId: string, message: string): string {
+  if (methodId === 'welch-t' && isMultiGroupComparisonContext(message)) {
+    return 'one-way-anova'
+  }
+
+  return methodId
+}
+
+function isMultiGroupComparisonContext(message: string): boolean {
+  const multiGroupKeywords = [
+    '세 그룹',
+    '3개 그룹',
+    '세 집단',
+    '여러 그룹',
+    '여러 집단',
+    'three group',
+    'multiple group',
+  ]
+
+  return multiGroupKeywords.some(keyword => message.includes(keyword))
 }
 
 /**

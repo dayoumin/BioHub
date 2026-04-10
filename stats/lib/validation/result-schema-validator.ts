@@ -122,7 +122,7 @@ export const RECOMMENDED_FIELDS: Record<StatisticsCategory, string[]> = {
 export const METHOD_TO_CATEGORY: Record<string, StatisticsCategory> = {
   // Comparison (비교 검정)
   't-test': 'comparison',
-  'independent-t': 'comparison',
+  'two-sample-t': 'comparison',
   'paired-t': 'comparison',
   'one-sample-t': 'comparison',
   'welch-t': 'comparison',

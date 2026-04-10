@@ -106,6 +106,38 @@ describe('code-export', () => {
     expect(pyExport.content).not.toContain('posthoc_dunn')
   })
 
+  it('Welch ANOVA export는 실행 variant를 우선 반영한다', () => {
+    const result = makeAnalysisResult({
+      testVariant: 'welch',
+      postHocMethod: 'games-howell',
+    })
+
+    const rExport = exportCodeFromAnalysis({
+      method: makeMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+      variableMapping: { dependentVar: 'score', groupVar: 'treatment' },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'anova.csv',
+      dataRowCount: 30,
+      results: result,
+    }, 'R')
+
+    const pyExport = exportCodeFromAnalysis({
+      method: makeMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+      variableMapping: { dependentVar: 'score', groupVar: 'treatment' },
+      analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+      dataFileName: 'anova.csv',
+      dataRowCount: 30,
+      results: result,
+    }, 'python')
+
+    expect(rExport.success).toBe(true)
+    expect(rExport.content).toContain('welch_anova_test')
+    expect(rExport.content).toContain('games_howell_test')
+    expect(pyExport.success).toBe(true)
+    expect(pyExport.content).toContain('pg.welch_anova')
+    expect(pyExport.content).toContain('pairwise_gameshowell')
+  })
+
   it('normality export는 첫 변수에 대해 Shapiro-Wilk만 생성한다', () => {
     const exportResult = exportCodeFromAnalysis({
       method: makeMethod('normality-test', 'Normality Test', 'descriptive'),

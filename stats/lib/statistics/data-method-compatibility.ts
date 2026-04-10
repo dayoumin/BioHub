@@ -1233,15 +1233,17 @@ export function applyCompatibilityFilter(
   dataSummary: DataSummary,
   assumptions: AssumptionResults
 ): EnhancedDecisionResult {
+  const canonicalPrimaryId = decisionResult.method.id
+
   // Get compatibility for the primary method
   const primaryMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
-    m => m.id === decisionResult.method.id
+    m => m.id === canonicalPrimaryId
   )
 
   const primaryCompatibility = primaryMethod
     ? checkMethodCompatibility(dataSummary, assumptions, primaryMethod)
     : {
-        methodId: decisionResult.method.id,
+        methodId: canonicalPrimaryId,
         methodName: decisionResult.method.name,
         status: 'compatible' as CompatibilityStatus,
         reasons: [],
@@ -1255,17 +1257,20 @@ export function applyCompatibilityFilter(
   if (primaryCompatibility.status === 'incompatible') {
     // Check original alternatives first
     for (const alt of decisionResult.alternatives ?? []) {
+      const canonicalAltId = alt.method.id
       const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
-        m => m.id === alt.method.id
+        m => m.id === canonicalAltId
       )
       if (altMethod) {
         const altCompat = checkMethodCompatibility(dataSummary, assumptions, altMethod)
         if (altCompat.status !== 'incompatible') {
           alternativeResults.push({
-            methodId: alt.method.id,
+            methodId: canonicalAltId,
             methodName: alt.method.name,
             compatibility: altCompat,
-            reason: alt.reason
+            reason: canonicalAltId === alt.method.id
+              ? alt.reason
+              : getAlternativeReason(canonicalPrimaryId, canonicalAltId)
           })
         }
       }
@@ -1273,33 +1278,37 @@ export function applyCompatibilityFilter(
 
     // Also check auto-suggested alternatives
     for (const altId of primaryCompatibility.alternatives ?? []) {
+      const canonicalAltId = altId
       // Avoid duplicates
-      if (alternativeResults.some(a => a.methodId === altId)) continue
+      if (alternativeResults.some(a => a.methodId === canonicalAltId)) continue
 
-      const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === altId)
+      const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === canonicalAltId)
       if (altMethod) {
         const altCompat = checkMethodCompatibility(dataSummary, assumptions, altMethod)
         alternativeResults.push({
           methodId: altMethod.id,
           methodName: altMethod.name,
           compatibility: altCompat,
-          reason: getAlternativeReason(decisionResult.method.id, altId)
+          reason: getAlternativeReason(canonicalPrimaryId, canonicalAltId)
         })
       }
     }
   } else {
     // Primary is usable, just include original alternatives with compatibility info
     for (const alt of decisionResult.alternatives ?? []) {
+      const canonicalAltId = alt.method.id
       const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
-        m => m.id === alt.method.id
+        m => m.id === canonicalAltId
       )
       if (altMethod) {
         const altCompat = checkMethodCompatibility(dataSummary, assumptions, altMethod)
         alternativeResults.push({
-          methodId: alt.method.id,
+          methodId: canonicalAltId,
           methodName: alt.method.name,
           compatibility: altCompat,
-          reason: alt.reason
+          reason: canonicalAltId === alt.method.id
+            ? alt.reason
+            : getAlternativeReason(canonicalPrimaryId, canonicalAltId)
         })
       }
     }
@@ -1312,7 +1321,7 @@ export function applyCompatibilityFilter(
   ]
 
   return {
-    methodId: decisionResult.method.id,
+    methodId: canonicalPrimaryId,
     methodName: decisionResult.method.name,
     compatibility: primaryCompatibility,
     isUsable: primaryCompatibility.status !== 'incompatible',
@@ -1332,8 +1341,7 @@ function getAlternativeReason(originalId: string, alternativeId: string): string
       'welch-t': '등분산성 가정 불충족 시 사용'
     },
     'one-way-anova': {
-      'kruskal-wallis': '정규성 가정 불충족 시 사용',
-      'welch-anova': '등분산성 가정 불충족 시 사용'
+      'kruskal-wallis': '정규성 가정 불충족 시 사용'
     },
     'paired-t': {
       'wilcoxon-signed-rank': '정규성 가정 불충족 시 사용',

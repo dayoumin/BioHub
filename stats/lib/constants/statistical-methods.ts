@@ -2,7 +2,8 @@
  * Statistical Methods - Single Source of Truth (SSOT)
  *
  * Canonical method IDs are the primary keys.
- * Legacy SM IDs (e.g., 't-test', 'anova') are supported via Proxy + aliases.
+ * Active page IDs (e.g., 't-test', 'anova') remain accessible via Proxy aliases.
+ * Retired legacy aliases are intentionally removed from internal resolution.
  *
  * pageId = routing page slug (e.g., 't-test' → /statistics/t-test)
  * id     = canonical method ID (e.g., 'two-sample-t')
@@ -14,7 +15,7 @@
  * - Analysis methods:     46 (가설검정·모델링·분석 기법)
  * - Data tools:            4 (descriptive-stats, explore-data, means-plot, power-analysis)
  * - Embedded (pageId !== id): paired-t, two-way-anova, logistic-regression
- * - Removed as standalone: chi-square (overview), non-parametric (overview), welch-anova (alias of one-way-anova)
+ * - Removed as standalone: chi-square (overview), non-parametric (overview), welch-anova (legacy alias of one-way-anova)
  *
  * @see docs/PLAN-METHOD-ID-UNIFICATION.md
  */
@@ -58,7 +59,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 't-test',
     koreanName: '독립표본 t-검정',
     koreanDescription: '두 독립 그룹의 평균 차이 검정',
-    aliases: ['t-test', 'independent-t', 'independent-t-test', 'student-t'],
+    aliases: ['t-test'],
     searchTerms: ['t-test', 'independent', 'two-sample', 'student'],
     isDataTool: false,
   },
@@ -82,7 +83,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 't-test',
     koreanName: '단일표본 t-검정',
     koreanDescription: '표본 평균과 모집단 평균 비교',
-    aliases: ['one-sample-t-test'],
+    aliases: [],
     searchTerms: ['one-sample'],
     isDataTool: false,
   },
@@ -94,13 +95,13 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 't-test',
     koreanName: '대응표본 t-검정',
     koreanDescription: '같은 대상을 전/후 측정하여 평균 차이 검정',
-    aliases: ['paired-t-test', 'dependent-t'],
+    aliases: [],
     searchTerms: ['paired', 'dependent', 'matched'],
     isDataTool: false,
   },
 
   // ============================================
-  // 2. ANOVA (7) — welch-anova removed (alias of one-way-anova)
+  // 2. ANOVA (7) — retired aliases removed; page alias 'anova' retained
   // ============================================
   'one-way-anova': {
     id: 'one-way-anova',
@@ -110,7 +111,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'anova',
     koreanName: '일원분산분석 (ANOVA)',
     koreanDescription: '3개 이상 독립 그룹의 평균 차이 검정',
-    aliases: ['anova', 'oneway-anova', 'welch-anova', 'welch-f'],
+    aliases: ['anova'],
     searchTerms: ['anova', 'one-way', 'oneway', 'welch'],
     isDataTool: false,
   },
@@ -134,7 +135,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'anova',
     koreanName: '반복측정 분산분석',
     koreanDescription: '같은 대상을 여러 시점에서 측정',
-    aliases: ['repeated-anova', 'rm-anova'],
+    aliases: [],
     searchTerms: ['repeated', 'within-subjects'],
     isDataTool: false,
   },
@@ -845,6 +846,7 @@ export function isValidMethodId(id: string): boolean {
  * @returns Korean name or English name as fallback
  */
 export function getKoreanName(id: string): string {
+  if (id === 'welch-anova') return 'Welch ANOVA'
   const method = getMethodByAlias(id)
   return method?.koreanName ?? method?.name ?? id
 }
@@ -855,6 +857,7 @@ export function getKoreanName(id: string): string {
  * @returns Korean description or English description as fallback
  */
 export function getKoreanDescription(id: string): string {
+  if (id === 'welch-anova') return '등분산 가정 위반에 강건한 일원분산분석'
   const method = getMethodByAlias(id)
   return method?.koreanDescription ?? method?.description ?? ''
 }

@@ -567,6 +567,38 @@ export class DecisionTreeRecommender {
             createMethod('kruskal-wallis', { description: '비모수 대안' })
           ]
         })
+      } else if (isNormal) {
+        return this.addExpectedKeywords({
+          method: createMethod('one-way-anova', {
+            name: 'Welch ANOVA',
+            description: '등분산 가정이 충족되지 않을 때 사용하는 강건한 일원분산분석',
+            requirements: {
+              minSampleSize: 30,
+              assumptions: ['정규성', '독립성']
+            }
+          }),
+          confidence: 0.91,
+          suggestedSettings: {
+            welch: true,
+            postHoc: 'games-howell',
+          },
+          reasoning: [
+            '✓ 매우 높은 신뢰도 (91%)로 Welch ANOVA를 추천합니다.',
+            `${groups}개 그룹 간 평균 비교에 적합합니다.`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality?.shapiroWilk?.pValue !== undefined ? normality?.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`,
+            `${hasLevene
+              ? `✗ 등분산성 미충족 (p=${homogeneity?.levene?.pValue !== undefined ? homogeneity?.levene?.pValue.toFixed(3) : 'N/A'}) → Welch ANOVA 권장`
+              : 'ℹ 등분산성 검정 정보가 없어 Welch ANOVA를 보수적으로 권장합니다.'}`
+          ],
+          assumptions: [
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality?.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: false, pValue: homogeneity?.levene?.pValue ?? NaN }] : [])
+          ],
+          alternatives: [
+            createMethod('kruskal-wallis', { description: '비모수 대안' })
+          ]
+        })
       } else {
         return this.addExpectedKeywords({
           method: createMethod('kruskal-wallis'),

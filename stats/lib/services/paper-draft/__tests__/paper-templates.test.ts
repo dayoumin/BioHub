@@ -201,6 +201,21 @@ describe('anova 템플릿', () => {
     expect(text).toContain('*p* = .012')
     expect(text).toContain('수컷–암컷')
   })
+
+  it('Welch ANOVA methods/results 문구를 명시한다', () => {
+    const welchInput = makeInput('one-way-anova', {
+      testVariant: 'welch',
+      postHocMethod: 'Games-Howell',
+    })
+    const tmpl = getTemplate('one-way-anova', 'anova')
+
+    const methods = tmpl.methods(welchInput)
+    const results = tmpl.results(welchInput)
+
+    expect(methods).toContain('Welch ANOVA')
+    expect(methods).toContain('Games-Howell')
+    expect(results).toContain('Welch ANOVA 결과')
+  })
 })
 
 // ─── 6. NONPARAMETRIC golden snapshot ────────────────────────────────────────

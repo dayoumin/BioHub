@@ -18,6 +18,8 @@ import {
   getMethodsByPage,
   isIntegratedPage,
   methodHasOwnPage,
+  getKoreanName,
+  getKoreanDescription,
 } from '@/lib/constants/statistical-methods'
 
 describe('statistical-methods.ts', () => {
@@ -124,18 +126,16 @@ describe('statistical-methods.ts', () => {
       expect(method?.id).toBe('two-sample-t')
     })
 
-    it('alias로 방법을 찾을 수 있어야 함', () => {
-      // 'independent-t'는 'two-sample-t'의 alias
-      const method = getMethodByIdOrAlias('independent-t')
+    it('현재 유지 중인 page ID alias도 동작해야 함', () => {
+      const method = getMethodByIdOrAlias('anova')
       expect(method).not.toBeNull()
-      expect(method?.id).toBe('two-sample-t')
+      expect(method?.id).toBe('one-way-anova')
     })
 
-    it('다른 alias들도 동작해야 함', () => {
-      // 'independent-t-test'도 'two-sample-t'의 alias
-      const method = getMethodByIdOrAlias('independent-t-test')
-      expect(method).not.toBeNull()
-      expect(method?.id).toBe('two-sample-t')
+    it('제거된 레거시 alias는 더 이상 해석하지 않아야 함', () => {
+      expect(getMethodByIdOrAlias('independent-t')).toBeNull()
+      expect(getMethodByIdOrAlias('independent-t-test')).toBeNull()
+      expect(getMethodByIdOrAlias('welch-anova')).toBeNull()
     })
 
     it('존재하지 않는 ID는 null 반환', () => {
@@ -143,15 +143,13 @@ describe('statistical-methods.ts', () => {
       expect(method).toBeNull()
     })
 
-    it('DecisionTree에서 사용하는 ID들이 호환되어야 함', () => {
-      // DecisionTree.ts에서 사용하는 기존 ID들
+    it('DecisionTree에서 사용하는 현재 ID들이 호환되어야 함', () => {
       const decisionTreeIds = [
-        'independent-t',
+        'two-sample-t',
         'paired-t',
         'welch-t',
         'one-way-anova',
-        'welch-anova',
-        'repeated-anova',
+        'repeated-measures-anova',
         'mann-whitney',
         'wilcoxon',
         'kruskal-wallis',
@@ -164,11 +162,10 @@ describe('statistical-methods.ts', () => {
       }
     })
 
-    it('decision-tree-recommender에서 사용하는 ID들이 호환되어야 함', () => {
-      // decision-tree-recommender.ts에서 사용하는 기존 ID들
+    it('decision-tree-recommender에서 사용하는 현재 ID들이 호환되어야 함', () => {
       const recommenderIds = [
-        'independent-t-test',
-        'paired-t-test',
+        't-test',
+        'paired-t',
         'pearson',
         'spearman',
         'linear-regression',
@@ -214,18 +211,25 @@ describe('statistical-methods.ts', () => {
     })
 
     it('alias로도 라우트 반환', () => {
-      expect(getMethodRoute('independent-t')).toBe('/statistics/t-test')
+      expect(getMethodRoute('t-test')).toBe('/statistics/t-test')
     })
 
     it('pageId !== id 인 방법은 pageId로 라우팅', () => {
       // paired-t의 pageId는 't-test'
       expect(getMethodRoute('paired-t')).toBe('/statistics/t-test')
-      // welch-anova는 one-way-anova의 alias → pageId 'anova'
-      expect(getMethodRoute('welch-anova')).toBe('/statistics/anova')
+      // anova는 one-way-anova의 page alias → pageId 'anova'
+      expect(getMethodRoute('anova')).toBe('/statistics/anova')
     })
 
     it('존재하지 않는 ID는 null 반환', () => {
       expect(getMethodRoute('non-existent')).toBeNull()
+    })
+  })
+
+  describe('display helpers', () => {
+    it('canonical ID 기준으로 한글 표시명을 반환한다', () => {
+      expect(getKoreanName('one-way-anova')).toBe('일원분산분석 (ANOVA)')
+      expect(getKoreanDescription('one-way-anova')).toBe('3개 이상 독립 그룹의 평균 차이 검정')
     })
   })
 
@@ -254,12 +258,13 @@ describe('statistical-methods.ts', () => {
   describe('isValidMethodId', () => {
     it('유효한 ID는 true 반환', () => {
       expect(isValidMethodId('t-test')).toBe(true)
-      expect(isValidMethodId('independent-t')).toBe(true) // alias도 valid
+      expect(isValidMethodId('two-sample-t')).toBe(true)
     })
 
     it('유효하지 않은 ID는 false 반환', () => {
       expect(isValidMethodId('fake-method')).toBe(false)
       expect(isValidMethodId('')).toBe(false)
+      expect(isValidMethodId('independent-t')).toBe(false)
     })
   })
 
@@ -287,21 +292,20 @@ describe('statistical-methods.ts', () => {
   // ============================================
   // 9. 하위 호환성 테스트 (Critical)
   // ============================================
-  describe('하위 호환성 - DecisionTree.ts 기존 ID 매핑', () => {
-    const legacyMappings = [
-      { legacy: 'independent-t', expected: 'two-sample-t' },
+  describe('현재 DecisionTree ID 매핑', () => {
+    const currentMappings = [
+      { legacy: 'two-sample-t', expected: 'two-sample-t' },
       { legacy: 'paired-t', expected: 'paired-t' },
       { legacy: 'one-way-anova', expected: 'one-way-anova' },
-      { legacy: 'welch-anova', expected: 'one-way-anova' },
-      { legacy: 'repeated-anova', expected: 'repeated-measures-anova' },
+      { legacy: 'repeated-measures-anova', expected: 'repeated-measures-anova' },
       { legacy: 'mann-whitney', expected: 'mann-whitney' },
       { legacy: 'wilcoxon', expected: 'wilcoxon-signed-rank' },
       { legacy: 'kruskal-wallis', expected: 'kruskal-wallis' },
       { legacy: 'friedman', expected: 'friedman' },
     ]
 
-    it.each(legacyMappings)(
-      'legacy ID "$legacy" → "$expected"로 매핑되어야 함',
+    it.each(currentMappings)(
+      'ID "$legacy" → "$expected"로 매핑되어야 함',
       ({ legacy, expected }) => {
         const method = getMethodByIdOrAlias(legacy)
         expect(method).not.toBeNull()
@@ -313,10 +317,10 @@ describe('statistical-methods.ts', () => {
   // ============================================
   // 10. decision-tree-recommender.ts 호환성 테스트
   // ============================================
-  describe('하위 호환성 - decision-tree-recommender.ts 기존 ID 매핑', () => {
+  describe('현재 recommender/page ID 매핑', () => {
     const recommenderMappings = [
-      { legacy: 'independent-t-test', expected: 'two-sample-t' },
-      { legacy: 'paired-t-test', expected: 'paired-t' },
+      { legacy: 't-test', expected: 'two-sample-t' },
+      { legacy: 'paired-t', expected: 'paired-t' },
       { legacy: 'pearson', expected: 'pearson-correlation' },
       { legacy: 'spearman', expected: 'pearson-correlation' },
       { legacy: 'linear-regression', expected: 'simple-regression' },
