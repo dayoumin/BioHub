@@ -21,7 +21,7 @@ describe('data-format-guides', () => {
     it('등록된 methodId로 가이드를 조회할 수 있다', () => {
       const guide = getDataFormatGuide('t-test')
       expect(guide).not.toBeNull()
-      expect(guide!.methodId).toBe('t-test')
+      expect(guide!.methodId).toBe('two-sample-t')
     })
 
     it('미등록 methodId는 null을 반환한다', () => {
@@ -29,9 +29,10 @@ describe('data-format-guides', () => {
     })
 
     it.each([
-      'one-sample-t', 't-test', 'paired-t', 'welch-t',
+      'one-sample-t', 't-test', 'two-sample-t', 'paired-t', 'welch-t',
       'anova', 'two-way-anova', 'repeated-measures-anova',
-      'chi-square', 'regression', 'correlation',
+      'chi-square', 'regression', 'simple-regression', 'correlation', 'pearson-correlation',
+      'descriptive', 'descriptive-stats',
       'mann-whitney', 'wilcoxon', 'kruskal-wallis',
       'kaplan-meier', 'cox-regression',
       'pca', 'factor-analysis', 'cluster',
@@ -126,10 +127,10 @@ describe('data-format-guides', () => {
   describe('STATISTICAL_METHODS 커버리지', () => {
     it('주요 통계 방법은 가이드가 존재한다', () => {
       const criticalMethods = [
-        't-test', 'paired-t', 'one-sample-t',
+        't-test', 'two-sample-t', 'paired-t', 'one-sample-t',
         'anova', 'two-way-anova',
-        'chi-square', 'regression',
-        'correlation', 'mann-whitney',
+        'chi-square', 'regression', 'simple-regression',
+        'correlation', 'pearson-correlation', 'descriptive-stats', 'mann-whitney',
       ]
       for (const methodId of criticalMethods) {
         expect(getDataFormatGuide(methodId)).not.toBeNull()

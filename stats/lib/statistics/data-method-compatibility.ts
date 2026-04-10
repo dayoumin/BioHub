@@ -20,17 +20,29 @@ import {
 } from './variable-requirements'
 import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 
+const PAGE_LEVEL_COMPATIBILITY_IDS = new Set([
+  'correlation',
+])
+
+function resolveCompatibilityLookupId(methodId: string): string {
+  if (PAGE_LEVEL_COMPATIBILITY_IDS.has(methodId)) {
+    return methodId
+  }
+
+  return getMethodByIdOrAlias(methodId)?.id ?? methodId
+}
 
 /**
  * Get compatibility result for a method ID
- * Compatibility maps are keyed by canonical IDs.
+ * Compatibility maps are keyed by canonical IDs, except a small set of
+ * page-level surfaces that intentionally stay page-scoped.
  */
 export function getCompatibilityForMethod(
   compatibilityMap: Map<string, CompatibilityResult>,
   methodId: string
 ): CompatibilityResult | undefined {
-  const canonicalMethodId = getMethodByIdOrAlias(methodId)?.id ?? methodId
-  return compatibilityMap.get(canonicalMethodId)
+  const lookupId = resolveCompatibilityLookupId(methodId)
+  return compatibilityMap.get(lookupId)
 }
 
 // ============================================================================
@@ -1235,7 +1247,7 @@ export function applyCompatibilityFilter(
   dataSummary: DataSummary,
   assumptions: AssumptionResults
 ): EnhancedDecisionResult {
-  const canonicalPrimaryId = getMethodByIdOrAlias(decisionResult.method.id)?.id ?? decisionResult.method.id
+  const canonicalPrimaryId = resolveCompatibilityLookupId(decisionResult.method.id)
 
   // Get compatibility for the primary method
   const primaryMethod = STATISTICAL_METHOD_REQUIREMENTS.find(

@@ -36,12 +36,28 @@ interface AdminStats {
   vote_timeline: Array<{ date: string; count: number }>
 }
 
+// Admin feedback still contains short operational vote keys from earlier rollouts.
+// Keep this compatibility map local to the admin surface so the runtime stays canonical.
+const FEEDBACK_METHOD_ID_COMPAT_MAP: Record<string, string> = {
+  'ind-ttest': 'two-sample-t',
+  'paired-ttest': 'paired-t',
+  'oneway-anova': 'one-way-anova',
+  'twoway-anova': 'two-way-anova',
+  'repeated-anova': 'repeated-measures-anova',
+  pearson: 'pearson-correlation',
+  spearman: 'pearson-correlation',
+  'linear-reg': 'simple-regression',
+  'multiple-reg': 'simple-regression',
+  kruskal: 'kruskal-wallis',
+}
+
 const FEEDBACK_METHOD_FALLBACKS: Record<string, { title: string; titleKr: string }> = {
   'chi-square': { title: 'Chi-square Test', titleKr: '카이제곱 검정' },
 }
 
 function getFeedbackMethodName(id: string): { title: string; titleKr: string } {
-  const method = getMethodByIdOrAlias(id)
+  const canonicalId = FEEDBACK_METHOD_ID_COMPAT_MAP[id] ?? id
+  const method = getMethodByIdOrAlias(canonicalId)
   if (method) {
     return {
       title: method.name,

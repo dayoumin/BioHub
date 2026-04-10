@@ -16,6 +16,19 @@ export function isWelchAnovaPresentation(
   return canonicalId === 'one-way-anova' && /welch\s*anova/i.test(method.name)
 }
 
+export function isWelchAnovaVariant(args: {
+  method?: Pick<StatisticalMethod, 'id' | 'name'> | null
+  suggestedSettings?: SuggestedSettings | null
+}): boolean {
+  const { method, suggestedSettings } = args
+  if (!method) return false
+
+  const canonicalId = getMethodByIdOrAlias(method.id)?.id ?? method.id
+  if (canonicalId !== 'one-way-anova') return false
+
+  return suggestedSettings?.welch === true || isWelchAnovaPresentation(method)
+}
+
 export function getWelchAnovaSuggestedSettings(
   base?: SuggestedSettings | null
 ): SuggestedSettings {
@@ -26,7 +39,10 @@ export function getWelchAnovaSuggestedSettings(
   }
 }
 
-export function normalizeWelchAnovaMethod(method: StatisticalMethod): {
+export function normalizeWelchAnovaMethod(
+  method: StatisticalMethod,
+  suggestedSettings?: SuggestedSettings | null
+): {
   method: StatisticalMethod
   forcedSuggestedSettings: SuggestedSettings | null
 } {
@@ -43,7 +59,7 @@ export function normalizeWelchAnovaMethod(method: StatisticalMethod): {
     description: method.description || canonical.description,
   }
 
-  if (canonical.id !== 'one-way-anova' || !isWelchAnovaPresentation(method)) {
+  if (!isWelchAnovaVariant({ method, suggestedSettings })) {
     return { method: normalizedMethod, forcedSuggestedSettings: null }
   }
 
@@ -60,11 +76,17 @@ export function normalizeWelchAnovaMethod(method: StatisticalMethod): {
 export function normalizeWelchAnovaRecommendation(
   recommendation: AIRecommendation
 ): AIRecommendation {
-  if (!isWelchAnovaPresentation(recommendation.method)) {
+  if (!isWelchAnovaVariant({
+    method: recommendation.method,
+    suggestedSettings: recommendation.suggestedSettings,
+  })) {
     return recommendation
   }
 
-  const normalized = normalizeWelchAnovaMethod(recommendation.method)
+  const normalized = normalizeWelchAnovaMethod(
+    recommendation.method,
+    recommendation.suggestedSettings,
+  )
   return {
     ...recommendation,
     method: normalized.method,

@@ -439,6 +439,39 @@ describe('loadFromHistory / loadSettingsFromHistory — lastAiRecommendation 초
     expect(useAnalysisStore.getState().results).not.toBeNull()
   })
 
+  it('loadFromHistory는 stale AI execution state를 비운다', async () => {
+    act(() => {
+      useAnalysisStore.setState({
+        cachedAiRecommendation: {
+          method: { id: 'one-way-anova', name: 'Welch ANOVA', description: '', category: 'anova' },
+          confidence: 0.9,
+          reasoning: ['stale'],
+          assumptions: [],
+        },
+        detectedVariables: { dependentCandidate: 'old_score' },
+        suggestedSettings: { welch: true, postHoc: 'games-howell' },
+        diagnosticReport: { summary: 'stale' } as never,
+        assumptionResults: {
+          normality: { shapiroWilk: { statistic: 0.9, pValue: 0.01, isNormal: false } },
+        } as never,
+      })
+    })
+
+    await act(async () => {
+      const result = await useHistoryStore.getState().loadFromHistory('test-record-001')
+      if (result) {
+        useAnalysisStore.getState().restoreFromHistory(result)
+      }
+    })
+
+    const state = useAnalysisStore.getState()
+    expect(state.cachedAiRecommendation).toBeNull()
+    expect(state.detectedVariables).toBeNull()
+    expect(state.suggestedSettings).toBeNull()
+    expect(state.diagnosticReport).toBeNull()
+    expect(state.assumptionResults).toBeNull()
+  })
+
   it('loadSettingsFromHistory 후 lastAiRecommendation은 null이다', async () => {
     // Before: 현재 세션에 AI 추천이 있다
     act(() => {

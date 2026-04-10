@@ -78,7 +78,7 @@ const ONE_SAMPLE_T: DataFormatGuideInfo = {
 }
 
 const INDEPENDENT_T: DataFormatGuideInfo = {
-  methodId: 't-test',
+  methodId: 'two-sample-t',
   summary: '그룹 구분 열 + 측정값 열, 총 2열이 필요합니다',
   instructions: [
     '한 열에 그룹 이름 (예: "실험군", "대조군")',
@@ -128,7 +128,7 @@ const WELCH_T: DataFormatGuideInfo = {
 // ============================================================================
 
 const ONE_WAY_ANOVA: DataFormatGuideInfo = {
-  methodId: 'anova',
+  methodId: 'one-way-anova',
   summary: '그룹 구분 열 + 측정값 열, 총 2열이 필요합니다',
   instructions: [
     '한 열에 그룹 이름 (3개 이상)',
@@ -424,7 +424,7 @@ const MOOD_MEDIAN: DataFormatGuideInfo = {
 // ============================================================================
 
 const CORRELATION: DataFormatGuideInfo = {
-  methodId: 'correlation',
+  methodId: 'pearson-correlation',
   summary: '비교할 변수들을 각각 별도 열에 입력하세요',
   instructions: [
     '한 행에 하나의 관측값',
@@ -467,7 +467,7 @@ const PARTIAL_CORRELATION: DataFormatGuideInfo = {
 // ============================================================================
 
 const REGRESSION: DataFormatGuideInfo = {
-  methodId: 'regression',
+  methodId: 'simple-regression',
   summary: '예측에 사용할 변수(X)와 예측할 변수(Y)를 각각 별도 열에 입력하세요',
   instructions: [
     '한 행에 하나의 관측값',
@@ -553,7 +553,7 @@ const CHI_SQUARE_GOODNESS: DataFormatGuideInfo = {
 // ============================================================================
 
 const DESCRIPTIVE: DataFormatGuideInfo = {
-  methodId: 'descriptive',
+  methodId: 'descriptive-stats',
   summary: '분석할 변수들을 각각 별도 열에 입력하세요',
   instructions: [
     '수치형 변수: 평균, 표준편차, 최소, 최대 등',
@@ -815,6 +815,7 @@ const RELIABILITY: DataFormatGuideInfo = {
 export const DATA_FORMAT_GUIDES: Record<string, DataFormatGuideInfo> = {
   // t-검정
   'one-sample-t': ONE_SAMPLE_T,
+  'two-sample-t': INDEPENDENT_T,
   't-test': INDEPENDENT_T,
   'paired-t': PAIRED_T,
   'welch-t': WELCH_T,
@@ -830,23 +831,31 @@ export const DATA_FORMAT_GUIDES: Record<string, DataFormatGuideInfo> = {
   // 비모수
   'mann-whitney': MANN_WHITNEY,
   'wilcoxon': WILCOXON,
+  'wilcoxon-signed-rank': WILCOXON,
   'kruskal-wallis': KRUSKAL_WALLIS,
   'friedman': FRIEDMAN,
   'sign-test': SIGN_TEST,
   'mcnemar': MCNEMAR,
   'cochran-q': COCHRAN_Q,
   'binomial-test': BINOMIAL_TEST,
+  'one-sample-proportion': BINOMIAL_TEST,
   'runs-test': RUNS_TEST,
   'ks-test': KS_TEST,
+  'kolmogorov-smirnov': KS_TEST,
   'mood-median': MOOD_MEDIAN,
 
   // 상관
   'correlation': CORRELATION,
+  'pearson-correlation': CORRELATION,
   'partial-correlation': PARTIAL_CORRELATION,
 
   // 회귀
   'regression': REGRESSION,
+  'simple-regression': REGRESSION,
+  'logistic-regression': REGRESSION,
+  'poisson-regression': REGRESSION,
   'stepwise': STEPWISE,
+  'stepwise-regression': STEPWISE,
 
   // 범주형
   'chi-square': CHI_SQUARE,
@@ -855,12 +864,14 @@ export const DATA_FORMAT_GUIDES: Record<string, DataFormatGuideInfo> = {
 
   // 기술통계
   'descriptive': DESCRIPTIVE,
+  'descriptive-stats': DESCRIPTIVE,
   'normality-test': NORMALITY_TEST,
 
   // 시계열
   'arima': ARIMA,
   'seasonal-decompose': SEASONAL_DECOMPOSE,
   'mann-kendall': MANN_KENDALL,
+  'mann-kendall-test': MANN_KENDALL,
   'stationarity-test': STATIONARITY_TEST,
 
   // 생존분석
@@ -872,7 +883,9 @@ export const DATA_FORMAT_GUIDES: Record<string, DataFormatGuideInfo> = {
   'factor-analysis': FACTOR_ANALYSIS,
   'cluster': CLUSTER,
   'discriminant': DISCRIMINANT,
+  'discriminant-analysis': DISCRIMINANT,
   'reliability': RELIABILITY,
+  'reliability-analysis': RELIABILITY,
 }
 
 /**

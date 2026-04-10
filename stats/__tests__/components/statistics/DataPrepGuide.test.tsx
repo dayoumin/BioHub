@@ -45,6 +45,11 @@ describe('DataPrepGuide', () => {
       expect(screen.getByTestId('data-prep-guide')).toBeInTheDocument()
     })
 
+    it('canonical methodId로도 가이드를 렌더링한다', () => {
+      render(<DataPrepGuide methodId="simple-regression" />)
+      expect(screen.getByTestId('data-prep-guide')).toBeInTheDocument()
+    })
+
     it('methodId 없이 범용 가이드를 렌더링한다', () => {
       render(<DataPrepGuide />)
       expect(screen.getByTestId('data-prep-guide')).toBeInTheDocument()

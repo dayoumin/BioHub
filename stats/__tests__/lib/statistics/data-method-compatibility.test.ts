@@ -1596,7 +1596,7 @@ describe('ID Mapping Layer', () => {
       expect(result?.status).toBe('compatible')
     })
 
-    it('should resolve active page ids to canonical compatibility entries', () => {
+    it('should leave page-level correlation unresolved so page-specific options stay available', () => {
       const data = createDataSummary({
         sampleSize: 50,
         continuousCount: 2,
@@ -1605,8 +1605,7 @@ describe('ID Mapping Layer', () => {
       const map = getStructuralCompatibilityMap(data)
 
       const correlation = getCompatibilityForMethod(map, 'correlation')
-      expect(correlation).toBeDefined()
-      expect(correlation?.methodId).toBe('pearson-correlation')
+      expect(correlation).toBeUndefined()
     })
 
     it('should not resolve retired welch-anova alias', () => {
@@ -1676,7 +1675,7 @@ describe('applyCompatibilityFilter', () => {
     expect(result.alternatives.some(alt => alt.methodId === 'kruskal-wallis')).toBe(true)
   })
 
-  it('should canonicalize active page ids returned by the decision tree', () => {
+  it('should preserve page-level correlation recommendations', () => {
     const data = createDataSummary({
       sampleSize: 80,
       continuousCount: 2,
@@ -1699,8 +1698,8 @@ describe('applyCompatibilityFilter', () => {
       ]
     }, data, assumptions)
 
-    expect(result.methodId).toBe('pearson-correlation')
-    expect(result.compatibility.methodId).toBe('pearson-correlation')
+    expect(result.methodId).toBe('correlation')
+    expect(result.compatibility.methodId).toBe('correlation')
     expect(result.alternatives.some(alt => alt.methodId === 'descriptive-stats')).toBe(true)
   })
 })

@@ -247,9 +247,17 @@ export const useAnalysisStore = create<AnalysisState>()(
           currentStep: data.currentStep,
           completedSteps: data.completedSteps,
           uploadedData: null,
+          dataCharacteristics: null,
           validationResults: null,
+          assumptionResults: null,
           uploadedFile: null,
+          cachedAiRecommendation: null,
+          detectedVariables: null,
+          suggestedSettings: null,
           analysisOptions: data.analysisOptions,
+          diagnosticReport: null,
+          isLoading: false,
+          error: null,
         })
       },
 
@@ -266,7 +274,12 @@ export const useAnalysisStore = create<AnalysisState>()(
           selectedMethod: data.selectedMethod,
           variableMapping: data.variableMapping,
           analysisPurpose: data.analysisPurpose,
+          cachedAiRecommendation: null,
+          detectedVariables: null,
+          suggestedSettings: null,
           analysisOptions: data.analysisOptions,
+          diagnosticReport: null,
+          isLoading: false,
           currentStep: 1,
           completedSteps: [],
         })
@@ -354,13 +367,17 @@ export const useAnalysisStore = create<AnalysisState>()(
     }),
     {
       name: SESSION_STORAGE_KEYS.analysis.store,
-      version: 3,
+      version: 4,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<AnalysisState>
         if (version < 2) {
           if (!('suggestedSettings' in state)) {
             (state as Record<string, unknown>).suggestedSettings = null
           }
+        }
+        if (version < 4) {
+          state.detectedVariables = null
+          state.suggestedSettings = null
         }
         // v2 → v3: history/mode 필드 제거 (이전 persist에 남아있을 수 있음)
         // 이전 persist 데이터에서 mode/history 필드 무시 — 자동으로 drop됨
@@ -402,8 +419,6 @@ export const useAnalysisStore = create<AnalysisState>()(
         validationResults: state.validationResults,
         selectedMethod: state.selectedMethod,
         variableMapping: state.variableMapping,
-        detectedVariables: state.detectedVariables,
-        suggestedSettings: state.suggestedSettings,
         analysisOptions: state.analysisOptions,
         results: state.results,
         uploadedFileName: state.uploadedFileName,

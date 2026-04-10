@@ -264,6 +264,29 @@ describe('OpenRouterRecommender', () => {
       })
     })
 
+    it('canonical one-way-anova + welch=true도 Welch ANOVA variant로 정규화한다', () => {
+      const content = `\`\`\`json
+{
+  "methodId": "one-way-anova",
+  "methodName": "일원분산분석",
+  "confidence": 0.91,
+  "reasoning": ["등분산성이 충족되지 않았습니다."],
+  "suggestedSettings": {
+    "welch": true
+  }
+}
+\`\`\``
+      const result = recommender.parseResponse(content)
+
+      expect(result).not.toBeNull()
+      expect(result!.method.id).toBe('one-way-anova')
+      expect(result!.method.name).toBe('일원분산분석')
+      expect(result!.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+    })
+
     it('잘못된 JSON이면 null을 반환한다', () => {
       const content = '이것은 JSON이 아닙니다.'
       const result = recommender.parseResponse(content)

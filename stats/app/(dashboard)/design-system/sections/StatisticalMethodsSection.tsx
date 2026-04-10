@@ -39,32 +39,31 @@ import {
   type StatisticalMethodEntry,
 } from '@/lib/constants/statistical-methods'
 
-// DecisionTree에서 지원하는 메서드 목록 (KOREAN_NAMES에서 추출)
-// 49개 실제 분석 메서드 (개요 페이지 제외: non-parametric, chi-square)
-const DECISION_TREE_SUPPORTED = new Set([
-  // T-Test (4)
-  't-test', 'paired-t', 'welch-t', 'one-sample-t',
-  // ANOVA (6)
-  'anova', 'welch-anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model',
+// DecisionTree가 직접 추천하거나 대안으로 제시하는 page IDs.
+const DECISION_TREE_SUPPORTED_PAGE_IDS = new Set([
+  // T-Test
+  't-test', 'welch-t', 'one-sample-t',
+  // ANOVA
+  'anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model',
   // Nonparametric (12) - non-parametric overview excluded
   'wilcoxon', 'mann-whitney', 'friedman', 'kruskal-wallis',
   'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test', 'ks-test', 'mood-median', 'proportion-test',
   // Correlation (2)
   'correlation', 'partial-correlation',
-  // Regression (7)
-  'regression', 'logistic-regression', 'poisson', 'ordinal-regression', 'stepwise', 'dose-response', 'response-surface',
+  // Regression
+  'regression', 'logistic-regression', 'ordinal-regression', 'stepwise', 'dose-response', 'response-surface',
   // Chi-Square (2) - chi-square overview excluded
   'chi-square-independence', 'chi-square-goodness',
-  // Descriptive (4)
+  // Descriptive
   'descriptive', 'normality-test', 'explore-data', 'means-plot',
-  // Time Series (4)
+  // Time Series
   'arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall',
   // Survival (2)
   'kaplan-meier', 'cox-regression',
   // Multivariate (4)
   'pca', 'factor-analysis', 'cluster', 'discriminant',
-  // Other (2)
-  'power-analysis', 'reliability',
+  // Other
+  'power-analysis',
 ])
 
 // ============================================
@@ -193,7 +192,7 @@ function AliasLookupTester() {
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Enter method ID or alias (e.g., independent-t)"
+            placeholder="Enter method ID or alias (e.g., t-test)"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
@@ -246,7 +245,7 @@ function AliasLookupTester() {
         <div className="text-xs text-muted-foreground">
           <p className="font-medium mb-1">Try these examples:</p>
           <div className="flex flex-wrap gap-1">
-            {['independent-t', 'paired-t-test', 'one-way-anova', 'pearson', 'spearman', 'chi-squared'].map(ex => (
+            {['t-test', 'anova', 'pearson', 'linear-regression', 'reliability', 'chi-squared'].map(ex => (
               <button
                 key={ex}
                 onClick={() => { setInput(ex); }}
@@ -324,7 +323,7 @@ function AllMethodsTable() {
           <Table>
             <TableHeader className="sticky top-0 bg-background">
               <TableRow>
-                <TableHead className="w-[140px]">ID (Route)</TableHead>
+                <TableHead className="w-[140px]">Canonical ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead className="w-[100px]">Category</TableHead>
                 <TableHead>Aliases</TableHead>
@@ -371,23 +370,20 @@ function AllMethodsTable() {
 }
 
 // ============================================
-// Legacy ID Mapping Table
+// Compatibility ID Mapping Table
 // ============================================
 
-function LegacyIdMappingTable() {
-  const legacyMappings = [
-    { legacy: 'independent-t', canonical: 't-test', source: 'DecisionTree.ts' },
-    { legacy: 'independent-t-test', canonical: 't-test', source: 'decision-tree-recommender.ts' },
-    { legacy: 'paired-t', canonical: 'paired-t', source: 'DecisionTree.ts' },
-    { legacy: 'paired-t-test', canonical: 'paired-t', source: 'decision-tree-recommender.ts' },
-    { legacy: 'one-way-anova', canonical: 'anova', source: 'DecisionTree.ts' },
-    { legacy: 'welch-anova', canonical: 'welch-anova', source: 'DecisionTree.ts' },
-    { legacy: 'repeated-anova', canonical: 'repeated-measures-anova', source: 'DecisionTree.ts' },
-    { legacy: 'pearson', canonical: 'correlation', source: 'decision-tree-recommender.ts' },
-    { legacy: 'spearman', canonical: 'correlation', source: 'decision-tree-recommender.ts' },
-    { legacy: 'linear-regression', canonical: 'regression', source: 'decision-tree-recommender.ts' },
-    { legacy: 'multiple-regression', canonical: 'regression', source: 'decision-tree-recommender.ts' },
-    { legacy: 'chi-squared', canonical: 'chi-square', source: 'decision-tree-recommender.ts' },
+function CompatibilityIdMappingTable() {
+  const compatibilityMappings = [
+    { compatibility: 't-test', canonical: 'two-sample-t', source: 'statistical-methods.ts' },
+    { compatibility: 'anova', canonical: 'one-way-anova', source: 'statistical-methods.ts' },
+    { compatibility: 'pearson', canonical: 'pearson-correlation', source: 'statistical-methods.ts' },
+    { compatibility: 'spearman', canonical: 'pearson-correlation', source: 'statistical-methods.ts' },
+    { compatibility: 'linear-regression', canonical: 'simple-regression', source: 'statistical-methods.ts' },
+    { compatibility: 'multiple-regression', canonical: 'simple-regression', source: 'statistical-methods.ts' },
+    { compatibility: 'poisson', canonical: 'poisson-regression', source: 'statistical-methods.ts' },
+    { compatibility: 'reliability', canonical: 'reliability-analysis', source: 'statistical-methods.ts' },
+    { compatibility: 'chi-squared', canonical: 'chi-square-goodness', source: 'statistical-methods.ts' },
   ]
 
   return (
@@ -395,10 +391,10 @@ function LegacyIdMappingTable() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Info className="w-4 h-4" />
-          Legacy ID Compatibility
+          Compatibility ID Mapping
         </CardTitle>
         <CardDescription>
-          Old IDs are mapped to canonical IDs via aliases
+          Page IDs and compatibility aliases resolve to canonical method IDs
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -406,7 +402,7 @@ function LegacyIdMappingTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Legacy ID</TableHead>
+                <TableHead>Compatibility ID</TableHead>
                 <TableHead>
                   <ArrowRight className="w-4 h-4 inline mr-1" />
                   Canonical ID
@@ -415,10 +411,10 @@ function LegacyIdMappingTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {legacyMappings.map(mapping => (
-                <TableRow key={mapping.legacy}>
+              {compatibilityMappings.map(mapping => (
+                <TableRow key={mapping.compatibility}>
                   <TableCell className="font-mono text-xs">
-                    <code className="bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded">{mapping.legacy}</code>
+                    <code className="bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded">{mapping.compatibility}</code>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     <code className="bg-green-100 dark:bg-green-900/30 px-1 rounded">{mapping.canonical}</code>
@@ -444,9 +440,15 @@ function IdNamingRules() {
   const rules = [
     {
       rule: 'ID = Page Route',
-      example: 't-test → /statistics/t-test',
-      correct: 't-test',
-      wrong: 'independent-t-test',
+      example: 'pageId=t-test → /statistics/t-test',
+      correct: 'Keep route slug in pageId',
+      wrong: 'Assume route slug is always the canonical ID',
+    },
+    {
+      rule: 'Canonical ID = internal method key',
+      example: 'two-sample-t → /statistics/t-test',
+      correct: 'Use canonical IDs in runtime state',
+      wrong: 'Store page IDs as canonical IDs',
     },
     {
       rule: 'kebab-case only',
@@ -505,29 +507,35 @@ function IdNamingRules() {
 function DecisionTreeCoverageTable() {
   const allMethods = useMemo(() => getAllMethods(), [])
 
-  // 독립 페이지가 있는 메서드만 필터링 (id === pageId)
-  const independentMethods = useMemo(() => {
-    return allMethods.filter(m => m.id === m.pageId)
+  const pageEntries = useMemo(() => {
+    const byPage = new Map<string, StatisticalMethodEntry>()
+
+    for (const method of allMethods) {
+      const current = byPage.get(method.pageId)
+      if (!current || method.id === method.pageId) {
+        byPage.set(method.pageId, method)
+      }
+    }
+
+    return Array.from(byPage.values())
   }, [allMethods])
 
-  // 카테고리별 그룹화
   const methodsByCategory = useMemo(() => {
     const grouped: Record<string, StatisticalMethodEntry[]> = {}
-    for (const method of independentMethods) {
+    for (const method of pageEntries) {
       const cat = method.category
       if (!grouped[cat]) grouped[cat] = []
       grouped[cat].push(STATISTICAL_METHODS[method.id])
     }
     return grouped
-  }, [independentMethods])
+  }, [pageEntries])
 
-  // 통계
   const stats = useMemo(() => {
-    const total = independentMethods.length
-    const supported = independentMethods.filter(m => DECISION_TREE_SUPPORTED.has(m.id)).length
+    const total = pageEntries.length
+    const supported = pageEntries.filter(m => DECISION_TREE_SUPPORTED_PAGE_IDS.has(m.pageId)).length
     const missing = total - supported
     return { total, supported, missing, percent: Math.round((supported / total) * 100) }
-  }, [independentMethods])
+  }, [pageEntries])
 
   // 카테고리 순서 및 한글 이름
   const categoryOrder = [
@@ -540,9 +548,8 @@ function DecisionTreeCoverageTable() {
     { key: 'descriptive', name: 'Descriptive', korean: '기술통계' },
     { key: 'timeseries', name: 'Time Series', korean: '시계열' },
     { key: 'survival', name: 'Survival', korean: '생존분석' },
-    { key: 'pca', name: 'PCA', korean: '주성분분석' },
-    { key: 'clustering', name: 'Clustering', korean: '군집분석' },
-    { key: 'advanced', name: 'Advanced', korean: '고급분석' },
+    { key: 'multivariate', name: 'Multivariate', korean: '다변량분석' },
+    { key: 'design', name: 'Design', korean: '실험설계' },
     { key: 'psychometrics', name: 'Psychometrics', korean: '심리측정' },
   ]
 
@@ -554,7 +561,7 @@ function DecisionTreeCoverageTable() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base">DecisionTree Coverage</CardTitle>
-            <CardDescription>48개 통계 페이지 중 DecisionTree 안내 가능 여부</CardDescription>
+            <CardDescription>{stats.total}개 통계 페이지 중 DecisionTree 안내 가능 여부</CardDescription>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-center">
@@ -583,7 +590,7 @@ function DecisionTreeCoverageTable() {
           </div>
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>0</span>
-            <span>{stats.total} methods</span>
+            <span>{stats.total} pages</span>
           </div>
         </div>
 
@@ -593,7 +600,7 @@ function DecisionTreeCoverageTable() {
             const methods = methodsByCategory[cat.key]
             if (!methods || methods.length === 0) return null
 
-            const supportedInCat = methods.filter(m => DECISION_TREE_SUPPORTED.has(m.id)).length
+            const supportedInCat = methods.filter(m => DECISION_TREE_SUPPORTED_PAGE_IDS.has(m.pageId)).length
 
             return (
               <div key={cat.key} className="border rounded-lg overflow-hidden">
@@ -619,8 +626,7 @@ function DecisionTreeCoverageTable() {
                   <TableBody>
                     {methods.map(method => {
                       globalIndex++
-                      const isSupported = DECISION_TREE_SUPPORTED.has(method.id)
-                      const hasPage = method.id === method.pageId
+                      const isSupported = DECISION_TREE_SUPPORTED_PAGE_IDS.has(method.pageId)
 
                       return (
                         <TableRow key={method.id} className={!isSupported ? 'bg-red-50/50 dark:bg-red-950/10' : ''}>
@@ -628,7 +634,7 @@ function DecisionTreeCoverageTable() {
                             {String(globalIndex).padStart(2, '0')}
                           </TableCell>
                           <TableCell className="font-mono text-xs">
-                            <code className="bg-muted px-1 rounded">{method.id}</code>
+                            <code className="bg-muted px-1 rounded">{method.pageId}</code>
                           </TableCell>
                           <TableCell className="text-sm">{method.name}</TableCell>
                           <TableCell className="text-center">
@@ -639,18 +645,14 @@ function DecisionTreeCoverageTable() {
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            {hasPage ? (
-                              <a
-                                href={`/statistics/${method.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline text-xs"
-                              >
-                                Open
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">-</span>
-                            )}
+                            <a
+                              href={`/statistics/${method.pageId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-xs"
+                            >
+                              Open
+                            </a>
                           </TableCell>
                         </TableRow>
                       )
@@ -669,11 +671,11 @@ function DecisionTreeCoverageTable() {
             미지원 메서드 ({stats.missing}개)
           </h4>
           <div className="flex flex-wrap gap-2">
-            {independentMethods
-              .filter(m => !DECISION_TREE_SUPPORTED.has(m.id))
+            {pageEntries
+              .filter(m => !DECISION_TREE_SUPPORTED_PAGE_IDS.has(m.pageId))
               .map(m => (
-                <code key={m.id} className="text-xs bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">
-                  {m.id}
+                <code key={m.pageId} className="text-xs bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">
+                  {m.pageId}
                 </code>
               ))
             }
@@ -689,6 +691,13 @@ function DecisionTreeCoverageTable() {
 // ============================================
 
 export function StatisticalMethodsSection() {
+  const allMethods = useMemo(() => getAllMethods(), [])
+  const totalPages = useMemo(() => new Set(allMethods.map(method => method.pageId)).size, [allMethods])
+  const embeddedMethods = useMemo(
+    () => allMethods.filter(method => method.id !== method.pageId),
+    [allMethods],
+  )
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
@@ -720,8 +729,8 @@ export function StatisticalMethodsSection() {
         <IdNamingRules />
       </div>
 
-      {/* Legacy ID Mapping */}
-      <LegacyIdMappingTable />
+      {/* Compatibility ID Mapping */}
+      <CompatibilityIdMappingTable />
 
       {/* All Methods Table */}
       <AllMethodsTable />
@@ -737,39 +746,29 @@ export function StatisticalMethodsSection() {
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center mb-4">
             <div className="p-3 bg-background rounded-lg border">
-              <div className="text-2xl font-bold">51</div>
+              <div className="text-2xl font-bold">{allMethods.length}</div>
               <div className="text-xs text-muted-foreground">Total Definitions</div>
             </div>
             <div className="p-3 bg-background rounded-lg border">
-              <div className="text-2xl font-bold text-green-600">48</div>
-              <div className="text-xs text-muted-foreground">Independent Pages</div>
+              <div className="text-2xl font-bold text-green-600">{totalPages}</div>
+              <div className="text-xs text-muted-foreground">Page Routes</div>
             </div>
             <div className="p-3 bg-background rounded-lg border">
-              <div className="text-2xl font-bold text-amber-600">3</div>
+              <div className="text-2xl font-bold text-amber-600">{embeddedMethods.length}</div>
               <div className="text-xs text-muted-foreground">Embedded Methods</div>
             </div>
           </div>
           <div className="text-sm">
             <p className="font-medium mb-2">Embedded Methods (pageId !== id):</p>
             <div className="space-y-1 text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <code className="bg-muted px-1 rounded text-xs">paired-t</code>
-                <ArrowRight className="w-3 h-3" />
-                <code className="bg-muted px-1 rounded text-xs">t-test</code>
-                <span className="text-xs">page</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <code className="bg-muted px-1 rounded text-xs">welch-anova</code>
-                <ArrowRight className="w-3 h-3" />
-                <code className="bg-muted px-1 rounded text-xs">anova</code>
-                <span className="text-xs">page</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <code className="bg-muted px-1 rounded text-xs">logistic-regression</code>
-                <ArrowRight className="w-3 h-3" />
-                <code className="bg-muted px-1 rounded text-xs">regression</code>
-                <span className="text-xs">page</span>
-              </div>
+              {embeddedMethods.map(method => (
+                <div key={method.id} className="flex items-center gap-2">
+                  <code className="bg-muted px-1 rounded text-xs">{method.id}</code>
+                  <ArrowRight className="w-3 h-3" />
+                  <code className="bg-muted px-1 rounded text-xs">{method.pageId}</code>
+                  <span className="text-xs">page</span>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -783,7 +782,7 @@ export function StatisticalMethodsSection() {
             <div className="space-y-2 text-sm">
               <p className="font-medium">Source Files:</p>
               <ul className="text-muted-foreground space-y-1">
-                <li><code className="bg-muted px-1 rounded">lib/constants/statistical-methods.ts</code> - Single source of truth (51 definitions, 48 pages)</li>
+                <li><code className="bg-muted px-1 rounded">lib/constants/statistical-methods.ts</code> - Single source of truth for canonical IDs, page IDs, and compatibility aliases</li>
                 <li><code className="bg-muted px-1 rounded">components/analysis/steps/purpose/DecisionTree.ts</code> - Decision logic</li>
                 <li><code className="bg-muted px-1 rounded">components/analysis/steps/purpose/auto-answer.ts</code> - Auto-answer from data</li>
                 <li><code className="bg-muted px-1 rounded">components/analysis/steps/purpose/guided-flow-questions.ts</code> - Questions per purpose</li>
