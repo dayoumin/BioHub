@@ -24,19 +24,16 @@ import type {
   SettingOption,
   StatisticalMethodRequirements,
 } from '@/lib/statistics/variable-requirements'
+import {
+  MANAGED_REQUIREMENT_SETTING_KEYS,
+  buildManagedAnalysisOptionDefaults,
+  type ManagedRequirementSettingKey,
+} from '@/lib/utils/analysis-execution'
 
 interface AnalysisOptionsSectionProps {
   methodRequirements?: StatisticalMethodRequirements
   className?: string
 }
-
-const MANAGED_SETTING_KEYS = new Set([
-  'alpha',
-  'testValue',
-  'testProportion',
-  'alternative',
-  'ciMethod',
-])
 
 type GenericSettingValue = string | number | boolean
 
@@ -87,7 +84,9 @@ export function AnalysisOptionsSection({
   const ciMethodSetting = settings?.ciMethod
 
   const genericSettings = useMemo(
-    () => Object.entries(settings ?? {}).filter(([key]) => !MANAGED_SETTING_KEYS.has(key)),
+    () => Object.entries(settings ?? {}).filter(([key]) => (
+      key !== 'alpha' && !MANAGED_REQUIREMENT_SETTING_KEYS.has(key as ManagedRequirementSettingKey)
+    )),
     [settings]
   )
 
@@ -116,32 +115,10 @@ export function AnalysisOptionsSection({
       nullProportion?: number
       testValue?: number
       methodSettings?: Record<string, GenericSettingValue>
-    } = {}
-
-    if (alternativeSetting?.default && analysisOptions.alternative === undefined) {
-      const value = String(alternativeSetting.default)
-      if (value === 'two-sided' || value === 'less' || value === 'greater') {
-        defaults.alternative = value
-      }
-    }
-
-    if (ciMethodSetting?.default && analysisOptions.ciMethod === undefined) {
-      defaults.ciMethod = String(ciMethodSetting.default)
-    }
-
-    if (nullProportionSetting?.default !== undefined && analysisOptions.nullProportion === undefined) {
-      const parsed = Number(nullProportionSetting.default)
-      if (Number.isFinite(parsed)) {
-        defaults.nullProportion = parsed
-      }
-    }
-
-    if (testValueSetting?.default !== undefined && analysisOptions.testValue === undefined) {
-      const parsed = Number(testValueSetting.default)
-      if (Number.isFinite(parsed)) {
-        defaults.testValue = parsed
-      }
-    }
+    } = buildManagedAnalysisOptionDefaults({
+      analysisOptions,
+      methodRequirements,
+    })
 
     const nextMethodSettings = { ...(analysisOptions.methodSettings ?? {}) }
     let hasMethodSettingDefaults = false
@@ -164,17 +141,10 @@ export function AnalysisOptionsSection({
     initializedDefaultsKeyRef.current = initializationKey
   }, [
     methodRequirements?.id,
-    alternativeSetting?.default,
-    ciMethodSetting?.default,
-    nullProportionSetting?.default,
-    testValueSetting?.default,
     genericSettings,
-    analysisOptions.alternative,
-    analysisOptions.ciMethod,
-    analysisOptions.nullProportion,
-    analysisOptions.testValue,
-    analysisOptions.methodSettings,
+    analysisOptions,
     setAnalysisOptions,
+    methodRequirements,
   ])
 
   const handleAlphaChange = useCallback((value: string) => {

@@ -4,6 +4,15 @@ import type { AnalysisOptions, SuggestedSettings } from '@/types/analysis'
 
 export type ExecutionSettingValue = string | number | boolean | undefined
 export type ExecutionSettingsRecord = Record<string, ExecutionSettingValue>
+export type ManagedAnalysisOptionKey = 'testValue' | 'nullProportion' | 'alternative' | 'ciMethod'
+export type ManagedRequirementSettingKey = 'testValue' | 'testProportion' | 'alternative' | 'ciMethod'
+
+export const MANAGED_REQUIREMENT_SETTING_KEYS = new Set<ManagedRequirementSettingKey>([
+  'testValue',
+  'testProportion',
+  'alternative',
+  'ciMethod',
+])
 
 export interface ExecutionSettingEntry {
   key: string
@@ -25,10 +34,85 @@ export interface AnalysisExecutionContext {
   executionSettingEntries: ExecutionSettingEntry[]
 }
 
+interface ManagedExecutionSchema {
+  analysisOptionKey: ManagedAnalysisOptionKey
+  requirementSettingKey: ManagedRequirementSettingKey
+  executionTarget: 'setting' | 'variable'
+  executionKey: string
+  parseAnalysisOptionValue: (value: unknown) => AnalysisOptions[ManagedAnalysisOptionKey] | undefined
+  serializeExecutionValue: (value: unknown) => ExecutionSettingValue
+}
+
+const MANAGED_EXECUTION_SCHEMAS: ManagedExecutionSchema[] = [
+  {
+    analysisOptionKey: 'testValue',
+    requirementSettingKey: 'testValue',
+    executionTarget: 'variable',
+    executionKey: 'testValue',
+    parseAnalysisOptionValue: (value) => {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : undefined
+    },
+    serializeExecutionValue: (value) => String(value),
+  },
+  {
+    analysisOptionKey: 'nullProportion',
+    requirementSettingKey: 'testProportion',
+    executionTarget: 'variable',
+    executionKey: 'nullProportion',
+    parseAnalysisOptionValue: (value) => {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : undefined
+    },
+    serializeExecutionValue: (value) => String(value),
+  },
+  {
+    analysisOptionKey: 'alternative',
+    requirementSettingKey: 'alternative',
+    executionTarget: 'setting',
+    executionKey: 'alternative',
+    parseAnalysisOptionValue: (value) => {
+      const normalized = String(value)
+      return normalized === 'two-sided' || normalized === 'less' || normalized === 'greater'
+        ? normalized
+        : undefined
+    },
+    serializeExecutionValue: (value) => {
+      const normalized = String(value)
+      return normalized === 'two-sided' || normalized === 'less' || normalized === 'greater'
+        ? normalized
+        : undefined
+    },
+  },
+  {
+    analysisOptionKey: 'ciMethod',
+    requirementSettingKey: 'ciMethod',
+    executionTarget: 'setting',
+    executionKey: 'ciMethod',
+    parseAnalysisOptionValue: (value) => String(value),
+    serializeExecutionValue: (value) => String(value),
+  },
+]
+
 function formatExecutionSettingValue(value: unknown): string {
   if (typeof value === 'boolean') return value ? '예' : '아니오'
   if (Array.isArray(value)) return value.join(', ')
   return String(value)
+}
+
+function getManagedExecutionSchemas(
+  methodRequirements?: StatisticalMethodRequirements
+): ManagedExecutionSchema[] {
+  return MANAGED_EXECUTION_SCHEMAS.filter(schema => (
+    methodRequirements?.settings?.[schema.requirementSettingKey] !== undefined
+  ))
+}
+
+function getManagedAnalysisOptionValue(
+  analysisOptions: AnalysisOptions,
+  key: ManagedAnalysisOptionKey
+): AnalysisOptions[ManagedAnalysisOptionKey] {
+  return analysisOptions[key]
 }
 
 function getSettingOptionLabel(
@@ -59,6 +143,28 @@ function resolveManagedSettingValue({
   return suggestedValue
 }
 
+export function buildManagedAnalysisOptionDefaults(args: {
+  analysisOptions: AnalysisOptions
+  methodRequirements?: StatisticalMethodRequirements
+}): Partial<AnalysisOptions> {
+  const defaults: Partial<AnalysisOptions> = {}
+
+  for (const schema of getManagedExecutionSchemas(args.methodRequirements)) {
+    const currentValue = getManagedAnalysisOptionValue(args.analysisOptions, schema.analysisOptionKey)
+    if (currentValue !== undefined) continue
+
+    const defaultValue = args.methodRequirements?.settings?.[schema.requirementSettingKey]?.default
+    if (defaultValue === undefined || defaultValue === null) continue
+
+    const parsedDefault = schema.parseAnalysisOptionValue(defaultValue)
+    if (parsedDefault !== undefined) {
+      defaults[schema.analysisOptionKey] = parsedDefault
+    }
+  }
+
+  return defaults
+}
+
 function buildEffectiveExecutionSettings({
   analysisOptions,
   methodRequirements,
@@ -70,22 +176,20 @@ function buildEffectiveExecutionSettings({
     alpha: analysisOptions.alpha,
   }
 
-  const resolvedAlternative = resolveManagedSettingValue({
-    defaultValue: methodRequirements?.settings?.alternative?.default,
-    suggestedValue: suggestedSettings?.alternative,
-    userValue: analysisOptions.alternative,
-  })
-  if (resolvedAlternative !== undefined && resolvedAlternative !== null) {
-    merged.alternative = resolvedAlternative as ExecutionSettingValue
-  }
+  for (const schema of getManagedExecutionSchemas(methodRequirements)) {
+    if (schema.executionTarget !== 'setting') continue
 
-  const resolvedCiMethod = resolveManagedSettingValue({
-    defaultValue: methodRequirements?.settings?.ciMethod?.default,
-    suggestedValue: suggestedSettings?.ciMethod,
-    userValue: analysisOptions.ciMethod,
-  })
-  if (resolvedCiMethod !== undefined && resolvedCiMethod !== null) {
-    merged.ciMethod = resolvedCiMethod as ExecutionSettingValue
+    const resolvedValue = resolveManagedSettingValue({
+      defaultValue: methodRequirements?.settings?.[schema.requirementSettingKey]?.default,
+      suggestedValue: suggestedSettings?.[schema.executionKey as keyof SuggestedSettings],
+      userValue: getManagedAnalysisOptionValue(analysisOptions, schema.analysisOptionKey),
+    })
+    if (resolvedValue === undefined || resolvedValue === null) continue
+
+    const serialized = schema.serializeExecutionValue(resolvedValue)
+    if (serialized !== undefined) {
+      merged[schema.executionKey] = serialized
+    }
   }
 
   return merged
@@ -94,33 +198,35 @@ function buildEffectiveExecutionSettings({
 function buildEffectiveExecutionVariables({
   analysisOptions,
   methodRequirements,
-  selectedMethodId,
   variableMapping,
-}: Pick<BuildAnalysisExecutionContextArgs, 'analysisOptions' | 'methodRequirements' | 'selectedMethodId' | 'variableMapping'>): VariableMapping {
-  return {
+}: Pick<BuildAnalysisExecutionContextArgs, 'analysisOptions' | 'methodRequirements' | 'variableMapping'>): VariableMapping {
+  const mergedVariables: VariableMapping = {
     ...(variableMapping ?? {}),
-    ...(analysisOptions.testValue !== undefined
-      ? { testValue: String(analysisOptions.testValue) }
-      : {}),
-    ...(
-      selectedMethodId === 'proportion-test' || selectedMethodId === 'one-sample-proportion'
-        ? {
-            nullProportion: String(
-              analysisOptions.nullProportion
-              ?? methodRequirements?.settings?.testProportion?.default
-              ?? 0.5
-            ),
-          }
-        : {}
-    ),
   }
+
+  for (const schema of getManagedExecutionSchemas(methodRequirements)) {
+    if (schema.executionTarget !== 'variable') continue
+
+    const defaultValue = methodRequirements?.settings?.[schema.requirementSettingKey]?.default
+    const userValue = getManagedAnalysisOptionValue(analysisOptions, schema.analysisOptionKey)
+    const resolvedValue = userValue ?? defaultValue
+    if (resolvedValue === undefined || resolvedValue === null) continue
+
+    const serialized = schema.serializeExecutionValue(resolvedValue)
+    if (serialized !== undefined) {
+      ;(mergedVariables as Record<string, ExecutionSettingValue>)[schema.executionKey] = serialized
+    }
+  }
+
+  return mergedVariables
 }
 
 function buildExecutionSettingEntries({
   analysisOptions,
   effectiveExecutionSettings,
+  effectiveExecutionVariables,
   methodRequirements,
-}: Pick<AnalysisExecutionContext, 'effectiveExecutionSettings'> & Pick<BuildAnalysisExecutionContextArgs, 'analysisOptions' | 'methodRequirements'>): ExecutionSettingEntry[] {
+}: Pick<AnalysisExecutionContext, 'effectiveExecutionSettings' | 'effectiveExecutionVariables'> & Pick<BuildAnalysisExecutionContextArgs, 'analysisOptions' | 'methodRequirements'>): ExecutionSettingEntry[] {
   const entries: ExecutionSettingEntry[] = [
     { key: 'alpha', label: 'alpha', value: String(analysisOptions.alpha) },
   ]
@@ -131,42 +237,22 @@ function buildExecutionSettingEntries({
     entries.push({ key, label, value: formatExecutionSettingValue(rawValue) })
   }
 
-  if (settings?.testValue) {
-    pushEntry(
-      'testValue',
-      settings.testValue.label,
-      analysisOptions.testValue ?? settings.testValue.default
-    )
-  }
+  for (const schema of getManagedExecutionSchemas(methodRequirements)) {
+    const setting = settings?.[schema.requirementSettingKey]
+    if (!setting) continue
 
-  if (settings?.testProportion) {
-    pushEntry(
-      'testProportion',
-      settings.testProportion.label,
-      analysisOptions.nullProportion ?? settings.testProportion.default
-    )
-  }
+    const rawValue = schema.executionTarget === 'setting'
+      ? effectiveExecutionSettings[schema.executionKey]
+      : effectiveExecutionVariables[schema.executionKey as keyof VariableMapping]
+    const displayValue = setting.options
+      ? getSettingOptionLabel(setting.options, rawValue)
+      : rawValue
 
-  if (settings?.alternative) {
-    const rawValue = effectiveExecutionSettings.alternative
-    pushEntry(
-      'alternative',
-      settings.alternative.label,
-      rawValue !== undefined ? getSettingOptionLabel(settings.alternative.options, rawValue) : undefined
-    )
-  }
-
-  if (settings?.ciMethod) {
-    const rawValue = effectiveExecutionSettings.ciMethod
-    pushEntry(
-      'ciMethod',
-      settings.ciMethod.label,
-      rawValue !== undefined ? getSettingOptionLabel(settings.ciMethod.options, rawValue) : undefined
-    )
+    pushEntry(schema.requirementSettingKey, setting.label, displayValue)
   }
 
   for (const [key, setting] of Object.entries(settings ?? {})) {
-    if (['alpha', 'testValue', 'testProportion', 'alternative', 'ciMethod'].includes(key)) continue
+    if (key === 'alpha' || MANAGED_REQUIREMENT_SETTING_KEYS.has(key as ManagedRequirementSettingKey)) continue
 
     const rawValue = effectiveExecutionSettings[key]
     if (rawValue === undefined) continue
@@ -191,6 +277,7 @@ export function buildAnalysisExecutionContext(
   const executionSettingEntries = buildExecutionSettingEntries({
     analysisOptions: args.analysisOptions,
     effectiveExecutionSettings,
+    effectiveExecutionVariables,
     methodRequirements: args.methodRequirements,
   })
 

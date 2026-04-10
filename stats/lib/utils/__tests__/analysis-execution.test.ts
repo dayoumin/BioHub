@@ -40,7 +40,7 @@ describe('buildAnalysisExecutionContext', () => {
     expect(result.effectiveExecutionSettings.alternative).toBe('less')
   })
 
-  it('proportion methods merge testValue and fallback nullProportion into execution variables', () => {
+  it('proportion methods carry only the schema-managed nullProportion into execution variables', () => {
     const result = buildAnalysisExecutionContext({
       analysisOptions: makeAnalysisOptions({ testValue: 42 }),
       methodRequirements: getMethodRequirements('one-sample-proportion'),
@@ -50,10 +50,23 @@ describe('buildAnalysisExecutionContext', () => {
 
     expect(result.effectiveExecutionVariables).toEqual({
       dependentVar: 'outcome',
-      testValue: '42',
       nullProportion: '0.5',
     })
     expect(result.effectiveExecutionSettings.ciMethod).toBe('wilson')
+  })
+
+  it('one-sample t-test carries the schema default testValue into execution variables even before Step 3 initializes state', () => {
+    const result = buildAnalysisExecutionContext({
+      analysisOptions: makeAnalysisOptions(),
+      methodRequirements: getMethodRequirements('one-sample-t'),
+      selectedMethodId: 'one-sample-t',
+      variableMapping: { dependentVar: 'score' },
+    })
+
+    expect(result.effectiveExecutionVariables).toEqual({
+      dependentVar: 'score',
+      testValue: '0',
+    })
   })
 
   it('builds summary entries with option labels and execution toggles', () => {

@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.37.0",
+  "version": "1.38.0",
   "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
@@ -159,6 +159,19 @@
             "batch validation",
             "multiple results",
             "failed methods"
+          ]
+        },
+        {
+          "name": "Execution schema 기본값 회귀 테스트",
+          "purpose": "Step 3 상태 초기화 여부와 무관하게 managed execution schema 기본값이 Step 4 context에 반영되도록 고정",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { getMethodRequirements } from '@/lib/statistics/variable-requirements';\nimport { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution';\n\ndescribe('buildAnalysisExecutionContext defaults', () => {\n  it('one-sample t-test는 Step 3 진입 전에도 기본 testValue를 execution variable로 직렬화한다', () => {\n    const result = buildAnalysisExecutionContext({\n      analysisOptions: {\n        alpha: 0.05,\n        showAssumptions: true,\n        showEffectSize: true,\n        methodSettings: {},\n      },\n      methodRequirements: getMethodRequirements('one-sample-t'),\n      selectedMethodId: 'one-sample-t',\n      variableMapping: { dependentVar: 'score' },\n    });\n\n    expect(result.effectiveExecutionVariables).toEqual({\n      dependentVar: 'score',\n      testValue: '0',\n    });\n  });\n});",
+          "keywords": [
+            "buildAnalysisExecutionContext",
+            "managed schema",
+            "default value",
+            "testValue",
+            "execution context",
+            "regression"
           ]
         }
       ]
