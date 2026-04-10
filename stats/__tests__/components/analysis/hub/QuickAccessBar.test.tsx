@@ -117,7 +117,7 @@ vi.mock('@/lib/utils/pinned-history-storage', () => ({
   MAX_VISIBLE_PILLS: 5,
 }))
 
-// Graph Studio project-storage mock
+// Graph Studio mock
 let mockProjects: Array<{
   id: string
   name: string
@@ -128,14 +128,11 @@ let mockProjects: Array<{
   updatedAt: string
 }> = []
 
-vi.mock('@/lib/graph-studio/project-storage', () => ({
+vi.mock('@/lib/graph-studio', () => ({
   listProjects: () => mockProjects,
   deleteProjectCascade: vi.fn((id: string) => {
     mockProjects = mockProjects.filter(p => p.id !== id)
   }),
-}))
-
-vi.mock('@/lib/graph-studio/chart-spec-defaults', () => ({
   CHART_TYPE_HINTS: {
     bar: { label: '막대 차트' },
     scatter: { label: '산점도' },
@@ -383,7 +380,7 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
 
   it('시각화 카드 삭제 시 deleteProjectCascade 호출 + UI에서 사라짐', async () => {
     const user = userEvent.setup()
-    const { deleteProjectCascade } = await import('@/lib/graph-studio/project-storage')
+    const { deleteProjectCascade } = await import('@/lib/graph-studio')
 
     mockProjects = [
       makeVizProject({ id: 'proj-del', name: '삭제할 차트' }),
@@ -452,6 +449,36 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     expect(cards).toHaveLength(5)
   })
 
+  it('compact rail props cap cards and tighten the card layout', () => {
+    const now = Date.now()
+
+    for (let i = 0; i < 4; i++) {
+      mockAnalysisHistory.push(
+        makeStatHistory({
+          id: `rail-stat-${i}`,
+          timestamp: new Date(now - i * 100_000),
+          method: { id: 't-test', name: `rail-${i}`, category: 't-test' },
+        })
+      )
+    }
+
+    const { container } = render(
+      <QuickAccessBar
+        {...defaultProps}
+        showHeader={false}
+        maxItems={3}
+        compact
+        className="rail-shell"
+      />
+    )
+
+    const cards = screen.getAllByRole('button')
+      .filter(el => el.classList.contains('group'))
+    expect(cards).toHaveLength(3)
+    expect(cards[0]?.className).toContain('p-3.5')
+    expect(container.firstChild).toHaveClass('rail-shell')
+  })
+
   // ─── 아이콘 색상 구분 ───
 
   it('통계: emerald 아이콘, 시각화: violet 아이콘', () => {
@@ -474,18 +501,18 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
 
     // 통계 카드의 아이콘 컨테이너: emerald
     const statCard = cards.find(c => c.textContent?.includes('통계 카드'))!
-    const statIcon = statCard.querySelector('.bg-emerald-100')
+    const statIcon = statCard.querySelector('[data-activity-icon="statistics-complete"]')
     expect(statIcon).not.toBeNull()
 
     // 시각화 카드의 아이콘 컨테이너: violet
     const vizCard = cards.find(c => c.textContent?.includes('시각화 카드'))!
-    const vizIcon = vizCard.querySelector('.bg-violet-100')
+    const vizIcon = vizCard.querySelector('[data-activity-icon="visualization"]')
     expect(vizIcon).not.toBeNull()
   })
 
-  // ─── 시각화 카드 border-l accent ───
+  // ─── activity kind metadata ───
 
-  it('시각화 카드는 좌측 보라 border accent를 가짐', () => {
+  it('시각화 카드는 visualization activity kind를 가짐', () => {
     mockProjects = [
       makeVizProject({ id: 'proj-border', name: '보더 차트' }),
     ]
@@ -493,10 +520,10 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     render(<QuickAccessBar {...defaultProps} />)
 
     const card = screen.getByText('보더 차트').closest('[role="button"]')!
-    expect(card.className).toContain('border-l-')
+    expect(card).toHaveAttribute('data-activity-kind', 'visualization')
   })
 
-  it('통계 카드는 좌측 border accent 없음', () => {
+  it('통계 카드는 statistics activity kind를 가짐', () => {
     mockAnalysisHistory.push(
       makeStatHistory({
         id: 'stat-border',
@@ -507,7 +534,8 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     render(<QuickAccessBar {...defaultProps} />)
 
     const card = screen.getByText('보더 없는 카드').closest('[role="button"]')!
-    expect(card.className).not.toContain('border-l-violet')
+    expect(card).toHaveAttribute('data-activity-kind', 'statistics')
+    expect(card.querySelector('[data-activity-icon="statistics-complete"]')).not.toBeNull()
   })
 
   // ─── p-value 없는 통계 ───

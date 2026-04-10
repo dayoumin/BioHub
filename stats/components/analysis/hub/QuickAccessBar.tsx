@@ -102,11 +102,21 @@ interface QuickAccessBarProps {
   onHistoryClick: (historyId: string) => void
   onHistoryDelete: (historyId: string) => Promise<void>
   showHeader?: boolean
+  maxItems?: number
+  compact?: boolean
+  className?: string
 }
 
 // ===== Component =====
 
-export function QuickAccessBar({ onHistoryClick, onHistoryDelete, showHeader = true }: QuickAccessBarProps) {
+export function QuickAccessBar({
+  onHistoryClick,
+  onHistoryDelete,
+  showHeader = true,
+  maxItems = MAX_VISIBLE_PILLS,
+  compact = false,
+  className,
+}: QuickAccessBarProps) {
   const t = useTerminology()
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
@@ -175,13 +185,13 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, showHeader = t
       .filter(c => !c.isPinned)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
-    const remaining = Math.max(0, MAX_VISIBLE_PILLS - pinned.length)
+    const remaining = Math.max(0, maxItems - Math.min(pinned.length, maxItems))
     return {
-      visibleItems: [...pinned, ...unpinned.slice(0, remaining)],
+      visibleItems: [...pinned.slice(0, maxItems), ...unpinned.slice(0, remaining)],
       totalCount: all.length,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisHistory, pinnedIds, t, vizRefreshKey])
+  }, [analysisHistory, maxItems, pinnedIds, t, vizRefreshKey])
 
   // Card click handler
   const handleCardClick = useCallback((card: ActivityCard) => {
@@ -228,6 +238,7 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, showHeader = t
 
   return (
     <motion.div
+      className={className}
       initial={prefersReducedMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, delay: 0.4 }}
@@ -247,12 +258,13 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, showHeader = t
           className="py-10"
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div className={cn(compact ? 'space-y-2.5' : 'grid grid-cols-1 md:grid-cols-2 gap-2.5')}>
           {visibleItems.map(card => (
             <ActivityCardItem
               key={card.id}
               card={card}
               t={t}
+              compact={compact}
               onClick={() => handleCardClick(card)}
               onTogglePin={() => handleTogglePin(card.id)}
               onDelete={() => handleDeleteRequest(card.id, card.type)}
@@ -280,24 +292,27 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, showHeader = t
 interface ActivityCardItemProps {
   card: ActivityCard
   t: ReturnType<typeof useTerminology>
+  compact: boolean
   onClick: () => void
   onTogglePin: () => void
   onDelete: () => void
 }
 
-function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityCardItemProps) {
+function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: ActivityCardItemProps) {
   const isViz = card.type === 'visualization'
 
   return (
-      <div
-        className={cn(
-          'group flex items-start justify-between gap-4 rounded-2xl border p-4',
-          'bg-surface-container-lowest',
-          'hover:bg-surface-container-low/30 active:scale-[0.99] transition-all duration-200 cursor-pointer',
-          card.isPinned && 'border-primary/20 bg-primary/[0.03]',
-          'border-border/50',
-        )}
+    <div
+      className={cn(
+        'group flex items-start justify-between rounded-2xl border',
+        'bg-surface-container-lowest',
+        'hover:bg-surface-container-low/30 active:scale-[0.99] transition-all duration-200 cursor-pointer',
+        card.isPinned && 'border-primary/20 bg-primary/[0.03]',
+        compact ? 'gap-3 p-3.5' : 'gap-4 p-4',
+        'border-border/50',
+      )}
       data-testid={`recent-activity-card-${card.id}`}
+      data-activity-kind={card.type}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -306,18 +321,24 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
       <div className="flex min-w-0 items-start gap-3">
         {/* 상태 아이콘 — 통계 vs 시각화 */}
         {isViz ? (
-          <VisualizationIcon chartType={card.chartType} />
+          <VisualizationIcon chartType={card.chartType} compact={compact} />
         ) : (
-          <StatisticsIcon hasResults={card.hasResults ?? false} />
+          <StatisticsIcon hasResults={card.hasResults ?? false} compact={compact} />
         )}
 
         {/* 제목 + 메타 */}
         <div className="min-w-0">
-          <p className="font-semibold text-sm truncate text-foreground">
+          <p className={cn(
+            'font-semibold text-foreground',
+            compact ? 'text-[13px] leading-5 line-clamp-2' : 'text-sm truncate',
+          )}>
             {isViz ? card.name : (card.method?.name || card.name)}
           </p>
           {!isViz && card.dataFileName && (
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            <p className={cn(
+              'mt-0.5 text-xs text-muted-foreground',
+              compact ? 'line-clamp-1' : 'truncate',
+            )}>
               {card.dataFileName}
             </p>
           )}
@@ -389,26 +410,39 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
 
 // ===== Icon Sub-components =====
 
-function StatisticsIcon({ hasResults }: { hasResults: boolean }) {
+function StatisticsIcon({ hasResults, compact }: { hasResults: boolean; compact: boolean }) {
   if (hasResults) {
     return (
-      <div className="shrink-0 rounded-xl bg-emerald-100 p-2.5 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+      <div
+        data-activity-icon="statistics-complete"
+        className={cn(
+          'shrink-0 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+          compact ? 'p-2' : 'p-2.5',
+        )}
+      >
         <CheckCircle2 className="w-4 h-4" />
       </div>
     )
   }
   return (
-    <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary">
+    <div
+      data-activity-icon="statistics-loading"
+      className={cn(
+        'shrink-0 rounded-xl bg-primary/10 text-primary',
+        compact ? 'p-2' : 'p-2.5',
+      )}
+    >
       <Loader2 className="w-4 h-4 animate-spin" />
     </div>
   )
 }
 
-function VisualizationIcon({ chartType }: { chartType?: ChartType }) {
+function VisualizationIcon({ chartType, compact }: { chartType?: ChartType; compact: boolean }) {
   const Icon = getChartIcon(chartType ?? 'bar')
   return (
     <div
-      className="shrink-0 rounded-xl p-2.5"
+      data-activity-icon="visualization"
+      className={cn('shrink-0 rounded-xl', compact ? 'p-2' : 'p-2.5')}
       style={{
         background: 'color-mix(in oklch, var(--section-accent-graph) 12%, var(--surface-container-lowest))',
         color: 'var(--section-accent-graph)',

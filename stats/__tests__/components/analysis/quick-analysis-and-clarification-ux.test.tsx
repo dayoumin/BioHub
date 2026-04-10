@@ -8,6 +8,7 @@ const analysisStoreState = {
   uploadedData: null as unknown[] | null,
 }
 
+let lastQuickAccessBarProps: Record<string, unknown> | null = null
 let lastChatThreadProps: Record<string, unknown> | null = null
 
 vi.mock('framer-motion', () => ({
@@ -104,7 +105,10 @@ vi.mock('@/components/analysis/hub/TrackSuggestions', () => ({
 }))
 
 vi.mock('@/components/analysis/hub/QuickAccessBar', () => ({
-  QuickAccessBar: () => <div data-testid="quick-access-bar">history</div>,
+  QuickAccessBar: (props: Record<string, unknown>) => {
+    lastQuickAccessBarProps = props
+    return <div data-testid="quick-access-bar">history</div>
+  },
 }))
 
 import { useHubChatStore } from '@/lib/stores/hub-chat-store'
@@ -117,6 +121,7 @@ describe('quick analysis and clarification UX', () => {
   beforeEach(() => {
     analysisStoreState.uploadNonce = 0
     analysisStoreState.uploadedData = null
+    lastQuickAccessBarProps = null
     lastChatThreadProps = null
     useHubChatStore.setState({
       messages: [],
@@ -165,8 +170,8 @@ describe('quick analysis and clarification UX', () => {
       />
     )
 
-    expect(screen.getByTestId('variable-picker-guidance')).toHaveTextContent('반복측정/시점 비교')
-    expect(screen.getByText('선택 가능한 범주형 변수가 없습니다.')).toBeInTheDocument()
+    expect(screen.getByTestId('variable-picker-guidance')).toHaveTextContent('time1, time2, time3')
+    expect(screen.getByTestId('variable-picker-guidance')).toBeInTheDocument()
   })
 
   it('submits independent-variable clarification under the independent role', () => {
@@ -186,7 +191,7 @@ describe('quick analysis and clarification UX', () => {
     )
 
     fireEvent.click(screen.getAllByText('predictor')[1]!.closest('button')!)
-    fireEvent.click(screen.getByRole('button', { name: /이 조합으로 분석/i }))
+    fireEvent.click(screen.getByTestId('variable-picker-confirm'))
 
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -290,6 +295,46 @@ describe('quick analysis and clarification UX', () => {
 
     expect(screen.getByTestId('chat-input')).toBeInTheDocument()
     expect(screen.queryByTestId('hub-clarification-lock')).not.toBeInTheDocument()
+  })
+
+  it('moves recent activity into a dedicated rail and hides support tools after conversation starts', () => {
+    useHubChatStore.setState({
+      dataContext: {
+        fileName: 'repeated.csv',
+        totalRows: 15,
+        columnCount: 3,
+        numericColumns: ['time1', 'time2'],
+        categoricalColumns: [],
+        validationResults: { isValid: true, totalRows: 15, columnCount: 3, missingValues: 0, dataType: 'tabular', variables: [], errors: [], warnings: [] } as never,
+      },
+      messages: [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'answer',
+          timestamp: Date.now(),
+        },
+      ],
+    })
+
+    render(
+      <ChatCentricHub
+        onIntentResolved={vi.fn()}
+        onQuickAnalysis={vi.fn()}
+        onHistorySelect={vi.fn()}
+        onHistoryDelete={vi.fn(async () => {})}
+      />
+    )
+
+    expect(screen.getByTestId('hub-recent-rail')).toBeInTheDocument()
+    expect(screen.getByTestId('quick-access-bar')).toBeInTheDocument()
+    expect(screen.queryByTestId('hub-support-tools')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('track-suggestions')).not.toBeInTheDocument()
+    expect(lastQuickAccessBarProps).toMatchObject({
+      compact: true,
+      maxItems: 3,
+      showHeader: false,
+    })
   })
 
   it('routes suggested analyses through the diagnostic bridge instead of quick analysis reset', () => {

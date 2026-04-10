@@ -172,6 +172,7 @@ export function ChatCentricHub({
     [dataContext, messages, uploadNonce]
   )
   const pendingClarification = activePendingMessage?.diagnosticReport?.pendingClarification ?? null
+  const showSupportTools = !dataContext && messages.length === 0
 
   // 채팅 입력 제출 → resume 감지 → Intent Router 분류 → 트랙별 처리
   const handleChatSubmit = useCallback(async (message: string, directAssignments?: NonNullable<AIRecommendation['variableAssignments']>) => {
@@ -434,10 +435,11 @@ export function ChatCentricHub({
       data-testid="hub-upload-card"
       {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
     >
-      {/* ====== Hero Section + ChatThread + ChatInput ====== */}
-      <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
-        <div className="py-2 lg:py-4">
-          <div className="mx-auto max-w-[1160px] rounded-[24px] border border-border/50 bg-surface-container-lowest px-6 py-7 lg:px-9">
+      <div className="mx-auto max-w-[1160px] space-y-5">
+        {/* ====== Hero Section + ChatThread + ChatInput ====== */}
+        <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
+          <div className="py-2 lg:py-4">
+            <div className="w-full rounded-[24px] border border-border/50 bg-surface-container-lowest px-6 py-7 lg:px-9">
             <div className="flex flex-col items-center text-center">
             {/* Heading */}
               <span className="mb-3 inline-flex items-center rounded-full border border-primary/15 bg-primary/[0.04] px-3 py-1 text-xs font-medium text-primary/80">
@@ -502,56 +504,71 @@ export function ChatCentricHub({
               </div>
             </div>
           </div>
-        </div>
-      </motion.div>
-
-      {/* 보조 진입 영역 */}
-      <motion.div
-        {...(prefersReducedMotion ? {} : { variants: itemVariants })}
-        className="grid gap-5 xl:grid-cols-[minmax(360px,0.92fr)_minmax(0,1.08fr)]"
-      >
-        <section className="rounded-2xl border border-border/50 bg-surface-container-lowest p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
-                보조 도구
-              </p>
-              <h2 className="mt-1 text-lg font-semibold">분석 외 작업</h2>
-            </div>
-            <p className="max-w-[240px] text-right text-sm text-muted-foreground">
-              계산기와 시각화처럼 보조 성격의 작업만 남겼습니다.
-            </p>
           </div>
-          <TrackSuggestions
-            onStartAnalysis={handleStartAnalysis}
-            onUploadClick={onUploadClick}
-            showHeader={false}
-            showUploadCard={false}
-          />
-        </section>
+        </motion.div>
 
-        <section className={cn(
-          'rounded-2xl border border-border/50 bg-surface-container-lowest p-6',
-          'min-h-[228px]',
-        )}>
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
-                최근 작업
+        {/* 보조 진입 영역 */}
+        <motion.div
+          {...(prefersReducedMotion ? {} : { variants: itemVariants })}
+          className={cn(
+            showSupportTools
+              ? 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start'
+              : 'flex justify-end'
+          )}
+        >
+          {showSupportTools && (
+            <section
+              data-testid="hub-support-tools"
+              className="rounded-2xl border border-border/50 bg-surface-container-lowest p-6"
+            >
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+                    도구 바로가기
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold">빠르게 시작하기</h2>
+                </div>
+                <p className="max-w-[240px] text-right text-sm text-muted-foreground">
+                  채팅 없이 바로 실행할 작업만 모았습니다.
+                </p>
+              </div>
+              <TrackSuggestions
+                onStartAnalysis={handleStartAnalysis}
+                onUploadClick={onUploadClick}
+                showHeader={false}
+                showUploadCard={false}
+              />
+            </section>
+          )}
+
+          <aside
+            data-testid="hub-recent-rail"
+            className={cn(
+              'rounded-2xl border border-border/50 bg-surface-container-lowest p-6',
+              'min-h-[228px] w-full xl:w-[340px]',
+            )}
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+                  이어서 하기
+                </p>
+                <h2 className="mt-1 text-lg font-semibold">{t.hub.cards.recentTitle}</h2>
+              </div>
+              <p className="max-w-[240px] text-right text-sm text-muted-foreground">
+                최근 분석과 시각화를 다시 열 수 있습니다.
               </p>
-              <h2 className="mt-1 text-lg font-semibold">{t.hub.cards.recentTitle}</h2>
             </div>
-            <p className="max-w-[240px] text-right text-sm text-muted-foreground">
-              최근 분석과 시각화를 이어서 열 수 있습니다.
-            </p>
-          </div>
-          <QuickAccessBar
-            onHistoryClick={onHistorySelect}
-            onHistoryDelete={onHistoryDelete}
-            showHeader={false}
-          />
-        </section>
-      </motion.div>
+            <QuickAccessBar
+              onHistoryClick={onHistorySelect}
+              onHistoryDelete={onHistoryDelete}
+              showHeader={false}
+              maxItems={3}
+              compact
+            />
+          </aside>
+        </motion.div>
+      </div>
     </motion.div>
   )
 }

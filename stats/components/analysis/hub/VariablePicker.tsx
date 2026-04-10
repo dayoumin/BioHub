@@ -218,6 +218,7 @@ export function VariablePicker({
 
       <div className="flex items-center gap-2 pt-2">
         <Button
+          data-testid="variable-picker-confirm"
           onClick={handleConfirm}
           disabled={!isConfirmEnabled}
           size="sm"
