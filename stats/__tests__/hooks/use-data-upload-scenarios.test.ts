@@ -8,7 +8,7 @@ import { DataValidationService } from '@/lib/services/data-validation-service'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { toast } from 'sonner'
-import type { StatisticalMethod } from '@/types/analysis'
+import type { StatisticalMethod, ValidationResults } from '@/types/analysis'
 
 vi.mock('sonner', () => ({
   toast: {
@@ -43,7 +43,7 @@ vi.mock('@/lib/services/variable-detection-service', () => ({
   extractDetectedVariables: vi.fn(),
 }))
 
-const VALIDATION_RESULT = {
+const VALIDATION_RESULT: ValidationResults = {
   isValid: true,
   totalRows: 2,
   columnCount: 2,
@@ -101,6 +101,8 @@ describe('useDataUpload scenarios', () => {
     act(() => {
       useModeStore.getState().setStepTrack('diagnostic')
       useAnalysisStore.setState({
+        currentStep: 4,
+        completedSteps: [1, 2, 3],
         selectedMethod: QUICK_METHOD,
         variableMapping: { dependent: 'old_weight', group: 'old_group' } as never,
         cachedAiRecommendation: { method: QUICK_METHOD } as never,
@@ -108,6 +110,7 @@ describe('useDataUpload scenarios', () => {
         suggestedSettings: { confidenceLevel: 0.9 } as never,
         assumptionResults: { normality: [] } as never,
         diagnosticReport: { summary: 'stale report' } as never,
+        results: { summary: 'stale result' } as never,
       })
     })
 
@@ -121,6 +124,8 @@ describe('useDataUpload scenarios', () => {
     const hubState = useHubChatStore.getState()
 
     expect(useModeStore.getState().stepTrack).toBe('normal')
+    expect(analysisState.currentStep).toBe(1)
+    expect(analysisState.completedSteps).toEqual([])
     expect(analysisState.selectedMethod).toBeNull()
     expect(analysisState.variableMapping).toBeNull()
     expect(analysisState.cachedAiRecommendation).toBeNull()
@@ -128,6 +133,7 @@ describe('useDataUpload scenarios', () => {
     expect(analysisState.suggestedSettings).toBeNull()
     expect(analysisState.assumptionResults).toBeNull()
     expect(analysisState.diagnosticReport).toBeNull()
+    expect(analysisState.results).toBeNull()
     expect(analysisState.uploadedFileName).toBe('replacement.csv')
     expect(hubState.dataContext?.fileName).toBe('replacement.csv')
     expect(hubState.dataContext?.numericColumns).toEqual(['weight'])

@@ -22,7 +22,7 @@ import { useHubChatStore } from '@/lib/stores/hub-chat-store'
 import { buildHubDataContext } from '@/lib/utils/hub-data-context'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
-import type { DataRow } from '@/types/analysis'
+import { DEFAULT_ANALYSIS_OPTIONS, type DataRow } from '@/types/analysis'
 
 interface UseDataUploadReturn {
   handleUploadComplete: (file: File, data: DataRow[]) => Promise<void>
@@ -41,13 +41,17 @@ export function buildQuickAdvanceState(completedSteps: number[]): {
 
 export function createDiagnosticUploadResetPatch() {
   return {
+    currentStep: 1,
+    completedSteps: [],
     selectedMethod: null,
     variableMapping: null,
     cachedAiRecommendation: null,
     detectedVariables: null,
     suggestedSettings: null,
+    analysisOptions: { ...DEFAULT_ANALYSIS_OPTIONS },
     assumptionResults: null,
     diagnosticReport: null,
+    results: null,
   }
 }
 

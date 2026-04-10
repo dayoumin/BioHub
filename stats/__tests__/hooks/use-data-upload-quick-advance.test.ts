@@ -18,13 +18,22 @@ describe('buildQuickAdvanceState', () => {
 describe('createDiagnosticUploadResetPatch', () => {
   it('clears stale diagnostic selections after replacing uploaded data', () => {
     expect(createDiagnosticUploadResetPatch()).toEqual({
+      currentStep: 1,
+      completedSteps: [],
       selectedMethod: null,
       variableMapping: null,
       cachedAiRecommendation: null,
       detectedVariables: null,
       suggestedSettings: null,
+      analysisOptions: {
+        alpha: 0.05,
+        showAssumptions: true,
+        showEffectSize: true,
+        methodSettings: {},
+      },
       assumptionResults: null,
       diagnosticReport: null,
+      results: null,
     })
   })
 })

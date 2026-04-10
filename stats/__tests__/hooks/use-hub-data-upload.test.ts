@@ -240,6 +240,27 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
     })
   })
 
+  describe('S3: clearDataContext()가 CSV 파싱 중 호출됨', () => {
+    it('clear 이후 늦게 도착한 complete 콜백은 무시된다', async () => {
+      const Papa = (await import('papaparse')).default
+      const parseMock = vi.mocked(Papa.parse)
+
+      let capturedComplete: ((_r: ParseResult<Record<string, string>>) => void) | null = null
+      mockParseOnce(parseMock, (_file, config) => {
+        capturedComplete = config?.complete ?? null
+      })
+
+      const { result } = renderHook(() => useHubDataUpload())
+
+      act(() => { result.current.handleFileSelected(makeFile('delayed.csv')) })
+      act(() => { result.current.clearDataContext() })
+      act(() => { capturedComplete?.(makeParseResult('delayed.csv')) })
+
+      expect(useAnalysisStore.getState().uploadedFileName).toBeNull()
+      expect(useHubChatStore.getState().dataContext).toBeNull()
+    })
+  })
+
   // ── S4: PapaParse 에러 — 치명적 오류 (Delimiter/Quotes) ─────
 
   describe('S4: 치명적 CSV 파싱 오류 — Delimiter/Quotes', () => {

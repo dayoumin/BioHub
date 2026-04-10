@@ -144,6 +144,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
   }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, addMessage, setDataContext])
 
   const clearDataContext = useCallback(() => {
+    uploadTokenRef.current += 1
     // hub-chat-store 클리어
     setDataContext(null)
     // analysis-store 업로드 데이터도 클리어 (동기화 유지)
