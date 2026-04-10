@@ -262,16 +262,29 @@ async function assignVarViaButtonFallback(page: Page, varNames: string[]): Promi
   }
 }
 
-/** run-analysis-btn이 이미 활성화되어 있으면 true (자동 할당 완료, 최대 10초 polling) */
+/** Smart Flow next/run 버튼이 이미 활성화되어 있으면 true (자동 할당 완료, 최대 10초 polling) */
 async function isAutoAssigned(page: Page): Promise<boolean> {
+  const nextBtn = page.locator(S.variableSelectionNext)
   const runBtn = page.locator(S.runAnalysisBtn)
-  await runBtn.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {
-    log('autoAssign', 'run-analysis-btn not visible yet')
+
+  const nextVisible = await nextBtn.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true).catch(() => false)
+  if (nextVisible) {
+    for (let i = 0; i < 10; i++) {
+      if (await nextBtn.isEnabled().catch(() => false)) {
+        log('autoAssign', `variable-selection-next 활성 (${i + 1}번째 폴링)`)
+        return true
+      }
+      await page.waitForTimeout(1000)
+    }
+  }
+
+  await runBtn.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {
+    log('autoAssign', 'variable-selection-next / run-analysis-btn not visible yet')
   })
 
   for (let i = 0; i < 10; i++) {
     if (await runBtn.isEnabled().catch(() => false)) {
-      log('autoAssign', `자동 할당 완료 (${i + 1}번째 폴링)`)
+      log('autoAssign', `run-analysis-btn 활성 (${i + 1}번째 폴링)`)
       return true
     }
     await page.waitForTimeout(1000)
@@ -281,10 +294,14 @@ async function isAutoAssigned(page: Page): Promise<boolean> {
 
 /** AutoConfirm 방식 — 변수 자동 할당 대기 (KM, ROC 등) */
 export async function waitForAutoConfirm(page: Page): Promise<void> {
+  const nextBtn = page.locator(S.variableSelectionNext)
   const runBtn = page.locator(S.runAnalysisBtn)
-  await runBtn.waitFor({ state: 'visible', timeout: 15_000 }).catch(() =>
-    log('autoConfirm', 'run-analysis-btn not found'),
-  )
+  const buttonVisible = await nextBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)
+  if (!buttonVisible) {
+    await runBtn.waitFor({ state: 'visible', timeout: 5_000 }).catch(() =>
+      log('autoConfirm', 'variable-selection-next / run-analysis-btn not found'),
+    )
+  }
   await page.waitForTimeout(1000)
 }
 

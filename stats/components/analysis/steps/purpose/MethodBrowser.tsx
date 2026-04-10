@@ -15,7 +15,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
 import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
 import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
-import { getKoreanName } from '@/lib/constants/statistical-methods'
+import { getKoreanName, getMethodByAlias } from '@/lib/constants/statistical-methods'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
@@ -91,6 +91,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   'survival': '생존분석',
 }
 
+const getMethodDisplayName = (method: StatisticalMethod): string =>
+  getMethodByAlias(method.id)?.koreanName ?? method.name
+
+const getMethodDisplayDescription = (method: StatisticalMethod): string =>
+  getMethodByAlias(method.id)?.koreanDescription ?? method.description
+
 /**
  * MethodBrowser - Browse and select statistical methods
  *
@@ -158,12 +164,17 @@ export const MethodBrowser = memo(function MethodBrowser({
 
     const matchesQuery = (method: StatisticalMethod) => {
       if (!searchQuery.trim() || tokens.length === 0) return true
+      const registryMethod = getMethodByAlias(method.id)
       const haystack = [
         method.name,
         method.description,
+        getMethodDisplayName(method),
+        getMethodDisplayDescription(method),
         method.id,
         method.category,
-        method.subcategory || ''
+        method.subcategory || '',
+        ...(registryMethod?.searchTerms ?? []),
+        ...(registryMethod?.aliases ?? []),
       ]
         .map(normalizeText)
         .filter(Boolean)
@@ -308,7 +319,7 @@ export const MethodBrowser = memo(function MethodBrowser({
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {recommendedMethod.name}
+                    {getMethodDisplayName(recommendedMethod)}
                   </p>
                   {warnings.length > 0 && (
                     <p className="text-xs text-destructive mt-1">
@@ -368,7 +379,7 @@ export const MethodBrowser = memo(function MethodBrowser({
         </span>
         {selectedMethod && (
           <span className="text-primary font-medium">
-            {t.methodBrowser.selectedPrefix}{selectedMethod.name}
+            {t.methodBrowser.selectedPrefix}{getMethodDisplayName(selectedMethod)}
           </span>
         )}
       </div>
@@ -429,11 +440,11 @@ export const MethodBrowser = memo(function MethodBrowser({
                                     {hasWarnings && (
                                       <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                                     )}
-                                    <span className={cn(
+                                      <span className={cn(
                                       "font-medium text-sm",
                                       isSelected && "text-primary"
                                     )}>
-                                      {method.name}
+                                      {getMethodDisplayName(method)}
                                     </span>
                                     {isRecommended && (
                                       <Badge className="text-xs bg-amber-500 hover:bg-amber-600">
@@ -453,7 +464,7 @@ export const MethodBrowser = memo(function MethodBrowser({
                                     )}
                                   </div>
                                   <p className="text-xs mt-1.5 line-clamp-2 text-muted-foreground leading-relaxed">
-                                    {method.description}
+                                    {getMethodDisplayDescription(method)}
                                   </p>
                                 </div>
                                 {isSelected && (
@@ -585,6 +596,9 @@ function MethodDetailPanel({
   selectButtonText: string
   onSelect: () => void
 }) {
+  const displayName = getMethodDisplayName(method)
+  const displayDescription = getMethodDisplayDescription(method)
+
   return (
     <div className={cn(
       "border rounded-xl overflow-hidden transition-all",
@@ -614,14 +628,14 @@ function MethodDetailPanel({
             </Badge>
           )}
         </div>
-        <h4 className="font-semibold text-base tracking-tight">{method.name}</h4>
+        <h4 className="font-semibold text-base tracking-tight">{displayName}</h4>
       </div>
 
       {/* Body */}
       <div className="px-5 py-4 space-y-4">
         {/* Description */}
         <p className="text-sm text-muted-foreground leading-relaxed">
-          {method.description}
+          {displayDescription}
         </p>
 
         {/* Requirements */}

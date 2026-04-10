@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.42.0",
+  "version": "1.43.0",
   "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
@@ -148,6 +148,19 @@
             "typecheck",
             "store mock",
             "optional fields",
+            "regression"
+          ]
+        },
+        {
+          "name": "MethodBrowser 로컬라이즈드 검색 회귀 테스트",
+          "purpose": "영문 canonical 메서드도 한국어 표시명과 registry 검색어로 검색되는지 고정",
+          "code": "import { render, screen, fireEvent } from '@testing-library/react';\nimport { MethodBrowser } from '@/components/analysis/steps/purpose/MethodBrowser';\n\nit('one-way ANOVA를 한국어 검색어로 찾는다', () => {\n  render(\n    <MethodBrowser\n      methodGroups={[\n        {\n          category: 'anova',\n          categoryLabel: '분산분석 (ANOVA)',\n          methods: [{ id: 'one-way-anova', name: 'One-Way ANOVA', description: 'Three or more groups mean comparison', category: 'anova' }],\n        },\n      ]}\n      selectedMethod={null}\n      onMethodSelect={() => {}}\n    />,\n  );\n\n  fireEvent.change(screen.getByTestId('method-search-input'), { target: { value: '일원' } });\n  expect(screen.getByText('일원분산분석 (ANOVA)')).toBeInTheDocument();\n});",
+          "keywords": [
+            "MethodBrowser",
+            "localized search",
+            "getKoreanName",
+            "searchTerms",
+            "anova",
             "regression"
           ]
         }

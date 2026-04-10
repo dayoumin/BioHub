@@ -61,7 +61,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     koreanName: '독립표본 t-검정',
     koreanDescription: '두 독립 그룹의 평균 차이 검정',
     aliases: ['t-test'],
-    searchTerms: ['t-test', 'independent', 'two-sample', 'student'],
+    searchTerms: ['t-test', 'independent', 'two-sample', 'student', '독립표본'],
     isDataTool: false,
   },
   'welch-t': {
@@ -82,10 +82,10 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     name: 'One-Sample t-Test',
     description: 'Sample mean vs population mean comparison',
     category: 't-test',
-    koreanName: '단일표본 t-검정',
+    koreanName: '일표본 t-검정',
     koreanDescription: '표본 평균과 모집단 평균 비교',
     aliases: [],
-    searchTerms: ['one-sample'],
+    searchTerms: ['one-sample', '일표본', '단일표본'],
     isDataTool: false,
   },
   'paired-t': {
@@ -113,7 +113,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     koreanName: '일원분산분석 (ANOVA)',
     koreanDescription: '3개 이상 독립 그룹의 평균 차이 검정',
     aliases: ['anova'],
-    searchTerms: ['anova', 'one-way', 'oneway', 'welch'],
+    searchTerms: ['anova', 'one-way', 'oneway', 'welch', '일원', '일원분산분석'],
     isDataTool: false,
   },
   'two-way-anova': {

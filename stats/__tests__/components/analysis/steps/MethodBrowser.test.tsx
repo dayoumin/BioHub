@@ -62,12 +62,12 @@ const createMethod = (
 })
 
 const METHODS = {
-  tTest: createMethod('t-test', '독립표본 t-검정', 't-test', '두 독립 그룹 간 평균 차이 검정'),
-  pairedT: createMethod('paired-t', '대응표본 t-검정', 't-test', '같은 대상의 전후 차이 검정'),
-  anova: createMethod('one-way-anova', '일원분산분석', 'anova', '3개 이상 그룹 간 평균 차이'),
-  mannWhitney: createMethod('mann-whitney', 'Mann-Whitney U', 'nonparametric', '비모수 두 그룹 비교'),
-  descriptive: createMethod('descriptive', '기술통계량', 'descriptive', '평균, 표준편차, 분위수 등'),
-  correlation: createMethod('correlation', '피어슨 상관분석', 'correlation', '두 변수 간 선형 관계'),
+  tTest: createMethod('mock-t-test', '독립표본 t-검정', 't-test', '두 독립 그룹 간 평균 차이 검정'),
+  pairedT: createMethod('mock-paired-t', '대응표본 t-검정', 't-test', '같은 대상의 전후 차이 검정'),
+  anova: createMethod('mock-anova', '일원분산분석', 'anova', '3개 이상 그룹 간 평균 차이'),
+  mannWhitney: createMethod('mock-mann-whitney', 'Mann-Whitney U', 'nonparametric', '비모수 두 그룹 비교'),
+  descriptive: createMethod('mock-descriptive', '기술통계량', 'descriptive', '평균, 표준편차, 분위수 등'),
+  correlation: createMethod('mock-correlation', '피어슨 상관분석', 'correlation', '두 변수 간 선형 관계'),
 }
 
 const defaultGroups = [
@@ -149,11 +149,11 @@ describe('MethodBrowser', () => {
   describe('불가 메서드 필터링', () => {
     it('incompatible 메서드는 리스트에서 숨겨진다', () => {
       const compatMap = createCompatMap({
-        't-test': { status: 'incompatible', reasons: ['그룹 변수 필요'] },
-        'paired-t': { status: 'compatible', reasons: [] },
-        'one-way-anova': { status: 'compatible', reasons: [] },
-        'mann-whitney': { status: 'incompatible', reasons: ['그룹 변수 필요'] },
-        'correlation': { status: 'compatible', reasons: [] },
+        'mock-t-test': { status: 'incompatible', reasons: ['그룹 변수 필요'] },
+        'mock-paired-t': { status: 'compatible', reasons: [] },
+        'mock-anova': { status: 'compatible', reasons: [] },
+        'mock-mann-whitney': { status: 'incompatible', reasons: ['그룹 변수 필요'] },
+        'mock-correlation': { status: 'compatible', reasons: [] },
       })
       setupStore(compatMap)
       renderBrowser()
@@ -170,11 +170,11 @@ describe('MethodBrowser', () => {
 
     it('전체 카테고리가 incompatible이면 카테고리도 숨겨진다', () => {
       const compatMap = createCompatMap({
-        't-test': { status: 'incompatible', reasons: ['필요 변수 없음'] },
-        'paired-t': { status: 'incompatible', reasons: ['필요 변수 없음'] },
-        'one-way-anova': { status: 'compatible', reasons: [] },
-        'mann-whitney': { status: 'compatible', reasons: [] },
-        'correlation': { status: 'compatible', reasons: [] },
+        'mock-t-test': { status: 'incompatible', reasons: ['필요 변수 없음'] },
+        'mock-paired-t': { status: 'incompatible', reasons: ['필요 변수 없음'] },
+        'mock-anova': { status: 'compatible', reasons: [] },
+        'mock-mann-whitney': { status: 'compatible', reasons: [] },
+        'mock-correlation': { status: 'compatible', reasons: [] },
       })
       setupStore(compatMap)
       renderBrowser()
@@ -188,11 +188,11 @@ describe('MethodBrowser', () => {
 
     it('warning 메서드는 여전히 표시된다', () => {
       const compatMap = createCompatMap({
-        't-test': { status: 'warning', reasons: ['표본 크기 부족 (권장: 30+)'] },
-        'paired-t': { status: 'compatible', reasons: [] },
-        'one-way-anova': { status: 'compatible', reasons: [] },
-        'mann-whitney': { status: 'compatible', reasons: [] },
-        'correlation': { status: 'compatible', reasons: [] },
+        'mock-t-test': { status: 'warning', reasons: ['표본 크기 부족 (권장: 30+)'] },
+        'mock-paired-t': { status: 'compatible', reasons: [] },
+        'mock-anova': { status: 'compatible', reasons: [] },
+        'mock-mann-whitney': { status: 'compatible', reasons: [] },
+        'mock-correlation': { status: 'compatible', reasons: [] },
       })
       setupStore(compatMap)
       renderBrowser()
@@ -204,11 +204,11 @@ describe('MethodBrowser', () => {
 
     it('메서드 수가 필터링 후 올바르게 표시된다', () => {
       const compatMap = createCompatMap({
-        't-test': { status: 'incompatible', reasons: [] },
-        'paired-t': { status: 'compatible', reasons: [] },
-        'one-way-anova': { status: 'incompatible', reasons: [] },
-        'mann-whitney': { status: 'compatible', reasons: [] },
-        'correlation': { status: 'compatible', reasons: [] },
+        'mock-t-test': { status: 'incompatible', reasons: [] },
+        'mock-paired-t': { status: 'compatible', reasons: [] },
+        'mock-anova': { status: 'incompatible', reasons: [] },
+        'mock-mann-whitney': { status: 'compatible', reasons: [] },
+        'mock-correlation': { status: 'compatible', reasons: [] },
       })
       setupStore(compatMap)
       renderBrowser()
@@ -268,6 +268,40 @@ describe('MethodBrowser', () => {
       fireEvent.change(searchInput, { target: { value: 'zzzznotexist' } })
 
       expect(screen.getByText(/"zzzznotexist" 결과 없음/)).toBeInTheDocument()
+    })
+
+    it('영문 메서드도 한국어 표시명으로 검색된다', () => {
+      const englishGroups = [
+        {
+          category: 'anova',
+          categoryLabel: '분산분석 (ANOVA)',
+          methods: [createMethod('one-way-anova', 'One-Way ANOVA', 'anova', 'Three or more groups mean comparison')],
+        },
+      ]
+
+      renderBrowser({ methodGroups: englishGroups })
+
+      const searchInput = screen.getByTestId('method-search-input')
+      fireEvent.change(searchInput, { target: { value: '일원' } })
+
+      expect(screen.getByText('일원분산분석 (ANOVA)')).toBeInTheDocument()
+    })
+
+    it('일표본 검색어가 registry 별칭을 통해 매칭된다', () => {
+      const englishGroups = [
+        {
+          category: 't-test',
+          categoryLabel: 'T-검정',
+          methods: [createMethod('one-sample-t', 'One-Sample t-Test', 't-test', 'Sample mean vs population mean comparison')],
+        },
+      ]
+
+      renderBrowser({ methodGroups: englishGroups })
+
+      const searchInput = screen.getByTestId('method-search-input')
+      fireEvent.change(searchInput, { target: { value: '일표본' } })
+
+      expect(screen.getByText('일표본 t-검정')).toBeInTheDocument()
     })
   })
 
@@ -382,21 +416,21 @@ describe('MethodBrowser', () => {
   // ----- 7. AI 추천 헤더 -----
   describe('AI 추천 표시', () => {
     it('추천 메서드가 있으면 헤더에 표시된다', () => {
-      renderBrowser({ recommendedMethodId: 't-test' })
+      renderBrowser({ recommendedMethodId: 'mock-t-test' })
 
       expect(screen.getByText('AI 추천')).toBeInTheDocument()
     })
 
     it('추천 메서드가 incompatible이면 비활성 스타일로 표시된다', () => {
       const compatMap = createCompatMap({
-        't-test': { status: 'incompatible', reasons: ['그룹 변수 없음'] },
-        'paired-t': { status: 'compatible', reasons: [] },
-        'one-way-anova': { status: 'compatible', reasons: [] },
-        'mann-whitney': { status: 'compatible', reasons: [] },
-        'correlation': { status: 'compatible', reasons: [] },
+        'mock-t-test': { status: 'incompatible', reasons: ['그룹 변수 없음'] },
+        'mock-paired-t': { status: 'compatible', reasons: [] },
+        'mock-anova': { status: 'compatible', reasons: [] },
+        'mock-mann-whitney': { status: 'compatible', reasons: [] },
+        'mock-correlation': { status: 'compatible', reasons: [] },
       })
       setupStore(compatMap)
-      renderBrowser({ recommendedMethodId: 't-test' })
+      renderBrowser({ recommendedMethodId: 'mock-t-test' })
 
       // AI recommendation header still shows (even if incompatible)
       expect(screen.getByText('AI 추천')).toBeInTheDocument()
