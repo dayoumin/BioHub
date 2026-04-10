@@ -3,108 +3,8 @@ name: Result Contract Guard
 on:
   pull_request:
     branches: [ master, main ]
-    paths:
-      - 'stats/lib/validation/**'
-      - 'stats/lib/services/statistical-executor.ts'
-      - 'stats/lib/registry/**'
-      - 'stats/components/analysis/variable-selector/**'
-      - 'stats/components/analysis/steps/VariableSelectionStep.tsx'
-      - 'stats/components/analysis/steps/AnalysisExecutionStep.tsx'
-      - 'stats/components/analysis/steps/MethodBrowserStep.tsx'
-      - 'stats/components/analysis/AnalysisSteps.tsx'
-      - 'stats/app/page.tsx'
-      - 'stats/hooks/use-data-upload.ts'
-      - 'stats/hooks/use-hub-data-upload.ts'
-      - 'stats/lib/services/handlers/handle-design.ts'
-      - 'stats/lib/services/handlers/handle-nonparametric.ts'
-      - 'stats/lib/statistics/variable-mapping.ts'
-      - 'stats/lib/services/pyodide-statistics.ts'
-      - 'stats/lib/services/pyodide-statistics.adapters.ts'
-      - 'stats/lib/services/result-interpreter.ts'
-      - 'stats/lib/research/report-apa-format.ts'
-      - 'stats/lib/utils/result-transformer.ts'
-      - 'stats/lib/constants/methods-registry.json'
-      - 'stats/lib/constants/methods-registry.schema.json'
-      - 'stats/lib/constants/methods-registry.types.ts'
-      - 'stats/lib/constants/statistical-methods.ts'
-      - 'stats/lib/statistics/variable-requirements.ts'
-      - 'stats/package.json'
-      - 'stats/playwright.config.ts'
-      - 'stats/validation/**'
-      - 'stats/types/smart-flow.ts'
-      - 'stats/scripts/statistics/validate-result-contracts.ts'
-      - 'stats/validation/scripts/run-validation.mjs'
-      - 'stats/__tests__/lib/validation/result-schema-validator.test.ts'
-      - 'stats/__tests__/services/executors/statistical-executor-routing.test.ts'
-      - 'stats/__tests__/lib/services/slot-to-executor-pipeline.test.ts'
-      - 'stats/__tests__/lib/services/slot-to-executor-runtime-regressions.test.ts'
-      - 'stats/__tests__/lib/registry/method-registry-regressions.test.ts'
-      - 'stats/__tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx'
-      - 'stats/__tests__/components/analysis/steps/VariableSelectionStep.test.tsx'
-      - 'stats/__tests__/components/analysis/steps/AnalysisExecutionStep.test.tsx'
-      - 'stats/__tests__/hooks/use-analysis-handlers.test.ts'
-      - 'stats/__tests__/hooks/use-data-upload-scenarios.test.ts'
-      - 'stats/__tests__/hooks/use-data-upload-quick-advance.test.ts'
-      - 'stats/__tests__/hooks/use-hub-data-upload.test.ts'
-      - 'stats/__tests__/services/handlers/handle-design.test.ts'
-      - 'stats/__tests__/statistics/chi-square-validation.test.ts'
-      - 'stats/__tests__/contracts/method-id-unification.contract.test.ts'
-      - 'stats/__tests__/integration/method-id-unification-simulation.test.ts'
-      - 'stats/__tests__/lib/services/result-interpreter.test.ts'
-      - 'stats/lib/research/__tests__/report-apa-format.test.ts'
-      - 'stats/__tests__/unit/result-transformer.test.ts'
   push:
     branches: [ master, main ]
-    paths:
-      - 'stats/lib/validation/**'
-      - 'stats/lib/services/statistical-executor.ts'
-      - 'stats/lib/registry/**'
-      - 'stats/components/analysis/variable-selector/**'
-      - 'stats/components/analysis/steps/VariableSelectionStep.tsx'
-      - 'stats/components/analysis/steps/AnalysisExecutionStep.tsx'
-      - 'stats/components/analysis/steps/MethodBrowserStep.tsx'
-      - 'stats/components/analysis/AnalysisSteps.tsx'
-      - 'stats/app/page.tsx'
-      - 'stats/hooks/use-data-upload.ts'
-      - 'stats/hooks/use-hub-data-upload.ts'
-      - 'stats/lib/services/handlers/handle-design.ts'
-      - 'stats/lib/services/handlers/handle-nonparametric.ts'
-      - 'stats/lib/statistics/variable-mapping.ts'
-      - 'stats/lib/services/pyodide-statistics.ts'
-      - 'stats/lib/services/pyodide-statistics.adapters.ts'
-      - 'stats/lib/services/result-interpreter.ts'
-      - 'stats/lib/research/report-apa-format.ts'
-      - 'stats/lib/utils/result-transformer.ts'
-      - 'stats/lib/constants/methods-registry.json'
-      - 'stats/lib/constants/methods-registry.schema.json'
-      - 'stats/lib/constants/methods-registry.types.ts'
-      - 'stats/lib/constants/statistical-methods.ts'
-      - 'stats/lib/statistics/variable-requirements.ts'
-      - 'stats/package.json'
-      - 'stats/playwright.config.ts'
-      - 'stats/validation/**'
-      - 'stats/types/smart-flow.ts'
-      - 'stats/scripts/statistics/validate-result-contracts.ts'
-      - 'stats/validation/scripts/run-validation.mjs'
-      - 'stats/__tests__/lib/validation/result-schema-validator.test.ts'
-      - 'stats/__tests__/services/executors/statistical-executor-routing.test.ts'
-      - 'stats/__tests__/lib/services/slot-to-executor-pipeline.test.ts'
-      - 'stats/__tests__/lib/services/slot-to-executor-runtime-regressions.test.ts'
-      - 'stats/__tests__/lib/registry/method-registry-regressions.test.ts'
-      - 'stats/__tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx'
-      - 'stats/__tests__/components/analysis/steps/VariableSelectionStep.test.tsx'
-      - 'stats/__tests__/components/analysis/steps/AnalysisExecutionStep.test.tsx'
-      - 'stats/__tests__/hooks/use-analysis-handlers.test.ts'
-      - 'stats/__tests__/hooks/use-data-upload-scenarios.test.ts'
-      - 'stats/__tests__/hooks/use-data-upload-quick-advance.test.ts'
-      - 'stats/__tests__/hooks/use-hub-data-upload.test.ts'
-      - 'stats/__tests__/services/handlers/handle-design.test.ts'
-      - 'stats/__tests__/statistics/chi-square-validation.test.ts'
-      - 'stats/__tests__/contracts/method-id-unification.contract.test.ts'
-      - 'stats/__tests__/integration/method-id-unification-simulation.test.ts'
-      - 'stats/__tests__/lib/services/result-interpreter.test.ts'
-      - 'stats/lib/research/__tests__/report-apa-format.test.ts'
-      - 'stats/__tests__/unit/result-transformer.test.ts'
   workflow_dispatch:
 
 jobs:
@@ -115,13 +15,33 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Determine guard scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node stats/validation/scripts/result-contract-guard.mjs scope --manifest stats/validation/result-contract-guard.manifest.json --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Skip when manifest paths are unchanged
+        if: steps.scope.outputs.should_run != 'true'
+        run: echo "No result-contract-critical files changed."
 
       - name: Install pnpm
+        if: steps.scope.outputs.should_run == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - name: Setup Node.js
+      - name: Setup Node.js with pnpm cache
+        if: steps.scope.outputs.should_run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -129,37 +49,10 @@ jobs:
           cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
+        if: steps.scope.outputs.should_run == 'true'
         working-directory: ./stats
         run: pnpm install --frozen-lockfile
 
-      - name: Validate result contracts
-        working-directory: ./stats
-        run: pnpm run validate:result-contracts
-
-      - name: Run validator tests
-        working-directory: ./stats
-        run: pnpm test --run __tests__/lib/validation/result-schema-validator.test.ts
-
-      - name: Run executor routing tests
-        working-directory: ./stats
-        run: pnpm test --run __tests__/services/executors/statistical-executor-routing.test.ts
-
-      - name: Run selector and flow regression tests
-        working-directory: ./stats
-        run: pnpm test --run __tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx __tests__/components/analysis/steps/VariableSelectionStep.test.tsx __tests__/components/analysis/steps/AnalysisExecutionStep.test.tsx __tests__/lib/services/slot-to-executor-pipeline.test.ts __tests__/lib/services/slot-to-executor-runtime-regressions.test.ts __tests__/lib/registry/method-registry-regressions.test.ts __tests__/hooks/use-analysis-handlers.test.ts __tests__/hooks/use-data-upload-scenarios.test.ts __tests__/hooks/use-data-upload-quick-advance.test.ts __tests__/hooks/use-hub-data-upload.test.ts __tests__/services/handlers/handle-design.test.ts __tests__/statistics/chi-square-validation.test.ts
-
-      - name: Run method-id unification tests
-        working-directory: ./stats
-        run: pnpm test --run __tests__/contracts/method-id-unification.contract.test.ts __tests__/integration/method-id-unification-simulation.test.ts
-
-      - name: Run interpretation and APA tests
-        working-directory: ./stats
-        run: pnpm test --run __tests__/lib/services/result-interpreter.test.ts lib/research/__tests__/report-apa-format.test.ts
-
-      - name: Run validation smoke
-        working-directory: ./stats
-        run: pnpm test:validation --layer L2 --report
-
-      - name: Run transformer tests
-        working-directory: ./stats
-        run: pnpm test --run __tests__/unit/result-transformer.test.ts
+      - name: Run manifest-defined guard suite
+        if: steps.scope.outputs.should_run == 'true'
+        run: node stats/validation/scripts/result-contract-guard.mjs run --manifest stats/validation/result-contract-guard.manifest.json

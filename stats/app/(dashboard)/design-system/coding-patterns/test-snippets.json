@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.40.0",
+  "version": "1.41.0",
   "lastUpdated": "2026-04-10",
   "sources": [
     "stats/__tests__/",
@@ -198,6 +198,19 @@
             "executionVariant",
             "welch",
             "result-transformer"
+          ]
+        },
+        {
+          "name": "Guard manifest 경로 매칭 테스트",
+          "purpose": "result-contract-guard manifest가 interpreter/export/method identity 변경을 놓치지 않도록 glob matching을 고정",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { loadGuardManifest, matchChangedFiles } from '@/validation/scripts/result-contract-guard.mjs';\n\ndescribe('result contract guard manifest', () => {\n  it('critical path matching이 interpreter/export/method identity 변경을 잡는다', () => {\n    const manifest = loadGuardManifest('stats/validation/result-contract-guard.manifest.json');\n    const matched = matchChangedFiles([\n      'stats/lib/services/result-interpreter.ts',\n      'stats/lib/services/export/code-export.ts',\n      'stats/lib/utils/method-identity.ts',\n      'README.md',\n    ], manifest.criticalPaths);\n\n    expect(matched).toEqual([\n      'stats/lib/services/result-interpreter.ts',\n      'stats/lib/services/export/code-export.ts',\n      'stats/lib/utils/method-identity.ts',\n    ]);\n  });\n});",
+          "keywords": [
+            "result-contract-guard",
+            "manifest",
+            "matchChangedFiles",
+            "glob",
+            "workflow",
+            "critical paths"
           ]
         }
       ]
