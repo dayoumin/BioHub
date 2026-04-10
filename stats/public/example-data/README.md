@@ -16,7 +16,7 @@
 
 ### **1. t-검정 (t-Test)**
 
-#### `paired-t-test.csv` - 대응표본 t-검정
+#### `paired-t.csv` - 대응표본 t-검정
 - **데이터 형태**: Wide Format (SPSS 표준)
 - **컬럼**: Subject, Before, After
 - **예시**: 운동 전후 혈압 비교
@@ -31,7 +31,7 @@
 
 ---
 
-#### `independent-t-test.csv` - 독립표본 t-검정
+#### `two-sample-t.csv` - 독립표본 t-검정
 - **데이터 형태**: Long Format (SPSS 표준)
 - **컬럼**: Group, Score
 - **예시**: 두 그룹(Control vs Treatment) 성적 비교
@@ -113,7 +113,7 @@
 
 ---
 
-#### `linear-regression.csv` - 선형 회귀
+#### `simple-regression.csv` - 선형 회귀
 - **데이터 형태**: Wide Format (SPSS 표준)
 - **컬럼**: StudyHours, ExamScore
 - **예시**: 공부 시간으로 시험 점수 예측

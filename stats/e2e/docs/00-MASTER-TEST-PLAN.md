@@ -161,7 +161,7 @@ stats/e2e/
 | 독립표본 t-검정 | t-test.csv | group, value |
 | Welch t-검정 | welch-t.csv | group, value |
 | 일표본 t-검정 | one-sample-t.csv | value |
-| 대응표본 t-검정 | paired-t-test.csv | pre, post |
+| 대응표본 t-검정 | paired-t.csv | pre, post |
 | 일원 분산분석 | anova.csv | group, value |
 | 이원 분산분석 | twoway-anova-test.csv | factor1, factor2, value |
 | ANCOVA | anova.csv | group, covariate, value |

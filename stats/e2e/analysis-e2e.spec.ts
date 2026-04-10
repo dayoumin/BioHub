@@ -444,7 +444,7 @@ test.describe('@phase1 @critical @slow 추가 Variable Selectors', () => {
 
   test('대응표본 t-검정 (PairedSelector)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'paired-t-test.csv')).toBe(true)
+    expect(await uploadCSV(page, 'paired-t.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)

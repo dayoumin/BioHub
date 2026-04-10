@@ -24,6 +24,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 
 interface AdminStats {
   total_votes: number
@@ -35,21 +36,20 @@ interface AdminStats {
   vote_timeline: Array<{ date: string; count: number }>
 }
 
-// Method ID to name mapping
-const METHOD_NAMES: Record<string, { title: string; titleKr: string }> = {
-  'ind-ttest': { title: 'Independent t-test', titleKr: '독립표본 t검정' },
-  'paired-ttest': { title: 'Paired t-test', titleKr: '대응표본 t검정' },
-  'oneway-anova': { title: 'One-way ANOVA', titleKr: '일원분산분석' },
-  'twoway-anova': { title: 'Two-way ANOVA', titleKr: '이원분산분석' },
-  'repeated-anova': { title: 'Repeated ANOVA', titleKr: '반복측정 분산분석' },
-  'pearson': { title: 'Pearson Correlation', titleKr: '피어슨 상관' },
-  'spearman': { title: 'Spearman Correlation', titleKr: '스피어만 상관' },
-  'linear-reg': { title: 'Linear Regression', titleKr: '선형회귀' },
-  'multiple-reg': { title: 'Multiple Regression', titleKr: '다중회귀' },
-  'mann-whitney': { title: 'Mann-Whitney U', titleKr: '맨-휘트니 U' },
-  'wilcoxon': { title: 'Wilcoxon Signed-Rank', titleKr: '윌콕슨 부호순위' },
-  'kruskal': { title: 'Kruskal-Wallis', titleKr: '크루스칼-왈리스' },
+const FEEDBACK_METHOD_FALLBACKS: Record<string, { title: string; titleKr: string }> = {
   'chi-square': { title: 'Chi-square Test', titleKr: '카이제곱 검정' },
+}
+
+function getFeedbackMethodName(id: string): { title: string; titleKr: string } {
+  const method = getMethodByIdOrAlias(id)
+  if (method) {
+    return {
+      title: method.name,
+      titleKr: method.koreanName,
+    }
+  }
+
+  return FEEDBACK_METHOD_FALLBACKS[id] ?? { title: id, titleKr: id }
 }
 
 function formatDate(timestamp: number): string {
@@ -101,7 +101,7 @@ export default function AdminFeedbackPage() {
         .map(([id, votes]) => ({
           id,
           votes,
-          name: METHOD_NAMES[id] || { title: id, titleKr: id },
+          name: getFeedbackMethodName(id),
         }))
     : []
 

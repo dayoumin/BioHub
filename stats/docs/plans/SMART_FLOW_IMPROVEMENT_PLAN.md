@@ -485,7 +485,7 @@ def mannKendallTest(values):
 | 1.5-4 | 평균 플롯 (#36) | anova.csv | 호환 가능 (group=categorical) |
 | 1.5-5 | Mood's Median (#21) | kruskal-wallis.csv | 호환 가능 |
 | 1.5-6 | KS Test (#20) | stepwise.csv | 호환 가능 |
-| 1.5-7 | Sign Test (#15) | paired-t-test.csv | method.id 확인 |
+| 1.5-7 | Sign Test (#15) | paired-t.csv | method.id 확인 |
 
 **Phase 1.5 완료 시**: SKIP 6개 → 테스트 결과 판명 (추가 FAIL 또는 PASS)
 

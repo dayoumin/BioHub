@@ -54,7 +54,7 @@ function makeHistoryRecord(overrides: Partial<HistoryRecord> = {}): HistoryRecor
     id: 'hist_1',
     timestamp: Date.now(),
     name: '독립표본 t-검정',
-    method: { id: 'independent-t-test', name: '독립표본 t-검정', category: 'comparison' },
+    method: { id: 'two-sample-t', name: '독립표본 t-검정', category: 't-test' },
     purpose: 'test',
     dataFileName: 'data.csv',
     dataRowCount: 50,

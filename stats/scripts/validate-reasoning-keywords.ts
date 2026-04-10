@@ -36,7 +36,7 @@ const CURATED_TEST_CASES: CuratedTestCase[] = [
     name: 'Student Sleep Data',
     source: 'R datasets',
     purpose: 'compare',
-    expectedMethod: 'paired-t-test',
+    expectedMethod: 'paired-t',
     expectedReasoningKeywords: ['대응표본', 'paired', 'ID', '전후'],
     description: '수면제 전후 수면 시간 비교 (대응표본 t-검정)'
   },
@@ -52,7 +52,7 @@ const CURATED_TEST_CASES: CuratedTestCase[] = [
     name: 'Two Independent Groups',
     source: 'synthetic',
     purpose: 'compare',
-    expectedMethod: 'independent-t-test',
+    expectedMethod: 'two-sample-t',
     expectedReasoningKeywords: ['2개 그룹', '독립', '정규성', '등분산성'],
     description: '두 독립 그룹 비교 (t-검정)'
   },
@@ -155,7 +155,7 @@ function generateMockData(testCase: CuratedTestCase): {
       ]
       break
 
-    case 'paired-t-test':
+    case 'paired-t':
       // Student Sleep Data: 대응표본 (ID 반복 - 각 ID가 2행씩)
       validationResults = {
         isValid: true,
@@ -208,7 +208,7 @@ function generateMockData(testCase: CuratedTestCase): {
       }))
       break
 
-    case 'independent-t-test':
+    case 'two-sample-t':
       // 두 독립 그룹
       validationResults = {
         isValid: true,

@@ -94,7 +94,7 @@ const INDEPENDENT_T: DataFormatGuideInfo = {
       ['실험군', 98],
     ],
   },
-  exampleFile: 'independent-t-test.csv',
+  exampleFile: 'two-sample-t.csv',
 }
 
 const PAIRED_T: DataFormatGuideInfo = {
@@ -114,7 +114,7 @@ const PAIRED_T: DataFormatGuideInfo = {
       ['최수진', 125, 118],
     ],
   },
-  exampleFile: 'paired-t-test.csv',
+  exampleFile: 'paired-t.csv',
   warnings: ['두 열의 행 수가 동일해야 합니다 (짝이 맞아야 함)'],
 }
 
@@ -484,7 +484,7 @@ const REGRESSION: DataFormatGuideInfo = {
       [7, 92],
     ],
   },
-  exampleFile: 'linear-regression.csv',
+  exampleFile: 'simple-regression.csv',
 }
 
 const STEPWISE: DataFormatGuideInfo = {

@@ -42,7 +42,7 @@ function createMethodTest(config: MethodTestConfig) {
 | 2.1.1 | 독립표본 t-검정 | t-test.csv | group→factor, value→dependent | @critical |
 | 2.1.2 | Welch t-검정 | welch-t.csv | group→factor, value→dependent | @critical |
 | 2.1.3 | 일표본 t-검정 | one-sample-t.csv | value→dependent | @critical |
-| 2.1.4 | 대응표본 t-검정 | paired-t-test.csv | pre, post→paired | @critical |
+| 2.1.4 | 대응표본 t-검정 | paired-t.csv | pre, post→paired | @critical |
 
 **결과 검증 항목:**
 - t 통계량 (숫자)

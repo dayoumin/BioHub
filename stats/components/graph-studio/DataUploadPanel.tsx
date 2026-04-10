@@ -107,7 +107,7 @@ interface SampleDataset {
 const SAMPLE_DATASETS: SampleDataset[] = [
   { id: 'fish-growth', label: '어류 성장', chartHint: 'Line', type: 'inline' },
   { id: 'correlation', label: '키 · 몸무게', chartHint: 'Scatter', type: 'fetch', url: '/example-data/correlation.csv' },
-  { id: 'group-compare', label: '그룹 비교', chartHint: 'Bar', type: 'fetch', url: '/example-data/independent-t-test.csv' },
+  { id: 'group-compare', label: '그룹 비교', chartHint: 'Bar', type: 'fetch', url: '/example-data/two-sample-t.csv' },
   { id: 'anova', label: '사료 비교', chartHint: 'Box', type: 'fetch', url: '/example-data/one-way-anova.csv' },
 ];
 

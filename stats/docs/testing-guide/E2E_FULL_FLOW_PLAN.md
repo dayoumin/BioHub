@@ -27,7 +27,7 @@ Smart Flow 전체 흐름 테스트: **데이터 업로드 → 방법 선택 → 
 | 파일명 | 용도 | 필수 컬럼 | 행 수 | 상태 |
 |--------|------|----------|-------|------|
 | `t-test.csv` | 독립표본 t-검정 | group(A/B), value | 20 | ✅ 있음 |
-| `paired-t-test.csv` | 대응표본 t-검정 | pre, post | 15 | ❌ 필요 |
+| `paired-t.csv` | 대응표본 t-검정 | pre, post | 15 | ❌ 필요 |
 | `one-sample-t.csv` | 일표본 t-검정 | value | 20 | ❌ 필요 |
 | `anova.csv` | 일원분산분석 | group(A/B/C), value | 18 | ✅ 있음 |
 | `correlation.csv` | 상관분석 | x, y, z | 10 | ✅ 있음 |
@@ -39,7 +39,7 @@ Smart Flow 전체 흐름 테스트: **데이터 업로드 → 방법 선택 → 
 ### 추가 필요 데이터
 
 ```csv
-# paired-t-test.csv
+# paired-t.csv
 subject,pre,post
 1,23.5,25.1
 2,24.8,26.3
@@ -153,7 +153,7 @@ export async function verifyResults(page: Page, options: ResultOptions) {
 
 | ID | 테스트명 | 데이터 | 예상 시간 |
 |----|---------|--------|----------|
-| FF-006 | 대응표본 t-검정 | paired-t-test.csv | 45초 |
+| FF-006 | 대응표본 t-검정 | paired-t.csv | 45초 |
 | FF-007 | 일표본 t-검정 | one-sample-t.csv | 40초 |
 | FF-008 | Mann-Whitney U | mann-whitney.csv | 45초 |
 | FF-009 | Kruskal-Wallis | kruskal-wallis.csv | 50초 |
@@ -213,7 +213,7 @@ e2e/helpers/
 ### Step 2: 테스트 데이터 추가
 ```
 test-data/e2e/
-├── paired-t-test.csv       # 신규
+├── paired-t.csv            # 신규
 ├── one-sample-t.csv        # 신규
 └── ... (기존 파일)
 ```
@@ -275,7 +275,7 @@ npm run e2e -- e2e/smart-flow-full.spec.ts --timeout=180000
 
 ## 다음 세션에서 할 일
 
-1. `paired-t-test.csv`, `one-sample-t.csv` 생성
+1. `paired-t.csv`, `one-sample-t.csv` 생성
 2. `e2e/helpers/` 폴더 및 헬퍼 함수 작성
 3. `e2e/smart-flow-full.spec.ts` 작성
 4. Critical 5개 테스트 구현 및 실행

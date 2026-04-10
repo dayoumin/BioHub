@@ -48,7 +48,7 @@ createMethodTestSuite('@phase2 @critical T-검정', [
     name: '2.1.4 대응표본 t-검정',
     searchTerm: '대응표본',
     methodRegex: /대응표본.*t.*검정|paired/i,
-    csvFile: 'paired-t-test.csv',
+    csvFile: 'paired-t.csv',
     variables: [
       { role: 'dependent', variableName: 'pre' },
       { role: 'dependent', variableName: 'post' },

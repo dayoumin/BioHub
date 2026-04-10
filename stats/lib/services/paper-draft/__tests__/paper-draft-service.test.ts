@@ -26,7 +26,7 @@ const draftCtx: DraftContext = {
 function makeExportCtx(overrides: Partial<ExportContext['analysisResult']> = {}): ExportContext {
   return {
     analysisResult: {
-      method: 'independent-t-test',
+      method: 'two-sample-t',
       statistic: 2.45,
       pValue: 0.021,
       df: 28,
@@ -65,7 +65,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'ko', postHocDisplay: 'significant-only' }
     )
 
@@ -76,7 +76,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'ko', postHocDisplay: 'all' }
     )
 
@@ -87,7 +87,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'ko' }  // postHocDisplay 없음
     )
 
@@ -98,7 +98,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'en', postHocDisplay: 'all' }
     )
 
@@ -111,7 +111,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'en' }
     )
 
@@ -124,7 +124,7 @@ describe('generatePaperDraft — context 보존 (재생성 시 유지)', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'ko', postHocDisplay: 'significant-only' }
     )
 
@@ -135,8 +135,8 @@ describe('generatePaperDraft — context 보존 (재생성 시 유지)', () => {
   })
 
   it('draft.language가 options.language와 일치한다', () => {
-    const ko = generatePaperDraft(makeExportCtx(), draftCtx, 'independent-t-test', { language: 'ko' })
-    const en = generatePaperDraft(makeExportCtx(), draftCtx, 'independent-t-test', { language: 'en' })
+    const ko = generatePaperDraft(makeExportCtx(), draftCtx, 'two-sample-t', { language: 'ko' })
+    const en = generatePaperDraft(makeExportCtx(), draftCtx, 'two-sample-t', { language: 'en' })
 
     expect(ko.language).toBe('ko')
     expect(en.language).toBe('en')
@@ -146,7 +146,7 @@ describe('generatePaperDraft — context 보존 (재생성 시 유지)', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'ko', postHocDisplay: 'significant-only' }
     )
 
@@ -161,7 +161,7 @@ describe('generatePaperDraft — 히스토리 복원 후 재생성 시뮬레이�
     const original = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
-      'independent-t-test',
+      'two-sample-t',
       { language: 'ko', postHocDisplay: 'all' }
     )
     expect(original.postHocDisplay).toBe('all')
@@ -178,7 +178,7 @@ describe('generatePaperDraft — 히스토리 복원 후 재생성 시뮬레이�
     const regenerated = generatePaperDraft(
       makeExportCtx(),
       restoredContext,
-      'independent-t-test',
+      'two-sample-t',
       { language: restoredOptions.language, postHocDisplay: restoredOptions.postHocDisplay }
     )
 
@@ -205,7 +205,7 @@ describe('generatePaperDraft — 히스토리 복원 후 재생성 시뮬레이�
     const regenerated = generatePaperDraft(
       makeExportCtx(),
       legacyDraft.context,
-      'independent-t-test',
+      'two-sample-t',
       { language: restoredOptions.language, postHocDisplay: restoredOptions.postHocDisplay }
     )
 

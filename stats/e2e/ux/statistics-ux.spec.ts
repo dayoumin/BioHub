@@ -83,7 +83,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
   test('TC-4A.1.2: 통계 전문가 — 직접 선택 → 상세 결과 확인', async ({ page }) => {
     // 1. 업로드
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'paired-t-test.csv')).toBe(true)
+    expect(await uploadCSV(page, 'paired-t.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     // 2. 직접 선택 → 대응표본 t-검정
