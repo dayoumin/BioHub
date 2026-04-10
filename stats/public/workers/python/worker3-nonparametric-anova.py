@@ -293,17 +293,13 @@ def test_assumptions(groups):
     }
 
 
-def one_way_anova(groups):
+def one_way_anova(groups, welch=False):
     clean_groups = clean_groups_helper(groups)
 
     for i, group in enumerate(clean_groups):
         if len(group) < 2:
             raise ValueError(f"Group {i} must have at least 2 observations")
 
-    f_statistic, p_value = stats.f_oneway(*clean_groups)
-
-    # 효과크기 (eta-squared) 계산
-    # eta² = SS_between / SS_total
     all_data = np.concatenate(clean_groups)
     grand_mean = np.mean(all_data)
 
@@ -313,13 +309,29 @@ def one_way_anova(groups):
     # SS_total: 전체 제곱합
     ss_total = np.sum((all_data - grand_mean) ** 2)
 
-    # eta-squared
+    welch_enabled = welch if isinstance(welch, bool) else str(welch).lower() == 'true'
+    df_between = len(clean_groups) - 1
+    df_within = len(all_data) - len(clean_groups)
+
+    if welch_enabled:
+        from statsmodels.stats.oneway import anova_oneway
+
+        welch_result = anova_oneway(clean_groups, use_var='unequal', welch_correction=True)
+        f_statistic = float(welch_result.statistic)
+        p_value = float(welch_result.pvalue)
+        df_between = float(welch_result.df_num)
+        df_within = float(welch_result.df_denom)
+    else:
+        f_statistic, p_value = stats.f_oneway(*clean_groups)
+        f_statistic = float(f_statistic)
+        p_value = float(p_value)
+
+    # 효과크기 (eta-squared) 계산
+    # eta² = SS_between / SS_total
     eta_squared = ss_between / ss_total if ss_total > 0 else 0.0
 
     # omega-squared (덜 편향된 효과크기)
     # ω² = (SS_between - df_between * MS_within) / (SS_total + MS_within)
-    df_between = len(clean_groups) - 1
-    df_within = len(all_data) - len(clean_groups)
     ss_within = ss_total - ss_between
     ms_within = ss_within / df_within if df_within > 0 else 0
 
@@ -328,8 +340,8 @@ def one_way_anova(groups):
     return {
         'fStatistic': float(f_statistic),
         'pValue': float(p_value),
-        'dfBetween': int(df_between),
-        'dfWithin': int(df_within),
+        'dfBetween': float(df_between),
+        'dfWithin': float(df_within),
         'etaSquared': float(eta_squared),
         'omegaSquared': float(omega_squared),
         'ssBetween': float(ss_between),
@@ -1453,4 +1465,3 @@ def cochran_q_posthoc(dataMatrix, pAdjust='holm'):
         'pAdjustMethod': pAdjust,
         'nComparisons': n_comparisons
     }
-

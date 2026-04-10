@@ -13,7 +13,14 @@ export const anovaR: CodeTemplate = {
   generate: (input) => {
     const d = dep(input)
     const g = group(input)
-    const postHocMethod = input.options.postHocMethod ?? 'games-howell'
+    const isWelch = input.options.testVariant === 'welch'
+    const postHocMethod = input.options.postHocMethod ?? (isWelch ? 'games-howell' : 'tukey')
+    const analysisBlock = isWelch
+      ? `library(rstatix)
+welch_result <- welch_anova_test(data, ${safeRFormula(d)} ~ ${safeRFormula(g)})
+print(welch_result)`
+      : `model <- aov(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
+summary(model)`
     const postHocBlock = postHocMethod === 'games-howell'
       ? `# 사후검정 (Games-Howell)
 library(rstatix)
@@ -23,21 +30,22 @@ print(games_howell_test(data, ${safeRFormula(d)} ~ ${safeRFormula(g)}))`
 print(pairwise.t.test(data[[${safeRString(d)}]], data[[${safeRString(g)}]], p.adjust.method = "bonferroni"))`
         : `# 사후검정 (Tukey HSD)
 print(TukeyHSD(model))`
+    const effectSizeBlock = `model <- aov(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
+ss <- summary(model)[[1]]
+eta_sq <- ss[["Sum Sq"]][1] / sum(ss[["Sum Sq"]])
+cat(sprintf("Eta-squared: %.4f\\n", eta_sq))`
     return `library(tidyverse)
 
 data <- read_csv("${safeFileName(input.dataFileName)}")
 data[[${safeRString(g)}]] <- as.factor(data[[${safeRString(g)}]])
 
-# 일원분산분석 (One-Way ANOVA)
-model <- aov(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
-summary(model)
+# 일원분산분석 (${isWelch ? 'Welch ANOVA' : 'One-Way ANOVA'})
+${analysisBlock}
 
 ${postHocBlock}
 
 # 효과 크기 (Eta-squared)
-ss <- summary(model)[[1]]
-eta_sq <- ss[["Sum Sq"]][1] / sum(ss[["Sum Sq"]])
-cat(sprintf("Eta-squared: %.4f\\n", eta_sq))`
+${effectSizeBlock}`
   },
 }
 
@@ -48,10 +56,17 @@ export const anovaPython: CodeTemplate = {
   generate: (input) => {
     const d = dep(input)
     const g = group(input)
-    const postHocMethod = input.options.postHocMethod ?? 'games-howell'
+    const isWelch = input.options.testVariant === 'welch'
+    const postHocMethod = input.options.postHocMethod ?? (isWelch ? 'games-howell' : 'tukey')
     const imports = postHocMethod === 'tukey'
       ? 'from statsmodels.stats.multicomp import pairwise_tukeyhsd'
       : 'import pingouin as pg'
+    const analysisBlock = isWelch
+      ? `welch_result = pg.welch_anova(data=data, dv="${safePy(d)}", between="${safePy(g)}")
+print(welch_result)
+f_stat = welch_result["F"].iloc[0]
+p_value = welch_result["p-unc"].iloc[0]`
+      : `f_stat, p_value = stats.f_oneway(*groups)`
     const postHocBlock = postHocMethod === 'games-howell'
       ? `# 사후검정 (Games-Howell)
 posthoc = pg.pairwise_gameshowell(data=data, dv="${safePy(d)}", between="${safePy(g)}")
@@ -75,8 +90,8 @@ data = pd.read_csv("${safeFileName(input.dataFileName)}")
 # 그룹별 분리
 groups = [grp["${safePy(d)}"].values for _, grp in data.groupby("${safePy(g)}")]
 
-# 일원분산분석 (One-Way ANOVA)
-f_stat, p_value = stats.f_oneway(*groups)
+# 일원분산분석 (${isWelch ? 'Welch ANOVA' : 'One-Way ANOVA'})
+${analysisBlock}
 print(f"F-statistic: {f_stat:.4f}")
 print(f"p-value: {p_value:.4f}")
 

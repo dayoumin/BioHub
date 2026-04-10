@@ -176,6 +176,29 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
       ])
     })
 
+    it('3-group compare (정규성 ✓, 등분산 ✗) → canonical anova + welch setting', () => {
+      const assumptions = createMockAssumptions(true, false)
+      const validation = createMockValidation(2, 3)
+      const data = createMockData(3)
+
+      const recommendation = DecisionTreeRecommender.recommend(
+        'compare',
+        assumptions,
+        validation,
+        data
+      )
+
+      expect(recommendation.method.id).toBe('one-way-anova')
+      expect(recommendation.suggestedSettings).toEqual({
+        welch: true,
+        postHoc: 'games-howell',
+      })
+      expect(recommendation.expectedReasoningKeywords).toBeDefined()
+      expect(recommendation.expectedReasoningKeywords).toEqual([
+        '3개 이상', 'ANOVA', '분산', '정규성', '등분산성'
+      ])
+    })
+
     it('3-group compare (정규성 ✗) → kruskal-wallis', () => {
       const assumptions = createMockAssumptions(false, true)
       const validation = createMockValidation(2, 3)

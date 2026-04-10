@@ -151,6 +151,31 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
       expect(typeof totalCount).toBe('number')
       expect(typeof probability).toBe('number')
     })
+
+    it('settings의 probability와 alternative를 binomialTestWorker에 전달해야 한다', async () => {
+      mock.binomialTestWorker.mockResolvedValue({
+        successCount: 7,
+        totalCount: 10,
+        pValue: 0.172,
+        proportion: 0.7
+      })
+
+      const data: Array<Record<string, unknown>> = Array.from({ length: 10 }, (_, i) => ({
+        result: i < 7 ? 'success' : 'fail'
+      }))
+      const method = STATISTICAL_METHODS['binomial-test']!
+
+      await executor.executeMethod(
+        method,
+        data,
+        { successCount: 7, probability: 0.5, dependent: ['result'] },
+        { probability: 0.25, alternative: 'greater' }
+      )
+
+      const [, , probability, alternative] = mock.binomialTestWorker.mock.calls[0]
+      expect(probability).toBe(0.25)
+      expect(alternative).toBe('greater')
+    })
   })
 
   describe('proportion-test → oneSampleProportionTest 라우팅', () => {

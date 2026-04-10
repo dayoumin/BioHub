@@ -589,7 +589,7 @@ export class PyodideStatisticsService {
    */
   async anova(
     groups: number[][],
-    _options: { type?: 'one-way' | 'two-way' } = {}
+    options: { type?: 'one-way' | 'two-way'; welch?: boolean } = {}
   ): Promise<{
     fStatistic: number
     pValue: number
@@ -601,7 +601,7 @@ export class PyodideStatisticsService {
     ssTotal: number
   }> {
     // Worker 3 호출로 간소화
-    const result = await this.oneWayAnovaWorker(groups)
+    const result = await this.oneWayAnovaWorker(groups, options.welch === true)
     return {
       fStatistic: result.fStatistic,
       pValue: result.pValue,
@@ -614,8 +614,8 @@ export class PyodideStatisticsService {
     }
   }
 
-  async oneWayAnovaWorker(groups: number[][]): Promise<Generated.OneWayAnovaResult> {
-    return Generated.oneWayAnova(groups)
+  async oneWayAnovaWorker(groups: number[][], welch: boolean = false): Promise<Generated.OneWayAnovaResult> {
+    return Generated.oneWayAnova(groups, welch)
   }
 
 

@@ -26,6 +26,7 @@ export interface CodeTemplateInput {
     /** 'two-sided' (저장값) 또는 'two.sided' (R 변환 후) */
     alternative: string
     equalVariance?: boolean
+    testVariant?: string
     postHocMethod?: string
     testValue?: number
   }

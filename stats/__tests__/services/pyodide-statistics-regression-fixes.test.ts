@@ -136,10 +136,11 @@ describe('pyodide-statistics regression fixes', () => {
 
     const service = await getServiceInstance()
 
-    const anova = await service.oneWayAnovaWorker([[1, 2], [3, 4], [5, 6]])
+    const anova = await service.oneWayAnovaWorker([[1, 2], [3, 4], [5, 6]], true)
     await service.partialCorrelationWorker([[1, 2, 3], [4, 5, 6]], 0, 1, [2])
 
     expect(anova.ssBetween).toBe(10)
+    expect(mockOneWayAnova).toHaveBeenCalledWith([[1, 2], [3, 4], [5, 6]], true)
     expect(mockPartialCorrelation).toHaveBeenCalledWith(
       [[1, 2, 3], [4, 5, 6]],
       0,

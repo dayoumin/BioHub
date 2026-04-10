@@ -2,6 +2,15 @@ import { pyodideStats } from '../pyodide/pyodide-statistics'
 import type { StatisticalMethod, SuggestedSettings } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 
+function parseNumberSetting(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return undefined
+}
+
 export async function handleNonparametric(
   method: StatisticalMethod,
   data: PreparedData,
@@ -147,11 +156,15 @@ export async function handleNonparametric(
     case 'binomial-test': {
       const successCount = Number(data.variables?.successCount) || 0
       const totalCount = data.totalN || 1
-      const probability = Number(data.variables?.probability) || 0.5
+      const probability = parseNumberSetting(settings?.probability)
+        ?? parseNumberSetting(data.variables?.probability)
+        ?? 0.5
+      const alternative = settings?.alternative
       const binomialResult = await pyodideStats.binomialTestWorker(
         successCount,
         totalCount,
-        probability
+        probability,
+        alternative
       )
       result = {
         statistic: binomialResult.successCount,
@@ -223,6 +236,9 @@ export async function handleNonparametric(
       let successCount = Number.isFinite(parsedSuccessCount) ? parsedSuccessCount : undefined
       const rawSuccessLabel = data.variables?.successLabel
       let successLabel = typeof rawSuccessLabel === 'string' ? rawSuccessLabel : undefined
+      const explicitSuccessValue = typeof settings?.successValue === 'string'
+        ? settings.successValue
+        : undefined
       const totalCount = data.totalN || 1
       // nullProportion: variableMapping에 string으로 저장 → float 파싱 (기본 0.5)
       const nullProportion = parseFloat(String(data.variables?.nullProportion ?? '')) || 0.5
@@ -243,6 +259,7 @@ export async function handleNonparametric(
           if (uniqueVals.length >= 1) {
             // positive 키워드 먼저, 없으면 사전순 마지막 값 ("yes" > "no", "1" > "0" 등)
             const successVal =
+              (explicitSuccessValue && uniqueVals.includes(explicitSuccessValue) ? explicitSuccessValue : undefined) ??
               uniqueVals.find(v => POSITIVE_KEYWORDS.has(v.toLowerCase())) ??
               uniqueVals[uniqueVals.length - 1]
             successCount = values.filter(v => v === successVal).length
@@ -258,8 +275,12 @@ export async function handleNonparametric(
         }
       }
 
+      if (successCount === undefined) {
+        throw new Error('비율 검정을 위해 이진 변수 1개를 선택하거나 successCount를 제공해 주세요.')
+      }
+
       const propResult = await pyodideStats.oneSampleProportionTest(
-        successCount ?? 0,
+        successCount,
         totalCount,
         nullProportion,
         alternative,
