@@ -32,7 +32,7 @@ export default defineConfig({
 		command: 'npx --yes serve out -p 3200',
 		url: 'http://localhost:3200',
 		reuseExistingServer: !process.env.CI,
-		timeout: 30000,
+		timeout: 120000,
 	},
 
 	projects: [

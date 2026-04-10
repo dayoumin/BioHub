@@ -8,10 +8,16 @@ on:
       - 'stats/lib/services/statistical-executor.ts'
       - 'stats/lib/registry/**'
       - 'stats/components/analysis/variable-selector/**'
+      - 'stats/components/analysis/steps/VariableSelectionStep.tsx'
+      - 'stats/components/analysis/steps/AnalysisExecutionStep.tsx'
       - 'stats/components/analysis/steps/MethodBrowserStep.tsx'
       - 'stats/components/analysis/AnalysisSteps.tsx'
       - 'stats/app/page.tsx'
       - 'stats/hooks/use-data-upload.ts'
+      - 'stats/hooks/use-hub-data-upload.ts'
+      - 'stats/lib/services/handlers/handle-design.ts'
+      - 'stats/lib/services/handlers/handle-nonparametric.ts'
+      - 'stats/lib/statistics/variable-mapping.ts'
       - 'stats/lib/services/pyodide-statistics.ts'
       - 'stats/lib/services/pyodide-statistics.adapters.ts'
       - 'stats/lib/utils/result-transformer.ts'
@@ -30,9 +36,14 @@ on:
       - 'stats/__tests__/lib/services/slot-to-executor-runtime-regressions.test.ts'
       - 'stats/__tests__/lib/registry/method-registry-regressions.test.ts'
       - 'stats/__tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx'
+      - 'stats/__tests__/components/analysis/steps/VariableSelectionStep.test.tsx'
+      - 'stats/__tests__/components/analysis/steps/AnalysisExecutionStep.test.tsx'
       - 'stats/__tests__/hooks/use-analysis-handlers.test.ts'
       - 'stats/__tests__/hooks/use-data-upload-scenarios.test.ts'
       - 'stats/__tests__/hooks/use-data-upload-quick-advance.test.ts'
+      - 'stats/__tests__/hooks/use-hub-data-upload.test.ts'
+      - 'stats/__tests__/services/handlers/handle-design.test.ts'
+      - 'stats/__tests__/statistics/chi-square-validation.test.ts'
       - 'stats/__tests__/contracts/method-id-unification.contract.test.ts'
       - 'stats/__tests__/integration/method-id-unification-simulation.test.ts'
       - 'stats/__tests__/unit/result-transformer.test.ts'
@@ -43,10 +54,16 @@ on:
       - 'stats/lib/services/statistical-executor.ts'
       - 'stats/lib/registry/**'
       - 'stats/components/analysis/variable-selector/**'
+      - 'stats/components/analysis/steps/VariableSelectionStep.tsx'
+      - 'stats/components/analysis/steps/AnalysisExecutionStep.tsx'
       - 'stats/components/analysis/steps/MethodBrowserStep.tsx'
       - 'stats/components/analysis/AnalysisSteps.tsx'
       - 'stats/app/page.tsx'
       - 'stats/hooks/use-data-upload.ts'
+      - 'stats/hooks/use-hub-data-upload.ts'
+      - 'stats/lib/services/handlers/handle-design.ts'
+      - 'stats/lib/services/handlers/handle-nonparametric.ts'
+      - 'stats/lib/statistics/variable-mapping.ts'
       - 'stats/lib/services/pyodide-statistics.ts'
       - 'stats/lib/services/pyodide-statistics.adapters.ts'
       - 'stats/lib/utils/result-transformer.ts'
@@ -65,9 +82,14 @@ on:
       - 'stats/__tests__/lib/services/slot-to-executor-runtime-regressions.test.ts'
       - 'stats/__tests__/lib/registry/method-registry-regressions.test.ts'
       - 'stats/__tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx'
+      - 'stats/__tests__/components/analysis/steps/VariableSelectionStep.test.tsx'
+      - 'stats/__tests__/components/analysis/steps/AnalysisExecutionStep.test.tsx'
       - 'stats/__tests__/hooks/use-analysis-handlers.test.ts'
       - 'stats/__tests__/hooks/use-data-upload-scenarios.test.ts'
       - 'stats/__tests__/hooks/use-data-upload-quick-advance.test.ts'
+      - 'stats/__tests__/hooks/use-hub-data-upload.test.ts'
+      - 'stats/__tests__/services/handlers/handle-design.test.ts'
+      - 'stats/__tests__/statistics/chi-square-validation.test.ts'
       - 'stats/__tests__/contracts/method-id-unification.contract.test.ts'
       - 'stats/__tests__/integration/method-id-unification-simulation.test.ts'
       - 'stats/__tests__/unit/result-transformer.test.ts'
@@ -112,7 +134,7 @@ jobs:
 
       - name: Run selector and flow regression tests
         working-directory: ./stats
-        run: pnpm test --run __tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx __tests__/lib/services/slot-to-executor-pipeline.test.ts __tests__/lib/services/slot-to-executor-runtime-regressions.test.ts __tests__/lib/registry/method-registry-regressions.test.ts __tests__/hooks/use-analysis-handlers.test.ts __tests__/hooks/use-data-upload-scenarios.test.ts __tests__/hooks/use-data-upload-quick-advance.test.ts
+        run: pnpm test --run __tests__/components/analysis/steps/MethodBrowserStep.scenario.test.tsx __tests__/components/analysis/steps/VariableSelectionStep.test.tsx __tests__/components/analysis/steps/AnalysisExecutionStep.test.tsx __tests__/lib/services/slot-to-executor-pipeline.test.ts __tests__/lib/services/slot-to-executor-runtime-regressions.test.ts __tests__/lib/registry/method-registry-regressions.test.ts __tests__/hooks/use-analysis-handlers.test.ts __tests__/hooks/use-data-upload-scenarios.test.ts __tests__/hooks/use-data-upload-quick-advance.test.ts __tests__/hooks/use-hub-data-upload.test.ts __tests__/services/handlers/handle-design.test.ts __tests__/statistics/chi-square-validation.test.ts
 
       - name: Run method-id unification tests
         working-directory: ./stats
@@ -120,7 +142,7 @@ jobs:
 
       - name: Run validation smoke
         working-directory: ./stats
-        run: pnpm test:validation --layer L1 --report
+        run: pnpm test:validation --layer L2 --report
 
       - name: Run transformer tests
         working-directory: ./stats
