@@ -244,6 +244,7 @@ export const useAnalysisStore = create<AnalysisState>()(
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set((state) => ({
         selectedMethod: method,
+        assumptionResults: null,
         analysisOptions: {
           ...DEFAULT_ANALYSIS_OPTIONS,
           alpha: state.analysisOptions.alpha,
@@ -367,7 +368,10 @@ export const useAnalysisStore = create<AnalysisState>()(
       canProceedToNext: () => {
         const state = get()
         switch (state.currentStep) {
-          case 1: return state.uploadedFile !== null && state.uploadedData !== null && state.validationResults?.isValid === true
+          case 1:
+            return Array.isArray(state.uploadedData) &&
+              state.uploadedData.length > 0 &&
+              state.validationResults?.isValid === true
           case 2: return state.selectedMethod !== null
           case 3: return state.variableMapping !== null
           case 4: return false

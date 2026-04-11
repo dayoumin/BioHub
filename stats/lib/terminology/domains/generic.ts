@@ -144,7 +144,7 @@ export const generic: TerminologyDictionary = {
       results: 'Results'
     },
     stepShortLabels: {
-      exploration: 'Data Upload',
+      exploration: 'Data Exploration',
       method: 'Method',
       variable: 'Variables',
       analysis: 'Results'
@@ -477,6 +477,7 @@ export const generic: TerminologyDictionary = {
     chatInput: {
       heading: 'What would you like to analyze?',
       placeholder: 'e.g., "Compare means between two groups", "Analyze growth by diet type"',
+      placeholderWithData: 'What statistical analysis would you like to run on this data?',
       sendAriaLabel: 'Send',
       processingMessage: 'Figuring out the best approach...',
       uploadAriaLabel: 'Upload data file',
@@ -679,8 +680,8 @@ export const generic: TerminologyDictionary = {
       ariaLabel: 'Data exploration cards',
       overview: 'Data Preview',
       descriptive: 'Descriptive Stats',
-      distribution: 'Distribution & Tests',
-      correlation: 'Variable Relations',
+      distribution: 'Tests',
+      correlation: 'Variable Relationships',
       rowsCols: (rows: number, cols: number) => `${rows} rows × ${cols} cols`,
       numericCategorical: (n: number, c: number) => `Numeric ${n} · Categorical ${c}`,
       missingCount: (n: number) => `${n} missing`,
@@ -699,9 +700,9 @@ export const generic: TerminologyDictionary = {
     features: {
       descriptiveTitle: 'Descriptive Statistics',
       descriptiveDesc: 'Mean, standard deviation, quartiles, skewness/kurtosis, etc.',
-      distributionTitle: 'Distribution Visualization',
+      distributionTitle: 'Distribution Review',
       distributionDesc: 'Histograms, box plots, outlier detection',
-      correlationTitle: 'Correlation Analysis',
+      correlationTitle: 'Variable Relationships',
       correlationDesc: 'Scatter plots, correlation heatmaps, trend lines',
     },
     tabs: {
@@ -744,7 +745,7 @@ export const generic: TerminologyDictionary = {
       ariaLabel: 'Chart type selection',
     },
     distribution: {
-      title: 'Data Distribution Visualization',
+      title: 'Distribution Review',
       description: 'Explore distributions of numeric variables via histograms or box plots',
     },
     histogram: {
@@ -761,7 +762,7 @@ export const generic: TerminologyDictionary = {
       heatmap: 'Correlation Heatmap',
     },
     scatter: {
-      variableRelation: 'Variable Relationship Analysis',
+      variableRelation: 'Variable Relationships',
       xAxis: 'X-axis (Independent)',
       yAxis: 'Y-axis (Dependent)',
     },
@@ -808,6 +809,8 @@ export const generic: TerminologyDictionary = {
       normal: 'Normal',
       nonNormal: 'Non-normal',
       statLabel: 'Shapiro-Wilk W: ',
+      normalReview: (stepName: string) => `Current variables look compatible with normality. Confirm the final variable combination again in ${stepName}.`,
+      nonNormalReview: (stepName: string) => `Highlighted variables need a closer look for normality. Recheck the final variable combination in ${stepName}.`,
       normalInterpretation: '✓ Data follows a normal distribution. Standard statistical tests (t-test, ANOVA, etc.) can be used.',
       nonNormalInterpretation: '⚠ Data is skewed. Appropriate analysis methods will be recommended in the next step.',
     },
@@ -816,6 +819,12 @@ export const generic: TerminologyDictionary = {
       equal: 'Equal variance',
       unequal: 'Unequal variance',
       statLabel: 'Levene F: ',
+      requiresGroupVariable: 'A grouping variable is required before homogeneity checks can run.',
+      failedSummary: (failed: number, total: number, stepName: string) => `${failed} of ${total} checked combinations violate homogeneity. Review adjusted tests, then confirm the actual analysis variables again in ${stepName}.`,
+      passedSummary: (total: number, stepName: string) => `All ${total} checked combinations look acceptable for homogeneity so far. Confirm the final analysis variables again in ${stepName}.`,
+      groupVariable: (groupName: string) => `Group variable: ${groupName}`,
+      passCount: (passed: number, total: number) => `${passed}/${total} passed`,
+      insufficientCombinations: 'There are not enough valid numeric-by-group combinations to estimate homogeneity reliably for this dataset.',
       equalInterpretation: '✓ Groups have similar data spread. Standard comparison tests can be used.',
       unequalInterpretation: '⚠ Groups have different data spread. Adjusted tests (e.g., Welch) will be applied automatically.',
     },
@@ -835,6 +844,34 @@ export const generic: TerminologyDictionary = {
       correlationRequires: 'Correlation analysis requires at least 2 numeric variables.',
       currentStatus: (numeric: number, categorical: number) => `Current: ${numeric} numeric, ${categorical} categorical`,
       nextStepHint: 'You can select a suitable analysis method in the next step.',
+    },
+    insightPanel: {
+      statusTitle: 'Current Status',
+      statusReady: 'Ready to start analysis',
+      statusReview: 'Review the data before moving on',
+      statusBlocked: 'Resolve data issues first',
+      statusVariables: (numeric: number, categorical: number) => `${numeric} numeric, ${categorical} categorical detected`,
+      qualityTitle: 'Data Quality',
+      qualityHealthy: 'No major quality issues detected',
+      qualityWarnings: (count: number) => `${count} warnings need review`,
+      qualityErrors: (count: number) => `${count} errors block analysis`,
+      qualityMissing: (count: number) => `${count} missing values found`,
+      qualityOutliers: (count: number) => `${count} outliers detected`,
+      qualityNonNormal: (count: number) => `${count} variables failed normality`,
+      qualityFewNumeric: 'At least two numeric variables are needed for relationship checks',
+      nextStepTitle: 'Suggested Next Step',
+      nextOverviewTitle: 'Review raw data',
+      nextOverviewDescription: 'Open the full dataset when you need to inspect original rows.',
+      nextDescriptiveTitle: 'Check descriptive stats',
+      nextDescriptiveDescription: 'Confirm ranges, center, spread, and outliers first.',
+      nextDistributionTitle: 'Check tests and distributions',
+      nextDistributionDescription: 'Review normality and equal-variance assumptions before method selection.',
+      nextCorrelationTitle: 'Inspect variable relationships',
+      nextCorrelationDescription: 'Use scatter plots and the heatmap when two or more numeric variables exist.',
+      openOverview: 'Open data preview',
+      openDescriptive: 'Open descriptive stats',
+      openDistribution: 'Open tests',
+      openCorrelation: 'Open variable relationships',
     },
     replaceMode: {
       title: 'Upload a different data file',
@@ -2248,3 +2285,25 @@ export const generic: TerminologyDictionary = {
     },
   },
 }
+
+generic.dataExploration.normality.normalInterpretation =
+  'Data follows a normal distribution. Standard statistical tests (t-test, ANOVA, etc.) can be used.'
+generic.dataExploration.normality.nonNormalInterpretation =
+  'Data is skewed. Appropriate analysis methods will be recommended in the next step.'
+generic.dataExploration.homogeneity.equalInterpretation =
+  'Groups have similar data spread. Standard comparison tests can be used.'
+generic.dataExploration.homogeneity.unequalInterpretation =
+  'Groups have different data spread. Adjusted tests (e.g., Welch) will be applied automatically.'
+generic.dataExploration.homogeneity.requiresGroupVariable =
+  'A grouping variable is required before homogeneity checks can run.'
+generic.dataExploration.homogeneity.failedSummary = (
+  failed: number,
+  total: number,
+  stepName: string,
+) => `${failed} of ${total} checked combinations violate homogeneity. Review adjusted tests, then confirm the actual analysis variables again in ${stepName}.`
+generic.dataExploration.homogeneity.passedSummary = (total: number, stepName: string) =>
+  `All ${total} checked combinations look acceptable for homogeneity so far. Confirm the final analysis variables again in ${stepName}.`
+generic.dataExploration.homogeneity.groupVariable = (groupName: string) => `Group variable: ${groupName}`
+generic.dataExploration.homogeneity.passCount = (passed: number, total: number) => `${passed}/${total} passed`
+generic.dataExploration.homogeneity.insufficientCombinations =
+  'There are not enough valid numeric-by-group combinations to estimate homogeneity reliably for this dataset.'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Send, Loader2, ArrowUpFromLine, ShieldCheck } from 'lucide-react'
+import { Send, Loader2, Plus, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 interface ChatInputProps {
   onSubmit: (message: string) => void
   isProcessing: boolean
+  hasAttachedData?: boolean
   prefillValue?: string
   onPrefillValueConsumed?: () => void
   submitValue?: string
@@ -24,6 +25,7 @@ interface ChatInputProps {
 export function ChatInput({
   onSubmit,
   isProcessing,
+  hasAttachedData = false,
   prefillValue,
   onPrefillValueConsumed,
   submitValue,
@@ -35,6 +37,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const t = useTerminology()
   const [value, setValue] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const onSubmitRef = useRef(onSubmit)
@@ -52,6 +55,7 @@ export function ChatInput({
   useEffect(() => {
     if (prefillValue) {
       setValue(prefillValue)
+      textareaRef.current?.focus()
       onPrefillConsumedRef.current?.()
     }
   }, [prefillValue])
@@ -59,6 +63,7 @@ export function ChatInput({
   useEffect(() => {
     if (externalValue) {
       setValue(externalValue)
+      textareaRef.current?.focus()
       onExternalValueConsumedRef.current?.()
     }
   }, [externalValue])
@@ -67,6 +72,7 @@ export function ChatInput({
     if (submitValue && !isProcessing) {
       onSubmitRef.current(submitValue)
       setValue('')
+      textareaRef.current?.focus()
       onSubmitConsumedRef.current?.()
     }
   }, [isProcessing, submitValue])
@@ -102,6 +108,7 @@ export function ChatInput({
     const file = event.target.files?.[0]
     if (file && onFileSelected) {
       onFileSelected(file)
+      textareaRef.current?.focus()
     }
 
     if (fileInputRef.current) {
@@ -115,16 +122,17 @@ export function ChatInput({
     <div className="space-y-3">
       <div className="relative">
         <Textarea
+          ref={textareaRef}
           data-testid="ai-chat-input"
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={t.hub.chatInput.placeholder}
+          placeholder={hasAttachedData ? t.hub.chatInput.placeholderWithData : t.hub.chatInput.placeholder}
           disabled={isProcessing}
-          rows={2}
+          rows={1}
           className={cn(
-            'min-h-[64px] max-h-[160px] resize-none pl-5 pr-24',
-            'rounded-2xl border-border bg-background text-base',
+            'min-h-[60px] max-h-[160px] resize-none px-16 py-[18px]',
+            'rounded-2xl border-border bg-background text-base leading-6',
             'shadow-sm',
             focusRing,
             'focus-visible:border-primary',
@@ -132,21 +140,23 @@ export function ChatInput({
           )}
         />
 
-        <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-          {showUploadButton && (
+        {showUploadButton && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2">
             <Button
               size="icon"
               variant="ghost"
               onClick={handleUploadClick}
               disabled={isProcessing}
-              className="h-10 w-10 rounded-lg text-muted-foreground/50 hover:bg-accent hover:text-foreground"
+              className="h-10 w-10 rounded-full text-muted-foreground/70 hover:bg-accent/50 hover:text-foreground"
               aria-label={t.hub.chatInput.uploadAriaLabel}
               title={t.hub.chatInput.uploadTitle}
             >
-              <ArrowUpFromLine className="h-4 w-4" />
+              <Plus className="h-4.5 w-4.5" />
             </Button>
-          )}
+          </div>
+        )}
 
+        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
           <Button
             data-testid="ai-chat-submit"
             size="icon"

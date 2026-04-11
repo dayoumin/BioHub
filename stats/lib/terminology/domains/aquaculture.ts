@@ -145,7 +145,7 @@ export const aquaculture: TerminologyDictionary = {
       results: '결과 확인'
     },
     stepShortLabels: {
-      exploration: '데이터 업로드',
+      exploration: '데이터 탐색',
       method: '방법 선택',
       variable: '변수 설정',
       analysis: '결과'
@@ -478,6 +478,7 @@ export const aquaculture: TerminologyDictionary = {
     chatInput: {
       heading: '무엇을 분석하고 싶으신가요?',
       placeholder: '예: "두 그룹의 평균을 비교하고 싶어", "사료에 따른 성장 차이 분석"',
+      placeholderWithData: '이 데이터로 어떤 통계 분석을 할까요?',
       sendAriaLabel: '보내기',
       processingMessage: '최적 분석 방향을 파악하고 있습니다...',
       uploadAriaLabel: '데이터 파일 업로드',
@@ -680,8 +681,8 @@ export const aquaculture: TerminologyDictionary = {
       ariaLabel: '데이터 탐색 카드',
       overview: '데이터 미리보기',
       descriptive: '기초통계',
-      distribution: '분포 & 검정',
-      correlation: '변수 간 관계',
+      distribution: '검정',
+      correlation: '변수 관계',
       rowsCols: (rows: number, cols: number) => `${rows}행 × ${cols}열`,
       numericCategorical: (n: number, c: number) => `숫자 ${n} · 범주 ${c}`,
       missingCount: (n: number) => `결측 ${n}건`,
@@ -700,9 +701,9 @@ export const aquaculture: TerminologyDictionary = {
     features: {
       descriptiveTitle: '기초 통계량',
       descriptiveDesc: '평균, 표준편차, 사분위수, 왜도/첨도 등',
-      distributionTitle: '분포 시각화',
+      distributionTitle: '분포 확인',
       distributionDesc: '히스토그램, 박스플롯, 이상치 탐지',
-      correlationTitle: '상관관계 분석',
+      correlationTitle: '변수 관계',
       correlationDesc: '산점도, 상관 히트맵, 추세선',
     },
     tabs: {
@@ -745,7 +746,7 @@ export const aquaculture: TerminologyDictionary = {
       ariaLabel: '차트 타입 선택',
     },
     distribution: {
-      title: '데이터 분포 시각화',
+      title: '분포 확인',
       description: '수치형 변수들의 분포를 히스토그램 또는 박스플롯으로 확인합니다',
     },
     histogram: {
@@ -762,7 +763,7 @@ export const aquaculture: TerminologyDictionary = {
       heatmap: '상관 히트맵',
     },
     scatter: {
-      variableRelation: '변수 관계 분석',
+      variableRelation: '변수 관계',
       xAxis: 'X축 (독립변수)',
       yAxis: 'Y축 (종속변수)',
     },
@@ -809,6 +810,8 @@ export const aquaculture: TerminologyDictionary = {
       normal: '정규분포',
       nonNormal: '비정규분포',
       statLabel: 'Shapiro-Wilk W: ',
+      normalReview: (stepName: string) => `현재 변수들은 정규성 가정에 크게 어긋나지 않습니다. 실제 분석에 사용할 변수 조합은 ${stepName}에서 다시 확인하세요.`,
+      nonNormalReview: (stepName: string) => `강조된 변수는 정규성 가정을 다시 볼 필요가 있습니다. 실제 분석에 사용할 변수 조합은 ${stepName}에서 다시 확인하세요.`,
       normalInterpretation: '✓ 데이터가 정규분포를 따릅니다. 일반적인 통계 검정(t-검정, ANOVA 등)을 사용할 수 있습니다.',
       nonNormalInterpretation: '⚠ 데이터가 한쪽으로 치우쳐 있습니다. 다음 단계에서 적합한 분석 방법을 추천해 드립니다.',
     },
@@ -817,6 +820,12 @@ export const aquaculture: TerminologyDictionary = {
       equal: '등분산',
       unequal: '이분산',
       statLabel: 'Levene F: ',
+      requiresGroupVariable: '등분산성 검정을 보려면 비교에 사용할 그룹 변수가 필요합니다.',
+      failedSummary: (failed: number, total: number, stepName: string) => `현재 확인한 ${total}개 조합 중 ${failed}개가 등분산성을 만족하지 않습니다. 보정된 검정을 검토하고, 실제 분석 변수 조합은 ${stepName}에서 다시 판단하세요.`,
+      passedSummary: (total: number, stepName: string) => `현재 확인한 ${total}개 조합은 모두 등분산성에서 크게 벗어나지 않습니다. 실제 분석 변수 조합은 ${stepName}에서 다시 확인하세요.`,
+      groupVariable: (groupName: string) => `그룹 변수: ${groupName}`,
+      passCount: (passed: number, total: number) => `${passed}/${total} 통과`,
+      insufficientCombinations: '현재 데이터에서는 등분산성을 안정적으로 계산할 수 있는 그룹 조합이 충분하지 않습니다.',
       equalInterpretation: '✓ 그룹 간 데이터 산포가 비슷합니다. 표준 비교 검정을 사용할 수 있습니다.',
       unequalInterpretation: '⚠ 그룹 간 데이터 산포가 다릅니다. 보정된 검정(Welch 등)이 자동 적용됩니다.',
     },
@@ -836,6 +845,34 @@ export const aquaculture: TerminologyDictionary = {
       correlationRequires: '상관분석에는 수치형 변수가 2개 이상 필요합니다.',
       currentStatus: (numeric: number, categorical: number) => `현재: 수치형 ${numeric}개, 범주형 ${categorical}개`,
       nextStepHint: '다음 단계에서 적합한 분석 방법을 선택할 수 있습니다.',
+    },
+    insightPanel: {
+      statusTitle: '현재 상태',
+      statusReady: '바로 분석을 시작할 수 있습니다',
+      statusReview: '먼저 데이터를 점검해 보세요',
+      statusBlocked: '데이터 오류를 먼저 해결해야 합니다',
+      statusVariables: (numeric: number, categorical: number) => `수치형 ${numeric}개, 범주형 ${categorical}개가 확인되었습니다`,
+      qualityTitle: '데이터 품질',
+      qualityHealthy: '주요 품질 문제는 보이지 않습니다',
+      qualityWarnings: (count: number) => `경고 ${count}건을 확인하세요`,
+      qualityErrors: (count: number) => `오류 ${count}건으로 분석을 진행할 수 없습니다`,
+      qualityMissing: (count: number) => `결측치 ${count}건이 있습니다`,
+      qualityOutliers: (count: number) => `이상치 ${count}건이 감지되었습니다`,
+      qualityNonNormal: (count: number) => `정규성에서 ${count}개 변수가 벗어났습니다`,
+      qualityFewNumeric: '변수 관계를 보려면 수치형 변수가 2개 이상 필요합니다',
+      nextStepTitle: '다음 단계',
+      nextOverviewTitle: '원본 데이터 확인',
+      nextOverviewDescription: '원본 행 데이터를 직접 확인해야 할 때만 여세요.',
+      nextDescriptiveTitle: '기초 통계 확인',
+      nextDescriptiveDescription: '범위, 중심, 퍼짐, 이상치를 먼저 확인합니다.',
+      nextDistributionTitle: '검정 확인',
+      nextDistributionDescription: '정규성과 등분산성 결과를 먼저 점검합니다.',
+      nextCorrelationTitle: '변수 관계 확인',
+      nextCorrelationDescription: '수치형 변수가 2개 이상일 때 산점도와 히트맵을 봅니다.',
+      openOverview: '원본 데이터 보기',
+      openDescriptive: '기초 통계 열기',
+      openDistribution: '검정 열기',
+      openCorrelation: '변수 관계 열기',
     },
     replaceMode: {
       title: '다른 데이터 파일을 업로드하세요',
@@ -2351,3 +2388,35 @@ export const aquaculture: TerminologyDictionary = {
     },
   },
 }
+
+aquaculture.dataExploration.normality.title = '정규성 검정 (Shapiro-Wilk)'
+aquaculture.dataExploration.normality.normal = '정규분포'
+aquaculture.dataExploration.normality.nonNormal = '비정규분포'
+aquaculture.dataExploration.normality.normalInterpretation =
+  '✓ 데이터가 정규분포를 따릅니다. 일반적인 통계 검정(t-검정, ANOVA 등)을 사용할 수 있습니다.'
+aquaculture.dataExploration.normality.nonNormalInterpretation =
+  '⚠ 데이터가 한쪽으로 치우쳐 있습니다. 다음 단계에서 적합한 분석 방법을 추천해 드립니다.'
+aquaculture.dataExploration.normality.normalReview = (stepName: string) =>
+  `현재 변수들은 정규성 가정에 크게 어긋나지 않습니다. 실제 분석에 사용할 변수 조합은 ${stepName}에서 다시 확인하세요.`
+aquaculture.dataExploration.normality.nonNormalReview = (stepName: string) =>
+  `강조된 변수는 정규성 가정을 다시 볼 필요가 있습니다. 실제 분석에 사용할 변수 조합은 ${stepName}에서 다시 확인하세요.`
+aquaculture.dataExploration.homogeneity.title = '등분산성 검정 (Levene)'
+aquaculture.dataExploration.homogeneity.equal = '등분산'
+aquaculture.dataExploration.homogeneity.unequal = '이분산'
+aquaculture.dataExploration.homogeneity.equalInterpretation =
+  '✓ 그룹 간 데이터 산포가 비슷합니다. 표준 비교 검정을 사용할 수 있습니다.'
+aquaculture.dataExploration.homogeneity.unequalInterpretation =
+  '⚠ 그룹 간 데이터 산포가 다릅니다. 보정된 검정(Welch 등)이 자동 적용됩니다.'
+aquaculture.dataExploration.homogeneity.requiresGroupVariable =
+  '등분산성 검정을 보려면 비교에 사용할 그룹 변수가 필요합니다.'
+aquaculture.dataExploration.homogeneity.failedSummary = (
+  failed: number,
+  total: number,
+  stepName: string,
+) => `현재 확인한 ${total}개 조합 중 ${failed}개가 등분산성을 만족하지 않습니다. 보정된 검정을 검토하고, 실제 분석 변수 조합은 ${stepName}에서 다시 판단하세요.`
+aquaculture.dataExploration.homogeneity.passedSummary = (total: number, stepName: string) =>
+  `현재 확인한 ${total}개 조합은 모두 등분산성에서 크게 벗어나지 않습니다. 실제 분석 변수 조합은 ${stepName}에서 다시 확인하세요.`
+aquaculture.dataExploration.homogeneity.groupVariable = (groupName: string) => `그룹 변수: ${groupName}`
+aquaculture.dataExploration.homogeneity.passCount = (passed: number, total: number) => `${passed}/${total} 통과`
+aquaculture.dataExploration.homogeneity.insufficientCombinations =
+  '현재 데이터에서는 등분산성을 안정적으로 계산할 수 있는 그룹 조합이 충분하지 않습니다.'

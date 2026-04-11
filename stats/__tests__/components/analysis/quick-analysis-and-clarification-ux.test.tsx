@@ -8,7 +8,6 @@ const analysisStoreState = {
   uploadedData: null as unknown[] | null,
 }
 
-let lastQuickAccessBarProps: Record<string, unknown> | null = null
 let lastChatThreadProps: Record<string, unknown> | null = null
 let lastChatInputProps: Record<string, unknown> | null = null
 
@@ -108,10 +107,9 @@ vi.mock('@/components/analysis/hub/TrackSuggestions', () => ({
   TrackSuggestions: () => <div data-testid="track-suggestions">suggestions</div>,
 }))
 
-vi.mock('@/components/analysis/hub/QuickAccessBar', () => ({
-  QuickAccessBar: (props: Record<string, unknown>) => {
-    lastQuickAccessBarProps = props
-    return <div data-testid="quick-access-bar">history</div>
+vi.mock('@/components/analysis/AnalysisHistorySidebar', () => ({
+  AnalysisHistorySidebar: () => {
+    return <div data-testid="analysis-history-sidebar">history</div>
   },
 }))
 
@@ -126,7 +124,6 @@ describe('quick analysis and clarification UX', () => {
   beforeEach(() => {
     analysisStoreState.uploadNonce = 0
     analysisStoreState.uploadedData = null
-    lastQuickAccessBarProps = null
     lastChatThreadProps = null
     lastChatInputProps = null
     useHubChatStore.setState({
@@ -332,15 +329,9 @@ describe('quick analysis and clarification UX', () => {
       />
     )
 
-    expect(screen.getByTestId('hub-recent-rail')).toBeInTheDocument()
-    expect(screen.getByTestId('quick-access-bar')).toBeInTheDocument()
+    expect(screen.getByTestId('analysis-history-sidebar')).toBeInTheDocument()
     expect(screen.queryByTestId('hub-support-tools')).not.toBeInTheDocument()
     expect(screen.queryByTestId('track-suggestions')).not.toBeInTheDocument()
-    expect(lastQuickAccessBarProps).toMatchObject({
-      compact: true,
-      maxItems: 3,
-      showHeader: false,
-    })
   })
 
   it('routes suggested analyses through the diagnostic bridge instead of quick analysis reset', () => {

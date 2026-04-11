@@ -100,6 +100,7 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
     stepTrack,
     setStepTrack,
   } = useModeStore()
+  const skipStep2 = stepTrack === 'quick' || stepTrack === 'diagnostic'
 
   // ─── useDataUpload 훅 ───
   const { handleUploadComplete, reanalysisCompatibility } = useDataUpload()
@@ -152,6 +153,17 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
     addCompletedStep(2)
     navigateToStep(3)
   }, [addCompletedStep, navigateToStep])
+
+  const handleStep1Continue = useCallback(() => {
+    if (skipStep2 && selectedMethod) {
+      addCompletedStep(1)
+      addCompletedStep(2)
+      navigateToStep(3)
+      return
+    }
+
+    goToNextStep()
+  }, [addCompletedStep, goToNextStep, navigateToStep, selectedMethod, skipStep2])
 
   // ─── 렌더링 ───
 
@@ -210,6 +222,9 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
                 data={uploadedData ?? []}
                 onUploadComplete={handleUploadComplete}
                 existingFileName={uploadedFileName ?? undefined}
+                onNext={handleStep1Continue}
+                canProceedNext={canProceedToNext()}
+                nextLabel={skipStep2 ? t.analysis.floatingNav.toVariables : t.analysis.floatingNav.toMethod}
               />
             </ErrorBoundary>
 

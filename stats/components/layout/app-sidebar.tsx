@@ -19,7 +19,7 @@ import {
   Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,6 +163,7 @@ export function AppSidebar() {
         expanded ? 'w-[220px]' : 'w-11',
       )}
     >
+      <TooltipProvider delayDuration={0} disableHoverableContent>
       {/* 헤더: 토글 버튼 + 앱 타이틀 */}
       <div className="flex items-center h-12 border-b border-sidebar-border/50 px-2 flex-shrink-0">
         <button
@@ -390,6 +391,7 @@ export function AppSidebar() {
           {!expanded && <TooltipContent side="right">설정</TooltipContent>}
         </Tooltip>
       </div>
+      </TooltipProvider>
     </aside>
   )
 }

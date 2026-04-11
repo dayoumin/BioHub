@@ -210,7 +210,7 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     render(<QuickAccessBar {...defaultProps} />)
 
     expect(screen.getByText('아직 활동 기록이 없습니다')).toBeInTheDocument()
-    expect(screen.getByText('통계 분석이나 데이터 시각화를 시작해보세요')).toBeInTheDocument()
+    expect(screen.queryByText('통계 분석이나 데이터 시각화를 시작해보세요')).not.toBeInTheDocument()
   })
 
   // ─── 통계 카드 표시 ───

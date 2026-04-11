@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import { useTerminology } from '@/hooks/use-terminology'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statTooltip } from '@/lib/charts/echarts-stat-utils'
-import { resolveAxisColors, resolveCssVar } from '@/lib/charts/chart-color-resolver'
+import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
 
 interface CorrelationHeatmapProps {
@@ -59,12 +59,12 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
         top: 'center',
         inRange: {
           color: [
-            resolveCssVar('--correlation-strong-pos', '#2563EB'),
-            resolveCssVar('--correlation-weak', '#FFFFFF'),
-            resolveCssVar('--correlation-strong-neg', '#DC2626'),
+            '#2563eb',
+            '#f8fafc',
+            '#dc2626',
           ],
         },
-        textStyle: { fontSize: 11 },
+        textStyle: { fontSize: 11, color: ax.tooltipText },
       },
       series: [{
         type: 'heatmap',
@@ -76,7 +76,7 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
             return p.value[2].toFixed(2)
           },
           fontSize: 10,
-          color: '#000',
+          color: ax.tooltipText,
         },
         emphasis: {
           itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.2)' },

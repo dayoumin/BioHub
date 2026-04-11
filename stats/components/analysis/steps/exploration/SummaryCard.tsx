@@ -6,16 +6,14 @@ import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
 import type { LucideIcon } from 'lucide-react'
 
-export type CardId = 'overview' | 'descriptive' | 'distribution' | 'correlation'
+export type CardId = 'overview' | 'descriptive' | 'distribution' | 'visualization' | 'correlation'
 
 interface SummaryCardProps {
   id: CardId
   icon: LucideIcon
   title: string
   selected: boolean
-  /** 카드 본문 — 요약 정보를 children으로 전달 */
   children: React.ReactNode
-  /** hidden이면 렌더링 안 함, secondary이면 흐리게 */
   visibility?: 'primary' | 'secondary' | 'hidden'
   disabled?: boolean
   onClick: (id: CardId) => void
@@ -52,33 +50,34 @@ export const SummaryCard = memo(function SummaryCard({
         'hover:border-border/70 hover:bg-surface-container-low/35',
         selected && 'ring-2 ring-primary focus-visible:ring-primary border-primary bg-surface-container-low/25',
         !selected && 'border-border/40',
-        disabled && 'opacity-40 cursor-not-allowed',
+        disabled && 'cursor-not-allowed opacity-40',
         visibility === 'secondary' && 'opacity-60',
       )}
     >
-      {/* 선택 인디케이터 */}
-      {selected && (
-        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-primary/10 border-b border-r border-primary" />
-      )}
-
       <div className="flex items-start gap-2.5">
-        <div className={cn(
-          'p-1.5 rounded-md shrink-0',
-          selected ? 'bg-primary/15' : 'bg-muted/60',
-        )}>
-          <Icon className={cn(
-            'h-3.5 w-3.5',
-            selected ? 'text-primary' : 'text-muted-foreground',
-          )} />
+        <div
+          className={cn(
+            'shrink-0 rounded-md p-1.5',
+            selected ? 'bg-primary/15' : 'bg-muted/60',
+          )}
+        >
+          <Icon
+            className={cn(
+              'h-3.5 w-3.5',
+              selected ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
         </div>
         <div className="min-w-0 flex-1">
-          <p className={cn(
-            'text-xs font-medium leading-none mb-1.5',
-            selected ? 'text-primary' : 'text-foreground',
-          )}>
+          <p
+            className={cn(
+              'mb-1.5 text-xs font-medium leading-none',
+              selected ? 'text-primary' : 'text-foreground',
+            )}
+          >
             {title}
           </p>
-          <div className="text-[11px] text-muted-foreground leading-relaxed space-y-0.5">
+          <div className="space-y-0.5 text-[11px] leading-relaxed text-muted-foreground">
             {children}
           </div>
         </div>

@@ -43,7 +43,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
     patchColumnNormality,
   } = useAnalysisStore()
 
-  const { addMessage, setDataContext } = useHubChatStore()
+  const { setDataContext } = useHubChatStore()
 
   const handleFileSelected = useCallback((file: File) => {
     // CSV만 지원 (Excel은 추후 확장 가능)
@@ -92,17 +92,9 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
         const columns = validation.columns ?? []
         setDataContext(buildHubDataContext(file.name, validation))
 
-        // 4. system 메시지
-        addMessage({
-          id: `sys_${Date.now()}`,
-          role: 'system',
-          content: `데이터 로드됨: ${file.name} (${validation.totalRows}행 x ${columns.length}열)`,
-          timestamp: Date.now(),
-        })
-
         toast.success(TOAST.data.loadSuccess(file.name))
 
-        // 5. 비동기 정규성 검정 (fire-and-forget)
+        // 4. 비동기 정규성 검정 (fire-and-forget)
         if (validation.columnStats?.length) {
           const capturedNonce = useAnalysisStore.getState().uploadNonce
           raceWithTimeout(
@@ -141,7 +133,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
         toast.error(TOAST.data.fileParseError(err.message))
       },
     })
-  }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, addMessage, setDataContext])
+  }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, setDataContext])
 
   const clearDataContext = useCallback(() => {
     uploadTokenRef.current += 1

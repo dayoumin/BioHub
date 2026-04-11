@@ -94,7 +94,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
       >
         <div
           aria-hidden="true"
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-border/20 bg-transparent text-foreground"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-border/55 bg-transparent text-foreground"
         >
           <Zap className="h-4.5 w-4.5" />
         </div>
@@ -107,8 +107,8 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
             onClick={() => onQuickAnalysis(method.id)}
             className={cn(
               'h-11 rounded-full px-3.5 text-xs',
-              'border border-border/20 bg-transparent',
-              'text-foreground/80 hover:border-border/35 hover:bg-transparent hover:text-foreground',
+              'border border-border/55 bg-transparent',
+              'text-foreground/80 hover:border-border/70 hover:bg-transparent hover:text-foreground',
               'transition-colors duration-150',
               focusRing,
             )}

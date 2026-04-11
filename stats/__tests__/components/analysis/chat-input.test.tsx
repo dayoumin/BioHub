@@ -10,12 +10,13 @@ vi.mock('@/hooks/use-terminology', () => ({
     hub: {
       chatInput: {
         heading: '무엇을 분석하고 싶으신가요?',
-        placeholder: '메시지를 입력해 주세요.',
+        placeholder: 'CSV를 올리거나 분석 목표를 입력하세요',
+        placeholderWithData: '이 데이터로 어떤 통계 분석을 할까요?',
         sendAriaLabel: '전송',
         processingMessage: '처리 중...',
         uploadAriaLabel: '데이터 파일 업로드',
-        uploadTitle: 'CSV / Excel 파일 업로드',
-        privacyNotice: '데이터는 브라우저에서만 처리됩니다.',
+        uploadTitle: 'CSV 파일 업로드',
+        privacyNotice: '데이터는 브라우저에서만 처리됩니다',
       },
     },
   }),
@@ -43,12 +44,12 @@ describe('ChatInput', () => {
       render(<ChatInput onSubmit={onSubmit} isProcessing={false} />)
 
       const textarea = screen.getByTestId('ai-chat-input')
-      fireEvent.change(textarea, { target: { value: '회귀분석' } })
+      fireEvent.change(textarea, { target: { value: '분산분석' } })
       fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true })
       expect(onSubmit).not.toHaveBeenCalled()
 
       fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false })
-      expect(onSubmit).toHaveBeenCalledWith('회귀분석')
+      expect(onSubmit).toHaveBeenCalledWith('분산분석')
     })
 
     it('blocks submission while processing', () => {
@@ -112,6 +113,20 @@ describe('ChatInput', () => {
 
       expect(onSubmit).toHaveBeenCalledWith('delayed submit')
       expect(onSubmit).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('placeholder states', () => {
+    it('shows the default placeholder when no data is attached', () => {
+      render(<ChatInput onSubmit={vi.fn()} isProcessing={false} />)
+
+      expect(screen.getByPlaceholderText('CSV를 올리거나 분석 목표를 입력하세요')).toBeInTheDocument()
+    })
+
+    it('shows the data-aware placeholder when data is attached', () => {
+      render(<ChatInput onSubmit={vi.fn()} isProcessing={false} hasAttachedData />)
+
+      expect(screen.getByPlaceholderText('이 데이터로 어떤 통계 분석을 할까요?')).toBeInTheDocument()
     })
   })
 })

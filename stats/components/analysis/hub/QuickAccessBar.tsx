@@ -8,7 +8,6 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
-  Clock,
   CheckCircle2,
   Loader2,
   MoreVertical,
@@ -38,7 +37,6 @@ import {
   togglePinId,
 } from '@/lib/utils/pinned-history-storage'
 import { listProjects, deleteProjectCascade, CHART_TYPE_HINTS } from '@/lib/graph-studio'
-import { EmptyState } from '@/components/common/EmptyState'
 import type { ChartType } from '@/types/graph-studio'
 import { toast } from 'sonner'
 import { formatTimeAgo } from '@/lib/utils/format-time'
@@ -290,13 +288,11 @@ export function QuickAccessBar({
       )}
 
       {visibleItems.length === 0 ? (
-        <EmptyState
-          icon={Clock}
-          title={t.hub.cards.emptyTitle}
-          description={t.hub.cards.emptyDescription}
-          variant="inline"
-          className="py-10"
-        />
+        <div className="flex min-h-[88px] items-center justify-center rounded-xl px-4 py-6 text-center">
+          <p className="text-[11px] font-normal text-muted-foreground/70">
+            {t.hub.cards.emptyTitle}
+          </p>
+        </div>
       ) : (
         <div className={cn(compact ? 'space-y-1.5' : 'grid grid-cols-1 gap-2.5 md:grid-cols-2')}>
           {visibleItems.map((card) => (
@@ -343,6 +339,9 @@ function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: 
     visualizationFallback: t.hub.cards.visualizationSummaryFallback,
     analysisFallback: t.hub.cards.analysisSummaryFallback,
   })
+  const compactSecondaryText = compact
+    ? (isVisualization ? (card.chartTypeLabel ?? activitySummary) : (displayFileName ?? activitySummary))
+    : activitySummary
 
   return (
     <div
@@ -375,17 +374,17 @@ function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: 
         <div className="min-w-0">
           <p className={cn(
             'text-foreground',
-            compact ? 'line-clamp-2 text-xs font-medium leading-4' : 'truncate text-sm font-semibold',
+            compact ? 'line-clamp-1 text-[11px] font-medium leading-4' : 'truncate text-sm font-semibold',
           )}>
             {isVisualization ? card.name : (card.method?.name || card.name)}
           </p>
           <p className={cn(
             'text-muted-foreground',
-            compact ? 'mt-0.5 line-clamp-2 text-[11px] leading-4' : 'mt-1 line-clamp-2 text-[12px] leading-5',
+            compact ? 'mt-0.5 line-clamp-1 text-[10px] leading-4' : 'mt-1 line-clamp-2 text-[12px] leading-5',
           )}>
-            {activitySummary}
+            {compactSecondaryText}
           </p>
-          {!isVisualization && displayFileName && (
+          {!compact && !isVisualization && displayFileName && (
             <p className={cn(
               'truncate text-muted-foreground',
               compact ? 'mt-0.5 text-[10px]' : 'mt-0.5 text-xs',
@@ -395,30 +394,28 @@ function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: 
           )}
           <div className={cn(
             'flex flex-wrap items-center text-muted-foreground',
-            compact ? 'mt-1.5 gap-1 text-[10px]' : 'mt-2 gap-1.5 text-[11px]',
+            compact ? 'mt-1 gap-1.5 text-[9px]' : 'mt-2 gap-1.5 text-[11px]',
           )}>
             {isVisualization ? (
               <>
-                <span className={cn(
-                  'rounded-full',
-                  compact ? 'bg-transparent px-0 py-0' : 'bg-background/70 px-2 py-0.5',
-                )}>
-                  {t.hub.recentStatus.visualization}
-                </span>
+                {!compact && (
+                  <span className="rounded-full bg-background/70 px-2 py-0.5">
+                    {t.hub.recentStatus.visualization}
+                  </span>
+                )}
                 <span>{card.timeAgo}</span>
               </>
             ) : (
               <>
-                <span className={cn(
-                  'rounded-full',
-                  compact ? 'bg-transparent px-0 py-0' : 'bg-background/70 px-2 py-0.5',
-                )}>
-                  {card.hasResults ? t.hub.recentStatus.completed : t.hub.recentStatus.inProgress}
-                </span>
+                {!compact && (
+                  <span className="rounded-full bg-background/70 px-2 py-0.5">
+                    {card.hasResults ? t.hub.recentStatus.completed : t.hub.recentStatus.inProgress}
+                  </span>
+                )}
                 {card.pValue != null && (
                   <span className={cn(
                     'font-mono text-foreground/80',
-                    compact ? 'px-0 py-0 text-[10px]' : 'rounded-full bg-background/80 px-2 py-0.5 text-[11px]',
+                    compact ? 'px-0 py-0 text-[9px]' : 'rounded-full bg-background/80 px-2 py-0.5 text-[11px]',
                   )}>
                     p={card.pValue < 0.001 ? '<0.001' : card.pValue.toFixed(3)}
                   </span>
@@ -473,9 +470,9 @@ function StatisticsIcon({ hasResults, compact }: { hasResults: boolean; compact:
     return (
       <div
         data-activity-icon={hasResults ? 'statistics-complete' : 'statistics-loading'}
-        className="shrink-0 rounded-lg bg-surface-container-high p-2 text-muted-foreground"
+        className="shrink-0 rounded-lg bg-surface-container-high p-1.5 text-muted-foreground"
       >
-        {hasResults ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {hasResults ? <CheckCircle2 className="h-3 w-3" /> : <Loader2 className="h-3 w-3 animate-spin" />}
       </div>
     )
   }
@@ -514,9 +511,9 @@ function VisualizationIcon({ chartType, compact }: { chartType?: ChartType; comp
     return (
       <div
         data-activity-icon="visualization"
-        className="shrink-0 rounded-lg bg-surface-container-high p-2 text-muted-foreground"
+        className="shrink-0 rounded-lg bg-surface-container-high p-1.5 text-muted-foreground"
       >
-        <Icon className="h-3.5 w-3.5" />
+        <Icon className="h-3 w-3" />
       </div>
     )
   }

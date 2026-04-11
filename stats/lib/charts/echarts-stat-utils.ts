@@ -60,9 +60,15 @@ export function statValueAxis(title?: string): Record<string, unknown> {
     name: title ?? '',
     nameLocation: 'middle',
     nameGap: 45,
+    nameTextStyle: {
+      color: ax.tooltipText,
+      fontSize: 12,
+      fontWeight: 600,
+      padding: [8, 0, 0, 0],
+    },
     axisLine: { lineStyle: { color: ax.axisLine } },
     splitLine: { lineStyle: { color: ax.splitLine, type: 'dashed' as const } },
-    axisLabel: { fontSize: 11, color: ax.axisLabel },
+    axisLabel: { fontSize: 11, color: ax.tooltipText },
   };
 }
 

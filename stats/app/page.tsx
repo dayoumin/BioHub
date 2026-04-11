@@ -133,7 +133,7 @@ export default function HomePage() {
       canGoNext={handlers.canProceedWithFloatingNav}
       onNext={handlers.handleFloatingNext}
       nextLabel={handlers.nextStepLabel}
-      showFloatingNav={handlers.currentStep === 1 && !showHub && handlers.canProceedWithFloatingNav}
+      showFloatingNav={false}
     >
       {/* ===== Hub Page (Chat-Centric Style) ===== */}
       {showHub && (

@@ -61,7 +61,7 @@ export function TrackSuggestions({
       )
   const actionClassName = isDock
     ? cn(
-        'h-auto min-h-0 min-w-[92px] basis-[96px] rounded-[22px] border-0 bg-transparent px-2 py-0 shadow-none',
+        'h-auto min-h-0 min-w-[92px] basis-[96px] flex-col items-center justify-start rounded-[22px] border-0 bg-transparent px-2 py-0 text-center shadow-none',
         'hover:bg-transparent',
       )
     : 'min-h-[120px] items-start justify-between px-4 py-4'
@@ -71,7 +71,7 @@ export function TrackSuggestions({
         'transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
       )
     : cn(actionCardBase, 'h-full min-h-[128px] items-start justify-between px-4 py-4')
-  const iconClassName = isDock ? 'h-12 w-12 rounded-full' : undefined
+  const iconClassName = isDock ? 'flex h-12 w-12 items-center justify-center rounded-full' : undefined
   const contentClassName = isDock ? 'w-full text-center' : 'w-full text-left'
   const labelClassName = isDock
     ? 'block text-center text-[12px] font-medium leading-4 text-foreground/80'
@@ -97,7 +97,7 @@ export function TrackSuggestions({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
             >
-              <div className="flex w-full items-start justify-between gap-3">
+              <div className={cn('flex w-full gap-3', isDock ? 'justify-center' : 'items-start justify-between')}>
                 <div className={cn(iconContainerPrimary, iconClassName)}>
                   <Upload className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -126,11 +126,11 @@ export function TrackSuggestions({
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: showUploadCard ? 0.38 : 0.3 }}
-          >
-            <div className="flex w-full items-start justify-between gap-3">
-              <div className={cn(iconContainerMuted, iconClassName)}>
-                <Calculator className="h-5 w-5" aria-hidden="true" />
-              </div>
+            >
+              <div className={cn('flex w-full gap-3', isDock ? 'justify-center' : 'items-start justify-between')}>
+                <div className={cn(iconContainerMuted, iconClassName)}>
+                  <Calculator className="h-5 w-5" aria-hidden="true" />
+                </div>
               {!isDock && <span className={BADGE_MUTED}>{t.hub.quickStart.badges.tool}</span>}
             </div>
             <div className={contentClassName}>
@@ -150,7 +150,7 @@ export function TrackSuggestions({
             transition={{ duration: 0.4, delay: showUploadCard ? 0.46 : 0.38 }}
           >
             <Link href="/graph-studio" data-testid="hub-visualization-card" className={linkClassName}>
-              <div className="flex w-full items-start justify-between gap-3">
+              <div className={cn('flex w-full gap-3', isDock ? 'justify-center' : 'items-start justify-between')}>
                 <div className={cn(iconContainerMuted, iconClassName)}>
                   <BarChart2 className="h-5 w-5" aria-hidden="true" />
                 </div>
@@ -178,7 +178,7 @@ export function TrackSuggestions({
             transition={{ duration: 0.4, delay: showUploadCard ? 0.54 : 0.46 }}
           >
             <Link href="/bio-tools" data-testid="hub-biotools-card" className={linkClassName}>
-              <div className="flex w-full items-start justify-between gap-3">
+              <div className={cn('flex w-full gap-3', isDock ? 'justify-center' : 'items-start justify-between')}>
                 <div className={cn(iconContainerMuted, iconClassName)}>
                   <FlaskConical className="h-5 w-5" aria-hidden="true" />
                 </div>

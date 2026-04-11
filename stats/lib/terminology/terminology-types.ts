@@ -517,6 +517,7 @@ export interface HubText {
   chatInput: {
     heading: string
     placeholder: string
+    placeholderWithData: string
     sendAriaLabel: string
     /** isProcessing 중 표시할 상태 메시지 */
     processingMessage: string
@@ -695,6 +696,8 @@ export interface DataExplorationText {
     descriptive: string
     distribution: string
     correlation: string
+    currentView?: string
+    openDetail?: string
     rowsCols: (rows: number, cols: number) => string
     numericCategorical: (n: number, c: number) => string
     missingCount: (n: number) => string
@@ -709,6 +712,11 @@ export interface DataExplorationText {
     maxCorrelation: (r: string) => string
     strongPairs: (n: number) => string
     needsTwoNumeric: string
+  }
+  detailPanel?: {
+    selectedLabel: string
+    overviewDescription: string
+    distributionScopeNote: string
   }
   /** 지원 기능 카드 */
   features: {
@@ -842,6 +850,8 @@ export interface DataExplorationText {
     statLabel: string
     normalInterpretation: string
     nonNormalInterpretation: string
+    normalReview: (stepName: string) => string
+    nonNormalReview: (stepName: string) => string
   }
   /** 등분산성 검정 */
   homogeneity: {
@@ -851,6 +861,12 @@ export interface DataExplorationText {
     statLabel: string
     equalInterpretation: string
     unequalInterpretation: string
+    requiresGroupVariable: string
+    failedSummary: (failed: number, total: number, stepName: string) => string
+    passedSummary: (total: number, stepName: string) => string
+    groupVariable: (groupName: string) => string
+    passCount: (passed: number, total: number) => string
+    insufficientCombinations: string
   }
   /** 하이라이트 */
   highlight: {
@@ -871,6 +887,35 @@ export interface DataExplorationText {
     correlationRequires: string
     currentStatus: (numeric: number, categorical: number) => string
     nextStepHint: string
+  }
+  /** 업로드 직후 판단 요약 */
+  insightPanel: {
+    statusTitle: string
+    statusReady: string
+    statusReview: string
+    statusBlocked: string
+    statusVariables: (numeric: number, categorical: number) => string
+    qualityTitle: string
+    qualityHealthy: string
+    qualityWarnings: (count: number) => string
+    qualityErrors: (count: number) => string
+    qualityMissing: (count: number) => string
+    qualityOutliers: (count: number) => string
+    qualityNonNormal: (count: number) => string
+    qualityFewNumeric: string
+    nextStepTitle: string
+    nextOverviewTitle: string
+    nextOverviewDescription: string
+    nextDescriptiveTitle: string
+    nextDescriptiveDescription: string
+    nextDistributionTitle: string
+    nextDistributionDescription: string
+    nextCorrelationTitle: string
+    nextCorrelationDescription: string
+    openOverview: string
+    openDescriptive: string
+    openDistribution: string
+    openCorrelation: string
   }
   /** 데이터 교체 모드 */
   replaceMode: {

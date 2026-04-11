@@ -55,7 +55,7 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
       )}
       style={{ top: topOffset }}
     >
-      <div className={cn(LAYOUT.maxWidth, 'px-6 pb-4 pt-0')}>
+      <div className="mx-auto max-w-[1480px] px-6 pb-4 pt-0">
         {/* Progress bar container */}
         <div className="relative w-full">
           {/* Background track — thin 2px line across full width */}

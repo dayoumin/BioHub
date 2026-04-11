@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useState, useMemo, useCallback, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FilterToggle } from '@/components/ui/filter-toggle'
 import { BarChart3, GitCommitHorizontal, Check } from 'lucide-react'
@@ -101,15 +101,9 @@ export const DistributionChartSection = memo(function DistributionChartSection({
   return (
     <Card className={cn("border-border/40 shadow-sm overflow-hidden", secondaryClass)}>
       <CardHeader className="bg-muted/10">
-        <CardTitle className="flex items-center gap-2.5 text-base tracking-tight">
-          <div className="p-1.5 rounded-md bg-primary/10">
-            <BarChart3 className="h-4 w-4 text-primary" />
-          </div>
+        <CardTitle className="text-base tracking-tight">
           {t.dataExploration.distribution.title}
         </CardTitle>
-        <CardDescription>
-          {t.dataExploration.distribution.description}
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* 차트 타입 선택 */}
@@ -126,8 +120,8 @@ export const DistributionChartSection = memo(function DistributionChartSection({
         {/* 히스토그램 모드 */}
         {chartType === 'histogram' && (
           <>
-            <div className="flex flex-wrap gap-1">
-              {numericVariables.slice(0, 8).map(varName => (
+            <div className="flex flex-wrap gap-1.5 rounded-lg bg-muted/25 px-3 py-2">
+              {numericVariables.map(varName => (
                 <Button
                   key={varName}
                   variant={selectedHistogramVar === varName ? 'default' : 'outline'}
@@ -164,6 +158,7 @@ export const DistributionChartSection = memo(function DistributionChartSection({
                     xAxisLabel={selectedHistogramVar}
                     yAxisLabel={t.dataExploration.histogram.yAxisLabel}
                     bins={10}
+                    height={340}
                     showCard={false}
                   />
                   {outliers.length > 0 && (
@@ -180,10 +175,9 @@ export const DistributionChartSection = memo(function DistributionChartSection({
         {/* 박스플롯 모드 */}
         {chartType === 'boxplot' && (
           <>
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">{t.dataExploration.boxplot.selectInstruction}</p>
-              <div className="flex flex-wrap gap-1">
-                {numericVariables.slice(0, 8).map(varName => (
+            <div className="space-y-2 rounded-lg bg-muted/25 px-3 py-2">
+              <div className="flex flex-wrap gap-1.5">
+                {numericVariables.map(varName => (
                   <Button
                     key={varName}
                     variant={selectedBoxplotVars.includes(varName) ? 'default' : 'outline'}
@@ -205,7 +199,7 @@ export const DistributionChartSection = memo(function DistributionChartSection({
                   : t.dataExploration.boxplot.multipleTitle(selectedBoxplotVars.length)}
                 showMean={true}
                 showOutliers={true}
-                height={350}
+                height={420}
               />
             )}
           </>

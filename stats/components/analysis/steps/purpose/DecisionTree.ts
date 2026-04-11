@@ -56,10 +56,20 @@ function getMethod(
     }
   }
 
+  const displayName =
+    options?.displayName
+    ?? (method.id === 'one-sample-t' ? '단일표본 t-검정' : getKoreanName(method.id))
+
+  const displayDescription =
+    options?.displayDescription
+    ?? (method.id === 'one-sample-t'
+      ? '단일 표본의 평균이 기준값과 다른지 검정'
+      : getKoreanDescription(method.id))
+
   return {
     id: options?.useLegacyId ? idOrAlias : method.id,
-    name: options?.displayName ?? getKoreanName(method.id),
-    description: options?.displayDescription ?? getKoreanDescription(method.id),
+    name: displayName,
+    description: displayDescription,
     category: method.category
   }
 }

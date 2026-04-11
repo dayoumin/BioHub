@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb, CloudUpload } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
@@ -48,8 +48,17 @@ export function DataUploadStep({
   currentStep: _currentStep,
   totalSteps: _totalSteps,
   existingFileName,
-  compact = false
-}: DataUploadStepProps & { existingFileName?: string; compact?: boolean }) {
+  compact = false,
+  autoOpen = false,
+  hideButton = false,
+  onAutoOpenHandled
+}: DataUploadStepProps & {
+  existingFileName?: string
+  compact?: boolean
+  autoOpen?: boolean
+  hideButton?: boolean
+  onAutoOpenHandled?: () => void
+}) {
   const t = useTerminology()
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +69,7 @@ export function DataUploadStep({
   const [selectedSheet, setSelectedSheet] = useState<number>(0)
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null)
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>([])
+  const autoOpenHandledRef = useRef(false)
 
   // 최근 파일 목록 로드
   useEffect(() => {
@@ -326,27 +336,75 @@ export function DataUploadStep({
   // Compact 모드: 파일 변경 버튼만 표시
   if (compact) {
     return (
-      <div className="relative">
-        <input {...getInputProps()} />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={open}
-          disabled={isUploading}
-          className="gap-1.5"
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {t.dataUpload.buttons.uploading}
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-3.5 w-3.5" />
-              {t.dataUpload.buttons.changeFile}
-            </>
-          )}
-        </Button>
+      <div className="relative space-y-2">
+        <div className="relative">
+          <input {...getInputProps()} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={open}
+            disabled={isUploading}
+            className="gap-1.5"
+            data-testid="replace-data-button"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {t.dataUpload.buttons.uploading}
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t.dataUpload.buttons.changeFile}
+              </>
+            )}
+          </Button>
+        </div>
+        {excelSheets && excelSheets.length > 1 && (
+          <div className="absolute right-0 top-full z-50 mt-1.5 w-[320px] rounded-xl border border-border/40 bg-popover p-3 shadow-[0px_12px_32px_rgba(25,28,30,0.12)]">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">{t.dataUpload.labels.selectSheet}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t.dataUpload.labels.sheetsFound(excelSheets.length)}
+                </p>
+              </div>
+              <Select
+                value={selectedSheet.toString()}
+                onValueChange={(value) => setSelectedSheet(parseInt(value))}
+              >
+                <SelectTrigger className="border-outline-variant/20 bg-surface-container-low/50">
+                  <SelectValue placeholder={t.dataUpload.labels.selectSheetPlaceholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {excelSheets.map((sheet) => (
+                    <SelectItem key={sheet.index} value={sheet.index.toString()}>
+                      <span className="tabular-nums">
+                        {t.dataUpload.labels.sheetInfo(sheet.name, sheet.rows.toLocaleString(), sheet.cols)}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setExcelSheets(null)
+                    setPendingExcelFile(null)
+                    setSelectedSheet(0)
+                  }}
+                >
+                  {t.dataUpload.buttons.cancel}
+                </Button>
+                <Button size="sm" onClick={handleSheetSelect} disabled={isUploading}>
+                  {isUploading ? t.dataUpload.buttons.loading : t.dataUpload.buttons.loadSelectedSheet}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         {error && (
           <div className="absolute top-full mt-1.5 right-0 bg-destructive/8 rounded-lg p-2 text-xs text-destructive whitespace-nowrap z-50 shadow-[0px_4px_16px_rgba(25,28,30,0.06)]">
             {error}

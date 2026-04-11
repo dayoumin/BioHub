@@ -33,7 +33,7 @@ import { ChatThread } from './hub/ChatThread'
 import { DataContextBadge } from './hub/DataContextBadge'
 import { QuickAnalysisPills } from './hub/QuickAnalysisPills'
 import { TrackSuggestions } from './hub/TrackSuggestions'
-import { QuickAccessBar } from './hub/QuickAccessBar'
+import { AnalysisHistorySidebar } from './AnalysisHistorySidebar'
 
 // ===== Types =====
 
@@ -459,19 +459,20 @@ export function ChatCentricHub({
   // data-testid="hub-upload-card": E2E compatibility marker.
   return (
     <motion.div
-      className="w-full space-y-4 py-4 lg:py-5"
+      className="w-full space-y-4 py-10 lg:py-14"
       data-testid="hub-upload-card"
       {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
     >
-      <div className="mx-auto max-w-[1160px] space-y-5">
+      <div className="mx-auto max-w-[1160px] space-y-8">
         <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
-          <div className="py-2 lg:py-4">
-            <div className="w-full rounded-[28px] bg-surface-container-lowest px-6 py-7 shadow-[0px_10px_24px_rgba(25,28,30,0.04)] lg:px-9">
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
-                <div className="flex flex-col items-center text-center xl:pr-3">
-                  <p className="mb-7 text-base font-medium text-foreground/85 lg:text-lg">
-                    {t.hub.hero.heading}
-                  </p>
+          <div className="py-8 lg:py-14">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_208px] lg:items-start">
+              <div className="flex flex-col items-center text-center lg:pr-8">
+                  <div className="mb-10">
+                    <h1 className="text-[30px] font-semibold tracking-tight text-foreground lg:text-[44px]">
+                      BioHub 통계분석
+                    </h1>
+                  </div>
 
                   <ChatThread
                     activeClarificationMessageId={activePendingMessage?.id ?? null}
@@ -489,7 +490,7 @@ export function ChatCentricHub({
 
                   <DataContextBadge onClear={clearDataContext} />
 
-                  <div className="w-full max-w-[760px]">
+                  <div className="w-full max-w-[700px]">
                     {pendingClarification ? (
                       <div
                         data-testid="hub-clarification-lock"
@@ -506,6 +507,7 @@ export function ChatCentricHub({
                       <ChatInput
                         onSubmit={handleChatSubmit}
                         isProcessing={isProcessing}
+                        hasAttachedData={Boolean(dataContext)}
                         prefillValue={prefillValue}
                         onPrefillValueConsumed={handlePrefillValueConsumed}
                         submitValue={submitValue}
@@ -519,45 +521,30 @@ export function ChatCentricHub({
                   <div className="mt-5 w-full max-w-[900px] px-2 py-1">
                     <QuickAnalysisPills onQuickAnalysis={onQuickAnalysis} />
                   </div>
-                </div>
 
-                <aside
-                  data-testid="hub-recent-rail"
-                  className="w-full xl:mt-[108px] xl:pl-2"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-4">
-                    <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-                      {t.hub.cards.historyLabel}
-                    </h2>
-                  </div>
-                  <QuickAccessBar
-                    onHistoryClick={onHistorySelect}
-                    onHistoryDelete={onHistoryDelete}
-                    showHeader={false}
-                    maxItems={3}
-                    compact
-                  />
-                </aside>
+                  {showSupportTools && (
+                    <motion.section
+                      {...(prefersReducedMotion ? {} : { variants: itemVariants })}
+                      data-testid="hub-support-tools"
+                      className="mt-12 w-full max-w-[760px]"
+                    >
+                      <TrackSuggestions
+                        onStartAnalysis={handleStartAnalysis}
+                        onUploadClick={onUploadClick}
+                        showHeader={false}
+                        showUploadCard={false}
+                        variant="dock"
+                      />
+                    </motion.section>
+                  )}
               </div>
+
+              <aside className="hidden lg:block lg:pt-[76px]">
+                <AnalysisHistorySidebar />
+              </aside>
             </div>
           </div>
         </motion.div>
-
-        {showSupportTools && (
-          <motion.section
-            {...(prefersReducedMotion ? {} : { variants: itemVariants })}
-            data-testid="hub-support-tools"
-            className="pt-1"
-          >
-            <TrackSuggestions
-              onStartAnalysis={handleStartAnalysis}
-              onUploadClick={onUploadClick}
-              showHeader={false}
-              showUploadCard
-              variant="dock"
-            />
-          </motion.section>
-        )}
       </div>
     </motion.div>
   )

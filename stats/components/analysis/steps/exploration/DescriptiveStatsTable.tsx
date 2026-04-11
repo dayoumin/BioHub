@@ -193,8 +193,11 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
       </div>
 
       {/* 해석 가이드 */}
-      <div className="text-xs text-muted-foreground bg-info-bg p-3 rounded-lg border border-info-border">
-        <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />{t.dataExploration.interpretGuide.title}</p>
+      <div className="rounded-lg border border-info-border bg-info-bg p-3 text-xs text-muted-foreground">
+        <p className="mb-1 flex items-center gap-1 font-medium">
+          <Lightbulb className="h-3.5 w-3.5" />
+          참고 기준
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
           <div>{t.dataExploration.interpretGuide.skewness}</div>
           <div>{t.dataExploration.interpretGuide.kurtosis}</div>
