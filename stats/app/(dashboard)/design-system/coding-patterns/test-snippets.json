@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
   "version": "1.44.0",
-  "lastUpdated": "2026-04-10",
+  "lastUpdated": "2026-04-11",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
