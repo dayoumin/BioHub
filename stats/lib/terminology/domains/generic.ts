@@ -933,11 +933,13 @@ export const generic: TerminologyDictionary = {
     ai: {
       label: 'AI Interpretation',
       loading: 'AI is interpreting the results...',
+      idleDescription: 'Generate the AI interpretation when you are ready.',
       detailedLabel: 'Detailed Interpretation',
+      requestButton: 'Generate AI interpretation',
       reinterpret: 'Re-interpret',
       retry: 'Retry',
       defaultError: 'An error occurred during AI interpretation.',
-      retryExhausted: 'AI 해석을 불러올 수 없습니다. 위의 통계 수치와 차트만으로도 결과를 확인할 수 있습니다.',
+      retryExhausted: 'AI interpretation is unavailable. You can still review the statistics and charts above.',
       draftCta: 'Generate a paper draft from these results',
     },
     sections: {

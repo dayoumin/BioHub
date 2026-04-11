@@ -9,7 +9,7 @@
  */
 
 import React from 'react'
-import { render, act, waitFor } from '@testing-library/react'
+import { render, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
@@ -102,7 +102,18 @@ vi.mock('@/hooks/use-terminology', () => ({
         effectSize: '효과크기', effectSizeTooltip: '',
         significant: '유의함', notSignificant: '유의하지 않음',
       },
-      ai: { label: 'AI 해석', loading: 'AI가 결과를 해석하고 있어요...', detailedLabel: '상세 해석', reinterpret: '다시 해석', retry: '다시 시도', defaultError: 'AI 해석 중 오류가 발생했습니다.' },
+      ai: {
+        label: 'AI 해석',
+        loading: 'AI가 결과를 해석하고 있어요...',
+        idleDescription: '버튼을 눌러 AI 해석을 생성하세요.',
+        detailedLabel: '상세 해석',
+        requestButton: 'AI 해석 생성하기',
+        reinterpret: '다시 해석',
+        retry: '다시 시도',
+        defaultError: 'AI 해석 중 오류가 발생했습니다.',
+        retryExhausted: 'AI 해석을 불러올 수 없습니다.',
+        draftCta: '이 결과로 논문 초안을 작성해 보세요',
+      },
       sections: {
         detailedResults: '', confidenceInterval: '', apaFormat: '',
         diagnostics: '', caution: '', recommendations: '', warnings: '', alternatives: '',
@@ -308,10 +319,14 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     const { rerender } = render(<ResultsActionStep results={resultsA} />)
 
     // 첫 마운트: prevHistoryIdRef === undefined → null 초기화
-    // auto-trigger가 results 있으면 해석 시작 (첫 분석)
     await act(async () => {
       await new Promise(r => setTimeout(r, 100))
     })
+
+    expect(requestInterpretationMock).not.toHaveBeenCalled()
+
+    const initialGenerateButton = screen.getByRole('button', { name: /AI 해석 생성하기|Generate AI interpretation/ })
+    expect(initialGenerateButton).toBeInTheDocument()
 
     // 2단계: 히스토리 A로 전환 (해석 있음)
     useHistoryStore.setState({
@@ -343,6 +358,15 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     })
 
     // 전환 effect 실행 → cached === null → handleInterpretationRef.current?.() 직접 호출
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 200))
+    })
+
+    expect(requestInterpretationMock.mock.calls.length).toBe(callsBefore)
+
+    const generateButton = screen.getByRole('button', { name: /AI 해석 생성하기|Generate AI interpretation/ })
+    fireEvent.click(generateButton)
+
     await waitFor(() => {
       expect(requestInterpretationMock.mock.calls.length).toBeGreaterThan(callsBefore)
     }, { timeout: 2000 })

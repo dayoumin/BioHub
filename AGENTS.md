@@ -111,6 +111,19 @@ pnpm test:coverage    # 커버리지
 - Next.js 15 App Router (Pages Router 금지)
 - shadcn/ui 컴포넌트 우선
 
+## Windows / Codex 인코딩 대응
+
+- Windows PowerShell 출력은 UTF-8 파일도 mojibake로 보일 수 있음. 콘솔에 깨져 보여도 즉시 파일 손상으로 단정하지 말 것.
+- 한글/특수문자 포함 파일 확인은 `Get-Content` 출력만 믿지 말고, Python으로 `encoding='utf-8'` 직접 읽기 기준으로 판단할 것.
+- 한글이 많은 TSX/TS/MD 파일은 `Set-Content`, here-string, 대량 재출력 방식으로 통째로 덮어쓰지 말 것.
+- 수동 편집은 반드시 `apply_patch` 우선. 특히 JSX 문자열, terminology 사전, 문서 파일은 줄 단위 수정만 허용.
+- 문자열 깨짐 의심 시 먼저 확인:
+  1. Python UTF-8 직접 읽기에서 정상인지 확인
+  2. 실제 파일 손상인지, PowerShell 출력 문제인지 구분
+  3. 손상 확정 후에만 수정
+- 검증 시 터미널 출력 대신 실제 소스 기준으로 재확인할 것. 예: 깨진 문자열 패턴 검색 + Python UTF-8 재읽기.
+- 새 한글 문자열 추가 후에는 해당 파일에서 mojibake 패턴(`�`, 비정상 치환문자, 의도치 않은 `??`)이 없는지 바로 점검할 것.
+
 ## 명명 규칙 요약
 
 - **TS/JS**: camelCase (변수), UPPER_SNAKE (상수), PascalCase (타입/컴포넌트)

@@ -52,6 +52,7 @@ interface UseInterpretationParams {
   uploadedFileName: string | null | undefined
   variableMapping: Record<string, unknown> | null
   errorMessage: string
+  autoTrigger?: boolean
 }
 
 interface UseInterpretationReturn {
@@ -60,9 +61,9 @@ interface UseInterpretationReturn {
   isInterpreting: boolean
   interpretError: string | null
   /** AI 해석 요청 (스트리밍). 외부에서 직접 호출 가능 */
-  handleInterpretation: () => void
+  handleInterpretation: (userRequest?: string) => void
   /** 해석 + Q&A 초기화 후 재요청 */
-  resetAndReinterpret: () => void
+  resetAndReinterpret: (userRequest?: string) => void
   /** 재분석 시 ref 초기화 (auto-trigger 재활성화) */
   clearInterpretationGuard: () => void
   /** abort ref (외부 cleanup용) */
@@ -80,6 +81,7 @@ export function useInterpretation({
   uploadedFileName,
   variableMapping,
   errorMessage,
+  autoTrigger = true,
 }: UseInterpretationParams): UseInterpretationReturn {
   // ─── State ───
   const [interpretation, setInterpretation] = useState<string | null>(null)
@@ -90,10 +92,11 @@ export function useInterpretation({
   // ─── Refs ───
   const interpretAbortRef = useRef<AbortController | null>(null)
   const aiInterpretationRef = useRef<HTMLDivElement | null>(null)
+  const prevCacheKeyRef = useRef<string | null>(null)
   /** 센티널: null | LOADING | RESTORED | cache-key */
   const sentinelRef = useRef<string | null>(null)
   /** 최신 handleInterpretation을 비동기 context에서 안전하게 호출하기 위한 ref */
-  const handleRef = useRef<(() => void) | null>(null)
+  const handleRef = useRef<((userRequest?: string) => void) | null>(null)
   /** phase 진행 콜백 (ResultsActionStep에서 설정) */
   const onInterpretationComplete = useRef<(() => void) | null>(null)
 
@@ -103,12 +106,30 @@ export function useInterpretation({
     currentHistoryId,
   } = useHistoryStore()
 
+  const currentCacheKey = results ? buildCacheKey(results, variableMapping) : null
+
+  useEffect(() => {
+    if (prevCacheKeyRef.current === null) {
+      prevCacheKeyRef.current = currentCacheKey
+      return
+    }
+    if (prevCacheKeyRef.current === currentCacheKey) return
+
+    prevCacheKeyRef.current = currentCacheKey
+    interpretAbortRef.current?.abort()
+    sentinelRef.current = null
+    setInterpretation(null)
+    setInterpretationModel(null)
+    setInterpretError(null)
+    setIsInterpreting(false)
+  }, [currentCacheKey])
+
   // ─── handleInterpretation ───
-  const handleInterpretation = useCallback(async () => {
+  const handleInterpretation = useCallback(async (userRequest?: string) => {
     if (!results) return
 
     const cacheKey = buildCacheKey(results, variableMapping)
-    if (sentinelRef.current === cacheKey) return
+    if (sentinelRef.current === cacheKey && !userRequest) return
     sentinelRef.current = LOADING
 
     setIsInterpreting(true)
@@ -124,6 +145,7 @@ export function useInterpretation({
         sampleSize: uploadedData?.length,
         variables: mappedVariables.length > 0 ? mappedVariables : undefined,
         uploadedFileName: uploadedFileName ?? undefined,
+        userRequest,
       }
 
       let accumulated = ''
@@ -172,14 +194,22 @@ export function useInterpretation({
               setInterpretation(record.aiInterpretation)
               sentinelRef.current = RESTORED
             } else {
-              sentinelRef.current = LOADING
-              handleRef.current?.()
+              if (autoTrigger) {
+                sentinelRef.current = LOADING
+                handleRef.current?.()
+              } else {
+                sentinelRef.current = null
+              }
             }
           })
           .catch(() => {
             if (prevHistoryIdRef.current !== requestedId) return
-            sentinelRef.current = LOADING
-            handleRef.current?.()
+            if (autoTrigger) {
+              sentinelRef.current = LOADING
+              handleRef.current?.()
+            } else {
+              sentinelRef.current = null
+            }
           })
       }
       return
@@ -199,11 +229,15 @@ export function useInterpretation({
     if (cached) {
       sentinelRef.current = RESTORED
     } else {
-      sentinelRef.current = LOADING
-      handleRef.current?.()
+      if (autoTrigger) {
+        sentinelRef.current = LOADING
+        handleRef.current?.()
+      } else {
+        sentinelRef.current = null
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentHistoryId])
+  }, [currentHistoryId, autoTrigger])
 
   // ─── loadedAiInterpretation store → local state 복원 ───
   useEffect(() => {
@@ -218,21 +252,21 @@ export function useInterpretation({
 
   // ─── auto-trigger: results 변경 시 자동 해석 ───
   useEffect(() => {
-    if (results && sentinelRef.current === null && interpretation === null && !isInterpreting) {
+    if (autoTrigger && results && sentinelRef.current === null && interpretation === null && !isInterpreting) {
       handleInterpretation()
     }
     return () => {
       interpretAbortRef.current?.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results?.method, results?.pValue, results?.statistic])
+  }, [results?.method, results?.pValue, results?.statistic, autoTrigger])
 
   // ─── 재해석 (Q&A 포함 초기화) ───
-  const resetAndReinterpret = useCallback(() => {
+  const resetAndReinterpret = useCallback((userRequest?: string) => {
     sentinelRef.current = null
     setInterpretation(null)
     setInterpretationModel(null)
-    handleInterpretation()
+    handleInterpretation(userRequest)
   }, [handleInterpretation])
 
   // ─── 재분석 시 가드 해제 ───

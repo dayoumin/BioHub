@@ -559,7 +559,18 @@ vi.mock('@/hooks/use-terminology', () => ({
         effectSize: '효과크기', effectSizeTooltip: '',
         significant: '유의함', notSignificant: '유의하지 않음',
       },
-      ai: { label: 'AI 해석', loading: 'AI가 결과를 해석하고 있어요...', detailedLabel: '상세 해석', reinterpret: '다시 해석', retry: '다시 시도', defaultError: 'AI 해석 중 오류가 발생했습니다.' },
+      ai: {
+        label: 'AI 해석',
+        loading: 'AI가 결과를 해석하고 있어요...',
+        idleDescription: '버튼을 눌러 AI 해석을 생성하세요.',
+        detailedLabel: '상세 해석',
+        requestButton: 'AI 해석 생성하기',
+        reinterpret: '다시 해석',
+        retry: '다시 시도',
+        defaultError: 'AI 해석 중 오류가 발생했습니다.',
+        retryExhausted: 'AI 해석을 불러올 수 없습니다.',
+        draftCta: '이 결과로 논문 초안을 작성해 보세요',
+      },
       sections: {
         detailedResults: '상세 결과', confidenceInterval: '신뢰구간',
         apaFormat: 'APA 형식', diagnostics: '진단 & 권장', caution: '주의',
@@ -1025,6 +1036,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
+      fireEvent.click(screen.getByRole('button', { name: 'AI 해석 생성하기' }))
+
       // 섹션 pill이 있으면 "전체 보기" 버튼도 렌더링됨
       await waitFor(() => {
         expect(screen.getByText('전체 보기')).toBeInTheDocument()
@@ -1046,6 +1059,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       })
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'AI 해석 생성하기' }))
 
       await waitFor(() => {
         expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
@@ -1306,6 +1321,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     })
 
     async function sendQuestion(question: string) {
+      fireEvent.click(screen.getByRole('button', { name: 'AI 해석 생성하기' }))
       // interpretation 설정 후 follow-up 섹션이 나타날 때까지 대기
       await waitFor(() => screen.getByTestId('follow-up-section'))
       const input = screen.getByPlaceholderText('궁금한 점을 질문하세요...')
@@ -1436,6 +1452,8 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
 
       mockConvert.mockReturnValue(statBase)
       renderPhase(<ResultsActionStep results={baseResults} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'AI 해석 생성하기' }))
 
       // AI 완료 → phase 3 → 300ms 후 phase 4 → Q&A 표시
       await waitFor(() => {

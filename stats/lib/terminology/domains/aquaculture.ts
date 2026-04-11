@@ -934,7 +934,9 @@ export const aquaculture: TerminologyDictionary = {
     ai: {
       label: 'AI 해석',
       loading: 'AI가 결과를 해석하고 있어요...',
+      idleDescription: '버튼을 눌러 AI 해석을 생성하세요.',
       detailedLabel: '상세 해석',
+      requestButton: 'AI 해석 생성하기',
       reinterpret: '다시 해석',
       retry: '다시 시도',
       defaultError: 'AI 해석 중 오류가 발생했습니다.',

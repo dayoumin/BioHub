@@ -217,6 +217,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     interpretationModel,
     isInterpreting,
     interpretError,
+    handleInterpretation,
 
     resetAndReinterpret,
     clearInterpretationGuard,
@@ -230,6 +231,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     uploadedFileName,
     variableMapping: variableMapping as Record<string, unknown> | null,
     errorMessage: t.results.ai.defaultError,
+    autoTrigger: false,
   })
 
   // 후속 Q&A 훅
@@ -653,7 +655,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     resetFollowUp()
     setUsedChips(new Set())
     resetAndReinterpret()
-  }, [isInterpretRetryExhausted, recordInterpretRetry, resetFollowUp, resetAndReinterpret])
+  }, [
+    isInterpretRetryExhausted,
+    recordInterpretRetry,
+    resetFollowUp,
+    resetAndReinterpret,
+  ])
+
+  const handleRequestInterpretation = useCallback(() => {
+    if (isInterpreting) return
+    resetInterpretRecovery()
+    resetFollowUp()
+    setUsedChips(new Set())
+    handleInterpretation()
+  }, [
+    handleInterpretation,
+    isInterpreting,
+    resetFollowUp,
+    resetInterpretRecovery,
+  ])
 
   const handlePaperDraftToggle = useCallback(() => {
     if (paperDraft) {
@@ -927,6 +947,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           isRetryExhausted={interpretRecovery.isExhausted}
           prefersReducedMotion={prefersReducedMotion}
           onReinterpret={handleReinterpretWithQAReset}
+          onRequestInterpretation={handleRequestInterpretation}
           containerRef={aiInterpretationRef}
           phase={phase}
           t={t}

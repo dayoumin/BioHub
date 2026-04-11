@@ -89,7 +89,7 @@ export class OpenRouterRecommender {
     const envModels = process.env.NEXT_PUBLIC_OPENROUTER_MODEL
     const models = envModels
       ? envModels.split(',').map(m => m.trim()).filter(Boolean)
-      : []
+      : ['google/gemini-3.1-flash-lite-preview']
 
     if (models.length === 0) {
       logger.info('[OpenRouter] NEXT_PUBLIC_OPENROUTER_MODEL 미설정 — OpenRouter 비활성화')

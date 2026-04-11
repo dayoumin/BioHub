@@ -7,7 +7,6 @@ import ReactMarkdown from 'react-markdown'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { proseBase } from '@/components/common/card-styles'
 import { AI_ACCENT } from '@/lib/design-tokens'
@@ -33,6 +32,7 @@ interface AiInterpretationCardProps {
   isRetryExhausted?: boolean
   prefersReducedMotion: boolean
   onReinterpret: () => void
+  onRequestInterpretation?: () => void
   containerRef: RefObject<HTMLDivElement | null>
   /** 결과 Phase (0~4) — Phase 1부터 스켈레톤 표시 */
   phase?: number
@@ -233,6 +233,7 @@ export function AiInterpretationCard({
   isRetryExhausted = false,
   prefersReducedMotion,
   onReinterpret,
+  onRequestInterpretation = () => undefined,
   containerRef,
   phase = 4,
   t,
@@ -305,31 +306,34 @@ export function AiInterpretationCard({
   // 섹션이 없고 detail이 있으면 plain markdown fallback
   const hasSections = sections.length > 0
   const hasDetail = !!parsedInterpretation?.detail
-
+  const resolvedIdleDescription = t.results.ai.idleDescription
+  const resolvedRequestButtonLabel = t.results.ai.requestButton
   return (
     <div className="space-y-2" data-testid="ai-interpretation-section" ref={containerRef}>
       <AnimatePresence mode="wait">
         {/* === 스켈레톤: Phase 1+ & 아직 스트리밍 시작 전 === */}
-        {(phase >= 1 && !prefersReducedMotion) && !isInterpreting && !parsedInterpretation && !interpretError && (
+        {!isInterpreting && !parsedInterpretation && !interpretError && (
           <motion.div
-            key="ai-skeleton"
-            initial={{ opacity: 0 }}
+            key="ai-idle"
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
           >
             <Card className="border border-border/40 bg-surface-container-lowest">
-              <CardContent className="py-5 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', AI_ACCENT.iconBgSubtle)}>
-                    <Sparkles className={cn('w-4 h-4 animate-pulse', AI_ACCENT.icon)} />
+              <CardHeader className="pb-2 pt-5 px-5">
+                <div className="flex items-center gap-2">
+                  <div className={cn('w-6 h-6 rounded-md flex items-center justify-center', AI_ACCENT.iconBg)}>
+                    <Sparkles className={cn('w-3.5 h-3.5', AI_ACCENT.icon)} />
                   </div>
-                  <span className="text-sm text-muted-foreground/50 font-medium">{t.results.ai.loading}</span>
+                  <span className={cn('text-sm font-semibold', AI_ACCENT.label)}>{t.results.ai.label}</span>
                 </div>
-                <div className="space-y-2 pl-11">
-                  <Skeleton className="h-3 w-3/4 bg-surface-container-high/40" />
-                  <Skeleton className="h-3 w-1/2 bg-surface-container-high/30" />
-                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 px-5 pb-5 pt-1">
+                <p className="text-sm text-muted-foreground">{resolvedIdleDescription}</p>
+                <Button onClick={onRequestInterpretation} className="sm:min-w-36">
+                  {resolvedRequestButtonLabel}
+                </Button>
               </CardContent>
             </Card>
           </motion.div>

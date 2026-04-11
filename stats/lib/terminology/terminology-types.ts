@@ -989,7 +989,9 @@ export interface ResultsText {
   ai: {
     label: string
     loading: string
+    idleDescription: string
     detailedLabel: string
+    requestButton: string
     reinterpret: string
     retry: string
     defaultError: string

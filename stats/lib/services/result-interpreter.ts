@@ -23,6 +23,7 @@ export interface InterpretationContext {
   sampleSize?: number
   variables?: string[]
   uploadedFileName?: string
+  userRequest?: string
 }
 
 function getPromptMethodIdentity(results: AnalysisResult) {
@@ -207,7 +208,9 @@ export async function requestInterpretation(
   onChunk: (text: string) => void,
   signal?: AbortSignal
 ): Promise<{ model: string; provider: LlmProvider }> {
-  const userPrompt = buildInterpretationPrompt(ctx)
+  const userPrompt = ctx.userRequest
+    ? `${buildInterpretationPrompt(ctx)}\n\n## 사용자 요청\n${ctx.userRequest}`
+    : buildInterpretationPrompt(ctx)
 
   logger.info('[ResultInterpreter] Requesting interpretation via unified LlmRecommender', {
     method: ctx.results.method,
