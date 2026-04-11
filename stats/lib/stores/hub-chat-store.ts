@@ -10,6 +10,7 @@ export interface HubChatMessage {
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp: number
+  directAssignments?: NonNullable<AIRecommendation['variableAssignments']>
   /** user 메시지: 인텐트 분류 결과 */
   intent?: ResolvedIntent
   /** assistant 메시지: 추천 카드 */

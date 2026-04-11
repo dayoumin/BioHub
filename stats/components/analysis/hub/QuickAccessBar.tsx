@@ -1,12 +1,7 @@
 'use client'
 
 /**
- * QuickAccessBar — 최근 활동 카드 리스트 (2칼럼 그리드)
- *
- * 통계 분석(Smart Flow) + 시각화(Graph Studio) 통합 표시:
- * - 통계: 초록 아이콘 (CheckCircle2) + p-value
- * - 시각화: 보라 아이콘 (BarChart3 등) + 차트 유형
- * - 시간순 통합 정렬, pinned 우선
+ * QuickAccessBar - recent activity cards for statistics and graph projects.
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
@@ -48,20 +43,18 @@ import type { ChartType } from '@/types/graph-studio'
 import { toast } from 'sonner'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 
-// ===== Helpers =====
-
-/** results에서 p-value 추출 */
 function extractPValue(results: Record<string, unknown> | null): number | null {
   if (!results) return null
   const candidates = ['pValue', 'p_value', 'p', 'pval']
+
   for (const key of candidates) {
-    const val = results[key]
-    if (typeof val === 'number' && !isNaN(val)) return val
+    const value = results[key]
+    if (typeof value === 'number' && !Number.isNaN(value)) return value
   }
+
   return null
 }
 
-/** 차트 유형에 맞는 lucide 아이콘 반환 */
 function getChartIcon(chartType: ChartType): typeof BarChart3 {
   switch (chartType) {
     case 'line':
@@ -75,8 +68,6 @@ function getChartIcon(chartType: ChartType): typeof BarChart3 {
   }
 }
 
-// ===== Types =====
-
 type ActivityType = 'statistics' | 'visualization'
 
 interface ActivityCard {
@@ -86,17 +77,14 @@ interface ActivityCard {
   timeAgo: string
   isPinned: boolean
   name: string
-  // 통계 전용
+  purpose?: string
   method?: { id: string; name: string; category: string; description?: string } | null
   pValue?: number | null
   hasResults?: boolean
   dataFileName?: string
-  // 시각화 전용
   chartType?: ChartType
   chartTypeLabel?: string
 }
-
-// ===== Props =====
 
 interface QuickAccessBarProps {
   onHistoryClick: (historyId: string) => void
@@ -107,7 +95,66 @@ interface QuickAccessBarProps {
   className?: string
 }
 
-// ===== Component =====
+function getActivitySummary(card: ActivityCard): string {
+  if (card.type === 'visualization') {
+    return card.chartTypeLabel
+      ? `${card.chartTypeLabel} 시각화를 이어서 편집합니다.`
+      : '최근 작업한 시각화를 이어서 열 수 있습니다.'
+  }
+
+  if (card.purpose && card.purpose.trim().length > 0) {
+    return card.purpose
+  }
+
+  if (card.method?.description && card.method.description.trim().length > 0) {
+    return card.method.description
+  }
+
+  if (card.dataFileName && card.dataFileName.trim().length > 0) {
+    return `${card.dataFileName} 데이터로 진행한 분석입니다.`
+  }
+
+  return '최근 진행한 분석을 이어서 열 수 있습니다.'
+}
+
+function getDisplayFileName(fileName?: string): string | null {
+  if (!fileName) return null
+
+  const trimmed = fileName.trim()
+  if (!trimmed) return null
+
+  const normalized = trimmed.toLowerCase()
+  if (normalized === 'unknown' || normalized === 'unknown.csv' || normalized === 'untitled' || normalized === 'untitled.csv') {
+    return null
+  }
+
+  return trimmed
+}
+
+function getLocalizedActivitySummary(
+  card: ActivityCard,
+  text: {
+    visualizationWithType: (chartTypeLabel: string) => string
+    visualizationFallback: string
+    analysisFallback: string
+  },
+): string {
+  if (card.type === 'visualization') {
+    return card.chartTypeLabel
+      ? text.visualizationWithType(card.chartTypeLabel)
+      : text.visualizationFallback
+  }
+
+  if (card.purpose && card.purpose.trim().length > 0) {
+    return card.purpose
+  }
+
+  if (card.method?.description && card.method.description.trim().length > 0) {
+    return card.method.description
+  }
+
+  return text.analysisFallback
+}
 
 export function QuickAccessBar({
   onHistoryClick,
@@ -122,105 +169,99 @@ export function QuickAccessBar({
   const prefersReducedMotion = useReducedMotion()
   const { analysisHistory } = useHistoryStore()
 
-  // Pin & delete state
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteConfirmType, setDeleteConfirmType] = useState<ActivityType>('statistics')
-  // Graph Studio 프로젝트 삭제 시 UI 갱신을 위한 카운터
   const [vizRefreshKey, setVizRefreshKey] = useState(0)
 
-  // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리
-  useEffect(() => {
-    const validIds = new Set(analysisHistory.map(h => h.id))
-    for (const p of listProjects()) validIds.add(p.id)
-    setPinnedIds(prev => {
-      const cleaned = prev.filter(id => validIds.has(id))
+  useEffect((): void => {
+    const validIds = new Set(analysisHistory.map((history) => history.id))
+    for (const project of listProjects()) validIds.add(project.id)
+
+    setPinnedIds((prev) => {
+      const cleaned = prev.filter((id) => validIds.has(id))
       return cleaned.length !== prev.length ? cleaned : prev
     })
   }, [analysisHistory, setPinnedIds, vizRefreshKey])
 
-  // 통계 + 시각화 통합 리스트: pinned 우선 → 최신순
-  // vizRefreshKey: deps에 포함 → 시각화 프로젝트 삭제 시 useMemo 재계산 트리거
   const { visibleItems } = useMemo(() => {
     const pinnedSet = new Set(pinnedIds)
 
-    // 통계 분석 → ActivityCard
-    const statsCards: ActivityCard[] = analysisHistory.map(h => ({
-      id: h.id,
-      type: 'statistics' as const,
-      timestamp: new Date(h.timestamp),
-      timeAgo: formatTimeAgo(new Date(h.timestamp), t.hub.timeAgo),
-      isPinned: pinnedSet.has(h.id),
-      name: h.name || h.method?.name || t.hub.cards.unknownMethod,
-      method: h.method,
-      pValue: extractPValue(h.results),
-      hasResults: h.results !== null,
-      dataFileName: h.dataFileName || '',
+    const statsCards: ActivityCard[] = analysisHistory.map((history) => ({
+      id: history.id,
+      type: 'statistics',
+      timestamp: new Date(history.timestamp),
+      timeAgo: formatTimeAgo(new Date(history.timestamp), t.hub.timeAgo),
+      isPinned: pinnedSet.has(history.id),
+      name: history.name || history.method?.name || t.hub.cards.unknownMethod,
+      purpose: history.purpose,
+      method: history.method,
+      pValue: extractPValue(history.results),
+      hasResults: history.results !== null,
+      dataFileName: history.dataFileName || '',
     }))
 
-    // Graph Studio 프로젝트 → ActivityCard
-    const projects = listProjects()
-    const vizCards: ActivityCard[] = projects.map(p => {
-      const updatedAt = new Date(p.updatedAt)
-      const chartType = p.chartSpec.chartType
+    const vizCards: ActivityCard[] = listProjects().map((project) => {
+      const updatedAt = new Date(project.updatedAt)
+      const chartType = project.chartSpec.chartType
       const hint = CHART_TYPE_HINTS[chartType]
+
       return {
-        id: p.id,
-        type: 'visualization' as const,
+        id: project.id,
+        type: 'visualization',
         timestamp: updatedAt,
         timeAgo: formatTimeAgo(updatedAt, t.hub.timeAgo),
-        isPinned: pinnedSet.has(p.id),
-        name: p.name,
+        isPinned: pinnedSet.has(project.id),
+        name: project.name,
         chartType,
         chartTypeLabel: hint?.label ?? chartType,
       }
     })
 
-    // 통합 + 정렬
     const all = [...statsCards, ...vizCards]
     const pinned = all
-      .filter(c => c.isPinned)
+      .filter((card) => card.isPinned)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     const unpinned = all
-      .filter(c => !c.isPinned)
+      .filter((card) => !card.isPinned)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 
     const remaining = Math.max(0, maxItems - Math.min(pinned.length, maxItems))
+
     return {
       visibleItems: [...pinned.slice(0, maxItems), ...unpinned.slice(0, remaining)],
-      totalCount: all.length,
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisHistory, maxItems, pinnedIds, t, vizRefreshKey])
 
-  // Card click handler
-  const handleCardClick = useCallback((card: ActivityCard) => {
+  const handleCardClick = useCallback((card: ActivityCard): void => {
     if (card.type === 'statistics') {
       onHistoryClick(card.id)
-    } else {
-      router.push(`/graph-studio?project=${card.id}`)
+      return
     }
+
+    router.push(`/graph-studio?project=${card.id}`)
   }, [onHistoryClick, router])
 
-  // Delete handler
-  const handleDeleteConfirm = useCallback(async () => {
+  const handleDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!deleteConfirmId) return
+
     if (deleteConfirmType === 'statistics') {
       await onHistoryDelete(deleteConfirmId)
     } else {
       await deleteProjectCascade(deleteConfirmId)
-      setVizRefreshKey(k => k + 1)
+      setVizRefreshKey((prev) => prev + 1)
     }
-    setPinnedIds(prev => {
-      if (!prev.includes(deleteConfirmId)) return prev
-      return prev.filter(id => id !== deleteConfirmId)
-    })
+
+    setPinnedIds((prev) => (
+      prev.includes(deleteConfirmId)
+        ? prev.filter((id) => id !== deleteConfirmId)
+        : prev
+    ))
     setDeleteConfirmId(null)
   }, [deleteConfirmId, deleteConfirmType, onHistoryDelete, setPinnedIds])
 
-  // Pin toggle handler
-  const handleTogglePin = useCallback((historyId: string) => {
-    setPinnedIds(prev => {
+  const handleTogglePin = useCallback((historyId: string): void => {
+    setPinnedIds((prev) => {
       const result = togglePinId(prev, historyId, MAX_PINNED)
       if (result === null) {
         toast.info(t.history.tooltips.maxPinned(MAX_PINNED))
@@ -230,8 +271,7 @@ export function QuickAccessBar({
     })
   }, [setPinnedIds, t])
 
-  // Delete request (opens confirm dialog)
-  const handleDeleteRequest = useCallback((id: string, type: ActivityType) => {
+  const handleDeleteRequest = useCallback((id: string, type: ActivityType): void => {
     setDeleteConfirmId(id)
     setDeleteConfirmType(type)
   }, [])
@@ -244,7 +284,7 @@ export function QuickAccessBar({
       transition={{ duration: 0.4, delay: 0.4 }}
     >
       {showHeader && (
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">{t.hub.cards.recentTitle}</h2>
         </div>
       )}
@@ -258,8 +298,8 @@ export function QuickAccessBar({
           className="py-10"
         />
       ) : (
-        <div className={cn(compact ? 'space-y-2.5' : 'grid grid-cols-1 md:grid-cols-2 gap-2.5')}>
-          {visibleItems.map(card => (
+        <div className={cn(compact ? 'space-y-1.5' : 'grid grid-cols-1 gap-2.5 md:grid-cols-2')}>
+          {visibleItems.map((card) => (
             <ActivityCardItem
               key={card.id}
               card={card}
@@ -273,7 +313,6 @@ export function QuickAccessBar({
         </div>
       )}
 
-      {/* 삭제 확인 */}
       <ConfirmAlertDialog
         open={!!deleteConfirmId}
         onOpenChange={() => setDeleteConfirmId(null)}
@@ -287,8 +326,6 @@ export function QuickAccessBar({
   )
 }
 
-// ===== Card Sub-component =====
-
 interface ActivityCardItemProps {
   card: ActivityCard
   t: ReturnType<typeof useTerminology>
@@ -299,67 +336,90 @@ interface ActivityCardItemProps {
 }
 
 function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: ActivityCardItemProps) {
-  const isViz = card.type === 'visualization'
+  const isVisualization = card.type === 'visualization'
+  const displayFileName = getDisplayFileName(card.dataFileName)
+  const activitySummary = getLocalizedActivitySummary(card, {
+    visualizationWithType: (chartTypeLabel) => t.hub.cards.visualizationSummaryWithType(chartTypeLabel),
+    visualizationFallback: t.hub.cards.visualizationSummaryFallback,
+    analysisFallback: t.hub.cards.analysisSummaryFallback,
+  })
 
   return (
     <div
       className={cn(
-        'group flex items-start justify-between rounded-2xl border',
-        'bg-surface-container-lowest',
-        'hover:bg-surface-container-low/30 active:scale-[0.99] transition-all duration-200 cursor-pointer',
-        card.isPinned && 'border-primary/20 bg-primary/[0.03]',
-        compact ? 'gap-3 p-3.5' : 'gap-4 p-4',
-        'border-border/50',
+        'group flex cursor-pointer items-start justify-between transition-all duration-200 active:scale-[0.99]',
+        compact
+          ? 'gap-3 rounded-xl bg-transparent px-2.5 py-2.5 hover:bg-surface-container-lowest/90'
+          : 'gap-4 rounded-2xl bg-surface-container-low p-4 hover:bg-surface-container-high/70',
+        card.isPinned && !compact && 'bg-primary/[0.06]',
       )}
       data-testid={`recent-activity-card-${card.id}`}
       data-activity-kind={card.type}
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick()
+        }
+      }}
     >
       <div className="flex min-w-0 items-start gap-3">
-        {/* 상태 아이콘 — 통계 vs 시각화 */}
-        {isViz ? (
+        {isVisualization ? (
           <VisualizationIcon chartType={card.chartType} compact={compact} />
         ) : (
           <StatisticsIcon hasResults={card.hasResults ?? false} compact={compact} />
         )}
 
-        {/* 제목 + 메타 */}
         <div className="min-w-0">
           <p className={cn(
-            'font-semibold text-foreground',
-            compact ? 'text-[13px] leading-5 line-clamp-2' : 'text-sm truncate',
+            'text-foreground',
+            compact ? 'line-clamp-2 text-xs font-medium leading-4' : 'truncate text-sm font-semibold',
           )}>
-            {isViz ? card.name : (card.method?.name || card.name)}
+            {isVisualization ? card.name : (card.method?.name || card.name)}
           </p>
-          {!isViz && card.dataFileName && (
+          <p className={cn(
+            'text-muted-foreground',
+            compact ? 'mt-0.5 line-clamp-2 text-[11px] leading-4' : 'mt-1 line-clamp-2 text-[12px] leading-5',
+          )}>
+            {activitySummary}
+          </p>
+          {!isVisualization && displayFileName && (
             <p className={cn(
-              'mt-0.5 text-xs text-muted-foreground',
-              compact ? 'line-clamp-1' : 'truncate',
+              'truncate text-muted-foreground',
+              compact ? 'mt-0.5 text-[10px]' : 'mt-0.5 text-xs',
             )}>
-              {card.dataFileName}
+              {displayFileName}
             </p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            {isViz ? (
+          <div className={cn(
+            'flex flex-wrap items-center text-muted-foreground',
+            compact ? 'mt-1.5 gap-1 text-[10px]' : 'mt-2 gap-1.5 text-[11px]',
+          )}>
+            {isVisualization ? (
               <>
-                <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5">
+                <span className={cn(
+                  'rounded-full',
+                  compact ? 'bg-transparent px-0 py-0' : 'bg-background/70 px-2 py-0.5',
+                )}>
                   {t.hub.recentStatus.visualization}
-                </span>
-                <span className="rounded-full border border-border/50 bg-background px-2 py-0.5 text-foreground/75">
-                  {card.chartTypeLabel}
                 </span>
                 <span>{card.timeAgo}</span>
               </>
             ) : (
               <>
-                <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5">
+                <span className={cn(
+                  'rounded-full',
+                  compact ? 'bg-transparent px-0 py-0' : 'bg-background/70 px-2 py-0.5',
+                )}>
                   {card.hasResults ? t.hub.recentStatus.completed : t.hub.recentStatus.inProgress}
                 </span>
                 {card.pValue != null && (
-                  <span className="rounded-full border border-border/50 bg-background px-2 py-0.5 font-mono text-[11px] text-foreground/80">
+                  <span className={cn(
+                    'font-mono text-foreground/80',
+                    compact ? 'px-0 py-0 text-[10px]' : 'rounded-full bg-background/80 px-2 py-0.5 text-[11px]',
+                  )}>
                     p={card.pValue < 0.001 ? '<0.001' : card.pValue.toFixed(3)}
                   </span>
                 )}
@@ -370,36 +430,36 @@ function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: 
         </div>
       </div>
 
-      {/* 액션 메뉴 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.stopPropagation()
+              }
+            }}
             className={cn(
-              'p-1.5 rounded-md text-muted-foreground/60',
-              'hover:text-foreground hover:bg-accent',
-              'transition-all',
-              `${focusRing}`,
+              'rounded-md p-1.5 text-muted-foreground/60 transition-all',
+              'hover:bg-background/80 hover:text-foreground',
+              focusRing,
             )}
             aria-label={t.history.labels.moreActions}
           >
-            <MoreVertical className="w-4 h-4" />
+            <MoreVertical className="h-4 w-4" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36">
           <DropdownMenuItem onClick={onTogglePin}>
             {card.isPinned ? (
-              <><PinOff className="w-3.5 h-3.5 mr-2" />{t.history.tooltips.unpin}</>
+              <><PinOff className="mr-2 h-3.5 w-3.5" />{t.history.tooltips.unpin}</>
             ) : (
-              <><Pin className="w-3.5 h-3.5 mr-2" />{t.history.tooltips.pin}</>
+              <><Pin className="mr-2 h-3.5 w-3.5" />{t.history.tooltips.pin}</>
             )}
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={onDelete}
-          >
-            <X className="w-3.5 h-3.5 mr-2" />
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+            <X className="mr-2 h-3.5 w-3.5" />
             {t.history.tooltips.delete}
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -408,22 +468,32 @@ function ActivityCardItem({ card, t, compact, onClick, onTogglePin, onDelete }: 
   )
 }
 
-// ===== Icon Sub-components =====
-
 function StatisticsIcon({ hasResults, compact }: { hasResults: boolean; compact: boolean }) {
+  if (compact) {
+    return (
+      <div
+        data-activity-icon={hasResults ? 'statistics-complete' : 'statistics-loading'}
+        className="shrink-0 rounded-lg bg-surface-container-high p-2 text-muted-foreground"
+      >
+        {hasResults ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+      </div>
+    )
+  }
+
   if (hasResults) {
     return (
       <div
         data-activity-icon="statistics-complete"
         className={cn(
-          'shrink-0 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+          'shrink-0 rounded-xl bg-[color-mix(in_oklch,var(--section-accent-analysis)_16%,var(--surface-container-lowest))] text-[var(--section-accent-analysis)]',
           compact ? 'p-2' : 'p-2.5',
         )}
       >
-        <CheckCircle2 className="w-4 h-4" />
+        <CheckCircle2 className="h-4 w-4" />
       </div>
     )
   }
+
   return (
     <div
       data-activity-icon="statistics-loading"
@@ -432,13 +502,25 @@ function StatisticsIcon({ hasResults, compact }: { hasResults: boolean; compact:
         compact ? 'p-2' : 'p-2.5',
       )}
     >
-      <Loader2 className="w-4 h-4 animate-spin" />
+      <Loader2 className="h-4 w-4 animate-spin" />
     </div>
   )
 }
 
 function VisualizationIcon({ chartType, compact }: { chartType?: ChartType; compact: boolean }) {
   const Icon = getChartIcon(chartType ?? 'bar')
+
+  if (compact) {
+    return (
+      <div
+        data-activity-icon="visualization"
+        className="shrink-0 rounded-lg bg-surface-container-high p-2 text-muted-foreground"
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </div>
+    )
+  }
+
   return (
     <div
       data-activity-icon="visualization"
@@ -448,7 +530,7 @@ function VisualizationIcon({ chartType, compact }: { chartType?: ChartType; comp
         color: 'var(--section-accent-graph)',
       }}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className="h-4 w-4" />
     </div>
   )
 }

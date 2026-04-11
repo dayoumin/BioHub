@@ -573,6 +573,9 @@ export interface HubText {
     unknownMethod: string
     emptyTitle: string
     emptyDescription: string
+    visualizationSummaryWithType: (chartTypeLabel: string) => string
+    visualizationSummaryFallback: string
+    analysisSummaryFallback: string
     showMore: (n: number) => string
   }
   quickAnalysis: {

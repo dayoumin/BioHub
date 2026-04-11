@@ -465,7 +465,7 @@ export const generic: TerminologyDictionary = {
 
   hub: {
     hero: {
-      heading: 'From data to insight,',
+      heading: 'Upload your data and start the analysis right away.',
       subheading: 'What would you like to analyze?',
       description: 'Upload CSV or Excel files and AI will analyze your data characteristics and recommend the optimal statistical method. Expert-level analysis in just a few clicks.',
       statMethods: (count: number) => `${count} analysis tools`,
@@ -537,6 +537,9 @@ export const generic: TerminologyDictionary = {
       unknownMethod: 'Unknown',
       emptyTitle: 'No activity records yet',
       emptyDescription: 'Start a statistical analysis or data visualization',
+      visualizationSummaryWithType: (chartTypeLabel: string) => `Continue editing the ${chartTypeLabel} visualization.`,
+      visualizationSummaryFallback: 'Continue where you left off in Graph Studio.',
+      analysisSummaryFallback: 'Reopen this recent analysis and keep working.',
       showMore: (n: number) => `View all ${n}`,
     },
     quickAnalysis: {

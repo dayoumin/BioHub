@@ -466,7 +466,7 @@ export const aquaculture: TerminologyDictionary = {
 
   hub: {
     hero: {
-      heading: '데이터에서 인사이트까지,',
+      heading: '데이터를 올리고 바로 분석을 시작하세요.',
       subheading: '어떤 분석을 하시겠습니까?',
       description: 'CSV, Excel 파일을 업로드하면 AI가 데이터 특성을 분석하고 최적의 통계 방법을 추천합니다. 전문가 수준의 분석을 몇 번의 클릭으로.',
       statMethods: (count: number) => `${count}개 분석 도구`,
@@ -538,6 +538,9 @@ export const aquaculture: TerminologyDictionary = {
       unknownMethod: '알 수 없음',
       emptyTitle: '아직 활동 기록이 없습니다',
       emptyDescription: '통계 분석이나 데이터 시각화를 시작해보세요',
+      visualizationSummaryWithType: (chartTypeLabel: string) => `${chartTypeLabel} 시각화를 이어서 편집합니다.`,
+      visualizationSummaryFallback: '최근 작업한 시각화를 이어서 열 수 있습니다.',
+      analysisSummaryFallback: '최근 진행한 분석을 이어서 열 수 있습니다.',
       showMore: (n: number) => `전체 ${n}개 보기`,
     },
     quickAnalysis: {

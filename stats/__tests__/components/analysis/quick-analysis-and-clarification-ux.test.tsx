@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 const analysisStoreState = {
@@ -10,11 +10,14 @@ const analysisStoreState = {
 
 let lastQuickAccessBarProps: Record<string, unknown> | null = null
 let lastChatThreadProps: Record<string, unknown> | null = null
+let lastChatInputProps: Record<string, unknown> | null = null
 
 vi.mock('framer-motion', () => ({
   motion: {
     div: (props: React.PropsWithChildren<Record<string, unknown>>) =>
       React.createElement('div', props, props.children),
+    section: (props: React.PropsWithChildren<Record<string, unknown>>) =>
+      React.createElement('section', props, props.children),
   },
   AnimatePresence: (props: React.PropsWithChildren) =>
     React.createElement(React.Fragment, null, props.children),
@@ -72,6 +75,7 @@ vi.mock('@/lib/stores/analysis-store', () => ({
 
 vi.mock('@/components/analysis/hub/ChatInput', () => ({
   ChatInput: (props: Record<string, unknown>) => {
+    lastChatInputProps = props
     return (
       <div data-testid="chat-input">
         <button
@@ -112,6 +116,7 @@ vi.mock('@/components/analysis/hub/QuickAccessBar', () => ({
 }))
 
 import { useHubChatStore } from '@/lib/stores/hub-chat-store'
+import { intentRouter, getHubDiagnosticResumeResponse } from '@/lib/services'
 import { bridgeDiagnosticToSmartFlow } from '@/lib/stores/store-orchestration'
 import { ChatCentricHub } from '@/components/analysis/ChatCentricHub'
 import { VariablePicker } from '@/components/analysis/hub/VariablePicker'
@@ -123,6 +128,7 @@ describe('quick analysis and clarification UX', () => {
     analysisStoreState.uploadedData = null
     lastQuickAccessBarProps = null
     lastChatThreadProps = null
+    lastChatInputProps = null
     useHubChatStore.setState({
       messages: [],
       dataContext: null,
@@ -247,7 +253,7 @@ describe('quick analysis and clarification UX', () => {
 
     expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument()
     expect(screen.getByTestId('hub-clarification-lock')).toBeInTheDocument()
-    expect(screen.getByText('위 선택 카드에서 필요한 열을 먼저 골라 주세요.')).toBeInTheDocument()
+    expect(screen.getByText('필요한 항목을 먼저 선택해 주세요.')).toBeInTheDocument()
   })
 
   it('releases the input lock when the pending clarification belongs to an older upload', () => {
@@ -409,6 +415,170 @@ describe('quick analysis and clarification UX', () => {
       }),
     )
     expect(onQuickAnalysis).not.toHaveBeenCalled()
+  })
+
+  it('passes failed prompts into ChatInput prefill props after classification errors', async () => {
+    vi.mocked(intentRouter.classify).mockRejectedValueOnce(new Error('classification failed'))
+
+    render(
+      <ChatCentricHub
+        onIntentResolved={vi.fn()}
+        onQuickAnalysis={vi.fn()}
+        onHistorySelect={vi.fn()}
+        onHistoryDelete={vi.fn(async () => {})}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId('chat-input-submit'))
+
+    await waitFor(() => {
+      expect(lastChatInputProps?.prefillValue).toBe('follow-up question')
+    })
+    expect(lastChatInputProps?.submitValue).toBeUndefined()
+  })
+
+  it('preserves direct assignments when retrying a clarification resume flow', async () => {
+    const directAssignments = { dependent: ['outcome'], factor: ['group'] }
+
+    analysisStoreState.uploadNonce = 0
+    analysisStoreState.uploadedData = [{ outcome: 1, group: 'A' }]
+    useHubChatStore.setState({
+      dataContext: {
+        fileName: 'resume.csv',
+        totalRows: 10,
+        columnCount: 2,
+        numericColumns: ['outcome'],
+        categoricalColumns: ['group'],
+        validationResults: { isValid: true, totalRows: 10, columnCount: 2, missingValues: 0, dataType: 'tabular', variables: [], errors: [], warnings: [] } as never,
+      },
+      messages: [
+        {
+          id: 'assistant-clarification',
+          role: 'assistant',
+          content: 'clarification',
+          timestamp: Date.now(),
+          diagnosticReport: {
+            uploadNonce: 0,
+            originUserMessage: 'compare groups',
+            basicStats: {
+              totalRows: 10,
+              groups: [],
+              numericSummaries: [],
+            },
+            pendingClarification: {
+              missingRoles: ['factor'],
+              candidateColumns: [],
+            },
+          } as never,
+        },
+        {
+          id: 'user-with-assignments',
+          role: 'user',
+          content: 'compare outcome by group',
+          timestamp: Date.now(),
+          directAssignments,
+        },
+        {
+          id: 'assistant-error',
+          role: 'assistant',
+          content: 'resume failed',
+          timestamp: Date.now(),
+          isError: true,
+        },
+      ],
+    })
+
+    vi.mocked(getHubDiagnosticResumeResponse).mockResolvedValueOnce({
+      content: 'resumed',
+      diagnosticReport: {
+        uploadNonce: 0,
+        originUserMessage: 'compare groups',
+        basicStats: {
+          totalRows: 10,
+          groups: [],
+          numericSummaries: [],
+        },
+        pendingClarification: null,
+      } as never,
+      recommendation: null,
+    })
+
+    render(
+      <ChatCentricHub
+        onIntentResolved={vi.fn()}
+        onQuickAnalysis={vi.fn()}
+        onHistorySelect={vi.fn()}
+        onHistoryDelete={vi.fn(async () => {})}
+      />
+    )
+
+    ;(lastChatThreadProps?.onRetry as ((messageId: string) => void) | undefined)?.('assistant-error')
+
+    await waitFor(() => {
+      expect(getHubDiagnosticResumeResponse).toHaveBeenCalled()
+    })
+
+    expect(vi.mocked(getHubDiagnosticResumeResponse).mock.calls[0]?.[2]).toEqual(
+      expect.objectContaining({
+        directAssignments,
+      }),
+    )
+  })
+
+  it('ignores late responses after the user clears the chat', async () => {
+    const onIntentResolved = vi.fn()
+    let resolveClassify: ((value: unknown) => void) | undefined
+
+    vi.mocked(intentRouter.classify).mockImplementationOnce(
+      () =>
+        new Promise<{
+          track: string
+          confidence: number
+          method: { id: string; name: string; category: string }
+          reasoning: string
+          needsData: boolean
+          provider: string
+        }>((resolve) => {
+          resolveClassify = resolve as (value: unknown) => void
+        }) as ReturnType<typeof intentRouter.classify>,
+    )
+
+    render(
+      <ChatCentricHub
+        onIntentResolved={onIntentResolved}
+        onQuickAnalysis={vi.fn()}
+        onHistorySelect={vi.fn()}
+        onHistoryDelete={vi.fn(async () => {})}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId('chat-input-submit'))
+
+    expect(useHubChatStore.getState().messages).toHaveLength(1)
+
+    ;(lastChatThreadProps?.onClearChat as (() => void) | undefined)?.()
+
+    if (typeof resolveClassify !== 'function') {
+      throw new Error('resolveClassify was not set')
+    }
+    const finishClassify = resolveClassify
+
+    await act(async () => {
+      finishClassify({
+        track: 'direct-analysis',
+        confidence: 1,
+        method: { id: 'two-sample-t', name: 'Two-Sample t-test', category: 't-test' },
+        reasoning: '',
+        needsData: false,
+        provider: 'keyword',
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(useHubChatStore.getState().messages).toHaveLength(0)
+    expect(useHubChatStore.getState().isStreaming).toBe(false)
+    expect(onIntentResolved).not.toHaveBeenCalled()
   })
 
 })

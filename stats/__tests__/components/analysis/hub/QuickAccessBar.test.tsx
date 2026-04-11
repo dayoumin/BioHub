@@ -46,6 +46,9 @@ vi.mock('@/hooks/use-terminology', () => ({
         unknownMethod: '알 수 없음',
         emptyTitle: '아직 활동 기록이 없습니다',
         emptyDescription: '통계 분석이나 데이터 시각화를 시작해보세요',
+        visualizationSummaryWithType: (chartTypeLabel: string) => `${chartTypeLabel} summary`,
+        visualizationSummaryFallback: 'visualization summary',
+        analysisSummaryFallback: 'analysis summary',
         showMore: (n: number) => `전체 ${n}개 보기`,
       },
       timeAgo: {
@@ -87,7 +90,8 @@ const mockAnalysisHistory: Array<{
   id: string
   name: string
   timestamp: Date
-  method: { id: string; name: string; category: string } | null
+  purpose?: string
+  method: { id: string; name: string; category: string; description?: string } | null
   results: Record<string, unknown> | null
   dataFileName: string
 }> = []
@@ -261,7 +265,7 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     render(<QuickAccessBar {...defaultProps} />)
 
     expect(screen.getByText('상관 시각화')).toBeInTheDocument()
-    expect(screen.getByText('산점도')).toBeInTheDocument()
+    expect(screen.getByText('산점도 summary')).toBeInTheDocument()
   })
 
   // ─── 통합 정렬 ───
@@ -475,8 +479,54 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     const cards = screen.getAllByRole('button')
       .filter(el => el.classList.contains('group'))
     expect(cards).toHaveLength(3)
-    expect(cards[0]?.className).toContain('p-3.5')
+    expect(cards[0]?.className).toContain('px-2.5')
     expect(container.firstChild).toHaveClass('rail-shell')
+  })
+
+  it('keyboard interaction on the overflow button does not open the activity card', async () => {
+    const user = userEvent.setup()
+
+    mockAnalysisHistory.push(
+      makeStatHistory({
+        id: 'stat-menu',
+        method: { id: 't-test', name: '메뉴 테스트', category: 't-test' },
+      }),
+    )
+
+    render(<QuickAccessBar {...defaultProps} />)
+
+    const card = screen.getByText('메뉴 테스트').closest('[role="button"]') as HTMLElement
+    const moreButton = within(card).getAllByRole('button').find(
+      (button) => button !== card && button.getAttribute('aria-label'),
+    ) as HTMLButtonElement
+
+    moreButton.focus()
+    await user.keyboard('{Enter}')
+
+    expect(defaultProps.onHistoryClick).not.toHaveBeenCalled()
+    expect(mockRouterPush).not.toHaveBeenCalled()
+  })
+
+  it('compact rail still shows meaningful dataset names and hides placeholder filenames', () => {
+    mockAnalysisHistory.push(
+      makeStatHistory({
+        id: 'stat-file-visible',
+        method: { id: 't-test', name: '파일명 표시', category: 't-test' },
+        purpose: 'same method',
+        dataFileName: 'dataset-a.csv',
+      }),
+      makeStatHistory({
+        id: 'stat-file-hidden',
+        method: { id: 't-test', name: '파일명 숨김', category: 't-test' },
+        purpose: 'same method',
+        dataFileName: 'unknown.csv',
+      }),
+    )
+
+    render(<QuickAccessBar {...defaultProps} compact showHeader={false} />)
+
+    expect(screen.getByText('dataset-a.csv')).toBeInTheDocument()
+    expect(screen.queryByText('unknown.csv')).not.toBeInTheDocument()
   })
 
   // ─── 아이콘 색상 구분 ───
