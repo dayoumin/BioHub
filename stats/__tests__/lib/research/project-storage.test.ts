@@ -11,6 +11,7 @@ import {
   saveResearchProject,
   deleteResearchProject,
   listProjectEntityRefs,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
   upsertProjectEntityRef,
   removeProjectEntityRef,
 } from '@/lib/research/project-storage'
@@ -133,5 +134,46 @@ describe('removeProjectEntityRef throw 전파', () => {
 
     // 원본 ref 유지
     expect(listProjectEntityRefs('proj-1')).toHaveLength(1)
+  })
+})
+
+describe('project entity ref change events', () => {
+  it('upsertProjectEntityRef dispatches a browser event', () => {
+    const handler = vi.fn()
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handler)
+
+    upsertProjectEntityRef({
+      projectId: 'proj-1',
+      entityKind: 'analysis',
+      entityId: 'a-1',
+      label: 'Test',
+    })
+
+    expect(handler).toHaveBeenCalledTimes(1)
+    const [event] = handler.mock.calls[0] as [CustomEvent<{ projectIds: string[]; entityIds: string[] }>]
+    expect(event.detail.projectIds).toEqual(['proj-1'])
+    expect(event.detail.entityIds).toEqual(['a-1'])
+    window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handler)
+  })
+
+  it('removeProjectEntityRef dispatches a browser event', () => {
+    const handler = vi.fn()
+    upsertProjectEntityRef({
+      projectId: 'proj-1',
+      entityKind: 'analysis',
+      entityId: 'a-1',
+      label: 'Test',
+    })
+    handler.mockClear()
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handler)
+
+    removeProjectEntityRef('proj-1', 'analysis', 'a-1')
+
+    expect(handler).toHaveBeenCalledTimes(1)
+    const [event] = handler.mock.calls[0] as [CustomEvent<{ projectIds: string[]; entityIds: string[] }>]
+    expect(event.detail.projectIds).toEqual(['proj-1'])
+    expect(event.detail.entityIds).toEqual(['a-1'])
+    window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handler)
   })
 })

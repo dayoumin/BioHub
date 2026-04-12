@@ -36,7 +36,13 @@ import {
   MAX_VISIBLE_PILLS,
   togglePinId,
 } from '@/lib/utils/pinned-history-storage'
-import { listProjects, deleteProjectCascade, CHART_TYPE_HINTS } from '@/lib/graph-studio'
+import {
+  listProjects,
+  deleteProjectCascade,
+  CHART_TYPE_HINTS,
+  GRAPH_PROJECTS_CHANGED_EVENT,
+} from '@/lib/graph-studio'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import type { ChartType } from '@/types/graph-studio'
 import { toast } from 'sonner'
 import { formatTimeAgo } from '@/lib/utils/format-time'
@@ -171,6 +177,25 @@ export function QuickAccessBar({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteConfirmType, setDeleteConfirmType] = useState<ActivityType>('statistics')
   const [vizRefreshKey, setVizRefreshKey] = useState(0)
+
+  useEffect((): (() => void) => {
+    const handleProjectRefresh = (): void => {
+      setVizRefreshKey((prev) => prev + 1)
+    }
+
+    const handleStorage = (event: StorageEvent): void => {
+      if (event.key !== STORAGE_KEYS.graphStudio.projects) return
+      handleProjectRefresh()
+    }
+
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleProjectRefresh)
+    window.addEventListener('storage', handleStorage)
+
+    return (): void => {
+      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleProjectRefresh)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [])
 
   useEffect((): void => {
     const validIds = new Set(analysisHistory.map((history) => history.id))

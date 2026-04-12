@@ -15,7 +15,7 @@
  * - zero-patch 감지, MAX_MESSAGES=30, localStorage 영속
  */
 
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { KeyboardEvent, RefObject } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
@@ -56,7 +56,9 @@ export interface AiChatHook {
 // ─── 훅 ────────────────────────────────────────────────────
 
 export function useAiChat(): AiChatHook {
-  const { chartSpec, updateChartSpec } = useGraphStudioStore();
+  const chartSpec = useGraphStudioStore(state => state.chartSpec);
+  const currentProjectId = useGraphStudioStore(state => state.currentProject?.id ?? null);
+  const updateChartSpec = useGraphStudioStore(state => state.updateChartSpec);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -64,36 +66,80 @@ export function useAiChat(): AiChatHook {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previousProjectIdRef = useRef<string | null>(null);
 
   // 비동기 handleSend에서 최신 spec 접근 — 상단 JSDoc의 chartSpecRef 패턴 참조
   const chartSpecRef = useRef(chartSpec);
   useEffect(() => { chartSpecRef.current = chartSpec; }, [chartSpec]);
 
+  const draftChatStorageKey = useMemo(
+    () => chartSpec?.data.sourceId ? `${CHAT_STORAGE_KEY}:draft:${chartSpec.data.sourceId}` : null,
+    [chartSpec?.data.sourceId],
+  );
+
+  const chatStorageKey = useMemo(() => {
+    if (currentProjectId) {
+      return `${CHAT_STORAGE_KEY}:project:${currentProjectId}`;
+    }
+    return draftChatStorageKey ?? CHAT_STORAGE_KEY;
+  }, [currentProjectId, draftChatStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const previousProjectId = previousProjectIdRef.current;
+
+    try {
+      if (currentProjectId && draftChatStorageKey !== null) {
+        const projectChatStorageKey = `${CHAT_STORAGE_KEY}:project:${currentProjectId}`;
+        const existingProjectHistory = localStorage.getItem(projectChatStorageKey);
+        if (existingProjectHistory === null) {
+          const draftHistory = localStorage.getItem(draftChatStorageKey);
+          if (draftHistory !== null) {
+            localStorage.setItem(projectChatStorageKey, draftHistory);
+            localStorage.removeItem(draftChatStorageKey);
+          }
+        }
+      } else if (!currentProjectId && previousProjectId && draftChatStorageKey !== null) {
+        const previousProjectChatStorageKey = `${CHAT_STORAGE_KEY}:project:${previousProjectId}`;
+        const projectHistory = localStorage.getItem(previousProjectChatStorageKey);
+        if (projectHistory !== null) {
+          localStorage.setItem(draftChatStorageKey, projectHistory);
+        }
+      }
+    } catch (err) {
+      logger.warn('[use-ai-chat] 梨꾪똿 ?덉뒪?좊━ migration ?ㅽ뙣', err);
+    } finally {
+      previousProjectIdRef.current = currentProjectId;
+    }
+  }, [currentProjectId, draftChatStorageKey]);
+
   // localStorage 로드 (마운트 1회)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+      const saved = localStorage.getItem(chatStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved) as ChatMessage[];
-        if (Array.isArray(parsed)) setMessages(parsed);
+        setMessages(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setMessages([]);
       }
     } catch (err) {
       logger.warn('[use-ai-chat] 채팅 히스토리 파싱 실패, 저장된 히스토리를 삭제합니다.', err);
-      localStorage.removeItem(CHAT_STORAGE_KEY);
+      localStorage.removeItem(chatStorageKey);
       setMessages([]);
     }
-  }, []);
+  }, [chatStorageKey]);
 
   // 메시지 변경 시 localStorage 저장
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+      localStorage.setItem(chatStorageKey, JSON.stringify(messages));
     } catch (err) {
       logger.warn('[use-ai-chat] 채팅 히스토리 저장 실패 (localStorage 용량 초과?)', err);
     }
-  }, [messages]);
+  }, [chatStorageKey, messages]);
 
   // 새 메시지 시 자동 스크롤
   useEffect(() => {
@@ -109,15 +155,17 @@ export function useAiChat(): AiChatHook {
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    const spec = chartSpecRef.current;
-    if (!text || !spec || isLoading) return;
+    const requestSpec = chartSpecRef.current;
+    if (!text || !requestSpec || isLoading) return;
+
+    const requestSpecSnapshot = JSON.stringify(requestSpec);
 
     setInputValue('');
     appendMessage({ role: 'user', content: text });
     setIsLoading(true);
 
     try {
-      const request = buildAiEditRequest(spec, text);
+      const request = buildAiEditRequest(requestSpec, text);
       const response = await editChart(request);
 
       const freshSpec = chartSpecRef.current;
@@ -126,13 +174,21 @@ export function useAiChat(): AiChatHook {
         return;
       }
 
-      const patchResult = applyAndValidatePatches(freshSpec, response.patches);
+      if (JSON.stringify(freshSpec) !== requestSpecSnapshot) {
+        appendMessage({
+          role: 'error',
+          content: 'AI ?붿껌 ?ㅽ뻾 以묒뿉 李⑦듃媛 蹂寃쎈릺?덉뒿?덈떎. 理쒖떊 ?곹깭瑜?湲곗?濡??ㅼ떆 ?붿껌??二쇱꽭??',
+        });
+        return;
+      }
+
+      const patchResult = applyAndValidatePatches(requestSpec, response.patches);
       if (!patchResult.success) {
         appendMessage({ role: 'error', content: `패치 검증 실패: ${patchResult.error}` });
         return;
       }
 
-      const hasChanges = JSON.stringify(patchResult.spec) !== JSON.stringify(freshSpec);
+      const hasChanges = JSON.stringify(patchResult.spec) !== requestSpecSnapshot;
       if (!hasChanges) {
         appendMessage({
           role: 'error',

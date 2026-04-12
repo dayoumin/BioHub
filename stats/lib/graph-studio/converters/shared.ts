@@ -10,7 +10,7 @@ import type {
   GraphicAnnotation, HLineAnnotation, VLineAnnotation,
   TrendlineSpec, StylePreset, DataType,
 } from '@/types/graph-studio';
-import type { EChartsOption } from 'echarts';
+import type { EChartsOption, XAXisComponentOption, YAXisComponentOption } from 'echarts';
 import { STYLE_PRESETS, ALL_PALETTES, CHART_TYPE_HINTS } from '../chart-spec-defaults';
 import { getPercentile } from '@/lib/utils/stats-math';
 import type { StyleConfig } from './types';
@@ -32,6 +32,63 @@ export function sortByDate([a]: [string, number], [b]: [string, number]): number
   const db = new Date(b).getTime();
   if (!isNaN(da) && !isNaN(db)) return da - db;
   return a.localeCompare(b);
+}
+
+function countFormatDecimals(format: string): number {
+  const match = format.match(/\.(0+)/);
+  return match?.[1].length ?? 0;
+}
+
+function formatNumericAxisValue(value: number, format: string): string {
+  if (!isFinite(value)) return '';
+  const trimmed = format.trim();
+
+  if (trimmed.includes('{value}')) {
+    return trimmed.replaceAll('{value}', String(value));
+  }
+
+  const decimals = countFormatDecimals(trimmed);
+  const useGrouping = trimmed.includes(',');
+  const numericValue = trimmed.endsWith('%') ? value * 100 : value;
+  const rendered = numericValue.toLocaleString('en-US', {
+    useGrouping,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+
+  return trimmed.endsWith('%') ? `${rendered}%` : rendered;
+}
+
+function buildCategoryAxisLabelFormatter(format: string | undefined):
+  NonNullable<XAXisComponentOption['axisLabel']>['formatter'] | undefined {
+  const trimmed = format?.trim();
+  if (!trimmed || !trimmed.includes('{value}')) return undefined;
+  return (value: string) => trimmed.replaceAll('{value}', value);
+}
+
+function buildNumericAxisLabelFormatter(format: string | undefined):
+  NonNullable<YAXisComponentOption['axisLabel']>['formatter'] | undefined {
+  const trimmed = format?.trim();
+  if (!trimmed) return undefined;
+
+  return (value: number) => formatNumericAxisValue(value, trimmed);
+}
+
+function buildTimeAxisLabelFormatter(format: string | undefined):
+  NonNullable<XAXisComponentOption['axisLabel']>['formatter'] | undefined {
+  const trimmed = format?.trim();
+  if (!trimmed) return undefined;
+  return trimmed;
+}
+
+function buildAxisScaleFlag(
+  scale: AxisSpec['scale'],
+  axisType: 'category' | 'value' | 'time' | 'log',
+): { scale?: boolean } {
+  if (axisType !== 'value' && axisType !== 'log') return {};
+  if (axisType === 'log') return {};
+  if (typeof scale?.zero !== 'boolean') return {};
+  return { scale: !scale.zero };
 }
 
 /**
@@ -539,8 +596,17 @@ export function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOpt
 
 // ─── Axis helpers ──────────────────────────────────────────
 
-export function xAxisBase(spec: ChartSpec, style: StyleConfig, type: 'category' | 'value' | 'time') {
+export function xAxisBase<T extends 'category' | 'value' | 'time'>(
+  spec: ChartSpec,
+  style: StyleConfig,
+  type: T,
+): Record<string, unknown> {
   const scale = spec.encoding.x.scale;
+  const formatter = type === 'time'
+    ? buildTimeAxisLabelFormatter(spec.encoding.x.format)
+    : type === 'category'
+      ? buildCategoryAxisLabelFormatter(spec.encoding.x.format)
+      : buildNumericAxisLabelFormatter(spec.encoding.x.format);
   const domain = (
     type === 'value' &&
     scale?.domain &&
@@ -558,15 +624,18 @@ export function xAxisBase(spec: ChartSpec, style: StyleConfig, type: 'category' 
       fontFamily: style.fontFamily,
       fontSize: spec.encoding.x.labelFontSize ?? style.labelSize,
       rotate: spec.encoding.x.labelAngle ?? 0,
+      ...(formatter ? { formatter } : {}),
     },
     splitLine: { show: spec.encoding.x.grid ?? false },
+    ...buildAxisScaleFlag(scale, type),
     ...(domain ? { min: domain[0], max: domain[1] } : {}),
-  };
+  } as unknown as Record<string, unknown>;
 }
 
-export function yAxisBase(spec: ChartSpec, style: StyleConfig) {
+export function yAxisBase(spec: ChartSpec, style: StyleConfig): Record<string, unknown> {
   const scale = spec.encoding.y.scale;
   const axisType = scale?.type === 'log' ? ('log' as const) : ('value' as const);
+  const formatter = buildNumericAxisLabelFormatter(spec.encoding.y.format);
   const domain = (
     scale?.domain &&
     scale.domain.length === 2 &&
@@ -579,15 +648,21 @@ export function yAxisBase(spec: ChartSpec, style: StyleConfig) {
     nameLocation: 'middle' as const,
     nameGap: 48,
     nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.titleFontSize ?? style.axisTitleSize },
-    axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.labelFontSize ?? style.labelSize },
+    axisLabel: {
+      fontFamily: style.fontFamily,
+      fontSize: spec.encoding.y.labelFontSize ?? style.labelSize,
+      ...(formatter ? { formatter } : {}),
+    },
     splitLine: { show: spec.encoding.y.grid ?? true },
+    ...buildAxisScaleFlag(scale, axisType),
     ...(domain ? { min: domain[0], max: domain[1] } : {}),
-  };
+  } as unknown as Record<string, unknown>;
 }
 
 export function buildY2Axis(axis: AxisSpec, style: StyleConfig): Record<string, unknown> {
   const scale = axis.scale;
   const axisType = scale?.type === 'log' ? ('log' as const) : ('value' as const);
+  const formatter = buildNumericAxisLabelFormatter(axis.format);
   const domain = (
     scale?.domain &&
     scale.domain.length === 2 &&
@@ -601,10 +676,15 @@ export function buildY2Axis(axis: AxisSpec, style: StyleConfig): Record<string, 
     nameGap: 48,
     position: 'right',
     nameTextStyle: { fontFamily: style.fontFamily, fontSize: axis.titleFontSize ?? style.axisTitleSize },
-    axisLabel: { fontFamily: style.fontFamily, fontSize: axis.labelFontSize ?? style.labelSize },
+    axisLabel: {
+      fontFamily: style.fontFamily,
+      fontSize: axis.labelFontSize ?? style.labelSize,
+      ...(formatter ? { formatter } : {}),
+    },
     splitLine: { show: false },
+    ...buildAxisScaleFlag(scale, axisType),
     ...(domain ? { min: domain[0], max: domain[1] } : {}),
-  };
+  } as unknown as Record<string, unknown>;
 }
 
 export function buildY2Series(
@@ -650,13 +730,14 @@ export function buildBarAxes(
   sampleCounts?: Map<string, number>,
 ): { xAxis: Record<string, unknown>; yAxis: Record<string, unknown> } {
   const base = xAxisBase(spec, style, 'category');
+  const baseAxisLabel = (base.axisLabel ?? {}) as Record<string, unknown>;
   const catAxis = {
     ...base,
     ...(categories ? {
       data: categories,
       ...(sampleCounts ? {
         axisLabel: {
-          ...base.axisLabel,
+          ...baseAxisLabel,
           formatter: (val: string) => `${val}\n(n=${sampleCounts.get(val) ?? '?'})`,
         },
       } : {}),
@@ -664,8 +745,14 @@ export function buildBarAxes(
   };
   const valAxis = yAxisBase(spec, style);
   return spec.orientation === 'horizontal'
-    ? { xAxis: valAxis, yAxis: catAxis }
-    : { xAxis: catAxis, yAxis: valAxis };
+    ? {
+        xAxis: valAxis as unknown as Record<string, unknown>,
+        yAxis: catAxis as unknown as Record<string, unknown>,
+      }
+    : {
+        xAxis: catAxis as unknown as Record<string, unknown>,
+        yAxis: valAxis as unknown as Record<string, unknown>,
+      };
 }
 
 // ─── Legend ─────────────────────────────────────────────────

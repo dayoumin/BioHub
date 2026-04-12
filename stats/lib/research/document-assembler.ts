@@ -303,12 +303,29 @@ export function reassembleDocument(
     sources,
   ).sections
 
+  const refreshStructuredSectionFields = (
+    existingSection: DocumentSection,
+    freshSection: DocumentSection | undefined,
+  ): DocumentSection => {
+    if (!freshSection) return existingSection
+
+    return {
+      ...existingSection,
+      sourceRefs: freshSection.sourceRefs,
+      tables: freshSection.tables,
+      figures: freshSection.figures,
+    }
+  }
+
   const merged: DocumentSection[] = existing.sections.map(existingSection => {
-    // 사용자 작성 또는 LLM 생성 섹션은 그대로 보존
-    if (existingSection.generatedBy !== 'template') return existingSection
+    const fresh = freshSections.find(s => s.id === existingSection.id)
+
+    // 사용자 작성 또는 LLM 생성 섹션은 본문을 보존하되 구조화 메타는 최신화
+    if (existingSection.generatedBy !== 'template') {
+      return refreshStructuredSectionFields(existingSection, fresh)
+    }
 
     // template 섹션은 새로 조립된 내용으로 교체
-    const fresh = freshSections.find(s => s.id === existingSection.id)
     return fresh ?? existingSection
   })
 

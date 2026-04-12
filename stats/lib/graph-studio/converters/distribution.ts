@@ -327,6 +327,7 @@ export function buildHistogramChart(ctx: ConverterContext): EChartsOption {
   const { spec, rows, style, base, xField } = ctx;
   const { labels, counts } = buildHistogramData(rows, xField);
   const histXBase = xAxisBase(spec, style, 'category');
+  const histAxisLabel = (histXBase.axisLabel ?? {}) as Record<string, unknown>;
   return applyMarkLineAnnotations({
     ...base,
     tooltip: {
@@ -336,7 +337,7 @@ export function buildHistogramChart(ctx: ConverterContext): EChartsOption {
     xAxis: {
       ...histXBase,
       data: labels,
-      axisLabel: { ...histXBase.axisLabel, rotate: 30 },
+      axisLabel: { ...histAxisLabel, rotate: 30 },
     },
     yAxis: {
       ...yAxisBase(spec, style),

@@ -14,7 +14,10 @@ import type {
   GraphProject,
   GraphStudioState,
 } from '@/types/graph-studio';
-import { createChartSpecFromDataPackage } from '@/lib/graph-studio/chart-spec-utils';
+import {
+  createChartSpecFromDataPackage,
+  sanitizeChartSpecForRenderer,
+} from '@/lib/graph-studio/chart-spec-utils';
 import {
   deleteProjectCascade,
   saveProject,
@@ -31,9 +34,26 @@ const AI_CHAT_STORAGE_KEY = STORAGE_KEYS.graphStudio.aiChat;
 
 /** 데이터 변경 시 AI 채팅 이력 초기화 */
 function clearAiChatHistory(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(AI_CHAT_STORAGE_KEY);
+  if (typeof window === 'undefined') return;
+
+  const keyPrefix = `${AI_CHAT_STORAGE_KEY}:`;
+  const keysToRemove: string[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key === null) continue;
+    if (key === AI_CHAT_STORAGE_KEY || key.startsWith(keyPrefix)) {
+      keysToRemove.push(key);
+    }
   }
+
+  keysToRemove.forEach((key) => {
+    localStorage.removeItem(key);
+  });
+}
+
+interface LoadDataPackageWithSpecOptions {
+  preserveCurrentProject?: boolean;
 }
 
 interface GraphStudioActions {
@@ -41,7 +61,11 @@ interface GraphStudioActions {
   /** DataPackage 로드 + 초기 ChartSpec 자동 생성 (원자적 단일 액션) */
   loadDataPackage: (pkg: DataPackage) => void;
   /** DataPackage + 사전에 계산된 ChartSpec을 단일 set()으로 원자적 등록 (중간 렌더 방지) */
-  loadDataPackageWithSpec: (pkg: DataPackage, spec: ChartSpec) => void;
+  loadDataPackageWithSpec: (
+    pkg: DataPackage,
+    spec: ChartSpec,
+    options?: LoadDataPackageWithSpecOptions,
+  ) => void;
   /** DataPackage만 로드 (ChartSpec 미생성) — 차트 설정 단계용 */
   loadDataOnly: (pkg: DataPackage) => void;
   clearData: () => void;
@@ -57,6 +81,7 @@ interface GraphStudioActions {
   // 네비게이션
   /** 에디터→설정 이동: chartSpec 제거 + previousChartSpec에 보관 (dataPackage 유지) */
   goToSetup: () => void;
+  restorePreviousChartSpec: () => void;
 
   // UI
   toggleAiPanel: () => void;
@@ -95,7 +120,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     // ── 데이터 ──
 
     loadDataPackage: (pkg) => {
-      const { chartSpec: existingSpec, currentProject } = get();
+      const { chartSpec, currentProject } = get();
+      const existingSpec = chartSpec ? sanitizeChartSpecForRenderer(chartSpec) : null;
 
       // 프로젝트 복원 모드: ?project= 경유로 setProject가 호출된 뒤 데이터만 재업로드.
       // 기존 chartSpec을 보존하되 dataSourceId만 갱신한다.
@@ -109,8 +135,6 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
           existingSpec.encoding.y?.field,
           existingSpec.encoding.y2?.field,
           existingSpec.encoding.color?.field,
-          existingSpec.encoding.shape?.field,
-          existingSpec.encoding.size?.field,
           existingSpec.facet?.field,
           ...(existingSpec.aggregate?.groupBy ?? []),
         ];
@@ -128,6 +152,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
             specHistory: [restoredSpec],
             historyIndex: 0,
             previousChartSpec: null,
+            aiPanelOpen: false,
           });
           return;
         }
@@ -149,17 +174,23 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         previousChartSpec: null,
         // encoding 불일치로 fall-through한 경우 currentProject 해제
         currentProject: null,
+        aiPanelOpen: false,
       });
     },
 
-    loadDataPackageWithSpec: (pkg, spec) => {
-      clearAiChatHistory();
+    loadDataPackageWithSpec: (pkg, spec, options) => {
+      const currentProject = options?.preserveCurrentProject
+        ? get().currentProject
+        : null;
+      const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
       set({
         dataPackage: pkg,
         isDataLoaded: true,
-        chartSpec: spec,
-        specHistory: [spec],
+        chartSpec: sanitizedSpec,
+        specHistory: [sanitizedSpec],
         historyIndex: 0,
+        currentProject,
+        aiPanelOpen: false,
         previousChartSpec: null, // 소비 완료
       });
     },
@@ -173,6 +204,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         specHistory: [],
         historyIndex: -1,
         currentProject: null,
+        aiPanelOpen: false,
         previousChartSpec: null, // 데이터 불일치 방지
       });
     },
@@ -185,23 +217,29 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: null,
         specHistory: [],
         historyIndex: -1,
+        currentProject: null,
+        aiPanelOpen: false,
         previousChartSpec: null, // 세션 리셋
       });
     },
 
     // ── chartSpec ──
 
-    setChartSpec: (spec) => set({
-      chartSpec: spec,
-      specHistory: [spec],
-      historyIndex: 0,
-    }),
+    setChartSpec: (spec) => {
+      const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
+      set({
+        chartSpec: sanitizedSpec,
+        specHistory: [sanitizedSpec],
+        historyIndex: 0,
+      });
+    },
 
     updateChartSpec: (spec) => {
       const { specHistory, historyIndex } = get();
+      const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
       // 현재 위치 이후의 히스토리 제거 (새 분기)
       const newHistory = specHistory.slice(0, historyIndex + 1);
-      newHistory.push(spec);
+      newHistory.push(sanitizedSpec);
 
       // 히스토리 상한
       while (newHistory.length > MAX_HISTORY) {
@@ -209,7 +247,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       }
 
       set({
-        chartSpec: spec,
+        chartSpec: sanitizedSpec,
         specHistory: newHistory,
         historyIndex: newHistory.length - 1,
       });
@@ -259,16 +297,29 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     goToSetup: () => {
       const { chartSpec } = get();
-      clearAiChatHistory();
       set({
         chartSpec: null,
         specHistory: [],
         historyIndex: -1,
         previousChartSpec: chartSpec, // 이전 spec 보관
+        aiPanelOpen: false,
       });
     },
 
     // ── UI ──
+
+    restorePreviousChartSpec: () => {
+      const { previousChartSpec } = get();
+      if (!previousChartSpec) return;
+      const sanitizedSpec = sanitizeChartSpecForRenderer(previousChartSpec);
+      set({
+        chartSpec: sanitizedSpec,
+        specHistory: [sanitizedSpec],
+        historyIndex: 0,
+        previousChartSpec: null,
+        aiPanelOpen: false,
+      });
+    },
 
     toggleAiPanel: () => set(state => ({ aiPanelOpen: !state.aiPanelOpen })),
     setAiPanelDock: (dock) => set({ aiPanelDock: dock }),
@@ -281,7 +332,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       // localStorage 직렬화 객체에는 런타임에 알 수 없는 키가 있을 수 있으므로
       // format/dpi만 명시적으로 추출해 정규화한다.
       const raw = project.chartSpec;
-      const spec: ChartSpec = {
+      const spec: ChartSpec = sanitizeChartSpecForRenderer({
         ...raw,
         exportConfig: {
           format: raw.exportConfig.format,
@@ -289,8 +340,9 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
           // physicalWidth/Height는 신규 필드이므로 보존 (undefined면 포함 안 함)
           ...(raw.exportConfig.physicalWidth !== undefined && { physicalWidth: raw.exportConfig.physicalWidth }),
           ...(raw.exportConfig.physicalHeight !== undefined && { physicalHeight: raw.exportConfig.physicalHeight }),
+          ...(raw.exportConfig.transparentBackground !== undefined && { transparentBackground: raw.exportConfig.transparentBackground }),
         },
-      };
+      });
       set({
         currentProject: project,
         dataPackage: dataPackage ?? null,
@@ -308,6 +360,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     saveCurrentProject: (name) => {
       const { chartSpec, dataPackage, currentProject } = get();
       if (!chartSpec) return null;
+      const sanitizedChartSpec = sanitizeChartSpecForRenderer(chartSpec);
 
       const now = new Date().toISOString();
       // 기존 프로젝트가 있으면 같은 ID로 업데이트, 없으면 새로 생성
@@ -317,9 +370,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         name,
         projectId: currentProject?.projectId ?? dataPackage?.projectId ?? useResearchProjectStore.getState().activeResearchProjectId ?? undefined,
         analysisId: currentProject?.analysisId ?? dataPackage?.analysisResultId,
-        chartSpec,
+        chartSpec: sanitizedChartSpec,
         dataPackageId: dataPackage?.id ?? '',
-        editHistory: currentProject?.editHistory ?? [],
         createdAt: currentProject?.createdAt ?? now,
         updatedAt: now,
       };

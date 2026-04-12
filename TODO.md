@@ -1,5 +1,11 @@
 ﻿# BioHub ?듦퀎 UI/UX 怨좊룄??& 由ы뙥?곕쭅 ?붿뿬 ?묒뾽
 
+## 0. Graph Studio / Papers follow-up (2026-04-12)
+- [ ] Graph Studio intentional gap 재검토: `encoding.color.scale`, `encoding.shape`, `encoding.size`, `scale.type=sqrt|symlog` 유지 여부와 renderer 지원 계획 정리
+- [ ] Graph Studio save/restore/export 경계 최종 점검: route detach/reopen, snapshot last-good 유지, save 직후 외부 소비자 반영 흐름 E2E 확인
+- [ ] Papers 문서 편집기 후속 보강: 문서 전환 직후 reassemble/export 타이밍 케이스와 citation 로딩 레이스 회귀 테스트 추가
+- [ ] PackageBuilder Step 2 자동 수집 후속 점검: same-tab entity/graph 변경 시 기존 item 재수집 정책과 사용자 수동 편집 충돌 여부 검토
+
 ## 1. ?쒓컖??諛?UX 而댄룷?뚰듃 怨좊룄??
 - [x] AI ?댁꽍???붿빟 (寃곕줎 ?꾩텧 洹쇨굅) ?뺣낫瑜?寃곌낵 移대뱶??異뺤빟?섏뿬 ?몄텧 ??Hero Card??AI ?붿빟 ??以??몃씪??(2026-04-07)
 - [ ] 遺꾩꽍 ?좏삎蹂??듦퀎 硫붿꽌?쒕퀎) 湲곕낯 ?쒓컖??而댄룷?뚰듃 留ㅽ븨 ?쇨????뺣낫

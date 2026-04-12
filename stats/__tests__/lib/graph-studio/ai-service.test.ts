@@ -366,6 +366,22 @@ describe('editChart', () => {
     await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
     await expect(editChart(req)).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
   });
+
+  it('AiServiceError code: UNRENDERED_PATH (unsupported /encoding/y/scale/type value)', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{
+        op: 'add',
+        path: '/encoding/y/scale',
+        value: { type: 'sqrt' },
+      }],
+      explanation: 'unsupported scale type',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
 });
 
 // ─── buildUserPrompt 프롬프트 내용 검증 ──────────────────────

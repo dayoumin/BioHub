@@ -122,17 +122,20 @@ vi.mock('@/lib/utils/pinned-history-storage', () => ({
 }))
 
 // Graph Studio mock
+const { GRAPH_PROJECTS_CHANGED_EVENT } = vi.hoisted(() => ({
+  GRAPH_PROJECTS_CHANGED_EVENT: 'graph-studio-projects-changed',
+}))
 let mockProjects: Array<{
   id: string
   name: string
   chartSpec: { chartType: string }
   dataPackageId: string
-  editHistory: unknown[]
   createdAt: string
   updatedAt: string
 }> = []
 
 vi.mock('@/lib/graph-studio', () => ({
+  GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects: () => mockProjects,
   deleteProjectCascade: vi.fn((id: string) => {
     mockProjects = mockProjects.filter(p => p.id !== id)
@@ -179,7 +182,6 @@ function makeVizProject(overrides: Partial<typeof mockProjects[number]> & { id: 
     name: '내 차트',
     chartSpec: { chartType: 'bar' },
     dataPackageId: '',
-    editHistory: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
@@ -611,5 +613,21 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
   it('섹션 제목이 "최근 활동"으로 표시', () => {
     render(<QuickAccessBar {...defaultProps} />)
     expect(screen.getByText('최근 활동')).toBeInTheDocument()
+  })
+
+  it('Graph Studio project save event refreshes visualization cards without remounting', () => {
+    render(<QuickAccessBar {...defaultProps} />)
+
+    expect(screen.queryByText('새 시각화')).not.toBeInTheDocument()
+
+    mockProjects = [
+      makeVizProject({ id: 'proj-live', name: '새 시각화' }),
+    ]
+
+    act(() => {
+      window.dispatchEvent(new Event(GRAPH_PROJECTS_CHANGED_EVENT))
+    })
+
+    expect(screen.getByText('새 시각화')).toBeInTheDocument()
   })
 })

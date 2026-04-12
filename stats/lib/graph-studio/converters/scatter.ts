@@ -14,6 +14,8 @@ import {
 
 export function buildScatterChart(ctx: ConverterContext): EChartsOption {
   const { spec, workRows, style, base, xField, yField, colorField } = ctx;
+  const xScale = spec.encoding.x.scale?.zero === true ? false : true;
+  const yScale = spec.encoding.y.scale?.zero === true ? false : true;
 
   if (colorField) {
     const groupMap = new Map<string, [number, number][]>();
@@ -39,8 +41,8 @@ export function buildScatterChart(ctx: ConverterContext): EChartsOption {
       ...base,
       tooltip: { trigger: 'item' },
       legend: buildLegend(spec, style),
-      xAxis: { ...xAxisBase(spec, style, 'value'), scale: true },
-      yAxis: { ...yAxisBase(spec, style), scale: true },
+      xAxis: { ...xAxisBase(spec, style, 'value'), scale: xScale },
+      yAxis: { ...yAxisBase(spec, style), scale: yScale },
       series: scatterSeries,
     }, spec.annotations, spec.orientation);
   }
@@ -59,8 +61,8 @@ export function buildScatterChart(ctx: ConverterContext): EChartsOption {
   return applyMarkLineAnnotations({
     ...base,
     tooltip: { trigger: 'item' },
-    xAxis: { ...xAxisBase(spec, style, 'value'), scale: true },
-    yAxis: { ...yAxisBase(spec, style), scale: true },
+    xAxis: { ...xAxisBase(spec, style, 'value'), scale: xScale },
+    yAxis: { ...yAxisBase(spec, style), scale: yScale },
     dataset: { source: workRows },
     series: simpleSeries,
   }, spec.annotations, spec.orientation);

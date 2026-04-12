@@ -11,7 +11,7 @@ import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-b
 
 interface DocumentExportBarProps {
   document: DocumentBlueprint
-  onBeforeExport?: () => void
+  onBeforeExport?: () => void | DocumentBlueprint | undefined | Promise<void | DocumentBlueprint | undefined>
 }
 
 function documentToMarkdown(doc: DocumentBlueprint): string {
@@ -123,9 +123,14 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     [doc.sections],
   )
 
+  const resolveExportDocument = useCallback(async (): Promise<DocumentBlueprint> => {
+    const prepared = await onBeforeExport?.()
+    return prepared ?? doc
+  }, [doc, onBeforeExport])
+
   const handleCopyMarkdown = useCallback(async () => {
-    onBeforeExport?.()
-    const md = documentToMarkdown(doc)
+    const exportDoc = await resolveExportDocument()
+    const md = documentToMarkdown(exportDoc)
     try {
       await navigator.clipboard.writeText(md)
       setCopied(true)
@@ -133,45 +138,45 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     } catch {
       toast.error('클립보드에 복사할 수 없습니다')
     }
-  }, [doc, onBeforeExport])
+  }, [resolveExportDocument])
 
-  const handleDownloadHtml = useCallback(() => {
-    onBeforeExport?.()
+  const handleDownloadHtml = useCallback(async () => {
+    const exportDoc = await resolveExportDocument()
     try {
-      const html = documentToHtml(doc)
+      const html = documentToHtml(exportDoc)
       const blob = new Blob([html], { type: 'text/html' })
-      const safeName = doc.title.replace(/[/\\?%*:|"<>]/g, '_')
+      const safeName = exportDoc.title.replace(/[/\\?%*:|"<>]/g, '_')
       downloadBlob(blob, `${safeName}.html`)
     } catch {
       toast.error('HTML 생성에 실패했습니다')
     }
-  }, [doc, onBeforeExport])
+  }, [resolveExportDocument])
 
   const handleDownloadDocx = useCallback(async () => {
-    onBeforeExport?.()
     setDocxLoading(true)
     try {
-      await documentToDocx(doc)
+      const exportDoc = await resolveExportDocument()
+      await documentToDocx(exportDoc)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'DOCX 생성에 실패했습니다'
       toast.error(message)
     } finally {
       setDocxLoading(false)
     }
-  }, [doc, onBeforeExport])
+  }, [resolveExportDocument])
 
   const handleDownloadHwpx = useCallback(async () => {
-    onBeforeExport?.()
     setHwpxLoading(true)
     try {
-      await documentToHwpx(doc)
+      const exportDoc = await resolveExportDocument()
+      await documentToHwpx(exportDoc)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'HWPX 생성에 실패했습니다'
       toast.error(message)
     } finally {
       setHwpxLoading(false)
     }
-  }, [doc, onBeforeExport])
+  }, [resolveExportDocument])
 
   return (
     <div className="flex items-center gap-2 border-t pt-3">

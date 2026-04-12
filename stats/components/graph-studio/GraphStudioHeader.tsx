@@ -30,6 +30,7 @@ interface GraphStudioHeaderProps {
   onExport?: () => void;
   /** Phase 6a Step 3: 프로젝트 저장 + 스냅샷 캡처 핸들러 */
   onSave?: () => void;
+  isSaving?: boolean;
 }
 
 export function GraphStudioHeader({
@@ -37,21 +38,22 @@ export function GraphStudioHeader({
   onToggleRightPanel,
   onExport,
   onSave,
+  isSaving = false,
 }: GraphStudioHeaderProps): React.ReactElement {
-  const { chartSpec, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel, clearData, goToSetup } = useGraphStudioStore();
+  const { chartSpec, currentProject, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel, clearData, goToSetup } = useGraphStudioStore();
   const [showNewChartDialog, setShowNewChartDialog] = useState(false);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
 
   const handleNewChart = useCallback(() => {
-    // 편집 이력 있으면 확인 대화상자, 없으면 바로 실행
-    if (historyIndex > 0) {
+    const hasUnsavedSession = chartSpec !== null && (currentProject === null || historyIndex > 0);
+    if (hasUnsavedSession) {
       setShowNewChartDialog(true);
     } else {
       clearData();
     }
-  }, [clearData, historyIndex]);
+  }, [chartSpec, clearData, currentProject, historyIndex]);
 
   const handleConfirmNewChart = useCallback(() => {
     setShowNewChartDialog(false);
@@ -158,12 +160,12 @@ export function GraphStudioHeader({
             variant="outline"
             size="sm"
             onClick={onSave}
-            disabled={!onSave}
+            disabled={!onSave || isSaving}
             className="gap-1"
             data-testid="graph-studio-save"
           >
             <Save className="w-4 h-4" />
-            저장
+            {isSaving ? '저장 중...' : '저장'}
           </Button>
         )}
         <ExportDialog onExport={onExport} />

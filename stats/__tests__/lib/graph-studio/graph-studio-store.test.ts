@@ -13,6 +13,7 @@ import { act } from '@testing-library/react'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
 import * as researchProjectStorage from '@/lib/research/project-storage'
 import * as projectStorage from '@/lib/graph-studio/project-storage'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import type { ChartSpec, DataPackage, GraphProject } from '@/types/graph-studio'
 
 // ─── 최소 ChartSpec 픽스처 ────────────────────────────────
@@ -40,6 +41,237 @@ beforeEach(() => {
   localStorage.clear()
   act(() => {
     useGraphStudioStore.getState().resetAll()
+  })
+})
+
+describe('review regression fixes', () => {
+  it('loadDataPackageWithSpec clears currentProject before a new save path is created', () => {
+    const project = makeProject({ id: 'persisted-project' })
+    const oldPkg = makePkg({ id: 'pkg-old' })
+    const newPkg = makePkg({ id: 'pkg-new' })
+    const newSpec = makeSpec('Fresh Graph')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(project, oldPkg)
+      useGraphStudioStore.getState().loadDataPackageWithSpec(newPkg, newSpec)
+    })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.currentProject).toBeNull()
+    expect(state.dataPackage?.id).toBe('pkg-new')
+    expect(state.chartSpec?.title).toBe('Fresh Graph')
+  })
+
+  it('loadDataPackageWithSpec can preserve currentProject for in-place chart recreation', () => {
+    const project = makeProject({ id: 'persisted-project' })
+    const currentPkg = makePkg({ id: 'pkg-current' })
+    const recreatedSpec = makeSpec('Recreated Graph')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(project, currentPkg)
+      useGraphStudioStore.getState().loadDataPackageWithSpec(currentPkg, recreatedSpec, {
+        preserveCurrentProject: true,
+      })
+    })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.currentProject?.id).toBe('persisted-project')
+    expect(state.chartSpec?.title).toBe('Recreated Graph')
+    expect(state.dataPackage?.id).toBe('pkg-current')
+  })
+
+  it('setProject preserves transparentBackground in exportConfig', () => {
+    const project = makeProject({
+      chartSpec: {
+        ...makeSpec(),
+        exportConfig: {
+          format: 'svg',
+          dpi: 300,
+          physicalWidth: 90,
+          physicalHeight: 60,
+          transparentBackground: true,
+        },
+      },
+    })
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(project)
+    })
+
+    expect(useGraphStudioStore.getState().chartSpec?.exportConfig).toEqual({
+      format: 'svg',
+      dpi: 300,
+      physicalWidth: 90,
+      physicalHeight: 60,
+      transparentBackground: true,
+    })
+  })
+
+  it('setProject strips unsupported renderer-only dead fields from restored specs', () => {
+    const project = makeProject({
+      chartSpec: {
+        ...makeSpec(),
+        encoding: {
+          ...makeSpec().encoding,
+          color: {
+            field: 'group',
+            type: 'nominal',
+            scale: { scheme: 'Set2' },
+            legend: {
+              orient: 'right',
+              title: 'Groups',
+              titleFontSize: 16,
+            },
+          },
+          shape: { field: 'group', type: 'nominal' },
+          size: { field: 'value', type: 'quantitative' },
+        },
+      } as unknown as ChartSpec,
+    })
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(project)
+    })
+
+    const restoredSpec = useGraphStudioStore.getState().chartSpec
+    const restoredLegend = restoredSpec?.encoding.color?.legend as Record<string, unknown> | undefined
+    expect(restoredSpec?.encoding.color?.scale).toBeUndefined()
+    expect(restoredLegend?.title).toBeUndefined()
+    expect(restoredLegend?.titleFontSize).toBeUndefined()
+    expect(restoredSpec?.encoding.shape).toBeUndefined()
+    expect(restoredSpec?.encoding.size).toBeUndefined()
+  })
+
+  it('setProject preserves existing AI chat histories for scoped restoration', () => {
+    const baseKey = STORAGE_KEYS.graphStudio.aiChat
+    localStorage.setItem(baseKey, JSON.stringify([{ role: 'assistant', content: 'global' }]))
+    localStorage.setItem(`${baseKey}:project:old-project`, JSON.stringify([{ role: 'assistant', content: 'project' }]))
+    localStorage.setItem(`${baseKey}:draft:src-1`, JSON.stringify([{ role: 'assistant', content: 'draft' }]))
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject())
+    })
+
+    expect(localStorage.getItem(baseKey)).not.toBeNull()
+    expect(localStorage.getItem(`${baseKey}:project:old-project`)).not.toBeNull()
+    expect(localStorage.getItem(`${baseKey}:draft:src-1`)).not.toBeNull()
+  })
+
+  it('clearData clears currentProject so a new session does not keep the old project id', () => {
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject(), makePkg({ id: 'pkg-1' }))
+      useGraphStudioStore.getState().clearData()
+    })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.currentProject).toBeNull()
+    expect(state.chartSpec).toBeNull()
+    expect(state.dataPackage).toBeNull()
+  })
+
+  it('restorePreviousChartSpec returns from setup mode to the previous chart session', () => {
+    const spec = makeSpec('Before Reset')
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(spec)
+      useGraphStudioStore.getState().goToSetup()
+      useGraphStudioStore.getState().restorePreviousChartSpec()
+    })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec?.title).toBe('Before Reset')
+    expect(state.previousChartSpec).toBeNull()
+    expect(state.historyIndex).toBe(0)
+    expect(state.specHistory).toHaveLength(1)
+  })
+
+  it('editor-exit transitions close the AI panel', () => {
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(makeSpec('AI Open'))
+      useGraphStudioStore.getState().toggleAiPanel()
+    })
+
+    expect(useGraphStudioStore.getState().aiPanelOpen).toBe(true)
+
+    act(() => {
+      useGraphStudioStore.getState().goToSetup()
+    })
+    expect(useGraphStudioStore.getState().aiPanelOpen).toBe(false)
+
+    act(() => {
+      useGraphStudioStore.getState().loadDataPackageWithSpec(makePkg(), makeSpec('Restored'))
+      useGraphStudioStore.getState().toggleAiPanel()
+      useGraphStudioStore.getState().clearData()
+    })
+    expect(useGraphStudioStore.getState().aiPanelOpen).toBe(false)
+  })
+
+  it('goToSetup preserves AI chat history so cancelling reset can restore the same session context', () => {
+    const baseKey = STORAGE_KEYS.graphStudio.aiChat
+    localStorage.setItem(`${baseKey}:draft:src-1`, JSON.stringify([{ role: 'assistant', content: 'keep me' }]))
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec({
+        ...makeSpec('Reset Candidate'),
+        data: { sourceId: 'src-1', columns: [] },
+      })
+      useGraphStudioStore.getState().goToSetup()
+    })
+
+    expect(localStorage.getItem(`${baseKey}:draft:src-1`)).not.toBeNull()
+  })
+
+  it('saveCurrentProject omits deprecated editHistory from newly persisted projects', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+    const legacyProject = {
+      ...makeProject(),
+      editHistory: [{ patches: [], explanation: 'old', confidence: 0.4 }],
+    } as GraphProject & { editHistory: Array<{ patches: []; explanation: string; confidence: number }> }
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(legacyProject)
+      useGraphStudioStore.getState().saveCurrentProject('Saved Graph')
+    })
+
+    expect(saveSpy).toHaveBeenCalled()
+    const persistedProject = saveSpy.mock.calls.at(-1)?.[0]
+    expect(persistedProject).toBeDefined()
+    expect(persistedProject).not.toHaveProperty('editHistory')
+  })
+
+  it('saveCurrentProject persists a sanitized chart spec without unsupported renderer fields', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+    const unsupportedSpec = {
+      ...makeSpec(),
+      encoding: {
+        ...makeSpec().encoding,
+        color: {
+          field: 'group',
+          type: 'nominal',
+          scale: { scheme: 'Set2' },
+          legend: {
+            orient: 'right',
+            title: 'Groups',
+            titleFontSize: 16,
+          },
+        },
+        shape: { field: 'group', type: 'nominal' },
+        size: { field: 'value', type: 'quantitative' },
+      },
+    } as unknown as ChartSpec
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(unsupportedSpec)
+      useGraphStudioStore.getState().saveCurrentProject('Saved Graph')
+    })
+
+    const persistedProject = saveSpy.mock.calls.at(-1)?.[0]
+    expect(persistedProject?.chartSpec.encoding.color?.scale).toBeUndefined()
+    const persistedLegend = persistedProject?.chartSpec.encoding.color?.legend as Record<string, unknown> | undefined
+    expect(persistedLegend?.title).toBeUndefined()
+    expect(persistedLegend?.titleFontSize).toBeUndefined()
+    expect(persistedProject?.chartSpec.encoding.shape).toBeUndefined()
+    expect(persistedProject?.chartSpec.encoding.size).toBeUndefined()
   })
 })
 
@@ -80,7 +312,8 @@ describe('chartSpec — setChartSpec', () => {
     const spec = makeSpec()
     act(() => { useGraphStudioStore.getState().setChartSpec(spec) })
     const state = useGraphStudioStore.getState()
-    expect(state.chartSpec).toBe(spec)
+    // setChartSpec가 renderer sanitizer를 거치므로 동일 참조 대신 값 동등성을 본다.
+    expect(state.chartSpec).toStrictEqual(spec)
     expect(state.historyIndex).toBe(0)
     expect(state.specHistory).toHaveLength(1)
   })
@@ -249,6 +482,44 @@ describe('loadDataPackage', () => {
 // ─── loadDataPackage — 프로젝트 복원 모드 ─────────────────
 
 describe('loadDataPackage — 프로젝트 복원 모드', () => {
+  it('unsupported renderer fields on a restored project do not block same-schema data relinking', () => {
+    const spec = {
+      ...makeSpec('Legacy Encodings'),
+      encoding: {
+        ...makeSpec().encoding,
+        color: {
+          field: 'group',
+          type: 'nominal',
+          scale: { scheme: 'Set2' },
+          legend: {
+            orient: 'right',
+            title: 'Groups',
+            titleFontSize: 16,
+          },
+        },
+        shape: { field: 'group', type: 'nominal' },
+        size: { field: 'value', type: 'quantitative' },
+      },
+    } as unknown as ChartSpec
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const pkg = makePkg({
+      id: 'relinked-pkg',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.currentProject?.id).toBe(project.id)
+    expect(state.chartSpec?.title).toBe('Legacy Encodings')
+    expect(state.chartSpec?.data.sourceId).toBe('relinked-pkg')
+  })
+
   it('setProject 후 같은 컬럼의 데이터 업로드 → 기존 chartSpec 보존', () => {
     const spec = makeSpec('My Custom Chart')
     const project = makeProject({ chartSpec: spec })
@@ -420,7 +691,6 @@ function makeProject(overrides: Partial<GraphProject> = {}): GraphProject {
     name: 'My Project',
     chartSpec: makeSpec(),
     dataPackageId: '',
-    editHistory: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,

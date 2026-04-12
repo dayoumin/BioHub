@@ -87,6 +87,89 @@ describe('bar chart', () => {
   })
 })
 
+describe('axis formatting and scale options', () => {
+  it('applies numeric axis formatters from encoding.y.format', () => {
+    const rows = [
+      { group: 'A', value: 0.1234 },
+      { group: 'B', value: 0.4567 },
+    ]
+    const spec = makeSpec({
+      chartType: 'bar',
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative', format: '0.0%' },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const yAxis = opt.yAxis as AnyOption
+    const axisLabel = yAxis.axisLabel as AnyOption
+    const formatter = axisLabel.formatter as (value: number) => string
+
+    expect(formatter(0.1234)).toBe('12.3%')
+  })
+
+  it('passes temporal axis format strings through to ECharts', () => {
+    const rows = [
+      { date: '2024-01-01', value: 10 },
+      { date: '2024-02-01', value: 20 },
+    ]
+    const spec = makeSpec({
+      chartType: 'line',
+      encoding: {
+        x: { field: 'date', type: 'temporal', format: '{yyyy}-{MM}' },
+        y: { field: 'value', type: 'quantitative' },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const xAxis = opt.xAxis as AnyOption
+    const axisLabel = xAxis.axisLabel as AnyOption
+
+    expect(axisLabel.formatter).toBe('{yyyy}-{MM}')
+  })
+
+  it('maps scale.zero=false to a non-zero-based value axis', () => {
+    const rows = [
+      { group: 'A', value: 10 },
+      { group: 'B', value: 20 },
+    ]
+    const spec = makeSpec({
+      chartType: 'bar',
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative', scale: { zero: false } },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const yAxis = opt.yAxis as AnyOption
+
+    expect(yAxis.scale).toBe(true)
+  })
+
+  it('lets scatter axes opt back into a zero baseline when scale.zero=true', () => {
+    const rows = [
+      { x: 10, y: 20 },
+      { x: 30, y: 40 },
+    ]
+    const spec = makeSpec({
+      chartType: 'scatter',
+      encoding: {
+        x: { field: 'x', type: 'quantitative', scale: { zero: true } },
+        y: { field: 'y', type: 'quantitative', scale: { zero: true } },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const xAxis = opt.xAxis as AnyOption
+    const yAxis = opt.yAxis as AnyOption
+
+    expect(xAxis.scale).toBe(false)
+    expect(yAxis.scale).toBe(false)
+  })
+})
+
 // ─── scatter ──────────────────────────────────────────────
 
 describe('scatter chart', () => {

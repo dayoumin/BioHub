@@ -99,7 +99,6 @@ describe('buildFigureRef', () => {
     name: 'Growth Chart',
     chartSpec: { chartType: 'bar' } as GraphProject['chartSpec'],
     dataPackageId: 'dp_1',
-    editHistory: [],
     createdAt: '2026-01-01',
     updatedAt: '2026-01-01',
     ...overrides,

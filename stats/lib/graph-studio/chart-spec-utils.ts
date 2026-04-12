@@ -20,6 +20,45 @@ import type {
 import { chartSpecSchema } from './chart-spec-schema';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from './chart-spec-defaults';
 
+function hasOwnKeys(value: Record<string, unknown>): boolean {
+  return Object.keys(value).length > 0;
+}
+
+export function sanitizeChartSpecForRenderer(spec: ChartSpec): ChartSpec {
+  const {
+    color,
+    shape: _shape,
+    size: _size,
+    ...encodingRest
+  } = spec.encoding;
+
+  const sanitizedColor = color
+    ? (() => {
+        const { scale: _scale, legend, ...colorRest } = color;
+        const sanitizedLegend = legend
+          ? (() => {
+              const legacyLegend = legend as Record<string, unknown>;
+              const { title: _title, titleFontSize: _titleFontSize, ...legendRest } = legacyLegend;
+              return hasOwnKeys(legendRest) ? legendRest : undefined;
+            })()
+          : undefined;
+
+        return {
+          ...colorRest,
+          ...(sanitizedLegend ? { legend: sanitizedLegend } : {}),
+        };
+      })()
+    : undefined;
+
+  return {
+    ...spec,
+    encoding: {
+      ...encodingRest,
+      ...(sanitizedColor ? { color: sanitizedColor } : {}),
+    },
+  };
+}
+
 // ─── JSON Patch 적용 (RFC 6902, JSON Pointer RFC 6901 준수) ─
 
 /**
@@ -46,7 +85,9 @@ function getNode(
       if (!isFinite(idx) || idx < 0 || idx >= current.length) return null;
       current = current[idx];
     } else if (current !== null && typeof current === 'object') {
-      current = (current as Record<string, unknown>)[token];
+      const record = current as Record<string, unknown>;
+      if (!(token in record)) return null;
+      current = record[token];
     } else {
       return null;
     }
@@ -74,32 +115,57 @@ export function applyPatches(
 
   for (const patch of patches) {
     const segments = patch.path.split('/').filter(Boolean);
-    if (segments.length === 0) continue;
+    if (segments.length === 0) {
+      throw new Error(`Invalid patch path: ${patch.path}`);
+    }
 
     const node = getNode(result, segments);
-    if (!node) continue;
+    if (!node) {
+      throw new Error(`Invalid patch path: ${patch.path}`);
+    }
     const { parent, key } = node;
 
     if (patch.op === 'remove') {
       if (Array.isArray(parent) && typeof key === 'number') {
+        if (key < 0 || key >= parent.length) {
+          throw new Error(`Cannot remove missing path: ${patch.path}`);
+        }
         parent.splice(key, 1);
       } else if (parent !== null && typeof parent === 'object') {
-        delete (parent as Record<string, unknown>)[key as string];
+        const record = parent as Record<string, unknown>;
+        if (!(key in record)) {
+          throw new Error(`Cannot remove missing path: ${patch.path}`);
+        }
+        delete record[key as string];
+      } else {
+        throw new Error(`Invalid patch target: ${patch.path}`);
       }
     } else if (patch.op === 'add') {
       if (Array.isArray(parent) && typeof key === 'number') {
+        if (key < 0 || key > parent.length) {
+          throw new Error(`Cannot add outside array bounds: ${patch.path}`);
+        }
         parent.splice(key, 0, patch.value);
       } else if (parent !== null && typeof parent === 'object') {
         (parent as Record<string, unknown>)[key as string] = patch.value;
+      } else {
+        throw new Error(`Invalid patch target: ${patch.path}`);
       }
     } else {
       // 'replace' — RFC 6902: 대상이 존재해야 함. 배열에서 범위 초과 인덱스는 무시.
       if (Array.isArray(parent) && typeof key === 'number') {
-        if (key >= 0 && key < parent.length) {
-          parent[key] = patch.value;
+        if (key < 0 || key >= parent.length) {
+          throw new Error(`Cannot replace missing path: ${patch.path}`);
         }
+        parent[key] = patch.value;
       } else if (parent !== null && typeof parent === 'object') {
-        (parent as Record<string, unknown>)[key as string] = patch.value;
+        const record = parent as Record<string, unknown>;
+        if (!(key in record)) {
+          throw new Error(`Cannot replace missing path: ${patch.path}`);
+        }
+        record[key as string] = patch.value;
+      } else {
+        throw new Error(`Invalid patch target: ${patch.path}`);
       }
     }
   }
@@ -113,7 +179,15 @@ export function applyAndValidatePatches(
   spec: ChartSpec,
   patches: ChartSpecPatch[],
 ): { success: true; spec: ChartSpec } | { success: false; error: string } {
-  const patched = applyPatches(spec, patches);
+  let patched: ChartSpec;
+  try {
+    patched = applyPatches(spec, patches);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Patch application failed',
+    };
+  }
   const result = chartSpecSchema.safeParse(patched);
 
   if (result.success) {

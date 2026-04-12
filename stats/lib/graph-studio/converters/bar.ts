@@ -33,6 +33,7 @@ export function buildBarChart(ctx: ConverterContext): EChartsOption {
       ? countSamplesPerCategory(rows, xField)
       : undefined;
     const barEbAxBase = xAxisBase(spec, style, 'category');
+    const barEbAxisLabel = (barEbAxBase.axisLabel ?? {}) as Record<string, unknown>;
     return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -40,8 +41,8 @@ export function buildBarChart(ctx: ConverterContext): EChartsOption {
         ...barEbAxBase,
         data: categories,
         axisLabel: barEbCounts
-          ? { ...barEbAxBase.axisLabel, formatter: (val: string) => `${val}\n(n=${barEbCounts.get(val) ?? '?'})` }
-          : barEbAxBase.axisLabel,
+          ? { ...barEbAxisLabel, formatter: (val: string) => `${val}\n(n=${barEbCounts.get(val) ?? '?'})` }
+          : barEbAxisLabel,
       } as Record<string, unknown>,
       yAxis: yAxisBase(spec, style),
       series: [
@@ -200,6 +201,7 @@ export function buildErrorBarChart(ctx: ConverterContext): EChartsOption {
     ? countSamplesPerCategory(rows, xField)
     : undefined;
   const ebXBase = xAxisBase(spec, style, 'category');
+  const ebAxisLabel = (ebXBase.axisLabel ?? {}) as Record<string, unknown>;
 
   return applyMarkLineAnnotations({
     ...base,
@@ -208,8 +210,8 @@ export function buildErrorBarChart(ctx: ConverterContext): EChartsOption {
       ...ebXBase,
       data: categories,
       axisLabel: ebCounts
-        ? { ...ebXBase.axisLabel, formatter: (val: string) => `${val}\n(n=${ebCounts.get(val) ?? '?'})` }
-        : ebXBase.axisLabel,
+        ? { ...ebAxisLabel, formatter: (val: string) => `${val}\n(n=${ebCounts.get(val) ?? '?'})` }
+        : ebAxisLabel,
     } as Record<string, unknown>,
     yAxis: yAxisBase(spec, style),
     series: [

@@ -55,12 +55,6 @@ const PATH_LABELS: Record<string, string> = {
   '/encoding/color/legend/fontSize': '범례 글꼴 크기',
   '/encoding/color/legend/customLabels': '범례 사용자 라벨',
 
-  '/encoding/shape': '도형 그룹',
-  '/encoding/shape/field': '도형 필드',
-
-  '/encoding/size': '크기 인코딩',
-  '/encoding/size/field': '크기 필드',
-
   // style
   '/style': '스타일',
   '/style/preset': '스타일 프리셋',

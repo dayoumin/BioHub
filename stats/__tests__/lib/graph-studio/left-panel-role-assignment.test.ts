@@ -98,8 +98,6 @@ function getFieldRoles(spec: ChartSpec): Map<string, string> {
   if (spec.encoding.y?.field) map.set(spec.encoding.y.field, 'Y')
   if (spec.encoding.y2?.field) map.set(spec.encoding.y2.field, 'Y2')
   if (spec.encoding.color?.field) map.set(spec.encoding.color.field, 'Color')
-  if (spec.encoding.shape?.field) map.set(spec.encoding.shape.field, 'Shape')
-  if (spec.encoding.size?.field) map.set(spec.encoding.size.field, 'Size')
   if (spec.facet?.field) map.set(spec.facet.field, 'Facet')
   return map
 }

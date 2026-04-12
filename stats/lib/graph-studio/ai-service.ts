@@ -44,11 +44,11 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - title: string (optional)
 - data.sourceId: string
 - data.columns: array of {name, type, uniqueCount, hasNull}  (sample values shown in 컬럼 목록)
-- encoding.x / encoding.y: {field, type, title?, labelAngle?, labelFontSize?, titleFontSize?, grid?, scale?: {domain?, range?, zero?, type?: linear|log|sqrt|symlog}, sort?: ascending|descending|null} — NOTE: format field exists in schema but is NOT yet rendered.
-- encoding.y2: {field, type: "quantitative", title?, scale?} (optional) — secondary Y-axis (right side), renders as line. Uses colors[1]. Only field/type/title/scale are allowed (no labelAngle etc.). Only works with bar and line charts.
+- encoding.x / encoding.y: {field, type, title?, labelAngle?, labelFontSize?, titleFontSize?, format?, grid?, scale?: {domain?, range?, zero?, type?: linear|log}, sort?: ascending|descending|null}
+- encoding.y2: {field, type: "quantitative", title?, scale?} (optional) — secondary Y-axis (right side), renders as line. Uses colors[1]. Only field/type/title/scale are allowed (no labelAngle etc.). Only works with bar and line charts. y2 scale supports domain?, zero?, type?: linear|log.
 - encoding.color: {field, type, legend?: {orient?, fontSize?, customLabels?: {rawName: displayLabel}}} (optional)
 - encoding.color.scale: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
-- encoding.color.legend.title / encoding.color.legend.titleFontSize: NOT YET RENDERED — schema exists but renderer does not use these fields. Do NOT generate patches for them.
+- scale.type values sqrt and symlog are NOT YET RENDERED. Do NOT generate patches that set them.
 - encoding.shape: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
 - errorBar: {type: ci|stderr|stdev|iqr, value?} (optional)
 - aggregate: {y: mean|median|sum|count|min|max, groupBy: string[]} (optional)
@@ -72,7 +72,7 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 Return ONLY this JSON object — no markdown, no prose outside the object:
 {
   "patches": [
-    {"op": "replace", "path": "/encoding/x/labelAngle", "value": -45}
+    {"op": "add", "path": "/encoding/x/labelAngle", "value": -45}
   ],
   "explanation": "한국어 설명 (1-2 문장)",
   "confidence": 0.95
@@ -86,7 +86,8 @@ Return ONLY this JSON object — no markdown, no prose outside the object:
 5. confidence: 0.0–1.0 (how certain the patches are correct)
 6. explanation: Korean preferred, concise (1-2 sentences)
 7. For unknown requests, return confidence < 0.5 and explain why
-8. Field references must use actual column names from data.columns`;
+8. Field references must use actual column names from data.columns
+9. Use "add" when setting an optional field that is currently absent. Use "replace" only when the target path already exists.`;
 
 // ─── 사용자 프롬프트 빌더 ──────────────────────────────────
 
@@ -222,6 +223,41 @@ function assertNoUnrenderedPaths(patches: AiEditResponse['patches']): void {
   }
 }
 
+function readPointerValue(rootValue: unknown, pointer: string, basePath: string): unknown {
+  if (pointer === basePath) return rootValue;
+
+  const baseTokens = basePath.split('/').slice(1);
+  const tokens = pointer.split('/').slice(1);
+  const relativeTokens = tokens.slice(baseTokens.length);
+
+  return relativeTokens.reduce<unknown>((current, token) => {
+    if (!current || typeof current !== 'object') return undefined;
+    const decoded = token.replace(/~1/g, '/').replace(/~0/g, '~');
+    return (current as Record<string, unknown>)[decoded];
+  }, rootValue);
+}
+
+function assertNoUnrenderedScaleTypes(patches: AiEditResponse['patches']): void {
+  for (const patch of patches) {
+    if (patch.op === 'remove') continue;
+
+    const touchedPaths = collectTouchedPaths(patch.path, patch.value);
+    const blockedPath = touchedPaths.find(touchedPath => {
+      if (!/\/encoding\/(?:x|y|y2)\/scale\/type$/.test(touchedPath)) return false;
+      const scaleType = readPointerValue(patch.value, touchedPath, patch.path);
+      return scaleType === 'sqrt' || scaleType === 'symlog';
+    });
+
+    if (!blockedPath) continue;
+
+    const scaleType = readPointerValue(patch.value, blockedPath, patch.path);
+    throw new AiServiceError(
+      `아직 렌더링이 구현되지 않은 scale.type입니다: ${String(scaleType)}. 현재는 linear 또는 log만 지원합니다.`,
+      'UNRENDERED_PATH',
+    );
+  }
+}
+
 // ─── 공개 API ─────────────────────────────────────────────
 
 /**
@@ -276,6 +312,7 @@ export async function editChart(request: AiEditRequest): Promise<AiEditResponse>
   // ② 프롬프트에서 이미 금지했지만 코드 레벨에서도 강제 (defense-in-depth)
   assertNonReadonlyPaths(result.data.patches);
   assertNoUnrenderedPaths(result.data.patches);
+  assertNoUnrenderedScaleTypes(result.data.patches);
 
   return result.data;
 }

@@ -25,8 +25,15 @@ import type {
 } from '@/lib/research/paper-package-types'
 import type { PackageDataSources } from '@/lib/research/paper-package-assembler'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
-import { listProjectEntityRefs, loadResearchProject } from '@/lib/research/project-storage'
-import { listProjects } from '@/lib/graph-studio/project-storage'
+import {
+  listProjectEntityRefs,
+  loadResearchProject,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+} from '@/lib/research/project-storage'
+import {
+  GRAPH_PROJECTS_CHANGED_EVENT,
+  listProjects,
+} from '@/lib/graph-studio/project-storage'
 import { getAllHistory } from '@/lib/utils/storage'
 import PackagePreview from './PackagePreview'
 
@@ -529,6 +536,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   const [pkg, setPkg] = useState<PaperPackage | null>(null)
   const [assemblyResult, setAssemblyResult] = useState<AssemblyResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [itemCollectionRefreshKey, setItemCollectionRefreshKey] = useState(0)
   const historyCacheRef = useRef<HistoryRecord[] | null>(null)
 
   // 초기 로드
@@ -570,8 +578,23 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   const currentProjectId = pkg?.projectId
   const hasItems = (pkg?.items.length ?? 0) > 0
 
+  useEffect((): (() => void) => {
+    const handleRefresh = (): void => {
+      setItemCollectionRefreshKey(prev => prev + 1)
+    }
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleRefresh)
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleRefresh)
+
+    return (): void => {
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleRefresh)
+      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleRefresh)
+    }
+  }, [])
+
   useEffect(() => {
-    if (step !== 2 || !currentProjectId || hasItems) return
+    const shouldRefreshExistingItems = itemCollectionRefreshKey > 0
+    if (step !== 2 || !currentProjectId || (!shouldRefreshExistingItems && hasItems)) return
 
     const collectItems = async (): Promise<void> => {
       try {
@@ -632,7 +655,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
     }
 
     void collectItems()
-  }, [step, currentProjectId, hasItems])
+  }, [step, currentProjectId, hasItems, itemCollectionRefreshKey])
 
   const updateOverview = useCallback((updated: Partial<PaperPackage['overview']>) => {
     setPkg(prev => prev ? { ...prev, overview: { ...prev.overview, ...updated } } : prev)

@@ -17,7 +17,6 @@ describe('generateFigurePatternSummary', () => {
     name: '박스플롯',
     chartSpec: { chartType: 'boxplot' } as GraphProject['chartSpec'],
     dataPackageId: 'dp1',
-    editHistory: [],
     createdAt: '',
     updatedAt: '',
   }

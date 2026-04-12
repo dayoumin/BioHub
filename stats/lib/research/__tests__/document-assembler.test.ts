@@ -70,7 +70,6 @@ function makeGraphProject(overrides: Partial<GraphProject> = {}): GraphProject {
     name: 'Box Plot',
     chartSpec: { chartType: 'box' } as unknown as GraphProject['chartSpec'],
     dataPackageId: 'dp_1',
-    editHistory: [],
     createdAt: '2026-01-01',
     updatedAt: '2026-01-01',
     ...overrides,
@@ -533,6 +532,73 @@ describe('reassembleDocument', () => {
 
     // updatedAt 갱신
     expect(reassembled.updatedAt).not.toBe(original.updatedAt)
+  })
+
+  it('should preserve user-written results content while refreshing structured figure and table metadata', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
+        makeEntityRef({ id: 'pref_fig_1', entityId: 'gp_1', entityKind: 'figure' }),
+      ],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [makeGraphProject()],
+    }
+
+    const original = assembleDocument(BASE_OPTIONS, sources)
+
+    const edited = {
+      ...original,
+      sections: original.sections.map(s =>
+        s.id === 'results'
+          ? {
+              ...s,
+              content: '사용자가 정리한 결과 요약입니다.',
+              generatedBy: 'user' as const,
+              sourceRefs: ['stale-ref'],
+              tables: undefined,
+              figures: [{
+                entityId: 'gp_1',
+                label: 'Figure 1',
+                caption: 'Old Figure Caption',
+              }],
+            }
+          : s,
+      ),
+    }
+
+    const newSources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
+        makeEntityRef({ id: 'pref_fig_1', entityId: 'gp_1', entityKind: 'figure' }),
+      ],
+      allHistory: [
+        makeHistoryRecord({
+          paperDraft: makePaperDraft({
+            tables: [{
+              id: 'test-result',
+              title: 'Table 9. 갱신된 표',
+              htmlContent: '<table>updated</table>',
+              plainText: 'Group\tMean\nA\t11.0\nB\t13.2',
+            }],
+          }),
+        }),
+      ],
+      allGraphProjects: [
+        makeGraphProject({
+          name: 'Updated Box Plot',
+          chartSpec: { chartType: 'box' } as unknown as GraphProject['chartSpec'],
+        }),
+      ],
+    }
+
+    const reassembled = reassembleDocument(edited, newSources)
+    const results = reassembled.sections.find(s => s.id === 'results')
+
+    expect(results?.content).toBe('사용자가 정리한 결과 요약입니다.')
+    expect(results?.generatedBy).toBe('user')
+    expect(results?.sourceRefs).toEqual(['hist_1', 'gp_1'])
+    expect(results?.tables?.[0]?.caption).toBe('Table 9. 갱신된 표')
+    expect(results?.figures?.[0]?.caption).toBe('Updated Box Plot (box)')
   })
 })
 

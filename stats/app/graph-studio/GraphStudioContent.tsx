@@ -11,7 +11,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
+import { toast } from 'sonner';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { loadProject } from '@/lib/graph-studio/project-storage';
 import { GraphStudioHeader } from '@/components/graph-studio/GraphStudioHeader';
@@ -24,12 +26,30 @@ import { AiPanel } from '@/components/graph-studio/AiPanel';
 import { downloadChart } from '@/lib/graph-studio/export-utils';
 import { saveSnapshot, dataUrlToUint8Array } from '@/lib/graph-studio/chart-snapshot-storage';
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage';
+import { TOAST } from '@/lib/constants/toast-messages';
 
 type LayoutMode = 'upload' | 'setup' | 'editor';
 
 const GRAPH_BG_TINT = {
   backgroundColor: 'color-mix(in oklch, var(--section-accent-graph) 4%, var(--background))',
 } as const;
+
+export function resolveGraphProjectName(
+  currentProjectName: string | undefined,
+  chartTitle: string | undefined,
+  dataLabel: string | undefined,
+): string {
+  const currentName = currentProjectName?.trim();
+  if (currentName) return currentName;
+
+  const trimmedTitle = chartTitle?.trim();
+  if (trimmedTitle) return trimmedTitle;
+
+  const trimmedDataLabel = dataLabel?.trim();
+  if (trimmedDataLabel) return trimmedDataLabel;
+
+  return 'Untitled Chart';
+}
 
 export default function GraphStudioContent(): React.ReactElement {
   // React Compiler(babel-plugin-react-compiler@1.0.0)가 Zustand useSyncExternalStore
@@ -44,30 +64,65 @@ export default function GraphStudioContent(): React.ReactElement {
   const currentProjectId = useGraphStudioStore(state => state.currentProject?.id ?? null);
   const setProject = useGraphStudioStore(state => state.setProject);
   const aiPanelOpen = useGraphStudioStore(state => state.aiPanelOpen);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const routeProjectId = searchParams.get('project');
 
   const layoutMode: LayoutMode =
     !isDataLoaded ? 'upload' :
     !chartSpec ? 'setup' :
     'editor';
 
-  // ?project=<id> 쿼리 파라미터로 프로젝트 복원.
-  // restoredProjectRef: 이미 복원 시도한 프로젝트 ID를 기억.
-  // 비호환 데이터 업로드 → currentProject: null → useEffect 재실행 방지.
-  const restoredProjectRef = useRef<string | null>(null);
+  const detachedProjectIdRef = useRef<string | null>(null);
+  const previousProjectIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const projectId = params.get('project');
-    if (!projectId) return;
-    // 이미 같은 프로젝트가 로드되어 있으면 스킵
-    if (currentProjectId === projectId) return;
-    // 이미 이 프로젝트를 복원 시도했으면 재시도 안 함 (비호환 업로드 후 루프 방지)
-    if (restoredProjectRef.current === projectId) return;
-    restoredProjectRef.current = projectId;
-    const project = loadProject(projectId);
+    const previousProjectId = previousProjectIdRef.current;
+    if (previousProjectId !== null && currentProjectId === null) {
+      detachedProjectIdRef.current = previousProjectId;
+    }
+    if (currentProjectId !== null) {
+      detachedProjectIdRef.current = null;
+    }
+    previousProjectIdRef.current = currentProjectId;
+  }, [currentProjectId]);
+
+  // ?project=<id> 쿼리 파라미터로 프로젝트 복원.
+  useEffect(() => {
+    if (!routeProjectId) return;
+    if (currentProjectId === routeProjectId) return;
+    if (detachedProjectIdRef.current === routeProjectId) return;
+    const project = loadProject(routeProjectId);
     if (project) {
       setProject(project);
     }
-  }, [currentProjectId, setProject]);
+  }, [currentProjectId, routeProjectId, setProject]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (currentProjectId !== null) {
+      if (routeProjectId === currentProjectId) return;
+      nextParams.set('project', currentProjectId);
+      router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+      return;
+    }
+
+    const shouldClearDetachedRoute =
+      detachedProjectIdRef.current !== null &&
+      routeProjectId === detachedProjectIdRef.current;
+    const shouldClearMissingRoute =
+      routeProjectId !== null &&
+      loadProject(routeProjectId) === null;
+
+    if (!shouldClearDetachedRoute && !shouldClearMissingRoute) return;
+
+    nextParams.delete('project');
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    detachedProjectIdRef.current = null;
+  }, [currentProjectId, pathname, routeProjectId, router, searchParams]);
 
   // E2E 테스트용 hydration 완료 신호.
   // useEffect는 SSR에서 실행되지 않으며, React가 DOM에 이벤트 핸들러를 완전히
@@ -78,6 +133,7 @@ export default function GraphStudioContent(): React.ReactElement {
 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   /** ECharts 인스턴스 접근용 ref */
   const echartsRef = useRef<EChartsReactCore | null>(null);
@@ -102,16 +158,24 @@ export default function GraphStudioContent(): React.ReactElement {
   const handleSave = useCallback(() => {
     if (savingRef.current) return;
     savingRef.current = true;
+    setIsSaving(true);
 
     const store = useGraphStudioStore.getState();
-    const name = store.currentProject?.name ?? 'Untitled Chart';
+    const name = resolveGraphProjectName(
+      store.currentProject?.name,
+      store.chartSpec?.title,
+      store.dataPackage?.label,
+    );
 
     // 1. 프로젝트 저장 (동기, localStorage)
     const projectId = store.saveCurrentProject(name);
     if (!projectId) {
+      toast.error(TOAST.graphStudio.saveError);
       savingRef.current = false;
+      setIsSaving(false);
       return;
     }
+    toast.success(TOAST.project.savedToProject(name));
 
     // 2. 스냅샷 캡처 — 완료까지 락 유지 (race 방지)
     const instance = echartsRef.current?.getEchartsInstance();
@@ -127,21 +191,31 @@ export default function GraphStudioContent(): React.ReactElement {
           updatedAt: new Date().toISOString(),
         };
         saveSnapshot(snapshot)
-          .catch((err: unknown) => console.warn('[GraphStudio] Snapshot save failed:', err))
-          .finally(() => { savingRef.current = false; });
+          .catch((err: unknown) => {
+            console.warn('[GraphStudio] Snapshot save failed:', err);
+            toast.warning(TOAST.graphStudio.snapshotWarning);
+          })
+          .finally(() => {
+            savingRef.current = false;
+            setIsSaving(false);
+          });
       } catch (err) {
         console.warn('[GraphStudio] Snapshot capture failed:', err);
+        toast.warning(TOAST.graphStudio.snapshotWarning);
         savingRef.current = false;
+        setIsSaving(false);
       }
     } else {
+      toast.warning(TOAST.graphStudio.snapshotWarning);
       savingRef.current = false;
+      setIsSaving(false);
     }
   }, []);
 
   if (layoutMode === 'upload') {
     return (
       <div className="flex flex-col h-full" data-testid="graph-studio-page" style={GRAPH_BG_TINT}>
-        <GraphStudioHeader onSave={handleSave} />
+        <GraphStudioHeader onSave={handleSave} isSaving={isSaving} />
         <div className="flex-1 flex items-center justify-center p-8">
           <DataUploadPanel />
         </div>
@@ -152,7 +226,7 @@ export default function GraphStudioContent(): React.ReactElement {
   if (layoutMode === 'setup') {
     return (
       <div className="flex flex-col h-full" data-testid="graph-studio-page" style={GRAPH_BG_TINT}>
-        <GraphStudioHeader onSave={handleSave} />
+        <GraphStudioHeader onSave={handleSave} isSaving={isSaving} />
         <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
           <ChartSetupPanel />
         </div>
@@ -167,6 +241,7 @@ export default function GraphStudioContent(): React.ReactElement {
         onToggleRightPanel={handleToggleRightPanel}
         onExport={handleExport}
         onSave={handleSave}
+        isSaving={isSaving}
       />
 
       {/* 3패널 + 하단 AI 레이아웃 */}

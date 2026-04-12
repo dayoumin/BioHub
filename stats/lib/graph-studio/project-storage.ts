@@ -22,12 +22,24 @@ import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 const STORAGE_KEY = STORAGE_KEYS.graphStudio.projects;
 const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
+export const GRAPH_PROJECTS_CHANGED_EVENT = 'graph-studio-projects-changed';
+export interface GraphProjectsChangedDetail {
+  projectIds: string[];
+}
 
 /** 프로젝트 최대 저장 수. 초과 시 가장 오래된 프로젝트부터 자동 삭제. */
 export const MAX_GRAPH_PROJECTS = 50;
 
 /** QuotaExceededError 발생 시 자동 정리 재시도 최대 횟수 */
 const MAX_EVICTION_RETRIES = 5;
+
+function notifyGraphProjectsChanged(projectIds: string[]): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<GraphProjectsChangedDetail>(
+    GRAPH_PROJECTS_CHANGED_EVENT,
+    { detail: { projectIds: [...new Set(projectIds)] } },
+  ));
+}
 
 // ─── 읽기 ───────────────────────────────────────────────────
 
@@ -136,12 +148,14 @@ export function saveProject(project: GraphProject): string[] {
   // 프로젝트 수 상한 적용
   const { list: enforced, evictedIds } = enforceMaxCount(list, MAX_GRAPH_PROJECTS, project.id);
   const retryEvicted = writeWithQuotaRetry(enforced, project.id);
+  notifyGraphProjectsChanged([project.id, ...evictedIds, ...retryEvicted]);
   return [...evictedIds, ...retryEvicted];
 }
 
 export function deleteProject(projectId: string): void {
   const list = listProjects().filter(p => p.id !== projectId);
   writeJson(STORAGE_KEY, list);
+  notifyGraphProjectsChanged([projectId]);
 }
 
 /**

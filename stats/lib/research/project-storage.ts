@@ -14,11 +14,29 @@ import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 const PROJECTS_KEY = STORAGE_KEYS.research.projects
 const PROJECT_REFS_KEY = STORAGE_KEYS.research.projectEntityRefs
+export const RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT = 'research-project-entity-refs-changed'
+export interface ResearchProjectEntityRefsChangedDetail {
+  projectIds: string[]
+  entityIds: string[]
+}
 
 const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
 let lastProjectsHydrateAt = 0
 const PROJECTS_HYDRATE_TTL_MS = 30_000
 const pendingEntityUnlinks = new Set<string>()
+
+function notifyProjectEntityRefsChanged(projectIds: string[], entityIds: string[]): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent<ResearchProjectEntityRefsChangedDetail>(
+    RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+    {
+      detail: {
+        projectIds: [...new Set(projectIds)],
+        entityIds: [...new Set(entityIds)],
+      },
+    },
+  ))
+}
 
 function parseIsoTimestamp(value: string | undefined): number {
   if (!value) return 0
@@ -85,6 +103,7 @@ export function deleteResearchProject(projectId: string): void {
 
   try {
     writeJson(PROJECT_REFS_KEY, nextRefs)
+    notifyProjectEntityRefsChanged([projectId], prevRefs.filter(ref => ref.projectId === projectId).map(ref => ref.entityId))
   } catch (error) {
     try {
       writeJson(PROJECTS_KEY, prevProjects)
@@ -128,6 +147,7 @@ export function upsertProjectEntityRef(
     }
     refs[index] = updated
     writeJson(PROJECT_REFS_KEY, refs)
+    notifyProjectEntityRefsChanged([input.projectId], [input.entityId])
     pendingEntityUnlinks.delete(projectEntityRefKey(input))
     void linkCloudProjectEntityRef(input).catch((error) => {
       console.warn('[research-project-storage] cloud entity link failed:', error)
@@ -143,6 +163,7 @@ export function upsertProjectEntityRef(
   }
   refs.push(created)
   writeJson(PROJECT_REFS_KEY, refs)
+  notifyProjectEntityRefsChanged([input.projectId], [input.entityId])
   pendingEntityUnlinks.delete(projectEntityRefKey(input))
   void linkCloudProjectEntityRef(input).catch((error) => {
     console.warn('[research-project-storage] cloud entity link failed:', error)
@@ -170,6 +191,10 @@ export function removeProjectEntityRefs(
     ref => !targetSet.has(`${ref.projectId}|${ref.entityKind}|${ref.entityId}`)
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
+  notifyProjectEntityRefsChanged(
+    targets.map(target => target.projectId),
+    targets.map(target => target.entityId),
+  )
   for (const target of targets) {
     const key = projectEntityRefKey(target)
     pendingEntityUnlinks.add(key)
@@ -196,6 +221,10 @@ export function removeProjectEntityRefsByEntityIds(
     ref => !(ref.entityKind === entityKind && idSet.has(ref.entityId))
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
+  notifyProjectEntityRefsChanged(
+    removedRefs.map(ref => ref.projectId),
+    removedRefs.map(ref => ref.entityId),
+  )
   for (const ref of removedRefs) {
     const key = projectEntityRefKey(ref)
     pendingEntityUnlinks.add(key)

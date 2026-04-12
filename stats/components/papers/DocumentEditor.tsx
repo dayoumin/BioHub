@@ -11,9 +11,17 @@ import {
   saveDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
 import { reassembleDocument } from '@/lib/research/document-assembler'
-import { listProjectEntityRefs } from '@/lib/research/project-storage'
+import {
+  type ResearchProjectEntityRefsChangedDetail,
+  listProjectEntityRefs,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+} from '@/lib/research/project-storage'
 import { useHistoryStore } from '@/lib/stores/history-store'
-import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
+import {
+  type GraphProjectsChangedDetail,
+  GRAPH_PROJECTS_CHANGED_EVENT,
+  listProjects as listGraphProjects,
+} from '@/lib/graph-studio/project-storage'
 import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import { convertPaperTable, buildFigureRef } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
@@ -50,8 +58,10 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [loading, setLoading] = useState(true)
   const [citations, setCitations] = useState<CitationRecord[]>([])
+  const [needsReassemble, setNeedsReassemble] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
+  const docRef = useRef<DocumentBlueprint | null>(null)
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
   const editor = usePlateEditor({
@@ -84,25 +94,101 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    setLoading(true)
+    setDoc(null)
+    docRef.current = null
+    setActiveSectionId(null)
+    setCitations([])
+    setNeedsReassemble(false)
+
     loadDocumentBlueprint(documentId).then(loaded => {
+      if (cancelled) return
       if (loaded) {
         setDoc(loaded)
+        docRef.current = loaded
         if (loaded.sections.length > 0) {
           setActiveSectionId(loaded.sections[0].id)
         }
       }
       setLoading(false)
     })
+
+    return () => {
+      cancelled = true
+    }
   }, [documentId])
 
   useEffect(() => {
-    if (!doc?.projectId) return
-    listCitationsByProject(doc.projectId)
-      .then(setCitations)
-      .catch(() => setCitations([]))
+    const projectId = doc?.projectId
+    if (!projectId) {
+      setCitations([])
+      return
+    }
+
+    let cancelled = false
+    setCitations([])
+    listCitationsByProject(projectId)
+      .then((records) => {
+        if (!cancelled) {
+          setCitations(records)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCitations([])
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [doc?.projectId])
 
+  useEffect((): (() => void) => {
+    const handleEntityRefChange = (event: Event): void => {
+      const currentProjectId = docRef.current?.projectId
+      if (!currentProjectId) return
+      if (event instanceof CustomEvent) {
+        const detail = event.detail as ResearchProjectEntityRefsChangedDetail | undefined
+        if (detail && !detail.projectIds.includes(currentProjectId)) {
+          return
+        }
+      }
+      setNeedsReassemble(true)
+    }
+
+    const handleGraphProjectChange = (event: Event): void => {
+      const currentProjectId = docRef.current?.projectId
+      if (!currentProjectId) return
+      if (event instanceof CustomEvent) {
+        const detail = event.detail as GraphProjectsChangedDetail | undefined
+        if (detail) {
+          const currentFigureIds = new Set(
+            listProjectEntityRefs(currentProjectId)
+              .filter(ref => ref.entityKind === 'figure')
+              .map(ref => ref.entityId),
+          )
+          if (!detail.projectIds.some((graphId: string) => currentFigureIds.has(graphId))) {
+            return
+          }
+        }
+      }
+      setNeedsReassemble(true)
+    }
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
+
+    return (): void => {
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
+      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
+    }
+  }, [])
+
   const scheduleSave = useCallback((updated: DocumentBlueprint) => {
+    docRef.current = updated
     pendingDocRef.current = updated
     setSaveStatus('unsaved')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -125,6 +211,59 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       return updated
     })
   }, [scheduleSave])
+
+  const reassembleCurrentDocument = useCallback((baseDoc?: DocumentBlueprint): DocumentBlueprint | null => {
+    const targetDoc = baseDoc ?? docRef.current
+    if (!targetDoc) return null
+
+    const entityRefs = listProjectEntityRefs(targetDoc.projectId)
+    const allGraphProjects = listGraphProjects()
+    const blastHistory = loadAnalysisHistory()
+
+    const reassembled = reassembleDocument(targetDoc, {
+      entityRefs,
+      allHistory: analysisHistory as unknown as HistoryRecord[],
+      allGraphProjects,
+      blastHistory,
+      citations,
+    })
+    setDoc(reassembled)
+    scheduleSave(reassembled)
+    loadedSectionRef.current = null
+    setNeedsReassemble(false)
+    return reassembled
+  }, [analysisHistory, citations, scheduleSave])
+
+  const prepareDocumentForExport = useCallback((): DocumentBlueprint | undefined => {
+    const currentDoc = docRef.current
+    if (!currentDoc) return undefined
+
+    if (serializeTimerRef.current) {
+      clearTimeout(serializeTimerRef.current)
+      serializeTimerRef.current = null
+    }
+
+    const sectionId = pendingSerializeSectionRef.current
+    if (!sectionId) return currentDoc
+
+    pendingSerializeSectionRef.current = null
+    try {
+      const markdown = editor.api.markdown.serialize()
+      const newSections = currentDoc.sections.map((section) => (
+        section.id === sectionId ? { ...section, content: markdown } : section
+      ))
+      const updated = {
+        ...currentDoc,
+        sections: newSections,
+        updatedAt: new Date().toISOString(),
+      }
+      setDoc(updated)
+      scheduleSave(updated)
+      return needsReassemble ? (reassembleCurrentDocument(updated) ?? updated) : updated
+    } catch {
+      return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+    }
+  }, [editor, needsReassemble, reassembleCurrentDocument, scheduleSave])
 
   // serialize 타이머 flush — 섹션 전환/언마운트 전에 현재 content 확정
   const pendingSerializeSectionRef = useRef<string | null>(null)
@@ -250,23 +389,8 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
   // 재조립
   const handleReassemble = useCallback(() => {
-    if (!doc) return
-    const entityRefs = listProjectEntityRefs(doc.projectId)
-    const allGraphProjects = listGraphProjects()
-    const blastHistory = loadAnalysisHistory()
-
-    const reassembled = reassembleDocument(doc, {
-      entityRefs,
-      allHistory: analysisHistory as unknown as HistoryRecord[],
-      allGraphProjects,
-      blastHistory,
-      citations,
-    })
-    setDoc(reassembled)
-    scheduleSave(reassembled)
-    // 활성 섹션 에디터 값 새로고침 강제
-    loadedSectionRef.current = null
-  }, [doc, analysisHistory, scheduleSave, citations])
+    reassembleCurrentDocument()
+  }, [reassembleCurrentDocument])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
@@ -378,9 +502,14 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           {saveStatus === 'saving' && '저장 중...'}
           {saveStatus === 'unsaved' && '변경됨'}
         </Badge>
-        <Button variant="outline" size="sm" onClick={handleReassemble} className="gap-1">
+        <Button
+          variant={needsReassemble ? 'secondary' : 'outline'}
+          size="sm"
+          onClick={handleReassemble}
+          className="gap-1"
+        >
           <RefreshCw className="w-3.5 h-3.5" />
-          재조립
+          {needsReassemble ? '재조립 필요' : '재조립'}
         </Button>
         <div className="flex border rounded-md">
           <Button
@@ -403,6 +532,23 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           </Button>
         </div>
       </div>
+
+      {needsReassemble && (
+        <div className="shrink-0 px-4 py-3 bg-surface-container-low">
+          <div className="flex items-start gap-3 rounded-xl bg-surface-container px-4 py-3">
+            <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                프로젝트 분석 또는 그래프가 변경되었습니다.
+              </p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Methods/Results 섹션과 표·그림 메타데이터가 최신화 대상입니다. 내보내기 시에는 최신 내용이 자동 반영되며,
+                편집 화면에서 먼저 확인하려면 <span className="font-medium text-foreground">재조립</span>을 눌러 주세요.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 메인 영역 */}
       <div className="flex flex-1 overflow-hidden">
@@ -513,7 +659,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
       {/* 하단: 내보내기 */}
       <div className="shrink-0 px-4 pb-3">
-        <DocumentExportBar document={doc} onBeforeExport={flushSerialize} />
+        <DocumentExportBar document={doc} onBeforeExport={prepareDocumentForExport} />
       </div>
     </div>
   )

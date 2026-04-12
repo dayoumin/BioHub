@@ -9,6 +9,7 @@
  */
 
 import {
+  GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects,
   loadProject,
   saveProject,
@@ -31,7 +32,6 @@ function makeProject(id: string, name = 'Test', updatedAt?: string): GraphProjec
       { name: 'y', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
     ]),
     dataPackageId: 'pkg-1',
-    editHistory: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -340,5 +340,32 @@ describe('저장/로드 왕복 (serialization round-trip)', () => {
     expect(loaded?.chartSpec.title).toBe('Round-trip title');
     expect(loaded?.chartSpec.style.preset).toBe('science');
     expect(loaded?.chartSpec.data.sourceId).toBe('round-trip');
+  });
+});
+
+describe('graph project change events', () => {
+  it('saveProject dispatches affected project ids', () => {
+    const handler = vi.fn();
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handler);
+
+    saveProject(makeProject('p-event'));
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    const [event] = handler.mock.calls[0] as [CustomEvent<{ projectIds: string[] }>];
+    expect(event.detail.projectIds).toEqual(['p-event']);
+    window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handler);
+  });
+
+  it('deleteProject dispatches deleted project id', () => {
+    const handler = vi.fn();
+    saveProject(makeProject('p-delete-event'));
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handler);
+
+    deleteProject('p-delete-event');
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    const [event] = handler.mock.calls[0] as [CustomEvent<{ projectIds: string[] }>];
+    expect(event.detail.projectIds).toEqual(['p-delete-event']);
+    window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handler);
   });
 });

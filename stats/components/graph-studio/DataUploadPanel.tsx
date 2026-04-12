@@ -33,8 +33,12 @@ import { toast } from 'sonner';
 import { parseFile, parseText } from '@/lib/graph-studio/file-parser';
 import { getDataSizeLevel, getRowCount } from '@/lib/graph-studio/chart-data-guard';
 import { TOAST } from '@/lib/constants/toast-messages';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys';
 import { LargeDataBlockDialog } from './LargeDataBlockDialog';
-import { listProjects } from '@/lib/graph-studio/project-storage';
+import {
+  GRAPH_PROJECTS_CHANGED_EVENT,
+  listProjects,
+} from '@/lib/graph-studio/project-storage';
 import { loadTemplates } from '@/lib/graph-studio/style-template-storage';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 import { StepIndicator } from '@/components/graph-studio/StepIndicator';
@@ -129,10 +133,34 @@ export function DataUploadPanel(): React.ReactElement {
   // SSR-safe localStorage 읽기
   const [projects, setProjects] = useState<GraphProject[]>([]);
   const [templates, setTemplates] = useState<StyleTemplate[]>([]);
-  useEffect(() => {
-    setProjects(listProjects().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 4));
-    setTemplates(loadTemplates());
+
+  const refreshProjects = useCallback((): void => {
+    setProjects(
+      listProjects()
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .slice(0, 4),
+    );
   }, []);
+
+  useEffect(() => {
+    refreshProjects();
+    setTemplates(loadTemplates());
+  }, [refreshProjects]);
+
+  useEffect((): (() => void) => {
+    const handleStorage = (event: StorageEvent): void => {
+      if (event.key !== STORAGE_KEYS.graphStudio.projects) return;
+      refreshProjects();
+    };
+
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, refreshProjects);
+    window.addEventListener('storage', handleStorage);
+
+    return (): void => {
+      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, refreshProjects);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [refreshProjects]);
 
   // ── 인라인 샘플 데이터 로드 ─────────────────────────────
   const handleInlineSample = useCallback(() => {

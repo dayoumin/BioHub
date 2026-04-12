@@ -2,7 +2,7 @@
  * G5.0 리뷰 수정사항 시뮬레이션 테스트
  *
  * 1. High: ?project= 자동 복원 루프 (store 레벨 시뮬레이션)
- * 2. Medium: 인코딩 호환성 검사 확장 (color, shape, size, y2, facet, aggregate.groupBy)
+ * 2. Medium: 인코딩 호환성 검사 확장 (color, y2, facet, aggregate.groupBy)
  * 3. Medium: 패널 탭 상태 보존 (RightPropertyPanel 컴포넌트 테스트)
  */
 
@@ -48,7 +48,6 @@ function makeProject(overrides: Partial<GraphProject> = {}): GraphProject {
     name: 'My Project',
     chartSpec: makeSpec(),
     dataPackageId: '',
-    editHistory: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -170,34 +169,14 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
     expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Dual Axis')
   })
 
-  it('encoding.shape 필드가 없는 데이터 → 비호환', () => {
+  it('unsupported shape/size encodings are sanitized and do not block relinking', () => {
     const spec: ChartSpec = {
-      ...makeSpec('Shaped Scatter'),
+      ...makeSpec('Legacy Bubble'),
       encoding: {
         x: { field: 'group', type: 'nominal' },
         y: { field: 'value', type: 'quantitative' },
+        color: { field: 'treatment', type: 'nominal' },
         shape: { field: 'species', type: 'nominal' },
-      },
-    }
-    const project = makeProject({ chartSpec: spec })
-
-    act(() => { useGraphStudioStore.getState().setProject(project) })
-    act(() => {
-      useGraphStudioStore.getState().loadDataPackage(makePkg({
-        columns: BASE_COLS, // species 없음
-      }))
-    })
-
-    expect(useGraphStudioStore.getState().currentProject).toBeNull()
-    expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Shaped Scatter')
-  })
-
-  it('encoding.size 필드가 없는 데이터 → 비호환', () => {
-    const spec: ChartSpec = {
-      ...makeSpec('Bubble'),
-      encoding: {
-        x: { field: 'group', type: 'nominal' },
-        y: { field: 'value', type: 'quantitative' },
         size: { field: 'weight', type: 'quantitative' },
       },
     }
@@ -206,12 +185,18 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
     act(() => { useGraphStudioStore.getState().setProject(project) })
     act(() => {
       useGraphStudioStore.getState().loadDataPackage(makePkg({
-        columns: BASE_COLS, // weight 없음
+        id: 'legacy-shape-size',
+        columns: [
+          ...BASE_COLS,
+          { name: 'treatment', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
+        ],
       }))
     })
 
-    expect(useGraphStudioStore.getState().currentProject).toBeNull()
-    expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Bubble')
+    expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-1')
+    expect(useGraphStudioStore.getState().chartSpec?.title).toBe('Legacy Bubble')
+    expect(useGraphStudioStore.getState().chartSpec?.encoding.shape).toBeUndefined()
+    expect(useGraphStudioStore.getState().chartSpec?.encoding.size).toBeUndefined()
   })
 
   it('facet.field가 없는 데이터 → 비호환', () => {
@@ -239,7 +224,6 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
         x: { field: 'group', type: 'nominal' },
         y: { field: 'value', type: 'quantitative' },
         color: { field: 'treatment', type: 'nominal' },
-        size: { field: 'weight', type: 'quantitative' },
       },
       aggregate: { y: 'mean', groupBy: ['treatment'] },
       facet: { field: 'region' },
@@ -253,7 +237,6 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
         columns: [
           ...BASE_COLS,
           { name: 'treatment', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
-          { name: 'weight', type: 'quantitative', uniqueCount: 20, sampleValues: [], hasNull: false },
           { name: 'region', type: 'nominal', uniqueCount: 4, sampleValues: [], hasNull: false },
         ],
       }))

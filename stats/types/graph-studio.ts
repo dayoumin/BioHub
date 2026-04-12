@@ -82,10 +82,8 @@ export interface ShapeSpec {
 }
 
 export interface LegendSpec {
-  title?: string;
   orient?: 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none';
   fontSize?: number;
-  titleFontSize?: number;
   /** 범례 레이블 직접 편집 — { rawName: displayLabel } */
   customLabels?: Record<string, string>;
 }
@@ -381,7 +379,7 @@ export interface GraphProject {
   analysisId?: string;
   chartSpec: ChartSpec;
   dataPackageId: string;
-  editHistory: AiEditResponse[];
+  /** Deprecated persisted field. Kept optional for backward compatibility with older saves. */
   createdAt: string;
   updatedAt: string;
 }

@@ -92,7 +92,12 @@ vi.mock('@/lib/utils/pinned-history-storage', () => ({
   togglePinId: (ids: string[]) => ids,
 }))
 
+const { GRAPH_PROJECTS_CHANGED_EVENT } = vi.hoisted(() => ({
+  GRAPH_PROJECTS_CHANGED_EVENT: 'graph-studio-projects-changed',
+}))
+
 vi.mock('@/lib/graph-studio', () => ({
+  GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects: () => [],
   deleteProjectCascade: vi.fn(),
   CHART_TYPE_HINTS: {},

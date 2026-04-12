@@ -97,7 +97,9 @@ export function ChartSetupPanel(): React.ReactElement {
   const dataPackage = useGraphStudioStore(state => state.dataPackage);
   const loadDataPackageWithSpec = useGraphStudioStore(state => state.loadDataPackageWithSpec);
   const clearData = useGraphStudioStore(state => state.clearData);
+  const restorePreviousChartSpec = useGraphStudioStore(state => state.restorePreviousChartSpec);
   const previousSpec = useGraphStudioStore(state => state.previousChartSpec);
+  const currentProjectId = useGraphStudioStore(state => state.currentProject?.id ?? null);
   const storePendingTemplateId = useGraphStudioStore(state => state.pendingTemplateId);
   const setPendingTemplateId = useGraphStudioStore(state => state.setPendingTemplateId);
 
@@ -220,13 +222,19 @@ export function ChartSetupPanel(): React.ReactElement {
       }
     }
 
-    loadDataPackageWithSpec(dataPackage, spec);
-  }, [dataPackage, selectedType, xField, yField, colorField, selectedPreset, selectedTemplateId, templates, columns, loadDataPackageWithSpec]);
+    loadDataPackageWithSpec(dataPackage, spec, {
+      preserveCurrentProject: currentProjectId !== null,
+    });
+  }, [dataPackage, selectedType, xField, yField, colorField, selectedPreset, selectedTemplateId, templates, columns, loadDataPackageWithSpec, currentProjectId]);
 
   // ── "뒤로" ───────────────────────────────────────────
   const handleBack = useCallback(() => {
+    if (previousSpec) {
+      restorePreviousChartSpec();
+      return;
+    }
     clearData();
-  }, [clearData]);
+  }, [clearData, previousSpec, restorePreviousChartSpec]);
 
   return (
     <div className="w-full max-w-2xl space-y-6">
@@ -241,7 +249,7 @@ export function ChartSetupPanel(): React.ReactElement {
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
         >
           <ArrowLeft className="h-4 w-4" />
-          데이터 다시 선택
+          {previousSpec ? '차트로 돌아가기' : '데이터 다시 선택'}
         </button>
         <h2 className="text-2xl font-bold tracking-tight">차트 설정</h2>
       </div>

@@ -53,13 +53,11 @@ const scaleSchema = z.object({
 }).strict();
 
 const legendSchema = z.object({
-  title: z.string().optional(),
   orient: z.enum([
     'top', 'bottom', 'left', 'right',
     'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none',
   ]).optional(),
   fontSize: z.number().positive().optional(),
-  titleFontSize: z.number().positive().optional(),
   customLabels: z.record(z.string(), z.string()).optional(),
 }).strict();
 

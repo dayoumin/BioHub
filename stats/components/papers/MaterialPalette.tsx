@@ -1,18 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BarChart3, BookOpen, FileText, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useHistoryStore } from '@/lib/stores/history-store'
-import { listProjectEntityRefs } from '@/lib/research/project-storage'
-import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
+import {
+  type ResearchProjectEntityRefsChangedDetail,
+  listProjectEntityRefs,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+} from '@/lib/research/project-storage'
+import {
+  type GraphProjectsChangedDetail,
+  GRAPH_PROJECTS_CHANGED_EVENT,
+  listProjects as listGraphProjects,
+} from '@/lib/graph-studio/project-storage'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { CitationRecord } from '@/lib/research/citation-types'
 import { buildCitationString } from '@/lib/research/citation-apa-formatter'
 import { cn } from '@/lib/utils'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 interface MaterialPaletteProps {
   projectId: string
@@ -33,7 +42,7 @@ export default function MaterialPalette({
   const [projectAnalyses, setProjectAnalyses] = useState<HistoryRecord[]>([])
   const [projectGraphs, setProjectGraphs] = useState<GraphProject[]>([])
 
-  useEffect(() => {
+  const refreshMaterials = useCallback((): void => {
     const refs = listProjectEntityRefs(projectId)
     const analysisIds = new Set(
       refs.filter(r => r.entityKind === 'analysis').map(r => r.entityId),
@@ -45,6 +54,54 @@ export default function MaterialPalette({
     setProjectAnalyses(analysisHistory.filter(h => analysisIds.has(h.id)) as unknown as HistoryRecord[])
     setProjectGraphs(listGraphProjects().filter(g => figureIds.has(g.id)))
   }, [projectId, analysisHistory])
+
+  useEffect(() => {
+    refreshMaterials()
+  }, [refreshMaterials])
+
+  useEffect((): (() => void) => {
+    const isCurrentProjectEntityRefChange = (event: Event): boolean => {
+      if (!(event instanceof CustomEvent)) return true
+      const detail = event.detail as ResearchProjectEntityRefsChangedDetail | undefined
+      return detail?.projectIds.includes(projectId) ?? true
+    }
+
+    const isCurrentProjectGraphChange = (event: Event): boolean => {
+      if (!(event instanceof CustomEvent)) return true
+      const detail = event.detail as GraphProjectsChangedDetail | undefined
+      const figureIds = new Set(
+        listProjectEntityRefs(projectId)
+          .filter(ref => ref.entityKind === 'figure')
+          .map(ref => ref.entityId),
+      )
+      return detail?.projectIds.some((graphId: string) => figureIds.has(graphId)) ?? true
+    }
+
+    const handleRefsChange = (event: Event): void => {
+      if (!isCurrentProjectEntityRefChange(event)) return
+      refreshMaterials()
+    }
+
+    const handleGraphProjectsChange = (event: Event): void => {
+      if (!isCurrentProjectGraphChange(event)) return
+      refreshMaterials()
+    }
+
+    const handleStorage = (event: StorageEvent): void => {
+      if (event.key !== STORAGE_KEYS.graphStudio.projects) return
+      refreshMaterials()
+    }
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleRefsChange)
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectsChange)
+    window.addEventListener('storage', handleStorage)
+
+    return (): void => {
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleRefsChange)
+      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectsChange)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [projectId, refreshMaterials])
 
   return (
     <div className="space-y-4">

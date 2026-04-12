@@ -65,8 +65,6 @@ export function LeftDataPanel(): React.ReactElement {
       if (chartSpec.encoding.y?.field) map.set(chartSpec.encoding.y.field, 'Y');
       if (chartSpec.encoding.y2?.field) map.set(chartSpec.encoding.y2.field, 'Y2');
       if (chartSpec.encoding.color?.field) map.set(chartSpec.encoding.color.field, 'Color');
-      if (chartSpec.encoding.shape?.field) map.set(chartSpec.encoding.shape.field, 'Shape');
-      if (chartSpec.encoding.size?.field) map.set(chartSpec.encoding.size.field, 'Size');
       if (chartSpec.facet?.field) map.set(chartSpec.facet.field, 'Facet');
     }
     return map;
