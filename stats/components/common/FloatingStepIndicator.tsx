@@ -2,7 +2,6 @@
 
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
-import { LAYOUT } from '@/components/common/card-styles'
 import { Check, LucideIcon } from 'lucide-react'
 
 export interface StepItem {
@@ -21,17 +20,16 @@ export interface FloatingStepIndicatorProps {
   className?: string
   position?: 'sticky' | 'fixed'
   topOffset?: string
-  /** 우측 보조 영역 (예: "예제 데이터 불러오기" 버튼) */
+  /** 우측 보조 영역 */
   rightSlot?: React.ReactNode
 }
 
 /**
- * StepIndicator — Axiom Slate "Progress Bar" 스타일
+ * Axiom Slate progress stepper.
  *
- * 상단 얇은 라인 (전체 너비) + 완료/현재 스텝에 두꺼운 accent 바
- * - 완료: accent bar + 진한 텍스트 + 체크 아이콘
- * - 현재: accent bar + 진한 텍스트
- * - 미래: 바 없음 + 연한 텍스트
+ * - Thin continuous progress track + fill
+ * - Current step gets a tonal focus card
+ * - Completed/upcoming states are separated by typography and icon treatment
  */
 export const FloatingStepIndicator = memo(function FloatingStepIndicator({
   steps,
@@ -42,106 +40,113 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
   topOffset = '3.5rem',
   rightSlot,
 }: FloatingStepIndicatorProps) {
-  const completedSteps = steps.filter(s => s.completed).map(s => s.id)
+  const completedSteps = steps.filter((step) => step.completed).map((step) => step.id)
   const maxAccessibleStep = Math.max(...completedSteps, currentStep)
+  const progressPercent = steps.length <= 1
+    ? 100
+    : Number((((Math.max(1, Math.min(currentStep, steps.length)) - 1) / (steps.length - 1)) * 100).toFixed(2))
 
   return (
     <div
       className={cn(
-        "z-40 bg-background",
-        position === 'sticky' && "sticky",
-        position === 'fixed' && "fixed left-0 right-0",
-        className
+        'z-40 bg-surface/95 backdrop-blur-sm supports-[backdrop-filter]:bg-surface/85',
+        position === 'sticky' && 'sticky',
+        position === 'fixed' && 'fixed left-0 right-0',
+        className,
       )}
       style={{ top: topOffset }}
     >
-      <div className="mx-auto max-w-[1480px] px-6 pb-4 pt-0">
-        {/* Progress bar container */}
-        <div className="relative w-full">
-          {/* Background track — thin 2px line across full width */}
-          <div className="h-0.5 w-full bg-outline-variant/30 absolute top-0 left-0" />
+      <div className="mx-auto max-w-[1480px] px-6 pb-2 pt-1">
+        <div className="rounded-[28px] bg-surface-container-low/78 px-4 py-3">
+          <div className="relative w-full pt-3">
+            <div className="absolute left-0 top-0 h-px w-full bg-outline-variant/35" />
+            <div
+              data-testid="stepper-progress-fill"
+              className="absolute left-0 top-0 h-0.5 rounded-full bg-accent-tertiary transition-[width] duration-300 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
 
-          {/* Step grid */}
-          <nav
-            className="relative grid w-full"
-            style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
-            role="navigation"
-            aria-label="Progress steps"
-          >
-            {steps.map((step) => {
-              const isActive = step.id === currentStep
-              const isCompleted = completedSteps.includes(step.id) || step.completed
-              const isSkipped = !isActive && step.skipped
-              const canClick = onStepChange && (isCompleted || step.id <= maxAccessibleStep)
-              const hasBar = isActive || isCompleted || isSkipped
+            <nav
+              className="relative grid w-full gap-3 md:gap-4"
+              style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+              role="navigation"
+              aria-label="Progress steps"
+            >
+              {steps.map((step) => {
+                const isActive = step.id === currentStep
+                const isCompleted = completedSteps.includes(step.id) || step.completed
+                const isSkipped = !isActive && step.skipped
+                const canClick = Boolean(onStepChange) && (isCompleted || step.id <= maxAccessibleStep)
+                const StepIcon = step.icon
 
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => canClick && onStepChange?.(step.id)}
-                  disabled={!canClick}
-                  aria-current={isActive ? 'step' : undefined}
-                  aria-label={`${step.label} (Step ${step.id}${isSkipped ? ', auto-skipped' : isCompleted ? ', completed' : ''})`}
-                  data-testid={`stepper-step-${step.id}`}
-                  className={cn(
-                    "relative pt-4 text-left transition-all",
-                    canClick && "cursor-pointer",
-                    !canClick && "cursor-default",
-                  )}
-                >
-                  {/* Active/completed accent bar — thicker, overlays the track */}
-                  {hasBar && (
-                    <div
-                      className={cn(
-                        "h-1 w-full absolute top-[-1px] left-0 transition-colors",
-                        isSkipped
-                          ? "bg-muted-foreground/40"
-                          : "bg-accent-tertiary",
-                      )}
-                    />
-                  )}
-
-                  {/* Step number label */}
-                  <span
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => canClick && onStepChange?.(step.id)}
+                    disabled={!canClick}
+                    aria-current={isActive ? 'step' : undefined}
+                    aria-label={`${step.label} (Step ${step.id}${isSkipped ? ', auto-skipped' : isCompleted ? ', completed' : ''})`}
+                    data-testid={`stepper-step-${step.id}`}
+                    data-state={isActive ? 'active' : isCompleted ? 'completed' : isSkipped ? 'skipped' : 'upcoming'}
                     className={cn(
-                      "text-[10px] font-bold block mb-1 tracking-wide",
-                      isActive || isCompleted
-                        ? "text-foreground"
-                        : "text-muted-foreground/50",
-                      isSkipped && "text-muted-foreground/50",
+                      'relative min-w-0 rounded-2xl px-3 py-3 text-left transition-all duration-200',
+                      isActive && 'bg-surface-container-lowest shadow-[0px_12px_32px_rgba(25,28,30,0.06)]',
+                      canClick && 'cursor-pointer hover:bg-surface-container-lowest/70',
+                      !canClick && 'cursor-default',
                     )}
                   >
-                    {isCompleted && !isActive ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Check className="w-3 h-3 text-accent-tertiary" />
-                        Step {String(step.id).padStart(2, '0')}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-colors',
+                          isActive && 'bg-accent-tertiary/12 text-accent-tertiary',
+                          isCompleted && !isActive && 'bg-surface-container text-accent-tertiary',
+                          isSkipped && 'bg-surface-container text-muted-foreground',
+                          !isActive && !isCompleted && !isSkipped && 'bg-transparent text-muted-foreground/45',
+                        )}
+                      >
+                        {isCompleted && !isActive ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : StepIcon ? (
+                          <StepIcon className="h-3.5 w-3.5" />
+                        ) : (
+                          <span className="text-[11px] font-semibold tabular-nums">{step.id}</span>
+                        )}
                       </span>
-                    ) : (
-                      `Step ${String(step.id).padStart(2, '0')}`
-                    )}
-                  </span>
 
-                  {/* Step name */}
-                  <span
-                    className={cn(
-                      "text-xs font-medium block",
-                      isActive && "text-foreground",
-                      isCompleted && !isActive && "text-foreground",
-                      isSkipped && "text-muted-foreground",
-                      !isActive && !isCompleted && !isSkipped && "text-muted-foreground/60",
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                </button>
-              )
-            })}
-          </nav>
+                      <span
+                        className={cn(
+                          'truncate text-[10px] font-semibold uppercase tracking-[0.14em]',
+                          isActive && 'text-accent-tertiary',
+                          isCompleted && !isActive && 'text-foreground/80',
+                          isSkipped && 'text-muted-foreground/70',
+                          !isActive && !isCompleted && !isSkipped && 'text-muted-foreground/45',
+                        )}
+                      >
+                        {`Step ${String(step.id).padStart(2, '0')}`}
+                      </span>
+                    </div>
+
+                    <span
+                      className={cn(
+                        'mt-2 block truncate tracking-tight',
+                        isActive && 'text-sm font-semibold text-foreground',
+                        isCompleted && !isActive && 'text-[13px] font-medium text-foreground/88',
+                        isSkipped && 'text-[13px] font-medium text-muted-foreground',
+                        !isActive && !isCompleted && !isSkipped && 'text-[13px] font-medium text-muted-foreground/58',
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
         </div>
 
-        {/* Right slot — positioned below the progress bar */}
         {rightSlot && (
-          <div className="flex justify-end mt-3">
+          <div className="mt-3 flex justify-end">
             {rightSlot}
           </div>
         )}

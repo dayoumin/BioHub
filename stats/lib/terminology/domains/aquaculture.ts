@@ -148,7 +148,7 @@ export const aquaculture: TerminologyDictionary = {
       exploration: '데이터 탐색',
       method: '방법 선택',
       variable: '변수 설정',
-      analysis: '결과'
+      analysis: '결과 확인'
     },
     statusMessages: {
       analyzing: '데이터 분석 중...',
