@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.44.1",
-  "lastUpdated": "2026-04-12",
+  "version": "1.44.2",
+  "lastUpdated": "2026-04-13",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -1043,6 +1043,25 @@
           "name": "overwrite 방지 시나리오",
           "description": "auto 계산 후 수동 입력 → auto 필드 변경 없으면 값 유지 확인.",
           "code": "test('자동 계산 후 수동 입력 유지', () => {\n  const sim = createSim()\n  sim.handleField1('10'); sim.handleField2('20')\n  expect(sim.source).toBe('auto')\n  sim.handleManual('0.5')    // manual override\n  expect(sim.value).toBe('0.5')\n  expect(sim.source).toBe('manual')\n  // no field change → value stays\n  expect(sim.value).toBe('0.5')\n})"
+        }
+      ]
+    },
+    {
+      "name": "Layout Component Tests",
+      "description": "Collapsed navigation, tooltip handoff, localStorage-backed layout state 같은 레이아웃 회귀 테스트 패턴",
+      "patterns": [
+        {
+          "name": "Collapsed sidebar tooltip exclusivity 테스트",
+          "purpose": "사이드바가 collapsed 상태일 때 hover가 이동하면 이전 tooltip이 남지 않고 현재 항목 tooltip만 유지되는지 검증",
+          "code": "import { render, screen, within, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { AppSidebar } from '@/components/layout/app-sidebar';\nimport { STORAGE_KEYS } from '@/lib/constants/storage-keys';\n\nbeforeEach(() => {\n  localStorage.clear();\n  localStorage.setItem(STORAGE_KEYS.ui.sidebar, 'collapsed');\n});\n\nit('shows only the active tooltip while collapsed', async () => {\n  const user = userEvent.setup();\n  const { container } = render(<AppSidebar />);\n\n  const bioToolsLink = container.querySelector('a[href=\"/bio-tools\"]') as HTMLElement;\n  const graphStudioLink = container.querySelector('a[href=\"/graph-studio\"]') as HTMLElement;\n\n  await user.hover(bioToolsLink);\n\n  const firstTooltip = await screen.findByRole('tooltip');\n  expect(within(firstTooltip).getByText('Bio-Tools')).toBeInTheDocument();\n\n  await user.hover(firstTooltip);\n  await user.unhover(bioToolsLink);\n  await user.hover(graphStudioLink);\n\n  await waitFor(() => {\n    const tooltips = screen.getAllByRole('tooltip');\n    expect(tooltips).toHaveLength(1);\n    expect(within(tooltips[0] as HTMLElement).getByText('Graph Studio')).toBeInTheDocument();\n  });\n});",
+          "keywords": [
+            "AppSidebar",
+            "collapsed sidebar",
+            "tooltip",
+            "hover",
+            "localStorage",
+            "regression"
+          ]
         }
       ]
     }
