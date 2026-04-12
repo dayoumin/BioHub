@@ -75,6 +75,7 @@ export interface HistoryState {
   setLoadedInterpretationChat: (chat: ChatMessage[] | null) => void
   setLoadedPaperDraft: (draft: PaperDraft | null) => void
   patchHistoryPaperDraft: (historyId: string, paperDraft: PaperDraft | null) => Promise<void>
+  patchHistoryInterpretation: (historyId: string, aiInterpretation: string | null) => Promise<void>
   renameHistory: (historyId: string, name: string) => Promise<void>
 
   saveToHistory: (
@@ -241,6 +242,16 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     set((state) => ({
       analysisHistory: state.analysisHistory.map(h =>
         h.id === historyId ? { ...h, paperDraft } : h
+      ),
+    }))
+  },
+
+  patchHistoryInterpretation: async (historyId, aiInterpretation) => {
+    await updateHistory(historyId, { aiInterpretation })
+    await syncHistoryRecord(historyId)
+    set((state) => ({
+      analysisHistory: state.analysisHistory.map((history) =>
+        history.id === historyId ? { ...history, aiInterpretation } : history
       ),
     }))
   },

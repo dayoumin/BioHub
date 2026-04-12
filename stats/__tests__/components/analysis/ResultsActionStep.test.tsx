@@ -793,6 +793,7 @@ vi.mock('@/lib/stores/history-store', () => ({
 const mockConvert = vi.hoisted(() => vi.fn())
 const mockStreamFollowUp = vi.hoisted(() => vi.fn())
 const mockLoadDataPackageWithSpec = vi.hoisted(() => vi.fn())
+const mockBuildAnalysisVisualizationColumns = vi.hoisted(() => vi.fn())
 const mockActiveProject = vi.hoisted(() => ({ current: null as { id: string; name: string } | null }))
 
 // Graph Studio store mock
@@ -811,6 +812,7 @@ vi.mock('@/lib/stores/research-project-store', () => ({
 // Graph Studio utility mocks (handleOpenInGraphStudio 내부에서 사용)
 vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
   toAnalysisContext: vi.fn().mockReturnValue({ method: 'test' }),
+  buildAnalysisVisualizationColumns: mockBuildAnalysisVisualizationColumns,
   buildKmCurveColumns: vi.fn(),
   buildRocCurveColumns: vi.fn(),
 }))
@@ -1614,6 +1616,45 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       mockModeStoreState = { ...defaultModeStoreState }
       mockHistoryStoreState = { ...defaultHistoryStoreState }
       mockLoadDataPackageWithSpec.mockClear()
+      mockBuildAnalysisVisualizationColumns.mockReset()
+      mockBuildAnalysisVisualizationColumns.mockReturnValue(null)
+    })
+
+    it('히스토리 결과 보기에서는 원본 데이터 없이도 Graph Studio CTA로 바로 이동할 수 있다', async () => {
+      mockStoreState = {
+        ...defaultStoreState,
+        uploadedData: null as unknown as typeof defaultStoreState.uploadedData,
+        validationResults: null,
+      }
+      mockHistoryStoreState = { ...defaultHistoryStoreState, currentHistoryId: 'hist-graph-1' }
+      mockBuildAnalysisVisualizationColumns.mockReturnValue({
+        columns: [
+          { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['A', 'B'], hasNull: false },
+          { name: 'value', type: 'quantitative', uniqueCount: 2, sampleValues: ['10', '12'], hasNull: false },
+        ],
+        data: {
+          group: ['A', 'B'],
+          value: [10, 12],
+        },
+        chartType: 'boxplot',
+        xField: 'group',
+        yField: 'value',
+        colorField: 'group',
+      })
+
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      const bannerGraphButton = screen.getByRole('button', { name: 'Graph Studio' })
+      await act(async () => { fireEvent.click(bannerGraphButton) })
+
+      expect(mockLoadDataPackageWithSpec).toHaveBeenCalledTimes(1)
+      const pkg = mockLoadDataPackageWithSpec.mock.calls[0][0]
+      expect(pkg.analysisResultId).toBe('hist-graph-1')
+      expect(pkg.data).toEqual({
+        group: ['A', 'B'],
+        value: [10, 12],
+      })
+      expect(screen.queryByText('변수 선택으로')).not.toBeInTheDocument()
     })
 
     it('currentHistoryId가 있으면 DataPackage.analysisResultId로 전달', async () => {

@@ -33,6 +33,7 @@ export default function HomePage() {
   const {
     startQuickAnalysis,
     navigateToStep,
+    isHistoryResultsView,
   } = handlers
 
   // System memory detection
@@ -121,7 +122,7 @@ export default function HomePage() {
     <AnalysisLayout
       currentStep={handlers.currentStep}
       steps={handlers.steps}
-      onStepChange={handlers.handleStepClick}
+      onStepChange={isHistoryResultsView ? undefined : handlers.handleStepClick}
       isAnalyzing={handlers.isLoading}
       showHelp={showHelp}
       onHelpToggle={handleHelpToggle}

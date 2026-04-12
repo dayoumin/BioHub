@@ -20,12 +20,14 @@ import { prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
+import { isHistoryResultsView } from '@/lib/utils/history-view'
 
 interface AnalysisHandlersReturn {
   // Layout state
   currentStep: number
   isLoading: boolean
   analysisHistory: AnalysisHistory[]
+  isHistoryResultsView: boolean
 
   // Step config (stepper UI)
   steps: Array<{ id: number; label: string; completed: boolean; skipped: boolean }>
@@ -93,8 +95,9 @@ export function useAnalysisHandlers(
     stepTrack: s.stepTrack,
     setStepTrack: s.setStepTrack,
   })))
-  const { analysisHistory } = useHistoryStore(useShallow((s) => ({
+  const { analysisHistory, currentHistoryId } = useHistoryStore(useShallow((s) => ({
     analysisHistory: s.analysisHistory,
+    currentHistoryId: s.currentHistoryId,
   })))
 
   // Load history from IndexedDB
@@ -121,6 +124,17 @@ export function useAnalysisHandlers(
       skipped: skipStep2 && step.id === 2,
     }))
   }, [completedSteps, skipStep2, t])
+
+  const historyResultsView = useMemo(
+    () =>
+      isHistoryResultsView({
+        currentHistoryId,
+        results,
+        uploadedData,
+        validationResults,
+      }),
+    [currentHistoryId, results, uploadedData, validationResults],
+  )
 
   // === Handlers ===
 
@@ -181,6 +195,7 @@ export function useAnalysisHandlers(
     currentStep,
     isLoading,
     analysisHistory,
+    isHistoryResultsView: historyResultsView,
     steps,
     handleStepClick,
     startQuickAnalysis,

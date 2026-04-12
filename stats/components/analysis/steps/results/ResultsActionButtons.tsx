@@ -49,6 +49,7 @@ export interface ResultsActionButtonsProps {
   onExportWithOptions: () => void
   isExporting: boolean
   hasUploadedData: boolean
+  showBackToVariables?: boolean
 
   t: Pick<TerminologyDictionary, 'results'>
 }
@@ -69,6 +70,7 @@ export function ResultsActionButtons({
   onExportWithOptions,
   isExporting,
   hasUploadedData,
+  showBackToVariables = true,
   t,
 }: ResultsActionButtonsProps): React.ReactElement {
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
@@ -107,15 +109,17 @@ export function ResultsActionButtons({
                 같은 데이터와 방법을 유지한 채 변수나 설정을 조정합니다.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onBackToVariables}
-                  className="h-10 px-4 border-border/50"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-                  {t.results.buttons.backToVariables}
-                </Button>
+                {showBackToVariables ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onBackToVariables}
+                    className="h-10 px-4 border-border/50"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+                    {t.results.buttons.backToVariables}
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
                   size="sm"

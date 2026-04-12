@@ -6,6 +6,7 @@
 import type { AnalysisResult as AnalysisResult } from '@/types/analysis'
 import type {
   AnalysisContext,
+  ChartType,
   Comparison,
   GroupStat,
   TestInfo,
@@ -25,6 +26,343 @@ import type {
   RarefactionResult,
   MetaAnalysisResult,
 } from '@/types/bio-tools-results'
+import { inferColumnMeta } from './chart-spec-utils'
+
+export interface AnalysisVisualizationColumnsResult {
+  columns: ColumnMeta[]
+  data: Record<string, unknown[]>
+  chartType: ChartType
+  xField: string
+  yField: string
+  colorField?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'number')
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function pushColumnarValue(target: Record<string, unknown[]>, key: string, value: unknown): void {
+  if (!target[key]) {
+    target[key] = []
+  }
+  target[key].push(value)
+}
+
+function buildColumnsFromRows(
+  rows: Record<string, unknown>[],
+  chartType: ChartType,
+  xField: string,
+  yField: string,
+  colorField?: string,
+): AnalysisVisualizationColumnsResult | null {
+  if (rows.length === 0) return null
+
+  const columns = inferColumnMeta(rows)
+  const data: Record<string, unknown[]> = {}
+
+  for (const row of rows) {
+    for (const [key, value] of Object.entries(row)) {
+      pushColumnarValue(data, key, value)
+    }
+  }
+
+  return { columns, data, chartType, xField, yField, colorField }
+}
+
+function buildHistogramVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  const rows: Record<string, unknown>[] = []
+
+  if (Array.isArray(data)) {
+    for (const entry of data) {
+      if (!isRecord(entry) || !isNumberArray(entry.values)) return null
+      const label = typeof entry.label === 'string' ? entry.label : undefined
+      for (const value of entry.values) {
+        rows.push(label ? { value, series: label } : { value })
+      }
+    }
+    return buildColumnsFromRows(rows, 'histogram', 'value', 'value', rows.some((row) => 'series' in row) ? 'series' : undefined)
+  }
+
+  if (isRecord(data) && isNumberArray(data.values)) {
+    for (const value of data.values) {
+      rows.push({ value })
+    }
+    return buildColumnsFromRows(rows, 'histogram', 'value', 'value')
+  }
+
+  return null
+}
+
+function buildBoxplotVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data)) return null
+
+  const rows: Record<string, unknown>[] = []
+  for (const [key, value] of Object.entries(data)) {
+    if (!isRecord(value) || !isNumberArray(value.values)) continue
+    const label = typeof value.label === 'string' ? value.label : key
+    for (const item of value.values) {
+      rows.push({ group: label, value: item })
+    }
+  }
+
+  return buildColumnsFromRows(rows, 'boxplot', 'group', 'value', 'group')
+}
+
+function buildMultiBoxplotVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!Array.isArray(data)) return null
+
+  const rows: Record<string, unknown>[] = []
+  for (const entry of data) {
+    if (!isRecord(entry) || !isNumberArray(entry.values)) return null
+    const label = typeof entry.label === 'string' ? entry.label : 'Group'
+    for (const value of entry.values) {
+      rows.push({ group: label, value })
+    }
+  }
+
+  return buildColumnsFromRows(rows, 'boxplot', 'group', 'value', 'group')
+}
+
+function buildScatterVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data) || !isNumberArray(data.x) || !isNumberArray(data.y)) return null
+
+  const rowCount = Math.min(data.x.length, data.y.length)
+  const rows: Record<string, unknown>[] = []
+  for (let index = 0; index < rowCount; index += 1) {
+    rows.push({ x: data.x[index], y: data.y[index] })
+  }
+
+  return buildColumnsFromRows(rows, 'scatter', 'x', 'y')
+}
+
+function buildSimpleLineVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data) || !Array.isArray(data.labels) || !isNumberArray(data.means)) return null
+
+  const rowCount = Math.min(data.labels.length, data.means.length)
+  const rows: Record<string, unknown>[] = []
+  for (let index = 0; index < rowCount; index += 1) {
+    rows.push({ x: data.labels[index], value: data.means[index] })
+  }
+
+  return buildColumnsFromRows(rows, 'line', 'x', 'value')
+}
+
+function buildInteractionPlotVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!Array.isArray(data)) return null
+
+  const rows: Record<string, unknown>[] = []
+  for (const entry of data) {
+    if (!isRecord(entry)) return null
+    const factor1 = entry.factor1
+    const factor2 = entry.factor2
+    const value = entry.value
+    if ((typeof factor1 !== 'string' && typeof factor1 !== 'number')
+      || (typeof factor2 !== 'string' && typeof factor2 !== 'number')
+      || typeof value !== 'number') {
+      return null
+    }
+    rows.push({ factor1, factor2, value })
+  }
+
+  return buildColumnsFromRows(rows, 'line', 'factor1', 'value', 'factor2')
+}
+
+function buildFrequencyBarVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data) || !isStringArray(data.categories) || !isNumberArray(data.observed)) return null
+
+  const rowCount = Math.min(data.categories.length, data.observed.length)
+  const rows: Record<string, unknown>[] = []
+  for (let index = 0; index < rowCount; index += 1) {
+    rows.push({
+      category: data.categories[index],
+      observed: data.observed[index],
+      expected: isNumberArray(data.expected) ? data.expected[index] ?? null : null,
+    })
+  }
+
+  return buildColumnsFromRows(rows, 'bar', 'category', 'observed')
+}
+
+function buildContingencyVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data) || !Array.isArray(data.matrix) || !isStringArray(data.rowLabels) || !isStringArray(data.colLabels)) {
+    return null
+  }
+
+  const rows: Record<string, unknown>[] = []
+  for (let rowIndex = 0; rowIndex < data.rowLabels.length; rowIndex += 1) {
+    const counts = data.matrix[rowIndex]
+    if (!Array.isArray(counts)) return null
+    for (let columnIndex = 0; columnIndex < data.colLabels.length; columnIndex += 1) {
+      const count = counts[columnIndex]
+      if (typeof count !== 'number') return null
+      rows.push({
+        row: data.rowLabels[rowIndex],
+        column: data.colLabels[columnIndex],
+        count,
+      })
+    }
+  }
+
+  return buildColumnsFromRows(rows, 'grouped-bar', 'column', 'count', 'row')
+}
+
+function buildTimeSeriesVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data)) return null
+
+  const seriesCandidates: Array<{ key: string; label: string }> = [
+    { key: 'values', label: 'Observed' },
+    { key: 'trend', label: 'Trend' },
+    { key: 'seasonal', label: 'Seasonal' },
+    { key: 'residual', label: 'Residual' },
+    { key: 'forecast', label: 'Forecast' },
+    { key: 'fitted', label: 'Fitted' },
+    { key: 'predictions', label: 'Prediction' },
+  ]
+
+  const rows: Record<string, unknown>[] = []
+  for (const candidate of seriesCandidates) {
+    const values = data[candidate.key]
+    if (!isNumberArray(values)) continue
+    for (let index = 0; index < values.length; index += 1) {
+      rows.push({
+        index: index + 1,
+        value: values[index],
+        series: candidate.label,
+      })
+    }
+  }
+
+  if (rows.length === 0) return null
+  return buildColumnsFromRows(rows, 'line', 'index', 'value', 'series')
+}
+
+function buildBarVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data) || !Array.isArray(data.plotData)) return null
+
+  const rows: Record<string, unknown>[] = []
+  for (const entry of data.plotData) {
+    if (!isRecord(entry)) return null
+
+    const xValue = entry.group ?? entry.label ?? entry.category ?? entry.x
+    const yValue = entry.mean ?? entry.value ?? entry.y
+
+    if ((typeof xValue !== 'string' && typeof xValue !== 'number') || typeof yValue !== 'number') {
+      return null
+    }
+
+    rows.push({
+      category: xValue,
+      value: yValue,
+      error: typeof entry.stderr === 'number'
+        ? entry.stderr
+        : typeof entry.std === 'number'
+          ? entry.std
+          : null,
+    })
+  }
+
+  return buildColumnsFromRows(rows, 'bar', 'category', 'value')
+}
+
+function buildItemTotalVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isNumberArray(data)) return null
+
+  const rows = data.map((value, index) => ({
+    item: `Item ${index + 1}`,
+    correlation: value,
+  }))
+
+  return buildColumnsFromRows(rows, 'bar', 'item', 'correlation')
+}
+
+function buildScreeVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
+  if (!isRecord(data)) return null
+
+  const explainedVariance = isNumberArray(data.explainedVarianceRatio)
+    ? data.explainedVarianceRatio
+    : Array.isArray(data.screeData)
+      ? data.screeData
+        .map((entry) => {
+          if (typeof entry === 'number') return entry
+          if (isRecord(entry) && typeof entry.varianceExplained === 'number') {
+            return entry.varianceExplained > 1 ? entry.varianceExplained / 100 : entry.varianceExplained
+          }
+          return null
+        })
+        .filter((value): value is number => value !== null)
+      : null
+
+  if (!explainedVariance || explainedVariance.length === 0) return null
+
+  const rows = explainedVariance.map((value, index) => ({
+    component: `PC${index + 1}`,
+    variance: value,
+  }))
+
+  return buildColumnsFromRows(rows, 'line', 'component', 'variance')
+}
+
+function buildGroupStatsFallback(result: AnalysisResult): AnalysisVisualizationColumnsResult | null {
+  if (!result.groupStats || result.groupStats.length === 0) return null
+
+  const rows = result.groupStats.map((group, index) => ({
+    group: group.name ?? `Group ${index + 1}`,
+    mean: group.mean,
+    std: group.std,
+    n: group.n,
+    median: group.median ?? null,
+  }))
+
+  return buildColumnsFromRows(rows, 'bar', 'group', 'mean', 'group')
+}
+
+export function buildAnalysisVisualizationColumns(
+  result: AnalysisResult,
+): AnalysisVisualizationColumnsResult | null {
+  const visualization = result.visualizationData
+  if (!visualization) {
+    return buildGroupStatsFallback(result)
+  }
+
+  switch (visualization.type) {
+    case 'histogram':
+      return buildHistogramVisualization(visualization.data) ?? buildGroupStatsFallback(result)
+    case 'boxplot':
+      return buildBoxplotVisualization(visualization.data) ?? buildGroupStatsFallback(result)
+    case 'boxplot-multiple':
+      return buildMultiBoxplotVisualization(visualization.data) ?? buildGroupStatsFallback(result)
+    case 'scatter':
+    case 'scatter-regression':
+      return buildScatterVisualization(visualization.data)
+    case 'line':
+      return buildSimpleLineVisualization(visualization.data)
+    case 'interaction-plot':
+      return buildInteractionPlotVisualization(visualization.data) ?? buildGroupStatsFallback(result)
+    case 'frequency-bar':
+      return buildFrequencyBarVisualization(visualization.data)
+    case 'contingency-table':
+      return buildContingencyVisualization(visualization.data)
+    case 'time-series':
+      return buildTimeSeriesVisualization(visualization.data)
+    case 'bar':
+      return buildBarVisualization(visualization.data) ?? buildGroupStatsFallback(result)
+    case 'item-total':
+      return buildItemTotalVisualization(visualization.data)
+    case 'scree-plot':
+    case 'dendrogram':
+      return buildScreeVisualization(visualization.data)
+    default:
+      return buildGroupStatsFallback(result)
+  }
+}
 
 // ─── 공통 유틸 ──────────────────────────────────────────────
 

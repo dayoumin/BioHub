@@ -63,6 +63,7 @@ export { editChart, buildAiEditRequest } from './ai-service';
 // 분석 결과 어댑터
 export {
   toAnalysisContext,
+  buildAnalysisVisualizationColumns,
   buildKmCurveColumns,
   buildRocCurveColumns,
 } from './analysis-adapter';

@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
 import { TOAST } from '@/lib/constants/toast-messages'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,8 +67,10 @@ import { logger } from '@/lib/utils/logger'
 import { useRouter } from 'next/navigation'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
 import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
+import { isHistoryResultsView } from '@/lib/utils/history-view'
 import {
   toAnalysisContext,
+  buildAnalysisVisualizationColumns,
   buildKmCurveColumns,
   buildRocCurveColumns,
   inferColumnMeta,
@@ -165,6 +168,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setCurrentStep,
     navigateToStep,
     uploadedData,
+    validationResults,
     variableMapping,
     uploadedFileName,
     selectedMethod,
@@ -172,11 +176,34 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     analysisOptions,
   } = useAnalysisStore()
   const { setStepTrack } = useModeStore()
-  const { analysisHistory, saveToHistory, loadedInterpretationChat, currentHistoryId, loadedPaperDraft, patchHistoryPaperDraft, setLoadedPaperDraft } = useHistoryStore()
+  const {
+    analysisHistory,
+    saveToHistory,
+    loadedInterpretationChat,
+    currentHistoryId,
+    loadedPaperDraft,
+    patchHistoryPaperDraft,
+    patchHistoryInterpretation,
+    setLoadedPaperDraft,
+  } = useHistoryStore()
   const historyEntries = useMemo(() => analysisHistory ?? [], [analysisHistory])
   const currentHistoryProjectId = useMemo(
     () => historyEntries.find(entry => entry.id === currentHistoryId)?.projectId,
     [currentHistoryId, historyEntries]
+  )
+  const historyResultView = useMemo(
+    () =>
+      isHistoryResultsView({
+        currentHistoryId,
+        results,
+        uploadedData,
+        validationResults,
+      }),
+    [currentHistoryId, results, uploadedData, validationResults],
+  )
+  const historyVisualizationColumns = useMemo(
+    () => (results ? buildAnalysisVisualizationColumns(results) : null),
+    [results],
   )
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
@@ -396,6 +423,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     return splitInterpretation(interpretation)
   }, [interpretation])
 
+  useEffect(() => {
+    const nextInterpretation = interpretation?.trim() ?? ''
+    if (!currentHistoryId || nextInterpretation.length === 0) return
+
+    const currentEntry = historyEntries.find((entry) => entry.id === currentHistoryId)
+    if (currentEntry?.aiInterpretation === nextInterpretation) return
+
+    patchHistoryInterpretation(currentHistoryId, nextInterpretation).catch((error) => {
+      logger.error('Failed to patch AI interpretation into history', { error, historyId: currentHistoryId })
+    })
+  }, [currentHistoryId, historyEntries, interpretation, patchHistoryInterpretation])
+
 
   // Handlers
   // 히스토리 저장 (IndexedDB — 파일 다운로드 없음)
@@ -602,12 +641,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       xField = built.xField
       yField = built.yField
       colorField = undefined
-    } else {
+    } else if (uploadedData?.length) {
       // 일반 분석: 업로드 데이터 사용
-      if (!uploadedData?.length) {
-        toast.error(t.analysis.emptyStates.dataRequired)
-        return
-      }
       const rows = uploadedData as Record<string, unknown>[]
       columns = inferColumnMeta(rows)
       data = {}
@@ -619,6 +654,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       const fields = selectXYFields(columns, hint)
       xField = fields.xField
       yField = fields.yField
+    } else if (historyVisualizationColumns) {
+      columns = historyVisualizationColumns.columns
+      data = historyVisualizationColumns.data
+      chartType = historyVisualizationColumns.chartType
+      xField = historyVisualizationColumns.xField
+      yField = historyVisualizationColumns.yField
+      colorField = historyVisualizationColumns.colorField
+    } else {
+      toast.error(historyResultView
+        ? '이 기록에는 그래프 작성을 위한 원본 데이터가 없어 바로 열 수 없습니다.'
+        : t.analysis.emptyStates.dataRequired)
+      return
     }
 
     const spec = createDefaultChartSpec(pkgId, chartType, xField, yField, columns)
@@ -646,7 +693,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     loadDataPackageWithSpec(pkg, finalSpec)
     disconnectProject() // 결과 가져오기는 새 작업 — 기존 프로젝트 덮어쓰기 방지
     router.push('/graph-studio')
-  }, [results, uploadedData, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router, t])
+  }, [results, uploadedData, historyVisualizationColumns, historyResultView, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router, t])
 
   // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
@@ -891,6 +938,30 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           }
         />
 
+        {historyResultView && (
+          <Card className="border-0 bg-surface-container-low shadow-none">
+            <CardContent className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold tracking-tight text-foreground">히스토리 결과 보기</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  이전 단계 데이터는 저장되지 않아 다시 열 수 없습니다. 같은 방법으로 다시 확인하려면 재분석을 사용하세요.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {historyVisualizationColumns ? (
+                  <Button type="button" variant="secondary" size="sm" className="h-9 px-3" onClick={handleOpenInGraphStudio}>
+                    <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+                    Graph Studio
+                  </Button>
+                ) : null}
+                <Button type="button" variant="outline" size="sm" className="h-9 px-3" onClick={handleReanalyze}>
+                  {t.results.buttons.reanalyze}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard
           statisticalResult={statisticalResult}
@@ -1006,6 +1077,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           onExportWithOptions={handleExportWithOptions}
           isExporting={isExporting}
           hasUploadedData={!!uploadedData && uploadedData.length > 0}
+          showBackToVariables={!historyResultView}
           t={t}
         />
 

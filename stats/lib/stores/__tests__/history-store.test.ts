@@ -101,4 +101,33 @@ describe('useHistoryStore.renameHistory', () => {
     })
     expect(syncHistoryRecordMock).toHaveBeenCalledTimes(2)
   })
+
+  it('AI 해석이 나중에 생성되면 현재 히스토리 레코드에 patch 저장한다', async () => {
+    useHistoryStore.setState({
+      analysisHistory: [
+        {
+          id: 'history-1',
+          timestamp: new Date(),
+          name: 'Saved analysis',
+          purpose: 'compare means',
+          method: null,
+          dataFileName: 'sample.csv',
+          dataRowCount: 12,
+          results: null,
+          aiInterpretation: null,
+        },
+      ],
+    })
+
+    updateHistoryMock.mockResolvedValue(undefined)
+    syncHistoryRecordMock.mockResolvedValue(undefined)
+
+    await useHistoryStore.getState().patchHistoryInterpretation('history-1', '해석이 늦게 도착했습니다.')
+
+    expect(updateHistoryMock).toHaveBeenCalledWith('history-1', {
+      aiInterpretation: '해석이 늦게 도착했습니다.',
+    })
+    expect(syncHistoryRecordMock).toHaveBeenCalledWith('history-1')
+    expect(useHistoryStore.getState().analysisHistory[0]?.aiInterpretation).toBe('해석이 늦게 도착했습니다.')
+  })
 })

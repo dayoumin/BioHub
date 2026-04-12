@@ -185,6 +185,7 @@ vi.mock('@/lib/stores/graph-studio-store', () => ({
 }))
 vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
   toAnalysisContext: vi.fn(() => ({})),
+  buildAnalysisVisualizationColumns: vi.fn(() => null),
   buildKmCurveColumns: vi.fn(),
   buildRocCurveColumns: vi.fn(),
 }))

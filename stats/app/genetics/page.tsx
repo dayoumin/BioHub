@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database, Fingerprint, Atom } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { Button } from '@/components/ui/button'
 
@@ -128,6 +128,26 @@ const WORKFLOW_STEPS = [
 const READY_TOOLS = TOOLS.filter(t => t.ready)
 const PENDING_TOOLS = [...TOOLS, ...MOLBIO_TOOLS].filter(t => !t.ready)
 
+const GENETICS_ACCENT_VAR = '--section-accent-hub' as const
+
+const GENETICS_ACCENT_TEXT = {
+  color: `var(${GENETICS_ACCENT_VAR})`,
+} as const satisfies CSSProperties
+
+const GENETICS_ACCENT_ICON_CLASS = 'text-[color:var(--section-accent-hub)]'
+
+const GENETICS_ICON_BG = {
+  backgroundColor: `color-mix(in oklch, var(${GENETICS_ACCENT_VAR}) 12%, transparent)`,
+} as const satisfies CSSProperties
+
+const GENETICS_PROGRESS_FILL = {
+  backgroundColor: `var(${GENETICS_ACCENT_VAR})`,
+} as const satisfies CSSProperties
+
+const GENETICS_PANEL_STYLE = {
+  backgroundColor: `color-mix(in oklch, var(${GENETICS_ACCENT_VAR}) 5%, var(--surface-container-lowest))`,
+} as const satisfies CSSProperties
+
 // ── 페이지 ──
 
 export default function GeneticsHome() {
@@ -169,15 +189,19 @@ export default function GeneticsHome() {
             onClick={() => setGuideOpen(prev => !prev)}
             className={`gap-1.5 text-xs ${
               guideOpen
-                ? 'border-primary/30 bg-primary/5 text-primary'
-                : 'text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                ? 'border-transparent bg-surface-container-low text-foreground'
+                : 'text-muted-foreground hover:border-transparent hover:bg-surface-container-low hover:text-foreground'
             }`}
+            style={guideOpen ? GENETICS_PANEL_STYLE : undefined}
           >
             <HelpCircle className="h-3.5 w-3.5" />
             도움말
           </Button>
           {guideOpen && (
-            <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-2xl border border-border bg-card p-5 shadow-lg">
+            <div
+              className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-[1.75rem] bg-surface-container-lowest/90 p-5 shadow-[0_12px_32px_rgba(25,28,30,0.08)] backdrop-blur-xl"
+              style={GENETICS_PANEL_STYLE}
+            >
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
@@ -195,29 +219,33 @@ export default function GeneticsHome() {
                 </div>
                 <div>
                   <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">일반적인 분석 순서</h3>
-                  <div>
+                  <div className="space-y-3">
                     {WORKFLOW_STEPS.map((step, i) => {
                       const Icon = step.icon
+                      const progressWidth = `${Math.round(((i + 1) / WORKFLOW_STEPS.length) * 100)}%`
                       return (
-                        <div key={step.label} className="flex items-center gap-3">
-                          <div className="flex flex-col items-center">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                              {i + 1}
+                        <div key={step.label} className="rounded-2xl bg-surface-container-low/70 px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5" style={GENETICS_ACCENT_TEXT} />
+                              <span className="text-sm text-foreground/80">{step.label}</span>
                             </div>
-                            {i < WORKFLOW_STEPS.length - 1 && (
-                              <div className="h-4 w-px bg-border" />
-                            )}
+                            <span className="text-[11px] font-medium text-muted-foreground">
+                              {i + 1}/{WORKFLOW_STEPS.length}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2 pb-1">
-                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{step.label}</span>
+                          <div className="h-0.5 rounded-full bg-surface-container-highest">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ ...GENETICS_PROGRESS_FILL, width: progressWidth }}
+                            />
                           </div>
                         </div>
                       )
                     })}
                   </div>
                   <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
-                    처음이라면 <span className="font-medium text-primary">DNA 바코딩</span>부터 시작하세요.
+                    처음이라면 <span className="font-medium" style={GENETICS_ACCENT_TEXT}>DNA 바코딩</span>부터 시작하세요.
                     서열 하나만 있으면 종을 판별할 수 있습니다.
                   </p>
                 </div>
@@ -228,7 +256,7 @@ export default function GeneticsHome() {
       </div>
 
       {/* 서열 분석 도구 */}
-      <div className="mb-3">
+      <div className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">서열 분석 도구</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {READY_TOOLS.map((tool) => (
@@ -238,7 +266,7 @@ export default function GeneticsHome() {
       </div>
 
       {/* 분자생물학 도구 */}
-      <div className="mb-6">
+      <div className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">분자생물학 도구</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MOLBIO_TOOLS.map((tool) => (
@@ -248,12 +276,15 @@ export default function GeneticsHome() {
       </div>
 
       {/* 처음 사용자 안내 */}
-      <div className="mb-10 rounded-2xl border border-primary/20 bg-primary/5 p-5 flex items-start gap-3">
-        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
-          <HelpCircle className="h-3 w-3" />
+      <div
+        className="mb-10 flex items-start gap-3 rounded-[1.75rem] p-5"
+        style={GENETICS_PANEL_STYLE}
+      >
+        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={GENETICS_ICON_BG}>
+          <HelpCircle className="h-3 w-3" style={GENETICS_ACCENT_TEXT} />
         </div>
         <p className="text-sm text-foreground/80 leading-relaxed">
-          어떻게 시작할지 막막하시다면, 각 도구 페이지에서 제공하는 <span className="font-semibold text-primary">예제 서열/검색어 테스트 기능</span>을 통해 즉시 체험해 볼 수 있습니다.
+          어떻게 시작할지 막막하시다면, 각 도구 페이지에서 제공하는 <span className="font-semibold" style={GENETICS_ACCENT_TEXT}>예제 서열/검색어 테스트 기능</span>을 통해 즉시 체험해 볼 수 있습니다.
         </p>
       </div>
 
@@ -283,18 +314,18 @@ function ReadyCard({ tool }: { tool: Tool }) {
   const Icon = tool.icon
 
   return (
-    <Link href={tool.href}>
-      <div className="group flex h-full flex-col rounded-2xl border border-border/50 bg-card p-6 shadow-sm transition-all hover:border-primary/30 hover:shadow-sm">
+    <Link href={tool.href} className="block h-full">
+      <div className="group flex h-full flex-col rounded-[1.75rem] bg-surface-container-lowest p-6 transition-colors duration-200 hover:bg-surface-container-low/60">
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-            <Icon className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors group-hover:bg-surface-container-high/80" style={GENETICS_ICON_BG}>
+            <Icon className={`h-5 w-5 ${GENETICS_ACCENT_ICON_CLASS}`} />
           </div>
           <h2 className="text-base font-semibold text-foreground/90">{tool.title}</h2>
         </div>
         <p className="mb-5 flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground/70">{tool.input}</p>
-          <ArrowRight className="h-4.5 w-4.5 text-primary/40 transition-all group-hover:translate-x-1.5 group-hover:text-primary" />
+          <ArrowRight className="h-4.5 w-4.5 transition-all group-hover:translate-x-1.5" style={GENETICS_ACCENT_TEXT} />
         </div>
       </div>
     </Link>
@@ -305,10 +336,10 @@ function PendingCard({ tool }: { tool: Tool }) {
   const Icon = tool.icon
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-muted/10 p-5 cursor-not-allowed">
+    <div className="cursor-not-allowed rounded-[1.5rem] bg-surface-container-low/65 p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
-          <Icon className="h-4.5 w-4.5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-container-high text-muted-foreground">
+          <Icon className={`h-4.5 w-4.5 ${GENETICS_ACCENT_ICON_CLASS}`} />
         </div>
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
@@ -327,7 +358,7 @@ function PendingCard({ tool }: { tool: Tool }) {
 const CROSS_LINK_TOOL_IDS = ['hardy-weinberg', 'fst'] as const
 
 const crossLinkClass =
-  'inline-flex items-center gap-1.5 rounded-xl border border-border/50 bg-card px-4 py-2 text-sm font-medium shadow-sm transition-all hover:border-primary/30 hover:shadow-sm hover:text-primary'
+  'inline-flex items-center gap-1.5 rounded-2xl bg-surface-container-lowest px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container-low'
 
 function PopulationGeneticsLinks(): React.ReactElement | null {
   const tools = CROSS_LINK_TOOL_IDS.map(getBioToolById).filter(
@@ -336,7 +367,7 @@ function PopulationGeneticsLinks(): React.ReactElement | null {
   if (tools.length === 0) return null
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-muted/10 p-6">
+    <div className="rounded-[1.75rem] p-6" style={GENETICS_PANEL_STYLE}>
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         집단 유전학 (Population Genetics)
       </h2>
@@ -347,7 +378,7 @@ function PopulationGeneticsLinks(): React.ReactElement | null {
         {tools.map((tool) => (
           <Link key={tool.id} href={`/bio-tools?tool=${tool.id}`} className={crossLinkClass}>
             {tool.nameKo}
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" style={GENETICS_ACCENT_TEXT} />
           </Link>
         ))}
       </div>
@@ -357,10 +388,10 @@ function PopulationGeneticsLinks(): React.ReactElement | null {
 
 function GuideRow({ icon: Icon, question, answer }: { icon: ComponentType<{ className?: string }>; question: string; answer: string }) {
   return (
-    <div className="rounded-lg p-2 transition-colors duration-200 hover:bg-muted/30">
+    <div className="rounded-xl bg-surface-container-low/45 p-3 transition-colors duration-200 hover:bg-surface-container-low/80">
       <p className="mb-1 text-xs text-muted-foreground">&ldquo;{question}&rdquo;</p>
       <div className="flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${GENETICS_ACCENT_ICON_CLASS}`} />
         <span className="text-xs font-medium">{answer}</span>
       </div>
     </div>
