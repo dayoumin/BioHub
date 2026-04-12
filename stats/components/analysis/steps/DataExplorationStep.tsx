@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { DataUploadStep } from '@/components/analysis/steps/DataUploadStep'
-import { DataPrepGuide } from '@/components/statistics/common/DataPrepGuide'
 import { cn } from '@/lib/utils'
 import { getExplorationProfile } from '@/lib/utils/exploration-profile'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -287,15 +286,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           <StepHeader
             icon={ChartScatter}
             title={t.analysis.stepTitles.dataPreparation}
-            action={primaryHeaderAction}
           />
-
-          <DataPrepGuide methodId={selectedMethod.id} />
 
           {onUploadComplete && (
             <DataUploadStep
               onUploadComplete={onUploadComplete}
               existingFileName={existingFileName}
+              streamlined
             />
           )}
         </div>

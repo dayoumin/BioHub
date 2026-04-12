@@ -49,12 +49,14 @@ export function DataUploadStep({
   totalSteps: _totalSteps,
   existingFileName,
   compact = false,
+  streamlined = false,
   autoOpen = false,
   hideButton = false,
   onAutoOpenHandled
 }: DataUploadStepProps & {
   existingFileName?: string
   compact?: boolean
+  streamlined?: boolean
   autoOpen?: boolean
   hideButton?: boolean
   onAutoOpenHandled?: () => void
@@ -427,10 +429,11 @@ export function DataUploadStep({
   const showRecentFiles = !uploadedFileName && recentFiles.length > 0
   const showProcessingStatus = isUploading
   const showStandaloneMemoryWarning = memoryWarning && !showProcessingStatus
+  const showSupportingPanel = !streamlined && !uploadedFileName
 
   return (
     <div className="space-y-6">
-      <div className={cn('grid gap-5', !uploadedFileName && 'xl:grid-cols-[minmax(0,1fr)_320px]')}>
+      <div className={cn('grid gap-5', showSupportingPanel && 'xl:grid-cols-[minmax(0,1fr)_320px]')}>
         {/* 업로드 영역 — PC에서 메인 행동에 집중 */}
         {!uploadedFileName ? (
           <div
@@ -488,7 +491,7 @@ export function DataUploadStep({
           </div>
         )}
 
-        {!uploadedFileName && (
+        {showSupportingPanel && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
               <p className="text-xs text-muted-foreground leading-relaxed flex items-start gap-2.5">

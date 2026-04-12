@@ -50,29 +50,29 @@ interface QuickAnalysisBannerProps {
 
 export function QuickAnalysisBanner({ method, onNormalMode, onChangeMethod, t }: QuickAnalysisBannerProps): React.ReactNode {
   return (
-    <Card className="mb-6 border-amber-300/50 bg-amber-50/50 dark:border-amber-700/50 dark:bg-amber-950/20">
+    <Card className="mb-6 border-0 bg-surface-container-low shadow-none">
       <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high">
+            <Zap className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">{t.badge}</Badge>
-              <span className="font-medium">{method.name}</span>
+              <Badge variant="secondary" className="text-xs">{t.badge}</Badge>
+              <span className="font-medium tracking-tight text-foreground">{method.name}</span>
             </div>
             <div
               data-testid="quick-analysis-selected-method"
-              className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-background/80 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm ring-1 ring-amber-200/60 dark:bg-background/20 dark:ring-amber-800/60"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-secondary-container px-2.5 py-1 text-xs font-medium text-secondary"
             >
-              <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <Check className="h-3.5 w-3.5 text-primary" />
               선택된 방법
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               {t.description}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 lg:justify-end">
             <Button
               variant="ghost"
               size="sm"
