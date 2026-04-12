@@ -434,7 +434,8 @@ export const aquaculture: TerminologyDictionary = {
     },
     tooltips: {
       viewResults: '저장된 결과 보기',
-      reanalyze: '이 방법으로 새 데이터 분석',
+      rename: '이름 변경',
+      reanalyze: '새 데이터 분석',
       delete: '삭제',
       pin: '상단에 고정',
       unpin: '고정 해제',
@@ -450,6 +451,9 @@ export const aquaculture: TerminologyDictionary = {
       saveDescription: '현재 분석에 이름을 지정하여 저장합니다.',
       analysisName: '분석 이름',
       savePlaceholder: '예: 2024년 실험 데이터 t-검정',
+      renameTitle: '분석 이름 변경',
+      renameDescription: '히스토리에서 표시할 분석 이름을 수정합니다.',
+      renamePlaceholder: '새 분석 이름을 입력하세요',
     },
     exportDialog: {
       title: '히스토리 내보내기 옵션',

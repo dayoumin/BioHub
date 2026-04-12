@@ -433,7 +433,8 @@ export const generic: TerminologyDictionary = {
     },
     tooltips: {
       viewResults: 'View saved results',
-      reanalyze: 'Analyze new data with this method',
+      rename: 'Rename',
+      reanalyze: 'Analyze New Data',
       delete: 'Delete',
       pin: 'Pin to top',
       unpin: 'Unpin',
@@ -449,6 +450,9 @@ export const generic: TerminologyDictionary = {
       saveDescription: 'Name and save the current analysis.',
       analysisName: 'Analysis Name',
       savePlaceholder: 'e.g., 2024 Experiment Data T-test',
+      renameTitle: 'Rename Analysis',
+      renameDescription: 'Update the analysis name shown in history.',
+      renamePlaceholder: 'Enter a new analysis name',
     },
     exportDialog: {
       title: 'History Export Options',

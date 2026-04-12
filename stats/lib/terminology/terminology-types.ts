@@ -469,6 +469,7 @@ export interface HistoryText {
   }
   tooltips: {
     viewResults: string
+    rename: string
     reanalyze: string
     delete: string
     pin: string
@@ -485,6 +486,9 @@ export interface HistoryText {
     saveDescription: string
     analysisName: string
     savePlaceholder: string
+    renameTitle: string
+    renameDescription: string
+    renamePlaceholder: string
   }
   exportDialog: {
     title: string

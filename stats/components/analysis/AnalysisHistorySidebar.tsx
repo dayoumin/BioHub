@@ -9,15 +9,25 @@
  * - 고급 기능(내보내기, 재분석)은 per-item 드롭다운으로 접근
  */
 
-import { useCallback, useEffect, useMemo, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { RefreshCw, MoreHorizontal } from 'lucide-react'
+import { Pencil, RefreshCw, MoreHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toAnalysisHistoryItems } from '@/lib/utils/history-adapters'
 import { useHistoryStore, type AnalysisHistory } from '@/lib/stores/history-store'
@@ -38,17 +48,21 @@ import type { HistoryItem } from '@/types/history'
 export function AnalysisHistorySidebar(): ReactNode {
   const t = useTerminology()
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   const {
     analysisHistory,
     currentHistoryId,
     deleteFromHistory,
     loadSettingsFromHistory,
+    renameHistory,
   } = useHistoryStore(useShallow((s) => ({
     analysisHistory: s.analysisHistory,
     currentHistoryId: s.currentHistoryId,
     deleteFromHistory: s.deleteFromHistory,
     loadSettingsFromHistory: s.loadSettingsFromHistory,
+    renameHistory: s.renameHistory,
   })))
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (stale pin 방어)
@@ -108,6 +122,32 @@ export function AnalysisHistorySidebar(): ReactNode {
     [deleteFromHistory, setPinnedIds],
   )
 
+  const handleRenameRequest = useCallback((id: string, name: string) => {
+    setRenameTarget({ id, name })
+    setRenameValue(name)
+  }, [])
+
+  const handleRenameOpenChange = useCallback((open: boolean) => {
+    if (open) return
+    setRenameTarget(null)
+    setRenameValue('')
+  }, [])
+
+  const handleRenameSubmit = useCallback(async () => {
+    if (!renameTarget) return
+
+    const nextName = renameValue.trim()
+    if (!nextName) return
+
+    try {
+      await renameHistory(renameTarget.id, nextName)
+      handleRenameOpenChange(false)
+    } catch (error) {
+      logger.error('[AnalysisHistorySidebar] Failed to rename history', { error })
+      toast.error(TOAST.history.renameError)
+    }
+  }, [handleRenameOpenChange, renameHistory, renameTarget, renameValue])
+
   const handleReanalyze = useCallback(
     async (historyId: string) => {
       try {
@@ -151,6 +191,10 @@ export function AnalysisHistorySidebar(): ReactNode {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuItem onClick={() => handleRenameRequest(item.id, entry.name)}>
+                  <Pencil className="mr-2 h-3 w-3" />
+                  <span className="text-xs">{t.history.tooltips.rename}</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleReanalyze(item.id)}>
                   <RefreshCw className="mr-2 h-3 w-3" />
                   <span className="text-xs">{t.history.tooltips.reanalyze}</span>
@@ -176,18 +220,53 @@ export function AnalysisHistorySidebar(): ReactNode {
         </div>
       )
     },
-    [handleReanalyze],
+    [handleReanalyze, handleRenameRequest, t.history.tooltips.reanalyze, t.history.tooltips.rename],
   )
 
   return (
-    <UnifiedHistorySidebar<AnalysisHistory>
-      items={items}
-      onSelect={handleSelect}
-      onPin={handlePin}
-      onDelete={handleDelete}
-      activeId={currentHistoryId}
-      title={t.history.sidebar.title}
-      renderItem={renderItem}
-    />
+    <>
+      <UnifiedHistorySidebar<AnalysisHistory>
+        items={items}
+        onSelect={handleSelect}
+        onPin={handlePin}
+        onDelete={handleDelete}
+        activeId={currentHistoryId}
+        title={t.history.sidebar.title}
+        renderItem={renderItem}
+      />
+      <Dialog open={renameTarget !== null} onOpenChange={handleRenameOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.history.dialogs.renameTitle}</DialogTitle>
+            <DialogDescription>{t.history.dialogs.renameDescription}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void handleRenameSubmit()
+            }}
+          >
+            <Input
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              placeholder={t.history.dialogs.renamePlaceholder}
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => handleRenameOpenChange(false)}>
+                {t.history.buttons.cancel}
+              </Button>
+              <Button
+                type="submit"
+                disabled={renameValue.trim().length === 0 || renameValue.trim() === renameTarget?.name}
+              >
+                {t.history.buttons.save}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

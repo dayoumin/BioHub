@@ -10,6 +10,7 @@ const {
   setStepTrackMock,
   deleteFromHistoryMock,
   loadSettingsFromHistoryMock,
+  renameHistoryMock,
   setPinnedIdsMock,
   toastInfoMock,
   toastErrorMock,
@@ -20,6 +21,7 @@ const {
   setStepTrackMock: vi.fn(),
   deleteFromHistoryMock: vi.fn(),
   loadSettingsFromHistoryMock: vi.fn(),
+  renameHistoryMock: vi.fn(),
   setPinnedIdsMock: vi.fn(),
   toastInfoMock: vi.fn(),
   toastErrorMock: vi.fn(),
@@ -95,6 +97,7 @@ vi.mock('@/lib/stores/history-store', () => ({
     currentHistoryId: null,
     deleteFromHistory: deleteFromHistoryMock,
     loadSettingsFromHistory: loadSettingsFromHistoryMock,
+    renameHistory: renameHistoryMock,
   }),
 }))
 
@@ -133,7 +136,17 @@ vi.mock('@/hooks/use-terminology', () => ({
       },
       tooltips: {
         maxPinned: (count: number) => `Max ${count}`,
+        rename: 'Rename',
         reanalyze: 'Reanalyze',
+      },
+      buttons: {
+        cancel: 'Cancel',
+        save: 'Save',
+      },
+      dialogs: {
+        renameTitle: 'Rename Analysis',
+        renameDescription: 'Update the analysis name shown in history.',
+        renamePlaceholder: 'Enter a new analysis name',
       },
       sidebar: {
         title: 'Analysis history',
@@ -153,6 +166,7 @@ vi.mock('@/lib/constants/toast-messages', () => ({
   TOAST: {
     history: {
       loadError: 'Load error',
+      renameError: 'Rename error',
       settingsLoadError: 'Settings load error',
     },
   },
@@ -199,6 +213,37 @@ describe('AnalysisHistorySidebar', () => {
       expect(restoreSettingsFromHistoryMock).toHaveBeenCalled()
       expect(setStepTrackMock).toHaveBeenCalledWith('reanalysis')
       expect(setShowHubMock).toHaveBeenCalledWith(false)
+    })
+  })
+  it('Rename 메뉴에서 저장하면 renameHistory 액션을 호출한다', async () => {
+    renameHistoryMock.mockResolvedValue(undefined)
+
+    render(<AnalysisHistorySidebar />)
+
+    fireEvent.click(screen.getByText('Rename'))
+    fireEvent.change(screen.getByPlaceholderText('Enter a new analysis name'), {
+      target: { value: 'Renamed Analysis' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(renameHistoryMock).toHaveBeenCalledWith('history-1', 'Renamed Analysis')
+    })
+  })
+
+  it('이름 변경이 실패하면 rename 전용 에러 토스트를 띄운다', async () => {
+    renameHistoryMock.mockRejectedValue(new Error('rename failed'))
+
+    render(<AnalysisHistorySidebar />)
+
+    fireEvent.click(screen.getByText('Rename'))
+    fireEvent.change(screen.getByPlaceholderText('Enter a new analysis name'), {
+      target: { value: 'Renamed Analysis' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith('Rename error')
     })
   })
 })

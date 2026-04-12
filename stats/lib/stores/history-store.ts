@@ -75,6 +75,7 @@ export interface HistoryState {
   setLoadedInterpretationChat: (chat: ChatMessage[] | null) => void
   setLoadedPaperDraft: (draft: PaperDraft | null) => void
   patchHistoryPaperDraft: (historyId: string, paperDraft: PaperDraft | null) => Promise<void>
+  renameHistory: (historyId: string, name: string) => Promise<void>
 
   saveToHistory: (
     /** 분석 상태 스냅샷 (analysis-store에서 전달) */
@@ -240,6 +241,50 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     set((state) => ({
       analysisHistory: state.analysisHistory.map(h =>
         h.id === historyId ? { ...h, paperDraft } : h
+      ),
+    }))
+  },
+
+  renameHistory: async (historyId, name) => {
+    const nextName = name.trim()
+    if (!nextName) return
+
+    const record = await getHistory(historyId)
+    if (!record || record.name === nextName) return
+
+    await updateHistory(historyId, { name: nextName })
+
+    try {
+      if (record.projectId) {
+        upsertProjectEntityRef({
+          projectId: record.projectId,
+          entityKind: 'analysis',
+          entityId: historyId,
+          label: nextName,
+        })
+      }
+      await syncHistoryRecord(historyId)
+    } catch (error) {
+      try {
+        if (record.projectId) {
+          upsertProjectEntityRef({
+            projectId: record.projectId,
+            entityKind: 'analysis',
+            entityId: historyId,
+            label: record.name,
+          })
+        }
+        await updateHistory(historyId, { name: record.name })
+        await syncHistoryRecord(historyId)
+      } catch (rollbackError) {
+        console.error('[History] Failed to rollback renamed history after project link error:', rollbackError)
+      }
+      throw error
+    }
+
+    set((state) => ({
+      analysisHistory: state.analysisHistory.map((history) =>
+        history.id === historyId ? { ...history, name: nextName } : history
       ),
     }))
   },

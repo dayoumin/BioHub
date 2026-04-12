@@ -25,6 +25,7 @@ export const TOAST = {
   },
   history: {
     loadError: '히스토리 로드에 실패했습니다.',
+    renameError: '히스토리 이름 변경에 실패했습니다.',
     settingsLoadError: '설정 로드에 실패했습니다.',
     noResults: '분석 결과가 없습니다.',
     reportGenerating: (format: string): string => `${format.toUpperCase()} 보고서를 생성하고 있습니다...`,
