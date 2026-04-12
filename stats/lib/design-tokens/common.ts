@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 
 /** 표준 focus ring — 모든 인터랙티브 요소에 사용 */
 export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+export const focusRingBio = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--section-accent-bio)]'
 
 // ===== 카드 스타일 =====
 
@@ -21,6 +22,16 @@ export const actionCardBase = cn(
   'transition-all duration-300',
   focusRing,
   'hover:bg-surface-container-low/30 hover:border-border/60',
+  'cursor-pointer group',
+)
+
+/** Bio-Tools 액션 카드 (섹션 accent는 개별 토큰으로 보강) */
+export const actionCardBioBase = cn(
+  'relative flex flex-col items-center justify-center gap-2 p-4 rounded-[1.5rem]',
+  'bg-surface-container-lowest',
+  'transition-colors duration-300',
+  focusRingBio,
+  'hover:bg-surface-container-low/80',
   'cursor-pointer group',
 )
 
@@ -40,6 +51,16 @@ export const categoryCardBase = cn(
   'transition-all duration-300',
   focusRing,
   'hover:bg-surface-container-low/30 hover:border-border/60',
+  'cursor-pointer group',
+)
+
+/** Bio-Tools 카테고리 카드 */
+export const categoryCardBioBase = cn(
+  'flex items-center gap-3 p-4 rounded-[1.5rem]',
+  'bg-surface-container-lowest',
+  'transition-colors duration-300',
+  focusRingBio,
+  'hover:bg-surface-container-low/80',
   'cursor-pointer group',
 )
 

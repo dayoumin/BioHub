@@ -12,7 +12,7 @@ import { BioToolsHub } from './BioToolsHub'
 import { BioToolSidebar } from './BioToolSidebar'
 import {
   BIO_BG_TINT,
-  BIO_HEADER_BORDER,
+  BIO_HEADER_SURFACE,
   BIO_ICON_BG,
   BIO_ICON_COLOR,
   BIO_LAYOUT,
@@ -64,14 +64,14 @@ export function BioToolWorkspace(): React.ReactElement {
       {/* 도구 헤더 — 뒤로가기 + 도구명 + 히스토리 */}
       {isToolActive && (
         <header
-          className={cn(LAYOUT.stickyHeader, 'border-b border-border')}
-          style={BIO_HEADER_BORDER}
+          className={cn(LAYOUT.stickyHeader)}
+          style={BIO_HEADER_SURFACE}
         >
-          <div className={cn('h-12 flex items-center gap-3', BIO_LAYOUT.contentPaddingX)}>
+          <div className={cn('h-12 flex items-center gap-3 rounded-b-[1.25rem]', BIO_LAYOUT.contentPaddingX)}>
             <button
               type="button"
               onClick={handleBack}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              className="p-1.5 rounded-md hover:bg-surface-container-high/70 transition-colors text-muted-foreground"
               aria-label="Bio-Tools 허브로 돌아가기"
             >
               <ArrowLeft className="w-4 h-4" />

@@ -1,9 +1,12 @@
 /** @deprecated '@/lib/design-tokens/common'에서 import하세요. 하위 호환용 re-export. */
 export {
   focusRing,
+  focusRingBio,
   actionCardBase,
+  actionCardBioBase,
   recommendationCardBase,
   categoryCardBase,
+  categoryCardBioBase,
   selectableItemBase,
   listItemBase,
   staticPanelBase,

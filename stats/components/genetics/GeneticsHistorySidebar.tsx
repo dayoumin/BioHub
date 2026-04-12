@@ -7,7 +7,7 @@
  * 필터 행으로 도구별 필터링 지원.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
@@ -44,16 +44,16 @@ const FILTER_OPTIONS: { value: ToolFilter; label: string }[] = [
   { value: 'protein', label: '단백질' },
 ]
 
-const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
-  barcoding: 'bg-green-500',
-  blast: 'bg-blue-500',
-  genbank: 'bg-amber-500',
-  'seq-stats': 'bg-violet-500',
-  similarity: 'bg-cyan-500',
-  phylogeny: 'bg-teal-500',
-  bold: 'bg-emerald-500',
-  translation: 'bg-orange-500',
-  protein: 'bg-rose-500',
+const TYPE_DOT_STYLE: Record<GeneticsToolType, CSSProperties> = {
+  barcoding: { backgroundColor: 'var(--section-accent-bio)' },
+  blast: { backgroundColor: 'var(--section-accent-analysis)' },
+  genbank: { backgroundColor: 'var(--section-accent-hub)' },
+  'seq-stats': { backgroundColor: 'color-mix(in oklch, var(--primary) 72%, var(--surface-container-highest) 28%)' },
+  similarity: { backgroundColor: 'var(--section-accent-graph)' },
+  phylogeny: { backgroundColor: 'color-mix(in oklch, var(--section-accent-analysis) 78%, var(--section-accent-bio) 22%)' },
+  bold: { backgroundColor: 'color-mix(in oklch, var(--section-accent-bio) 82%, var(--surface-container-highest) 18%)' },
+  translation: { backgroundColor: 'color-mix(in oklch, var(--primary) 58%, var(--section-accent-hub) 42%)' },
+  protein: { backgroundColor: 'color-mix(in oklch, var(--section-accent-graph) 68%, var(--primary) 32%)' },
 }
 
 // ── 텍스트 검색 ──
@@ -174,7 +174,10 @@ export function GeneticsHistorySidebar(): ReactNode {
 
       return (
         <div className="flex min-w-0 flex-1 items-start gap-2">
-          <div className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TYPE_DOT_COLOR[entry.type]}`} />
+          <div
+            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+            style={TYPE_DOT_STYLE[entry.type]}
+          />
           <div className="min-w-0 flex-1">
             <div className="truncate text-xs leading-tight">{item.title}</div>
             {item.subtitle && (

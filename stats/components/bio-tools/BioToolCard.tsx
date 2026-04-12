@@ -4,9 +4,10 @@ import { memo } from 'react'
 import Link from 'next/link'
 import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { actionCardBase, iconContainerMuted, focusRing } from '@/components/common/card-styles'
+import { actionCardBioBase, focusRingBio } from '@/components/common/card-styles'
 import type { BioTool } from '@/lib/bio-tools/bio-tool-registry'
 import { usePinnedToolsStore } from '@/lib/bio-tools/pinned-tools-store'
+import { BIO_ICON_BG, BIO_ICON_COLOR } from './bio-styles'
 
 interface BioToolCardProps {
   tool: BioTool
@@ -27,31 +28,8 @@ export const BioToolCard = memo(function BioToolCard({ tool, onSelect }: BioTool
   }
 
   const Icon = tool.icon
-
-  const card = (
-    <div
-      className={cn(
-        actionCardBase,
-        'min-h-[140px] cursor-pointer',
-        disabled && 'opacity-50 cursor-not-allowed hover:border-border hover:shadow-none',
-      )}
-    >
-      {/* 핀 토글 */}
-      {!disabled && (
-        <button
-          onClick={handlePinClick}
-          className={`absolute top-2 left-2 p-1 rounded-md hover:bg-muted transition-colors ${focusRing}`}
-          aria-label={isPinned ? '핀 해제' : '핀 고정'}
-        >
-          <Star
-            className={cn(
-              'w-3.5 h-3.5 transition-colors',
-              isPinned ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/40',
-            )}
-          />
-        </button>
-      )}
-
+  const cardContent = (
+    <>
       {/* 뱃지 */}
       {disabled && (
         <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium">
@@ -59,36 +37,80 @@ export const BioToolCard = memo(function BioToolCard({ tool, onSelect }: BioTool
         </span>
       )}
 
-      <div className={iconContainerMuted}>
-        <Icon className="w-5 h-5" />
+      <div
+        className="rounded-full p-2.5 transition-colors duration-200 group-hover:bg-surface-container-high/70"
+        style={BIO_ICON_BG}
+      >
+        <Icon className="w-5 h-5" style={BIO_ICON_COLOR} />
       </div>
       <span className="text-sm font-medium text-center leading-tight">{tool.nameEn}</span>
       <span className="text-xs text-muted-foreground text-center">{tool.nameKo}</span>
       <span className="text-[11px] text-muted-foreground/60 text-center leading-snug line-clamp-2 px-1">
         {tool.description}
       </span>
-    </div>
+    </>
   )
 
-  if (disabled) return card
+  if (disabled) {
+    return (
+      <div
+        className={cn(
+          actionCardBioBase,
+          'min-h-[140px] cursor-not-allowed opacity-50 hover:bg-surface-container-lowest',
+        )}
+      >
+        {cardContent}
+      </div>
+    )
+  }
 
   if (onSelect) {
     return (
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => onSelect(tool.id)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(tool.id) } }}
-        className="block w-full text-left cursor-pointer"
-      >
-        {card}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => onSelect(tool.id)}
+          className={cn(actionCardBioBase, 'min-h-[140px] w-full text-left')}
+        >
+          {cardContent}
+        </button>
+        <button
+          type="button"
+          onClick={handlePinClick}
+          className={cn('absolute left-2 top-2 rounded-md p-1 transition-colors hover:bg-muted', focusRingBio)}
+          aria-label={isPinned ? '핀 해제' : '핀 고정'}
+        >
+          <Star
+            className={cn(
+              'w-3.5 h-3.5 transition-colors',
+              isPinned ? 'fill-current' : 'text-muted-foreground/40',
+            )}
+            style={isPinned ? BIO_ICON_COLOR : undefined}
+          />
+        </button>
       </div>
     )
   }
 
   return (
-    <Link href={`/bio-tools?tool=${tool.id}`} className="block">
-      {card}
-    </Link>
+    <div className="relative">
+      <Link href={`/bio-tools?tool=${tool.id}`} className={cn(actionCardBioBase, 'min-h-[140px] block')}>
+        {cardContent}
+      </Link>
+      <button
+        type="button"
+        onClick={handlePinClick}
+        className={cn('absolute left-2 top-2 rounded-md p-1 transition-colors hover:bg-muted', focusRingBio)}
+        aria-label={isPinned ? '핀 해제' : '핀 고정'}
+      >
+        <Star
+          className={cn(
+            'w-3.5 h-3.5 transition-colors',
+            isPinned ? 'fill-current' : 'text-muted-foreground/40',
+          )}
+          style={isPinned ? BIO_ICON_COLOR : undefined}
+        />
+      </button>
+    </div>
   )
 })

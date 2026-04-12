@@ -22,15 +22,32 @@ export const BIO_ICON_COLOR = {
   color: `var(${BIO_ACCENT_VAR})`,
 } as const
 
+/** Bio-Tools 본문 강조 텍스트/아이콘 */
+export const BIO_ACCENT_TEXT = {
+  color: `var(${BIO_ACCENT_VAR})`,
+} as const
+
 /** 뱃지 스타일 (BADGE_ANALYSIS_STYLE 패턴) */
 export const BADGE_BIO_STYLE = {
   background: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 12%, transparent)`,
   color: `var(${BIO_ACCENT_VAR})`,
 } as const
 
-/** Shell 헤더 상단 border (AnalysisLayout, GraphStudioHeader 패턴) */
-export const BIO_HEADER_BORDER = {
-  borderTop: `2px solid var(${BIO_ACCENT_VAR})`,
+/** 허브 섹션용 소프트 패널 */
+export const BIO_HUB_PANEL_STYLE = {
+  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 5%, var(--surface-container-lowest))`,
+  borderColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 14%, transparent)`,
+} as const
+
+/** 허브 카테고리 선택 상태 */
+export const BIO_HUB_ACTIVE_CARD_STYLE = {
+  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 9%, var(--surface-container-lowest))`,
+  boxShadow: `0 12px 32px color-mix(in oklch, var(${BIO_ACCENT_VAR}) 14%, transparent)`,
+} as const
+
+/** 활성 툴 셸 헤더 배경 */
+export const BIO_HEADER_SURFACE = {
+  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 6%, var(--surface-container-lowest))`,
 } as const
 
 /** 페이지 배경 틴트 (AnalysisLayout 패턴 — 4% accent) */

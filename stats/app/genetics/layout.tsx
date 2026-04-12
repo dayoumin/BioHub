@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { GeneticsHistorySidebar } from '@/components/genetics/GeneticsHistorySidebar'
+import { GeneticsSidebarSlot } from '@/components/genetics/GeneticsSidebarSlot'
 import { GeneticsSubNav } from '@/components/genetics/GeneticsSubNav'
 
 export default function GeneticsLayout({ children }: { children: React.ReactNode }) {
@@ -9,7 +9,7 @@ export default function GeneticsLayout({ children }: { children: React.ReactNode
         <GeneticsSubNav />
         <Suspense>{children}</Suspense>
       </div>
-      <Suspense><GeneticsHistorySidebar /></Suspense>
+      <GeneticsSidebarSlot />
     </div>
   )
 }

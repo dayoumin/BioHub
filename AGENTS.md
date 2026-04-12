@@ -18,6 +18,12 @@
 - **Bio-Tools**: 16개 생물학 분석 도구 (4카테고리) — 통계 하위 간편 분석
 - **데이터 도구**: 2개
 
+## 플랫폼 우선순위
+
+- **PC 우선**: 이 프로젝트는 연구/분석 워크플로우 특성상 **데스크탑 앱 + PC 웹**을 기본 타겟으로 한다.
+- **모바일 비우선**: 모바일 반응형/모바일 UX 최적화는 기본 요구사항이 아니다. 별도 요청이 없는 한 모바일 이슈를 우선순위에 올리지 말 것.
+- **모바일 대응 범위**: 필요 시에도 우선은 관리/조회 수준의 보조 대응만 고려하고, 핵심 분석 UX는 PC 중심으로 설계/검토할 것.
+
 ## 아키텍처 결정 (CRITICAL)
 
 - **Analysis = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub, 분석 `/analysis`)
@@ -55,7 +61,7 @@
 - **레지스트리 필수**: 도구 추가/수정 시 `lib/bio-tools/bio-tool-registry.ts`만 수정
 - **공통 훅**: `useBioToolAnalysis<T>()` 사용 (CSV 업로드 → Pyodide 분석 → 결과 상태)
 - **디자인 토큰 필수** (`components/bio-tools/bio-styles.ts`):
-  - 섹션 accent: `BIO_HEADER_BORDER`, `BIO_BG_TINT`, `BIO_ICON_BG`, `BIO_ICON_COLOR`
+  - 섹션 accent: `BIO_HEADER_SURFACE`, `BIO_BG_TINT`, `BIO_ICON_BG`, `BIO_ICON_COLOR`
   - 유의성 배지: `SIGNIFICANCE_BADGE.significant/nonSignificant` (하드코딩 green/gray 금지)
   - 테이블 셀: `BIO_TABLE.headerCell/bodyCell` (하드코딩 `px-3 py-2` 금지)
   - 뱃지: `BADGE_BIO_STYLE`

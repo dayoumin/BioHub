@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Clock, ChevronDown, Leaf } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  categoryCardBase,
+  categoryCardBioBase,
   staggerContainer,
   staggerItem,
 } from '@/components/common/card-styles'
@@ -18,7 +18,13 @@ import {
 import { usePinnedToolsStore } from '@/lib/bio-tools/pinned-tools-store'
 import { loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
 import { BioToolCard } from './BioToolCard'
-import { BIO_ICON_BG, BIO_ICON_COLOR } from './bio-styles'
+import {
+  BIO_ACCENT_TEXT,
+  BIO_HUB_ACTIVE_CARD_STYLE,
+  BIO_HUB_PANEL_STYLE,
+  BIO_ICON_BG,
+  BIO_ICON_COLOR,
+} from './bio-styles'
 
 interface BioToolsHubProps {
   onSelectTool?: (toolId: string) => void
@@ -73,7 +79,7 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
       {hasPinned && (
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+            <Star className="w-3.5 h-3.5 fill-current" style={BIO_ACCENT_TEXT} />
             <h2 className="text-sm font-semibold text-muted-foreground">내 도구</h2>
           </div>
           <motion.div
@@ -115,11 +121,16 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
 
       {/* 빈 상태 온보딩 (핀도 최근도 없을 때) */}
       {!hasPinned && !hasRecent && (
-        <div className="rounded-2xl border border-dashed border-border/60 px-6 py-8 text-center">
-          <Leaf className="w-8 h-8 mx-auto mb-3 text-muted-foreground/30" />
+        <div
+          className="rounded-2xl border px-6 py-8 text-center"
+          style={BIO_HUB_PANEL_STYLE}
+        >
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full" style={BIO_ICON_BG}>
+            <Leaf className="w-6 h-6" style={BIO_ICON_COLOR} />
+          </div>
           <p className="text-sm text-muted-foreground">
             자주 쓰는 도구를{' '}
-            <Star className="inline w-3.5 h-3.5 text-yellow-400 fill-yellow-400 -mt-0.5" />{' '}
+            <Star className="inline -mt-0.5 w-3.5 h-3.5 fill-current" style={BIO_ACCENT_TEXT} />{' '}
             고정하면 여기에서 바로 실행할 수 있습니다
           </p>
           <p className="mt-1 text-xs text-muted-foreground/60">
@@ -144,9 +155,10 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
                 type="button"
                 onClick={() => setExpandedCategory(prev => prev === cat.id ? null : cat.id)}
                 className={cn(
-                  categoryCardBase,
-                  isExpanded && 'border-primary/40 bg-primary/5 shadow-sm',
+                  categoryCardBioBase,
+                  isExpanded && 'shadow-none',
                 )}
+                style={isExpanded ? BIO_HUB_ACTIVE_CARD_STYLE : undefined}
                 aria-expanded={expandedCategory === cat.id}
               >
                 <div className="p-2 rounded-lg" style={BIO_ICON_BG}>
