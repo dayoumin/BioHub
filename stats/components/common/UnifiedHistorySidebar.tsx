@@ -13,7 +13,7 @@
  */
 
 import { memo, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
-import { ChevronRight, Clock, Pin, Trash2 } from 'lucide-react'
+import { Clock, PanelRightClose, PanelRightOpen, Pin, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { HistoryItem, UnifiedHistorySidebarProps } from '@/types/history'
@@ -193,7 +193,7 @@ export function UnifiedHistorySidebar<T>({
             className="group relative flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-muted-foreground/50 transition-all hover:border-border hover:bg-muted/50 hover:text-foreground"
             title="히스토리 패널 열기"
           >
-            <Clock className="h-4 w-4" />
+            <PanelRightOpen className="h-4 w-4" />
             {items.length > 0 && (
               <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {items.length > 99 ? '99+' : items.length}
@@ -241,7 +241,7 @@ export function UnifiedHistorySidebar<T>({
               className="rounded p-0.5 text-muted-foreground/30 transition-colors hover:bg-muted hover:text-foreground"
               title="패널 접기"
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <PanelRightClose className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

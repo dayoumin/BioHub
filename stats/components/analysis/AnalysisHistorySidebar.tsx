@@ -74,6 +74,7 @@ export function AnalysisHistorySidebar(): ReactNode {
     async (item: HistoryItem<AnalysisHistory>) => {
       try {
         await loadAndRestoreHistory(item.id)
+        useModeStore.getState().setShowHub(false)
       } catch (error) {
         logger.error('[AnalysisHistorySidebar] Failed to load history', { error })
         toast.error(TOAST.history.loadError)
@@ -113,7 +114,9 @@ export function AnalysisHistorySidebar(): ReactNode {
         const settings = await loadSettingsFromHistory(historyId)
         if (settings) {
           useAnalysisStore.getState().restoreSettingsFromHistory(settings)
-          useModeStore.getState().setStepTrack('reanalysis')
+          const modeStore = useModeStore.getState()
+          modeStore.setStepTrack('reanalysis')
+          modeStore.setShowHub(false)
         }
       } catch (error) {
         logger.error('[AnalysisHistorySidebar] Failed to load settings', { error })
