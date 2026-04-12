@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.44.0",
-  "lastUpdated": "2026-04-11",
+  "version": "1.44.1",
+  "lastUpdated": "2026-04-12",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -161,6 +161,19 @@
             "getKoreanName",
             "searchTerms",
             "anova",
+            "regression"
+          ]
+        },
+        {
+          "name": "히스토리 결과 보기 CTA 테스트",
+          "purpose": "원본 업로드 데이터가 없는 히스토리 결과에서도 재분석/Graph Studio 진입 같은 후속 액션이 결과 스냅샷만으로 노출되는지 검증",
+          "code": "import { render, screen, fireEvent } from '@testing-library/react';\nimport { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep';\nimport { buildAnalysisVisualizationColumns } from '@/lib/graph-studio';\n\nvi.mock('@/lib/graph-studio', async () => {\n  const actual = await vi.importActual<typeof import('@/lib/graph-studio')>('@/lib/graph-studio');\n  return {\n    ...actual,\n    buildAnalysisVisualizationColumns: vi.fn(() => ({\n      chartType: 'bar',\n      data: { group: ['A', 'B'], mean: [10, 14] },\n      xField: 'group',\n      yField: 'mean',\n    })),\n  };\n});\n\nit('히스토리 결과 보기에서는 변수 선택 버튼 대신 Graph Studio CTA를 노출한다', async () => {\n  render(<ResultsActionStep />);\n\n  expect(screen.queryByRole('button', { name: '변수 선택으로' })).not.toBeInTheDocument();\n\n  fireEvent.click(screen.getByRole('button', { name: 'Graph Studio' }));\n\n  expect(buildAnalysisVisualizationColumns).toHaveBeenCalled();\n});",
+          "keywords": [
+            "ResultsActionStep",
+            "history result view",
+            "Graph Studio",
+            "CTA",
+            "visualization bridge",
             "regression"
           ]
         }
@@ -958,6 +971,19 @@
             "sort",
             "immutability",
             "buildSignificanceGraphics"
+          ]
+        },
+        {
+          "name": "히스토리 결과 스냅샷 → Graph Studio 브리지 테스트",
+          "purpose": "analysis result의 visualizationData/groupStats만으로 Graph Studio용 컬럼 데이터를 재구성하는 pure adapter 회귀 패턴",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { buildAnalysisVisualizationColumns } from '@/lib/graph-studio';\nimport type { AnalysisResult } from '@/types/analysis';\n\ndescribe('buildAnalysisVisualizationColumns', () => {\n  it('boxplot-multiple visualizationData를 Graph Studio boxplot 데이터로 변환한다', () => {\n    const result: AnalysisResult = {\n      method: 'anova',\n      statistic: 4.2,\n      pValue: 0.01,\n      interpretation: '유의한 차이가 있습니다.',\n      visualizationData: {\n        type: 'boxplot-multiple',\n        data: [\n          { label: 'Control', values: [10, 12, 11] },\n          { label: 'Treatment', values: [14, 16, 15] },\n        ] as unknown as Record<string, unknown>,\n      },\n    };\n\n    const built = buildAnalysisVisualizationColumns(result);\n\n    expect(built?.chartType).toBe('boxplot');\n    expect(built?.data.group).toEqual(['Control', 'Control', 'Control', 'Treatment', 'Treatment', 'Treatment']);\n  });\n\n  it('지원하지 않는 visualizationData여도 groupStats가 있으면 bar 차트로 fallback한다', () => {\n    const built = buildAnalysisVisualizationColumns({\n      method: 'mixed-model',\n      statistic: 2.1,\n      pValue: 0.08,\n      interpretation: '차이가 없습니다.',\n      groupStats: [\n        { name: 'A', mean: 10, std: 2, n: 12 },\n        { name: 'B', mean: 14, std: 3, n: 12 },\n      ],\n      visualizationData: { type: 'unsupported-custom-type', data: {} },\n    });\n\n    expect(built?.chartType).toBe('bar');\n    expect(built?.yField).toBe('mean');\n  });\n});",
+          "keywords": [
+            "buildAnalysisVisualizationColumns",
+            "history snapshot",
+            "Graph Studio",
+            "visualizationData",
+            "groupStats",
+            "fallback"
           ]
         }
       ]
