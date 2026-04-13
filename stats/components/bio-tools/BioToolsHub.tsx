@@ -24,15 +24,7 @@ interface BioToolsHubProps {
 
 interface BioCategoryCardMeta {
   category: BioToolCategory
-  description: string
   tools: readonly BioTool[]
-}
-
-const CATEGORY_COPY: Record<BioToolCategory, string> = {
-  ecology: '군집 구조와 다양성, 거리 기반 비교를 볼 때',
-  fisheries: '성장과 체형, 상태 지수를 계산할 때',
-  genetics: '집단 유전과 종 검증 관련 분석이 필요할 때',
-  methods: '메타분석, 진단 성능, 신뢰도 검정이 필요할 때',
 }
 
 export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsHubProps): React.ReactElement {
@@ -65,7 +57,6 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
   const categoryCards = useMemo<BioCategoryCardMeta[]>(
     () => BIO_TOOL_CATEGORIES.map((meta) => ({
       category: meta.id,
-      description: CATEGORY_COPY[meta.id],
       tools: getBioToolsByCategory(meta.id),
     })),
     [],
@@ -128,7 +119,7 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
               type="button"
               onClick={() => setSelectedCategory(item.category)}
               className={cn(
-                'flex h-full min-h-[188px] rounded-[1.75rem] bg-surface-container-lowest p-7 text-left transition-colors duration-200 hover:bg-surface-container-low',
+                'flex h-full min-h-[112px] rounded-[1.5rem] bg-surface-container-lowest px-6 py-5 text-left transition-colors duration-200 hover:bg-surface-container-low',
                 item.category === selectedCategory ? 'shadow-none bg-surface-container-lowest' : 'bg-surface-container-lowest',
               )}
               style={item.category === selectedCategory ? BIO_HUB_ACTIVE_CARD_STYLE : undefined}
@@ -139,7 +130,7 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
                 <div className="flex items-start justify-between gap-3">
                   <span
                     className={cn(
-                      'text-lg font-semibold tracking-tight',
+                      'text-[1.0625rem] font-semibold tracking-tight',
                       item.category === selectedCategory ? 'text-white' : 'text-foreground/90',
                     )}
                   >
@@ -147,17 +138,11 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
                   </span>
                 </div>
                 <span className={cn(
-                  'mt-3 text-sm font-medium',
+                  'mt-2 text-sm font-medium',
                   item.category === selectedCategory ? 'text-white/75' : 'text-muted-foreground/70',
                 )}>
                   도구 {item.tools.length}개
                 </span>
-                <p className={cn(
-                  'mt-3 text-sm leading-relaxed',
-                  item.category === selectedCategory ? 'text-white/80' : 'text-muted-foreground',
-                )}>
-                  {item.description}
-                </p>
               </div>
             </button>
           ))}

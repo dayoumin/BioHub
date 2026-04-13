@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,18 +20,6 @@ export const BioToolCard = memo(function BioToolCard({ tool, onSelect }: BioTool
   const togglePin = usePinnedToolsStore((s) => s.togglePin)
 
   const disabled = tool.status === 'coming-soon'
-  const inputLabel = useMemo(() => {
-    switch (tool.inputType) {
-      case 'csv':
-        return 'CSV'
-      case 'fasta':
-        return 'FASTA'
-      case 'matrix':
-        return '행렬'
-      case 'csv-or-matrix':
-        return 'CSV 또는 행렬'
-    }
-  }, [tool.inputType])
 
   const handlePinClick = (e: React.MouseEvent): void => {
     e.preventDefault()
@@ -47,32 +35,17 @@ export const BioToolCard = memo(function BioToolCard({ tool, onSelect }: BioTool
           준비 중
         </span>
       )}
-      <div className="mb-4 min-w-0 pr-10">
+      <div className="min-w-0 pr-10">
         <h3 className="text-base font-semibold tracking-tight text-foreground/90">{tool.nameKo}</h3>
-        <span className="mt-1 block text-xs text-muted-foreground/80">{tool.nameEn}</span>
-        {!disabled && (
-          <span className="mt-3 inline-flex rounded-full bg-surface-container-low px-2.5 py-1 text-[11px] font-medium text-muted-foreground/80">
-            {inputLabel}
-          </span>
-        )}
       </div>
 
-      <div className="flex flex-1 flex-col">
-        <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between">
+      <div className="mt-4 flex justify-end">
         {disabled ? (
           <span className="text-xs font-medium" style={BIO_ICON_COLOR}>
             업데이트 예정
           </span>
         ) : (
-          <>
-            <span className="text-xs font-medium" style={BIO_ICON_COLOR}>
-              열기
-            </span>
-            <ArrowRight className="h-4.5 w-4.5 transition-transform duration-200 group-hover:translate-x-1" style={BIO_ICON_COLOR} />
-          </>
+          <ArrowRight className="h-4.5 w-4.5 transition-transform duration-200 group-hover:translate-x-1" style={BIO_ICON_COLOR} />
         )}
       </div>
     </div>
@@ -97,7 +70,7 @@ export const BioToolCard = memo(function BioToolCard({ tool, onSelect }: BioTool
 
   const cardContainerClass = cn(
     actionCardBioBase,
-    'group w-full min-h-[208px] items-stretch justify-start rounded-[1.75rem] p-6 text-left !gap-0'
+    'group w-full min-h-[120px] items-stretch justify-between rounded-[1.5rem] p-5 text-left !gap-0'
   )
 
   if (disabled) {

@@ -225,7 +225,7 @@ export default function GeneticsHome(): React.ReactElement {
   }, [history])
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">유전적 분석</h1>
@@ -310,7 +310,7 @@ function CategoryCard({
       type="button"
       onClick={() => onSelect(category.id)}
       className={cn(
-        'flex h-full min-h-[188px] rounded-[1.75rem] bg-surface-container-lowest p-7 text-left transition-colors duration-200 hover:bg-surface-container-low',
+        'flex h-full min-h-[112px] rounded-[1.5rem] bg-surface-container-lowest px-6 py-5 text-left transition-colors duration-200 hover:bg-surface-container-low',
         active ? 'shadow-none' : 'bg-surface-container-lowest',
       )}
       style={active ? GENETICS_ACTIVE_CATEGORY_STYLE : undefined}
@@ -321,7 +321,7 @@ function CategoryCard({
         <div className="flex items-start justify-between gap-3">
           <span
             className={cn(
-              'text-lg font-semibold tracking-tight',
+              'text-[1.0625rem] font-semibold tracking-tight',
               active ? 'text-white' : 'text-foreground/90',
             )}
           >
@@ -329,17 +329,11 @@ function CategoryCard({
           </span>
         </div>
         <span className={cn(
-          'mt-3 text-sm font-medium',
+          'mt-2 text-sm font-medium',
           active ? 'text-white/75' : 'text-muted-foreground/70',
         )}>
           도구 {category.toolIds.length}개
         </span>
-        <p className={cn(
-          'mt-3 text-sm leading-relaxed',
-          active ? 'text-white/80' : 'text-muted-foreground',
-        )}>
-          {category.description}
-        </p>
       </div>
     </button>
   )
@@ -368,21 +362,15 @@ function RecentToolCard({ item }: { item: RecentToolItem }): React.ReactElement 
 function ReadyCard({ tool }: { tool: Tool }): React.ReactElement {
   return (
     <Link href={tool.href} className="block h-full">
-      <div className="group flex h-full min-h-[208px] flex-col rounded-[1.75rem] bg-surface-container-lowest p-6 transition-colors duration-200 hover:bg-surface-container-low">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold tracking-tight text-foreground/90">{tool.title}</h3>
-          </div>
-          <span className="rounded-full bg-surface-container-low px-2.5 py-1 text-[11px] font-medium text-muted-foreground/80">
-            {tool.input}
-          </span>
+      <div className="group flex h-full min-h-[120px] flex-col justify-between rounded-[1.5rem] bg-surface-container-lowest p-5 transition-colors duration-200 hover:bg-surface-container-low">
+        <div className="min-w-0 pr-6">
+          <h3 className="text-base font-semibold tracking-tight text-foreground/90">{tool.title}</h3>
         </div>
-        <div className="flex flex-1 flex-col">
-          <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
-        </div>
-        <div className="mt-5 flex items-center justify-between">
-          <span className="text-xs font-medium" style={GENETICS_ACCENT_TEXT}>열기</span>
-          <ArrowRight className="h-4.5 w-4.5 transition-transform duration-200 group-hover:translate-x-1" style={GENETICS_ACCENT_TEXT} />
+        <div className="mt-4 flex justify-end">
+          <ArrowRight
+            className="h-4.5 w-4.5 transition-transform duration-200 group-hover:translate-x-1"
+            style={GENETICS_ACCENT_TEXT}
+          />
         </div>
       </div>
     </Link>
