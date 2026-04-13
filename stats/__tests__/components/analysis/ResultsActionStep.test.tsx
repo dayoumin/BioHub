@@ -776,9 +776,15 @@ vi.mock('@/lib/stores/mode-store', () => ({
 // History store mock (saveToHistory, loadedInterpretationChat, currentHistoryId)
 const defaultHistoryStoreState = {
   saveToHistory: vi.fn(),
+  analysisHistory: [] as Array<{ id: string; aiInterpretation: string | null }>,
   loadedInterpretationChat: null,
+  loadedPaperDraft: null,
   currentHistoryId: null as string | null,
+  patchHistoryPaperDraft: vi.fn(),
+  patchHistoryInterpretation: vi.fn(),
+  setLoadedAiInterpretation: vi.fn(),
   setLoadedInterpretationChat: vi.fn(),
+  setLoadedPaperDraft: vi.fn(),
 }
 
 let mockHistoryStoreState = { ...defaultHistoryStoreState }
@@ -1070,6 +1076,48 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       // "전체 보기" 버튼이 없어야 함 (섹션 없음)
       expect(screen.queryByText('전체 보기')).not.toBeInTheDocument()
+    })
+
+    it('스트리밍이 끝나기 전에는 히스토리 AI 해석을 저장하지 않는다', async () => {
+      const { requestInterpretation } = await import('@/lib/services/result-interpreter')
+
+      let resolveStream: (() => void) | null = null
+      vi.mocked(requestInterpretation).mockImplementation(
+        async (_ctx, onChunk) => {
+          onChunk('부분 해석')
+          await new Promise<void>((resolve) => {
+            resolveStream = resolve
+          })
+          return { model: 'test-model', provider: 'openrouter' as const }
+        }
+      )
+
+      mockHistoryStoreState = {
+        ...defaultHistoryStoreState,
+        currentHistoryId: 'history-1',
+        analysisHistory: [{ id: 'history-1', aiInterpretation: null }],
+        patchHistoryInterpretation: vi.fn().mockResolvedValue(undefined),
+      }
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'AI 해석 생성하기' }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
+      })
+
+      expect(mockHistoryStoreState.patchHistoryInterpretation).not.toHaveBeenCalled()
+
+      await act(async () => {
+        resolveStream?.()
+        await Promise.resolve()
+      })
+
+      await waitFor(() => {
+        expect(mockHistoryStoreState.patchHistoryInterpretation).toHaveBeenCalledTimes(1)
+      })
+      expect(mockHistoryStoreState.patchHistoryInterpretation).toHaveBeenCalledWith('history-1', '부분 해석')
     })
   })
 

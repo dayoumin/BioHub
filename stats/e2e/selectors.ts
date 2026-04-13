@@ -160,6 +160,15 @@ export const S = {
   // ===== Recent Activity =====
   recentActivityCard: (id: string) => `[data-testid="recent-activity-card-${id}"]`,
 
+  // ===== Analysis History Sidebar =====
+  analysisHistoryMoreActions: (id: string) => `[data-testid="analysis-history-more-actions-${id}"]`,
+  analysisHistoryRenameAction: (id: string) => `[data-testid="analysis-history-rename-action-${id}"]`,
+  analysisHistoryReanalyzeAction: (id: string) => `[data-testid="analysis-history-reanalyze-action-${id}"]`,
+  analysisHistoryRenameDialog: '[data-testid="analysis-history-rename-dialog"]',
+  analysisHistoryRenameInput: '[data-testid="analysis-history-rename-input"]',
+  analysisHistoryRenameCancel: '[data-testid="analysis-history-rename-cancel"]',
+  analysisHistoryRenameSave: '[data-testid="analysis-history-rename-save"]',
+
   // ===== Reanalysis =====
   reanalysisBtn: '[data-testid="reanalysis-btn"]',
   reanalysisPanel: '[data-testid="reanalysis-panel"]',
@@ -171,6 +180,9 @@ export const S = {
   // ===== Hub (추가 카드) =====
   hubVisualizationCard: '[data-testid="hub-visualization-card"]',
   hubSampleSizeCard: '[data-testid="hub-sample-size-card"]',
+
+  // ===== Bio-Tools =====
+  bioToolsEmptyState: '[data-testid="bio-tools-empty-state"]',
 
   // ===== Smart Flow 추가 =====
   /** 결과 Q&A 팔로업 섹션 */

@@ -244,7 +244,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     }
 
     const sectionId = pendingSerializeSectionRef.current
-    if (!sectionId) return currentDoc
+    if (!sectionId) {
+      return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+    }
 
     pendingSerializeSectionRef.current = null
     try {

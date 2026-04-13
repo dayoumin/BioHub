@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { buildAnalysisVisualizationColumns } from '@/lib/graph-studio'
 import type { AnalysisResult } from '@/types/analysis'
 
+type FidelityBridgeResult = NonNullable<ReturnType<typeof buildAnalysisVisualizationColumns>> & {
+  trendline?: { type: 'linear'; showEquation?: boolean }
+  errorBar?: { type: string; value?: number }
+}
+
 describe('buildAnalysisVisualizationColumns', () => {
   it('boxplot-multiple visualizationData를 Graph Studio boxplot 데이터로 변환한다', () => {
     const result: AnalysisResult = {
@@ -81,5 +86,78 @@ describe('buildAnalysisVisualizationColumns', () => {
     expect(built?.yField).toBe('mean')
     expect(built?.data.group).toEqual(['A', 'B'])
     expect(built?.data.mean).toEqual([10, 14])
+  })
+
+  it('scatter-regression visualizationData를 trendline이 있는 scatter 데이터로 변환한다', () => {
+    const result: AnalysisResult = {
+      method: 'simple-regression',
+      statistic: 12.4,
+      pValue: 0.002,
+      interpretation: '회귀선이 유의합니다.',
+      visualizationData: {
+        type: 'scatter-regression',
+        data: {
+          x: [1, 2, 3, 4],
+          y: [2, 4, 6, 8],
+          regression: [2, 4, 6, 8],
+        },
+      },
+    }
+
+    const built = buildAnalysisVisualizationColumns(result) as FidelityBridgeResult | null
+
+    expect(built).not.toBeNull()
+    expect(built?.chartType).toBe('scatter')
+    expect(built?.xField).toBe('x')
+    expect(built?.yField).toBe('y')
+    expect(built?.data.x).toEqual([1, 2, 3, 4])
+    expect(built?.data.y).toEqual([2, 4, 6, 8])
+    expect(built?.trendline).toEqual({ type: 'linear', showEquation: true })
+  })
+
+  it('bar visualizationData with stderr is converted into explicit error-bar data', () => {
+    const result: AnalysisResult = {
+      method: 'means-plot',
+      statistic: 0,
+      pValue: 1,
+      interpretation: '그룹별 평균입니다.',
+      visualizationData: {
+        type: 'bar',
+        data: {
+          plotData: [
+            { group: 'A', mean: 10, stderr: 1.2 },
+            { group: 'B', mean: 12, stderr: 0.8 },
+          ],
+        },
+      },
+    }
+
+    const built = buildAnalysisVisualizationColumns(result) as FidelityBridgeResult | null
+
+    expect(built).not.toBeNull()
+    expect(built?.chartType).toBe('error-bar')
+    expect(built?.xField).toBe('category')
+    expect(built?.yField).toBe('value')
+    expect(built?.data.category).toEqual(['A', 'B'])
+    expect(built?.data.value).toEqual([10, 12])
+    expect(built?.data.error).toEqual([1.2, 0.8])
+    expect(built?.errorBar).toEqual({ type: 'stderr' })
+  })
+
+  it('dendrogram visualizationData는 잘못된 선형 차트로 변환하지 않는다', () => {
+    const result: AnalysisResult = {
+      method: 'factor-analysis',
+      statistic: 0,
+      pValue: 1,
+      interpretation: '요인 분석 결과입니다.',
+      visualizationData: {
+        type: 'dendrogram',
+        data: {
+          linkage: [[0, 1, 0.4, 2]],
+        },
+      },
+    }
+
+    expect(buildAnalysisVisualizationColumns(result)).toBeNull()
   })
 })

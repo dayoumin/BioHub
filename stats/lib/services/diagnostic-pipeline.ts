@@ -721,16 +721,57 @@ export function resolveVariableFromAnswer(
 
   if (matched.length === 0) return null
 
+  const missingRoles = pending.missingRoles
+  const requestedGroupRole: 'factor' | 'independent' | 'between' = missingRoles.includes('independent')
+    ? 'independent'
+    : missingRoles.includes('between')
+      ? 'between'
+      : 'factor'
+  const shouldFillDependent = missingRoles.includes('dependent') || missingRoles.length === 0
+  const shouldFillGroup = missingRoles.includes('factor')
+    || missingRoles.includes('independent')
+    || missingRoles.includes('between')
+    || missingRoles.length === 0
+
   const result: AIRecommendation['variableAssignments'] = {}
   for (const col of matched) {
-    if (col.type === 'categorical') {
+    if (col.type === 'numeric') {
+      if (shouldFillDependent) {
+        if (!result.dependent) result.dependent = []
+        result.dependent.push(col.column)
+        continue
+      }
+
+      if (shouldFillGroup && requestedGroupRole === 'independent') {
+        if (!result.independent) result.independent = []
+        result.independent.push(col.column)
+      }
+      continue
+    }
+
+    if (!shouldFillGroup) {
+      continue
+    }
+
+    if (requestedGroupRole === 'independent') {
+      if (!result.independent) result.independent = []
+      result.independent.push(col.column)
+    } else if (requestedGroupRole === 'between') {
+      if (!result.between) result.between = []
+      result.between.push(col.column)
+    } else {
       if (!result.factor) result.factor = []
       result.factor.push(col.column)
-    } else {
+    }
+  }
+
+  if (Object.keys(result).length === 0) {
+    for (const col of matched) {
       if (!result.dependent) result.dependent = []
       result.dependent.push(col.column)
     }
   }
+
   return result
 }
 

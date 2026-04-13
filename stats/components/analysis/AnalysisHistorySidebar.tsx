@@ -57,12 +57,20 @@ export function AnalysisHistorySidebar(): ReactNode {
     deleteFromHistory,
     loadSettingsFromHistory,
     renameHistory,
+    setCurrentHistoryId,
+    setLoadedAiInterpretation,
+    setLoadedInterpretationChat,
+    setLoadedPaperDraft,
   } = useHistoryStore(useShallow((s) => ({
     analysisHistory: s.analysisHistory,
     currentHistoryId: s.currentHistoryId,
     deleteFromHistory: s.deleteFromHistory,
     loadSettingsFromHistory: s.loadSettingsFromHistory,
     renameHistory: s.renameHistory,
+    setCurrentHistoryId: s.setCurrentHistoryId,
+    setLoadedAiInterpretation: s.setLoadedAiInterpretation,
+    setLoadedInterpretationChat: s.setLoadedInterpretationChat,
+    setLoadedPaperDraft: s.setLoadedPaperDraft,
   })))
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (stale pin 방어)
@@ -153,6 +161,10 @@ export function AnalysisHistorySidebar(): ReactNode {
       try {
         const settings = await loadSettingsFromHistory(historyId)
         if (settings) {
+          setCurrentHistoryId(null)
+          setLoadedAiInterpretation(null)
+          setLoadedInterpretationChat(null)
+          setLoadedPaperDraft(null)
           useAnalysisStore.getState().restoreSettingsFromHistory(settings)
           const modeStore = useModeStore.getState()
           modeStore.setStepTrack('reanalysis')
@@ -163,7 +175,7 @@ export function AnalysisHistorySidebar(): ReactNode {
         toast.error(TOAST.history.settingsLoadError)
       }
     },
-    [loadSettingsFromHistory],
+    [loadSettingsFromHistory, setCurrentHistoryId, setLoadedAiInterpretation, setLoadedInterpretationChat, setLoadedPaperDraft],
   )
 
   // 커스텀 렌더: 메서드 + p값 + 더보기 메뉴
@@ -184,18 +196,40 @@ export function AnalysisHistorySidebar(): ReactNode {
                 <button
                   type="button"
                   onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   className="shrink-0 rounded p-0.5 text-muted-foreground/30 opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
                   aria-label={t.history.labels.moreActions}
+                  data-testid={`analysis-history-more-actions-${item.id}`}
                 >
                   <MoreHorizontal className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
-                <DropdownMenuItem onClick={() => handleRenameRequest(item.id, entry.name)}>
+              <DropdownMenuContent
+                align="end"
+                className="w-36"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    handleRenameRequest(item.id, entry.name)
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                  data-testid={`analysis-history-rename-action-${item.id}`}
+                >
                   <Pencil className="mr-2 h-3 w-3" />
                   <span className="text-xs">{t.history.tooltips.rename}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReanalyze(item.id)}>
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    void handleReanalyze(item.id)
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                  data-testid={`analysis-history-reanalyze-action-${item.id}`}
+                >
                   <RefreshCw className="mr-2 h-3 w-3" />
                   <span className="text-xs">{t.history.tooltips.reanalyze}</span>
                 </DropdownMenuItem>
@@ -235,7 +269,7 @@ export function AnalysisHistorySidebar(): ReactNode {
         renderItem={renderItem}
       />
       <Dialog open={renameTarget !== null} onOpenChange={handleRenameOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" data-testid="analysis-history-rename-dialog">
           <DialogHeader>
             <DialogTitle>{t.history.dialogs.renameTitle}</DialogTitle>
             <DialogDescription>{t.history.dialogs.renameDescription}</DialogDescription>
@@ -252,14 +286,21 @@ export function AnalysisHistorySidebar(): ReactNode {
               onChange={(event) => setRenameValue(event.target.value)}
               placeholder={t.history.dialogs.renamePlaceholder}
               autoFocus
+              data-testid="analysis-history-rename-input"
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => handleRenameOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleRenameOpenChange(false)}
+                data-testid="analysis-history-rename-cancel"
+              >
                 {t.history.buttons.cancel}
               </Button>
               <Button
                 type="submit"
                 disabled={renameValue.trim().length === 0 || renameValue.trim() === renameTarget?.name}
+                data-testid="analysis-history-rename-save"
               >
                 {t.history.buttons.save}
               </Button>

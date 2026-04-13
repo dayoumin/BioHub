@@ -424,6 +424,36 @@ function Step3({ references, onChange }: Step3Props): React.ReactElement {
   )
 }
 
+function mergeCollectedPackageItems(
+  previousItems: PackageItem[],
+  collectedItems: PackageItem[],
+): PackageItem[] {
+  const previousBySource = new Map(
+    previousItems.map((item) => [`${item.type}:${item.sourceId}`, item] as const)
+  )
+
+  const merged = collectedItems.map((item, index) => {
+    const existing = previousBySource.get(`${item.type}:${item.sourceId}`)
+    if (!existing) {
+      return { ...item, order: index }
+    }
+
+    return {
+      ...item,
+      id: existing.id,
+      label: existing.label,
+      section: existing.section,
+      order: existing.order,
+      included: existing.included,
+      patternSummary: existing.patternSummary ?? item.patternSummary,
+    }
+  })
+
+  return merged
+    .sort((left, right) => left.order - right.order)
+    .map((item, index) => ({ ...item, order: index }))
+}
+
 // ── Step 4: 저널 설정 + 추가 맥락 ───────────────────────
 
 interface Step4Props {
@@ -646,9 +676,13 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           }
         }
 
-        if (newItems.length > 0) {
-          setPkg(prev => prev ? { ...prev, items: newItems } : prev)
-        }
+        setPkg(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            items: mergeCollectedPackageItems(prev.items, newItems),
+          }
+        })
       } catch {
         // 수집 실패 시 빈 상태 유지
       }

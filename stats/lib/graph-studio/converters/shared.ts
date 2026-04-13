@@ -300,6 +300,43 @@ export function buildErrorBarData(
   ciValue: number = 95,
   sort?: AxisSpec['sort'],
 ): { categories: string[]; means: number[]; lowers: number[]; uppers: number[] } {
+  const explicitRows = rows
+    .map((row) => {
+      const category = toStr(row[xField]);
+      const mean = toNumber(row[yField]);
+      const explicitLower = toNumber(row.lower ?? row.ciLower);
+      const explicitUpper = toNumber(row.upper ?? row.ciUpper);
+      const explicitError = toNumber(row.error);
+      if (isNaN(mean)) return null;
+      if (!isNaN(explicitLower) && !isNaN(explicitUpper)) {
+        return { category, mean, lower: explicitLower, upper: explicitUpper };
+      }
+      if (!isNaN(explicitError)) {
+        return { category, mean, lower: explicitError, upper: explicitError };
+      }
+      return null;
+    })
+    .filter((row): row is { category: string; mean: number; lower: number; upper: number } => row !== null);
+
+  if (explicitRows.length === rows.length && explicitRows.length > 0) {
+    const categories = explicitRows.map((row) => row.category);
+    const means = explicitRows.map((row) => row.mean);
+    const lowers = explicitRows.map((row) => row.lower);
+    const uppers = explicitRows.map((row) => row.upper);
+
+    if (sort) {
+      const { sorted, indexMap } = applyCategorySort(categories, sort);
+      return {
+        categories: sorted,
+        means: reorderByIndexMap(means, indexMap),
+        lowers: reorderByIndexMap(lowers, indexMap),
+        uppers: reorderByIndexMap(uppers, indexMap),
+      };
+    }
+
+    return { categories, means, lowers, uppers };
+  }
+
   const order: string[] = [];
   const groups = new Map<string, number[]>();
 

@@ -34,11 +34,17 @@ export function VariablePicker({
   const activeGroupingRole: 'factor' | 'independent' = (
     missingRoles.includes('independent') && !missingRoles.includes('factor')
       ? 'independent'
+      : (partialAssignments?.independent?.length ?? 0) > 0 && !missingRoles.includes('factor')
+        ? 'independent'
       : 'factor'
   )
   const groupingColumns = activeGroupingRole === 'independent'
     ? candidateColumns
     : categoricalColumns
+  const requiresDependentSelection = missingRoles.includes('dependent') || (partialAssignments?.dependent?.length ?? 0) === 0
+  const requiresGroupingSelection = missingRoles.includes('factor')
+    || missingRoles.includes('independent')
+    || ((partialAssignments?.factor?.length ?? 0) === 0 && (partialAssignments?.independent?.length ?? 0) === 0)
 
   const [selectedDependents, setSelectedDependents] = useState<string[]>(
     partialAssignments?.dependent ?? []
@@ -83,7 +89,8 @@ export function VariablePicker({
     onConfirm(assignments)
   }, [activeGroupingRole, onConfirm, partialAssignments, selectedDependents, selectedGroupingColumns])
 
-  const isConfirmEnabled = selectedDependents.length > 0 && selectedGroupingColumns.length > 0
+  const isConfirmEnabled = (!requiresDependentSelection || selectedDependents.length > 0)
+    && (!requiresGroupingSelection || selectedGroupingColumns.length > 0)
   const needsComparisonGroupClarification = activeGroupingRole === 'factor'
   const showRepeatedMeasuresHint = needsComparisonGroupClarification && categoricalColumns.length === 0 && numericColumns.length >= 2
   const showMissingMeasureHint = numericColumns.length === 0

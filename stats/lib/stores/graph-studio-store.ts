@@ -33,19 +33,12 @@ import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 const AI_CHAT_STORAGE_KEY = STORAGE_KEYS.graphStudio.aiChat;
 
 /** 데이터 변경 시 AI 채팅 이력 초기화 */
-function clearAiChatHistory(): void {
+function clearAiChatHistory(activeDraftSourceId: string | null): void {
   if (typeof window === 'undefined') return;
-
-  const keyPrefix = `${AI_CHAT_STORAGE_KEY}:`;
-  const keysToRemove: string[] = [];
-
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
-    if (key === null) continue;
-    if (key === AI_CHAT_STORAGE_KEY || key.startsWith(keyPrefix)) {
-      keysToRemove.push(key);
-    }
-  }
+  const keysToRemove = [
+    AI_CHAT_STORAGE_KEY,
+    ...(activeDraftSourceId ? [`${AI_CHAT_STORAGE_KEY}:draft:${activeDraftSourceId}`] : []),
+  ];
 
   keysToRemove.forEach((key) => {
     localStorage.removeItem(key);
@@ -196,7 +189,11 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     loadDataOnly: (pkg) => {
-      clearAiChatHistory();
+      const { chartSpec, dataPackage, currentProject } = get();
+      const activeDraftSourceId = currentProject
+        ? null
+        : chartSpec?.data.sourceId ?? dataPackage?.id ?? null;
+      clearAiChatHistory(activeDraftSourceId);
       set({
         dataPackage: pkg,
         isDataLoaded: true,
@@ -210,7 +207,11 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     clearData: () => {
-      clearAiChatHistory();
+      const { chartSpec, dataPackage, currentProject } = get();
+      const activeDraftSourceId = currentProject
+        ? null
+        : chartSpec?.data.sourceId ?? dataPackage?.id ?? null;
+      clearAiChatHistory(activeDraftSourceId);
       set({
         dataPackage: null,
         isDataLoaded: false,

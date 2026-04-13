@@ -23,6 +23,7 @@ export interface ResearchProjectEntityRefsChangedDetail {
 const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
 let lastProjectsHydrateAt = 0
 const PROJECTS_HYDRATE_TTL_MS = 30_000
+const pendingEntityLinks = new Set<string>()
 const pendingEntityUnlinks = new Set<string>()
 
 function notifyProjectEntityRefsChanged(projectIds: string[], entityIds: string[]): void {
@@ -148,9 +149,14 @@ export function upsertProjectEntityRef(
     refs[index] = updated
     writeJson(PROJECT_REFS_KEY, refs)
     notifyProjectEntityRefsChanged([input.projectId], [input.entityId])
-    pendingEntityUnlinks.delete(projectEntityRefKey(input))
+    const key = projectEntityRefKey(input)
+    pendingEntityUnlinks.delete(key)
+    pendingEntityLinks.add(key)
     void linkCloudProjectEntityRef(input).catch((error) => {
+      pendingEntityLinks.delete(key)
       console.warn('[research-project-storage] cloud entity link failed:', error)
+    }).then(() => {
+      pendingEntityLinks.delete(key)
     })
     return updated
   }
@@ -164,9 +170,14 @@ export function upsertProjectEntityRef(
   refs.push(created)
   writeJson(PROJECT_REFS_KEY, refs)
   notifyProjectEntityRefsChanged([input.projectId], [input.entityId])
-  pendingEntityUnlinks.delete(projectEntityRefKey(input))
+  const key = projectEntityRefKey(input)
+  pendingEntityUnlinks.delete(key)
+  pendingEntityLinks.add(key)
   void linkCloudProjectEntityRef(input).catch((error) => {
+    pendingEntityLinks.delete(key)
     console.warn('[research-project-storage] cloud entity link failed:', error)
+  }).then(() => {
+    pendingEntityLinks.delete(key)
   })
   return created
 }
@@ -197,6 +208,7 @@ export function removeProjectEntityRefs(
   )
   for (const target of targets) {
     const key = projectEntityRefKey(target)
+    pendingEntityLinks.delete(key)
     pendingEntityUnlinks.add(key)
     void unlinkCloudProjectEntityRef(target).catch((error) => {
       pendingEntityUnlinks.delete(key)
@@ -227,6 +239,7 @@ export function removeProjectEntityRefsByEntityIds(
   )
   for (const ref of removedRefs) {
     const key = projectEntityRefKey(ref)
+    pendingEntityLinks.delete(key)
     pendingEntityUnlinks.add(key)
     void unlinkCloudProjectEntityRef({
       projectId: ref.projectId,
@@ -272,7 +285,13 @@ function mergeProjectEntityRefs(projectId: string, refs: ProjectEntityRef[]): vo
       continue
     }
     const existingRef = merged.get(key)
-    merged.set(key, existingRef ? pickNewerProjectRef(ref, existingRef) : ref)
+    if (existingRef) {
+      merged.set(key, pickNewerProjectRef(ref, existingRef))
+      continue
+    }
+    if (pendingEntityLinks.has(key)) {
+      merged.set(key, ref)
+    }
   }
 
   writeJson(PROJECT_REFS_KEY, [...remaining, ...merged.values()])

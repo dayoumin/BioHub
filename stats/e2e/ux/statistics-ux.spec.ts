@@ -7,7 +7,7 @@
  * 실행: pnpm e2e --grep "@phase4"
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { S } from '../selectors'
 import {
   log,
@@ -21,8 +21,32 @@ import {
   waitForResults,
   verifyStatisticalResults,
 } from '../helpers/flow-helpers'
+import {
+  readAnalysisHistoryCount,
+  readStoredHistorySnapshot,
+  resetAnalysisHistoryStore,
+  seedAnalysisHistoryRecord,
+  type SeededHistoryRecord,
+} from '../helpers/history-helpers'
 
 test.setTimeout(180_000)
+
+function normalizeText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+async function captureResultsFingerprint(page: Page): Promise<string> {
+  const interpretationSection = page.locator(S.aiInterpretationSection)
+  if (await interpretationSection.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const interpretationText = await interpretationSection.innerText().catch(() => '')
+    if (interpretationText.trim().length > 0) {
+      return normalizeText(interpretationText)
+    }
+  }
+
+  const resultsCardText = await page.locator(S.resultsMainCard).innerText().catch(() => '')
+  return normalizeText(resultsCardText)
+}
 
 // ========================================
 // 4A.1 첫 방문 사용자 시나리오 @phase4 @critical
@@ -286,6 +310,111 @@ test.describe('@phase4 @important 연속 분석', () => {
     const emptyStep = page.locator('[data-testid="data-exploration-empty"]')
     await expect(emptyStep).toBeVisible({ timeout: 10000 })
     log('TC-4A.2.3', '재분석 → 업로드 단계 복귀: 성공')
+  })
+
+  test('TC-4A.2.4: 이력 재분석 후 원본 history는 그대로 유지된다', async ({ page }) => {
+    const originalHistoryId = 'analysis-seeded-reanalysis-history'
+    const originalRecord: SeededHistoryRecord = {
+      id: originalHistoryId,
+      timestamp: Date.now() - 60_000,
+      name: '독립표본 t-검정 — seed',
+      purpose: '두 그룹 평균 차이를 확인한다',
+      analysisPurpose: '두 그룹 평균 차이를 확인한다',
+      method: {
+        id: 'independent-t-test',
+        name: '독립표본 t-검정',
+        category: 't-test',
+        description: '두 독립 집단의 평균 차이를 비교합니다.',
+      },
+      dataFileName: 'seeded-history.csv',
+      dataRowCount: 30,
+      results: {
+        method: 't-test',
+        pValue: 0.018,
+        statistic: 2.456,
+        statisticName: 't',
+        df: 28,
+        interpretation: '유의미한 차이가 있습니다.',
+      },
+      aiInterpretation: '두 집단 간 평균 차이가 통계적으로 유의합니다. 후속 검토가 필요합니다.',
+      apaFormat: 't(28) = 2.456, p = .018',
+      variableMapping: {
+        dependentVar: 'value',
+        independentVar: 'group',
+        groupVar: 'group',
+      },
+      analysisOptions: {
+        alpha: 0.05,
+      },
+    }
+
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 })
+    await resetAnalysisHistoryStore(page)
+    await seedAnalysisHistoryRecord(page, originalRecord)
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 })
+
+    const originalHistoryCard = page.getByText(originalRecord.name, { exact: true }).first()
+
+    await expect
+      .poll(async () => readAnalysisHistoryCount(page), {
+        timeout: 10000,
+        message: 'seeded history count should be exactly one after reload',
+      })
+      .toBe(1)
+
+    await expect(originalHistoryCard).toBeVisible({ timeout: 15000 })
+
+    const originalStoredSnapshot = await readStoredHistorySnapshot(page, originalHistoryId)
+    expect(originalStoredSnapshot).not.toBeNull()
+
+    await originalHistoryCard.click()
+    await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 15000 })
+
+    const originalFingerprint = await captureResultsFingerprint(page)
+    expect(originalFingerprint).toContain('두 집단 간 평균 차이가 통계적으로 유의합니다')
+
+    // 재분석 진입 시 원본 저장 이력은 그대로 유지되어야 함
+    const reanalysisBtn = page.locator(S.reanalysisBtn)
+    await expect(reanalysisBtn).toBeVisible({ timeout: 5000 })
+    await reanalysisBtn.click()
+
+    const hasReanalysisToast = await page
+      .getByText('새 데이터를 업로드하세요', { exact: true })
+      .isVisible({ timeout: 10000 })
+      .catch(() => false)
+    const hasReanalysisHint = await page
+      .getByText(/분석이 준비되어 있습니다/)
+      .isVisible({ timeout: 10000 })
+      .catch(() => false)
+    expect(hasReanalysisToast || hasReanalysisHint).toBe(true)
+
+    await expect
+      .poll(async () => readAnalysisHistoryCount(page), {
+        timeout: 5000,
+        message: 'entering reanalysis should not add or remove saved history records',
+      })
+      .toBe(1)
+
+    const snapshotAfterReanalysisEntry = await readStoredHistorySnapshot(page, originalHistoryId)
+    expect(snapshotAfterReanalysisEntry).toEqual(originalStoredSnapshot)
+
+    // 새 세션처럼 허브를 다시 열어도 원본 이력은 동일하게 복원되어야 함
+    await page.evaluate(() => sessionStorage.clear())
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 })
+    await expect(originalHistoryCard).toBeVisible({ timeout: 15000 })
+    await originalHistoryCard.click()
+    await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 15000 })
+
+    const reopenedFingerprint = await captureResultsFingerprint(page)
+    expect(reopenedFingerprint).toBe(originalFingerprint)
+
+    const snapshotAfterReopen = await readStoredHistorySnapshot(page, originalHistoryId)
+    expect(snapshotAfterReopen).toEqual(originalStoredSnapshot)
+
+    log(
+      'TC-4A.2.4',
+      `seeded history preserved: toast=${hasReanalysisToast}, hint=${hasReanalysisHint}`,
+    )
   })
 })
 

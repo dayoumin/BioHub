@@ -11,6 +11,10 @@ const {
   deleteFromHistoryMock,
   loadSettingsFromHistoryMock,
   renameHistoryMock,
+  setCurrentHistoryIdMock,
+  setLoadedAiInterpretationMock,
+  setLoadedInterpretationChatMock,
+  setLoadedPaperDraftMock,
   setPinnedIdsMock,
   toastInfoMock,
   toastErrorMock,
@@ -22,6 +26,10 @@ const {
   deleteFromHistoryMock: vi.fn(),
   loadSettingsFromHistoryMock: vi.fn(),
   renameHistoryMock: vi.fn(),
+  setCurrentHistoryIdMock: vi.fn(),
+  setLoadedAiInterpretationMock: vi.fn(),
+  setLoadedInterpretationChatMock: vi.fn(),
+  setLoadedPaperDraftMock: vi.fn(),
   setPinnedIdsMock: vi.fn(),
   toastInfoMock: vi.fn(),
   toastErrorMock: vi.fn(),
@@ -77,11 +85,24 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuItem: ({
     children,
     onClick,
+    onSelect,
   }: {
     children: ReactNode
-    onClick?: () => void
+    onClick?: (event: { stopPropagation: () => void }) => void
+    onSelect?: (event: { preventDefault: () => void; stopPropagation: () => void }) => void
   }) => (
-    <button type="button" onClick={onClick}>
+    <button
+      type="button"
+      onClick={() => {
+        onSelect?.({
+          preventDefault: () => undefined,
+          stopPropagation: () => undefined,
+        })
+        onClick?.({
+          stopPropagation: () => undefined,
+        })
+      }}
+    >
       {children}
     </button>
   ),
@@ -98,6 +119,10 @@ vi.mock('@/lib/stores/history-store', () => ({
     deleteFromHistory: deleteFromHistoryMock,
     loadSettingsFromHistory: loadSettingsFromHistoryMock,
     renameHistory: renameHistoryMock,
+    setCurrentHistoryId: setCurrentHistoryIdMock,
+    setLoadedAiInterpretation: setLoadedAiInterpretationMock,
+    setLoadedInterpretationChat: setLoadedInterpretationChatMock,
+    setLoadedPaperDraft: setLoadedPaperDraftMock,
   }),
 }))
 
@@ -210,6 +235,10 @@ describe('AnalysisHistorySidebar', () => {
 
     await waitFor(() => {
       expect(loadSettingsFromHistoryMock).toHaveBeenCalledWith('history-1')
+      expect(setCurrentHistoryIdMock).toHaveBeenCalledWith(null)
+      expect(setLoadedAiInterpretationMock).toHaveBeenCalledWith(null)
+      expect(setLoadedInterpretationChatMock).toHaveBeenCalledWith(null)
+      expect(setLoadedPaperDraftMock).toHaveBeenCalledWith(null)
       expect(restoreSettingsFromHistoryMock).toHaveBeenCalled()
       expect(setStepTrackMock).toHaveBeenCalledWith('reanalysis')
       expect(setShowHubMock).toHaveBeenCalledWith(false)

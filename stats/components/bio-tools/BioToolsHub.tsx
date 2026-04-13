@@ -122,7 +122,8 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
       {/* 빈 상태 온보딩 (핀도 최근도 없을 때) */}
       {!hasPinned && !hasRecent && (
         <div
-          className="rounded-2xl border px-6 py-8 text-center"
+          data-testid="bio-tools-empty-state"
+          className="rounded-2xl px-6 py-8 text-center"
           style={BIO_HUB_PANEL_STYLE}
         >
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full" style={BIO_ICON_BG}>

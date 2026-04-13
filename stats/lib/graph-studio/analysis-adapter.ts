@@ -12,6 +12,8 @@ import type {
   TestInfo,
   ComparisonMeta,
   ColumnMeta,
+  ErrorBarSpec,
+  TrendlineSpec,
 } from '@/types/graph-studio'
 import type {
   KaplanMeierAnalysisResult,
@@ -35,6 +37,8 @@ export interface AnalysisVisualizationColumnsResult {
   xField: string
   yField: string
   colorField?: string
+  errorBar?: ErrorBarSpec
+  trendline?: TrendlineSpec
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -140,7 +144,15 @@ function buildScatterVisualization(data: unknown): AnalysisVisualizationColumnsR
     rows.push({ x: data.x[index], y: data.y[index] })
   }
 
-  return buildColumnsFromRows(rows, 'scatter', 'x', 'y')
+  const built = buildColumnsFromRows(rows, 'scatter', 'x', 'y')
+  if (!built) return null
+
+  return {
+    ...built,
+    trendline: isNumberArray(data.regression)
+      ? { type: 'linear', showEquation: true }
+      : undefined,
+  }
 }
 
 function buildSimpleLineVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
@@ -248,6 +260,7 @@ function buildBarVisualization(data: unknown): AnalysisVisualizationColumnsResul
   if (!isRecord(data) || !Array.isArray(data.plotData)) return null
 
   const rows: Record<string, unknown>[] = []
+  let explicitErrorType: ErrorBarSpec['type'] | null = null
   for (const entry of data.plotData) {
     if (!isRecord(entry)) return null
 
@@ -267,9 +280,26 @@ function buildBarVisualization(data: unknown): AnalysisVisualizationColumnsResul
           ? entry.std
           : null,
     })
+
+    if (typeof entry.stderr === 'number') {
+      explicitErrorType = 'stderr'
+    } else if (typeof entry.std === 'number' && explicitErrorType === null) {
+      explicitErrorType = 'stdev'
+    }
   }
 
-  return buildColumnsFromRows(rows, 'bar', 'category', 'value')
+  const built = buildColumnsFromRows(
+    rows,
+    explicitErrorType ? 'error-bar' : 'bar',
+    'category',
+    'value',
+  )
+  if (!built) return null
+
+  return {
+    ...built,
+    errorBar: explicitErrorType ? { type: explicitErrorType } : undefined,
+  }
 }
 
 function buildItemTotalVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
@@ -357,8 +387,9 @@ export function buildAnalysisVisualizationColumns(
     case 'item-total':
       return buildItemTotalVisualization(visualization.data)
     case 'scree-plot':
-    case 'dendrogram':
       return buildScreeVisualization(visualization.data)
+    case 'dendrogram':
+      return null
     default:
       return buildGroupStatsFallback(result)
   }

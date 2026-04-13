@@ -425,7 +425,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   useEffect(() => {
     const nextInterpretation = interpretation?.trim() ?? ''
-    if (!currentHistoryId || nextInterpretation.length === 0) return
+    if (!currentHistoryId || isInterpreting || interpretError || nextInterpretation.length === 0) return
 
     const currentEntry = historyEntries.find((entry) => entry.id === currentHistoryId)
     if (currentEntry?.aiInterpretation === nextInterpretation) return
@@ -433,7 +433,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     patchHistoryInterpretation(currentHistoryId, nextInterpretation).catch((error) => {
       logger.error('Failed to patch AI interpretation into history', { error, historyId: currentHistoryId })
     })
-  }, [currentHistoryId, historyEntries, interpretation, patchHistoryInterpretation])
+  }, [currentHistoryId, historyEntries, interpretation, isInterpreting, interpretError, patchHistoryInterpretation])
 
 
   // Handlers
@@ -671,6 +671,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     const spec = createDefaultChartSpec(pkgId, chartType, xField, yField, columns)
     if (colorField) {
       spec.encoding.color = { field: colorField, type: 'nominal' }
+    }
+    if (historyVisualizationColumns?.trendline) {
+      spec.trendline = historyVisualizationColumns.trendline
+    }
+    if (historyVisualizationColumns?.errorBar) {
+      spec.errorBar = historyVisualizationColumns.errorBar
     }
 
     const pkg: DataPackage = {

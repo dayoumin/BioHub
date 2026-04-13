@@ -376,6 +376,32 @@ describe('buildPendingClarification regression cases', () => {
 
     expect(result?.missingRoles).toEqual(['dependent'])
   })
+
+  it('routes a free-form numeric answer to independent when only independent is missing', () => {
+    const result = resolveVariableFromAnswer(
+      'age',
+      {
+        question: '설명 변수를 선택해 주세요.',
+        missingRoles: ['independent'],
+        candidateColumns: [
+          { column: 'age', type: 'numeric', sampleGroups: [] },
+          { column: 'outcome', type: 'numeric', sampleGroups: [] },
+        ],
+        suggestedAnalyses: [],
+      },
+      {
+        ...mockValidationResults,
+        columns: [
+          { name: 'age', type: 'numeric', uniqueValues: 20, missingCount: 0 },
+          { name: 'outcome', type: 'numeric', uniqueValues: 20, missingCount: 0 },
+        ] as unknown as ValidationResults['columns'],
+      } as ValidationResults,
+    )
+
+    expect(result).toEqual({
+      independent: ['age'],
+    })
+  })
 })
 
 // ===== mergeVariableAssignments =====
