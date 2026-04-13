@@ -1,16 +1,9 @@
-/**
- * Bio-Tools 핀 관리 스토어
- *
- * Zustand persist → localStorage 자동 동기화.
- * 최대 6개 핀 제한.
- */
-
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 const MAX_PINNED = 6
 
-interface PinnedToolsState {
+interface PinnedGeneticsToolsState {
   pinnedIds: string[]
   togglePin: (toolId: string) => void
   reorderPins: (activeId: string, overId: string) => void
@@ -36,7 +29,7 @@ function movePinnedId(ids: readonly string[], activeId: string, overId: string):
   return next
 }
 
-export const usePinnedToolsStore = create<PinnedToolsState>()(
+export const usePinnedGeneticsToolsStore = create<PinnedGeneticsToolsState>()(
   persist(
     (set, get) => ({
       pinnedIds: [],
@@ -46,7 +39,9 @@ export const usePinnedToolsStore = create<PinnedToolsState>()(
           if (exists) {
             return { pinnedIds: state.pinnedIds.filter((id) => id !== toolId) }
           }
-          if (state.pinnedIds.length >= MAX_PINNED) return state
+          if (state.pinnedIds.length >= MAX_PINNED) {
+            return state
+          }
           return { pinnedIds: [...state.pinnedIds, toolId] }
         }),
       reorderPins: (activeId: string, overId: string) =>
@@ -55,6 +50,6 @@ export const usePinnedToolsStore = create<PinnedToolsState>()(
         })),
       isPinned: (toolId: string) => get().pinnedIds.includes(toolId),
     }),
-    { name: 'biohub-pinned-bio-tools' },
+    { name: 'biohub-pinned-genetics-tools' },
   ),
 )

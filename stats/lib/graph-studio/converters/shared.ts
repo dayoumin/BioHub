@@ -448,7 +448,7 @@ export function buildLinearTrendlineSeries(
   seriesName: string,
 ): Record<string, unknown> | null {
   const sourcePoints = trendline.fittedPoints?.length
-    ? trendline.fittedPoints
+    ? [...trendline.fittedPoints].sort((left, right) => left[0] - right[0])
     : points;
   const valid = sourcePoints.filter(([x, y]) => !isNaN(x) && !isNaN(y));
   const reg = computeLinearRegression(valid);

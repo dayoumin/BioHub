@@ -235,14 +235,24 @@ describe('AnalysisHistorySidebar', () => {
 
     await waitFor(() => {
       expect(loadSettingsFromHistoryMock).toHaveBeenCalledWith('history-1')
-      expect(setCurrentHistoryIdMock).toHaveBeenCalledWith(null)
       expect(setLoadedAiInterpretationMock).toHaveBeenCalledWith(null)
       expect(setLoadedInterpretationChatMock).toHaveBeenCalledWith(null)
       expect(setLoadedPaperDraftMock).toHaveBeenCalledWith(null)
+      expect(setCurrentHistoryIdMock).toHaveBeenCalledWith(null)
       expect(restoreSettingsFromHistoryMock).toHaveBeenCalled()
       expect(setStepTrackMock).toHaveBeenCalledWith('reanalysis')
       expect(setShowHubMock).toHaveBeenCalledWith(false)
     })
+
+    expect(setLoadedAiInterpretationMock.mock.invocationCallOrder[0]).toBeLessThan(
+      setCurrentHistoryIdMock.mock.invocationCallOrder[0],
+    )
+    expect(setLoadedInterpretationChatMock.mock.invocationCallOrder[0]).toBeLessThan(
+      setCurrentHistoryIdMock.mock.invocationCallOrder[0],
+    )
+    expect(setLoadedPaperDraftMock.mock.invocationCallOrder[0]).toBeLessThan(
+      setCurrentHistoryIdMock.mock.invocationCallOrder[0],
+    )
   })
   it('Rename 메뉴에서 저장하면 renameHistory 액션을 호출한다', async () => {
     renameHistoryMock.mockResolvedValue(undefined)

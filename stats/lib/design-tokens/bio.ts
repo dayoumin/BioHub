@@ -40,7 +40,7 @@ export const BIO_HUB_PANEL_STYLE = {
 
 /** 허브 카테고리 선택 상태 */
 export const BIO_HUB_ACTIVE_CARD_STYLE = {
-  backgroundColor: '#13233a',
+  backgroundColor: `color-mix(in srgb, var(${BIO_ACCENT_VAR}) 14%, var(--surface-container-high))`,
 } as const
 
 export const BIO_SUBNAV_SURFACE = {

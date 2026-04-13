@@ -299,15 +299,15 @@ describe('history result Graph Studio import fidelity', () => {
     testState.historyStore.analysisHistory = [{ id: 'hist-graph-1', projectId: 'project-1' }]
   })
 
-  it('scatter-regression history import carries trendline intent into the loaded spec', () => {
+  it('scatter-regression history import sorts fitted trendline points by x value', () => {
     renderHistoryResult(
       makeHistoryResult({
         visualizationData: {
           type: 'scatter-regression',
           data: {
-            x: [1, 2, 3, 4],
-            y: [2, 4, 6, 8],
-            regression: [2, 4, 6, 8],
+            x: [3, 1, 4, 2],
+            y: [6, 2, 8, 4],
+            regression: [6, 2, 8, 4],
           },
         },
       }),
@@ -326,8 +326,8 @@ describe('history result Graph Studio import fidelity', () => {
     })
     expect(pkg.analysisResultId).toBe('hist-graph-1')
     expect(pkg.data).toMatchObject({
-      x: [1, 2, 3, 4],
-      y: [2, 4, 6, 8],
+      x: [3, 1, 4, 2],
+      y: [6, 2, 8, 4],
     })
   })
 

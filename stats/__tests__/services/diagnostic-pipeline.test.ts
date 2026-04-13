@@ -477,6 +477,24 @@ describe('resolveVariableFromAnswer', () => {
     const result = resolveVariableFromAnswer('col_17 분석해줘', widePending, wideVR)
     expect(result?.dependent).toEqual(['col_17'])
   })
+
+  it('returns null when a dependent-only clarification is answered with a categorical column', () => {
+    const result = resolveVariableFromAnswer(
+      '사료종류로 비교할게요',
+      {
+        question: '종속변수를 선택해 주세요.',
+        missingRoles: ['dependent'],
+        candidateColumns: [
+          { column: '생존율', type: 'numeric', sampleGroups: [] },
+          { column: '사료종류', type: 'categorical', sampleGroups: ['A', 'B', 'C'] },
+        ],
+        suggestedAnalyses: [],
+      },
+      mockValidationResults,
+    )
+
+    expect(result).toBeNull()
+  })
 })
 
 // ===== toStatisticalAssumptions =====

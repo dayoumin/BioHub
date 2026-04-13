@@ -153,6 +153,7 @@ function buildScatterVisualization(data: unknown): AnalysisVisualizationColumnsR
     ? data.regression
       .slice(0, Math.min(data.regression.length, xValues.length))
       .map((value, index) => [xValues[index], value] as [number, number])
+      .sort((left, right) => left[0] - right[0])
     : undefined
 
   return {

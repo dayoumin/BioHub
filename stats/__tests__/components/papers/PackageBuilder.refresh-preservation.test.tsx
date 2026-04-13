@@ -151,7 +151,7 @@ describe('PackageBuilder refresh preservation', () => {
     vi.clearAllMocks()
   })
 
-  it('preserves user edits when Step 2 refresh recollects linked sources', async () => {
+  it('refreshes regenerated figure summaries while preserving user ordering and labels', async () => {
     mockLoadPackage.mockResolvedValue(createPackage({
       items: [
         {
@@ -204,8 +204,8 @@ describe('PackageBuilder refresh preservation', () => {
 
     expect(screen.getByDisplayValue('Custom Table Label')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Custom Figure Label')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('custom handwritten summary')).toBeInTheDocument()
-    expect(screen.queryByDisplayValue('fresh generated summary')).not.toBeInTheDocument()
+    expect(screen.getByDisplayValue('fresh generated summary')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('custom handwritten summary')).not.toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')[0]).not.toBeChecked()
   })
 

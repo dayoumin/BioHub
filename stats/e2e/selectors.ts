@@ -182,7 +182,8 @@ export const S = {
   hubSampleSizeCard: '[data-testid="hub-sample-size-card"]',
 
   // ===== Bio-Tools =====
-  bioToolsEmptyState: '[data-testid="bio-tools-empty-state"]',
+  bioToolsCategoryCard: (id: string) => `[data-testid="bio-tools-category-${id}"]`,
+  bioToolsCategoryPanel: '[data-testid="bio-tools-category-panel"]',
 
   // ===== Smart Flow 추가 =====
   /** 결과 Q&A 팔로업 섹션 */

@@ -448,7 +448,7 @@ function mergeCollectedPackageItems(
       section: existing.section,
       order: existing.order,
       included: existing.included,
-      patternSummary: existing.patternSummary ?? item.patternSummary,
+      patternSummary: item.patternSummary ?? existing.patternSummary,
     }
   })
 

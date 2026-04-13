@@ -67,6 +67,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
+  const latestCitationsRef = useRef<CitationRecord[]>([])
+  const citationRequestSeqRef = useRef(0)
+  const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
   const editor = usePlateEditor({
@@ -125,42 +128,56 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     }
   }, [documentId])
 
-  const reloadCitations = useCallback(async (projectId: string): Promise<void> => {
-    try {
-      const records = await listCitationsByProject(projectId)
-      if (docRef.current?.projectId === projectId) {
-        setCitations(records)
+  useEffect(() => {
+    latestCitationsRef.current = citations
+  }, [citations])
+
+  const reloadCitations = useCallback(async (projectId: string, requestSeq?: number): Promise<void> => {
+    const seq = requestSeq ?? ++citationRequestSeqRef.current
+    let task: Promise<void> | null = null
+
+    task = (async () => {
+      try {
+        const records = await listCitationsByProject(projectId)
+        if (citationRequestSeqRef.current === seq && docRef.current?.projectId === projectId) {
+          latestCitationsRef.current = records
+          setCitations(records)
+        }
+      } catch {
+        if (citationRequestSeqRef.current === seq && docRef.current?.projectId === projectId) {
+          latestCitationsRef.current = []
+          setCitations([])
+        }
       }
-    } catch {
-      if (docRef.current?.projectId === projectId) {
-        setCitations([])
+    })().finally(() => {
+      if (pendingCitationReloadRef.current === task) {
+        pendingCitationReloadRef.current = null
       }
-    }
+    })
+
+    pendingCitationReloadRef.current = task
+    await task
   }, [])
 
   useEffect(() => {
     const projectId = doc?.projectId
+    citationRequestSeqRef.current += 1
+    const requestSeq = citationRequestSeqRef.current
+
     if (!projectId) {
+      latestCitationsRef.current = []
       setCitations([])
-      return
+      return () => {
+        citationRequestSeqRef.current += 1
+      }
     }
 
-    let cancelled = false
+    latestCitationsRef.current = []
     setCitations([])
-    listCitationsByProject(projectId)
-      .then((records) => {
-        if (!cancelled && docRef.current?.projectId === projectId) {
-          setCitations(records)
-        }
-      })
-      .catch(() => {
-        if (!cancelled && docRef.current?.projectId === projectId) {
-          setCitations([])
-        }
-      })
+    void reloadCitations(projectId, requestSeq)
 
     return () => {
-      cancelled = true
+      citationRequestSeqRef.current += 1
     }
   }, [doc?.projectId, reloadCitations])
 
@@ -258,16 +275,18 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       allHistory: analysisHistory as unknown as HistoryRecord[],
       allGraphProjects,
       blastHistory,
-      citations,
+      citations: latestCitationsRef.current,
     })
     setDoc(reassembled)
     scheduleSave(reassembled)
     loadedSectionRef.current = null
     setNeedsReassemble(false)
     return reassembled
-  }, [analysisHistory, citations, scheduleSave])
+  }, [analysisHistory, scheduleSave])
 
-  const prepareDocumentForExport = useCallback((): DocumentBlueprint | undefined => {
+  const prepareDocumentForExport = useCallback(async (): Promise<DocumentBlueprint | undefined> => {
+    await pendingCitationReloadRef.current
+
     const currentDoc = docRef.current
     if (!currentDoc) return undefined
 
@@ -436,7 +455,8 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   }, [scheduleSave])
 
   // 재조립
-  const handleReassemble = useCallback(() => {
+  const handleReassemble = useCallback(async () => {
+    await pendingCitationReloadRef.current
     const syncedDoc = flushSerialize()
     reassembleCurrentDocument(syncedDoc ?? undefined)
   }, [flushSerialize, reassembleCurrentDocument])

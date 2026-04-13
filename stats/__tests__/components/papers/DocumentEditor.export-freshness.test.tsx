@@ -159,6 +159,14 @@ function makeDocument(content: string): DocumentBlueprint {
   }
 }
 
+function createDeferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 describe('DocumentEditor export freshness', () => {
   beforeEach(() => {
     mockDocumentToDocx.mockClear()
@@ -269,6 +277,70 @@ describe('DocumentEditor export freshness', () => {
       expect(mockListCitationsByProject).toHaveBeenCalledTimes(2)
       expect(screen.getByText('Citations: 1')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: '재조립 필요' })).toBeInTheDocument()
+    })
+  })
+
+  it('ignores stale citation reload responses when newer citation changes finish first', async () => {
+    const firstReload = createDeferred<CitationRecord[]>()
+    const secondReload = createDeferred<CitationRecord[]>()
+
+    mockListCitationsByProject.mockReset()
+    mockListCitationsByProject
+      .mockResolvedValueOnce([])
+      .mockImplementationOnce(() => firstReload.promise)
+      .mockImplementationOnce(() => secondReload.promise)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await waitFor(() => {
+      expect(screen.getByText('Citations: 0')).toBeInTheDocument()
+    })
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, {
+        detail: { projectId: 'project-1' },
+      }))
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, {
+        detail: { projectId: 'project-1' },
+      }))
+    })
+
+    await waitFor(() => {
+      expect(mockListCitationsByProject).toHaveBeenCalledTimes(3)
+    })
+
+    await act(async () => {
+      secondReload.resolve([
+        {
+          id: 'cit-latest',
+          projectId: 'project-1',
+          item: {
+            id: 'paper-latest',
+            source: 'openalex',
+            title: 'Latest citation',
+            authors: ['Lee'],
+            year: 2025,
+            url: 'https://example.com/latest',
+            searchedName: 'Species',
+          },
+          addedAt: '2026-04-13T00:00:00.000Z',
+        },
+      ])
+      await secondReload.promise
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Citations: 1')).toBeInTheDocument()
+    })
+
+    await act(async () => {
+      firstReload.resolve([])
+      await firstReload.promise
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Citations: 1')).toBeInTheDocument()
     })
   })
 })

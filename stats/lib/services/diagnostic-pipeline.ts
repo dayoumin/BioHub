@@ -765,8 +765,12 @@ export function resolveVariableFromAnswer(
     }
   }
 
-  if (Object.keys(result).length === 0) {
-    for (const col of matched) {
+  if (Object.keys(result).length === 0 && shouldFillDependent) {
+    const numericMatches = matched.filter((col) => col.type === 'numeric')
+    if (numericMatches.length === 0) {
+      return null
+    }
+    for (const col of numericMatches) {
       if (!result.dependent) result.dependent = []
       result.dependent.push(col.column)
     }

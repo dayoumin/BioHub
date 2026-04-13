@@ -166,10 +166,10 @@ export function AnalysisHistorySidebar(): ReactNode {
       try {
         const settings = await loadSettingsFromHistory(historyId)
         if (settings) {
-          setCurrentHistoryId(null)
           setLoadedAiInterpretation(null)
           setLoadedInterpretationChat(null)
           setLoadedPaperDraft(null)
+          setCurrentHistoryId(null)
           useAnalysisStore.getState().restoreSettingsFromHistory(settings)
           const modeStore = useModeStore.getState()
           modeStore.setStepTrack('reanalysis')
@@ -216,7 +216,6 @@ export function AnalysisHistorySidebar(): ReactNode {
               >
                 <DropdownMenuItem
                   onSelect={(event) => {
-                    event.preventDefault()
                     event.stopPropagation()
                     handleRenameRequest(item.id, entry.name)
                   }}
@@ -228,7 +227,6 @@ export function AnalysisHistorySidebar(): ReactNode {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={(event) => {
-                    event.preventDefault()
                     event.stopPropagation()
                     void handleReanalyze(item.id)
                   }}

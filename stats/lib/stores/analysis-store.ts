@@ -402,9 +402,10 @@ export const useAnalysisStore = create<AnalysisState>()(
         // 모드 + 히스토리 + 선행 가정 검정 상태 리셋
         resetPreemptiveState()
         useModeStore.getState().resetMode()
-        useHistoryStore.getState().setCurrentHistoryId(null)
         useHistoryStore.getState().setLoadedAiInterpretation(null)
         useHistoryStore.getState().setLoadedInterpretationChat(null)
+        useHistoryStore.getState().setLoadedPaperDraft(null)
+        useHistoryStore.getState().setCurrentHistoryId(null)
 
         set((state) => ({
           ...initialState,

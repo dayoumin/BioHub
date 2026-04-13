@@ -578,10 +578,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setUploadedFile(null)
     setValidationResults(null)
     setResults(null)
-    setCurrentHistoryId(null)
     setLoadedAiInterpretation(null)
     setLoadedInterpretationChat(null)
     setLoadedPaperDraft(null)
+    setCurrentHistoryId(null)
     setStepTrack('reanalysis')
     // ★ 새 결과에 대한 AI 자동 해석이 동작하도록 가드 해제
     clearInterpretationGuard()

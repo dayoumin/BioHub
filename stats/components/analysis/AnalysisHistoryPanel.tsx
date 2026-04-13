@@ -169,10 +169,10 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     try {
       const settings = await loadSettingsFromHistory(historyId)
       if (settings) {
-        useHistoryStore.getState().setCurrentHistoryId(null)
         useHistoryStore.getState().setLoadedAiInterpretation(null)
         useHistoryStore.getState().setLoadedInterpretationChat(null)
         useHistoryStore.getState().setLoadedPaperDraft(null)
+        useHistoryStore.getState().setCurrentHistoryId(null)
         useAnalysisStore.getState().restoreSettingsFromHistory(settings)
         useModeStore.getState().setStepTrack('reanalysis')
       }

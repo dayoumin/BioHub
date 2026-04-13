@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -13,9 +14,7 @@ import { BioToolsHub } from './BioToolsHub'
 import { BioToolSidebar } from './BioToolSidebar'
 import {
   BIO_BG_TINT,
-  BIO_HEADER_SURFACE,
   BIO_SUBNAV_SURFACE,
-  BIO_ICON_BG,
   BIO_ICON_COLOR,
   BIO_ACCENT_TEXT,
   BIO_LAYOUT,
@@ -51,10 +50,6 @@ export function BioToolWorkspace(): React.ReactElement {
     router.push(`/bio-tools?tool=${id}`, { scroll: false })
   }, [router])
 
-  const handleBack = useCallback(() => {
-    router.push('/bio-tools', { scroll: false })
-  }, [router])
-
   const handleLoadHistory = useCallback((entry: BioToolHistoryEntry) => {
     router.push(`/bio-tools?tool=${entry.toolId}&history=${entry.id}`, { scroll: false })
   }, [router])
@@ -69,23 +64,23 @@ export function BioToolWorkspace(): React.ReactElement {
         <div className={cn(BIO_LAYOUT.contentPaddingX, 'mt-6 shrink-0')}>
           <div className="flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex w-full items-center gap-2">
-              <button
-                type="button"
-                onClick={handleBack}
+              <Link
+                href="/bio-tools"
+                scroll={false}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-surface-container-lowest hover:text-foreground"
                 title="Bio-Tools 허브로 이동"
               >
                 <ChevronLeft className="h-4.5 w-4.5" />
-              </button>
+              </Link>
               <div className="flex flex-1 overflow-x-auto whitespace-nowrap gap-1 pb-1 -mb-1 scrollbar-hide">
                 {BIO_TOOLS.map(t => {
                   const isActive = t.id === toolId
                   const ToolIcon = t.icon
                   return (
-                    <button
+                    <Link
                       key={t.id}
-                      type="button"
-                      onClick={() => handleSelectTool(t.id)}
+                      href={`/bio-tools?tool=${t.id}`}
+                      scroll={false}
                       className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
                         isActive
                           ? 'text-foreground'
@@ -98,7 +93,7 @@ export function BioToolWorkspace(): React.ReactElement {
                         style={isActive ? BIO_ACCENT_TEXT : undefined}
                       />
                       {t.nameKo}
-                    </button>
+                    </Link>
                   )
                 })}
               </div>
