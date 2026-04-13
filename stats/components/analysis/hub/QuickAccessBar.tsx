@@ -507,7 +507,7 @@ function StatisticsIcon({ hasResults, compact }: { hasResults: boolean; compact:
       <div
         data-activity-icon="statistics-complete"
         className={cn(
-          'shrink-0 rounded-xl bg-[color-mix(in_oklch,var(--section-accent-analysis)_16%,var(--surface-container-lowest))] text-[var(--section-accent-analysis)]',
+          'shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--section-accent-analysis)_16%,var(--surface-container-lowest))] text-[var(--section-accent-analysis)]',
           compact ? 'p-2' : 'p-2.5',
         )}
       >
@@ -548,7 +548,7 @@ function VisualizationIcon({ chartType, compact }: { chartType?: ChartType; comp
       data-activity-icon="visualization"
       className={cn('shrink-0 rounded-xl', compact ? 'p-2' : 'p-2.5')}
       style={{
-        background: 'color-mix(in oklch, var(--section-accent-graph) 12%, var(--surface-container-lowest))',
+        background: 'color-mix(in srgb, var(--section-accent-graph) 12%, var(--surface-container-lowest))',
         color: 'var(--section-accent-graph)',
       }}
     >

@@ -24,7 +24,7 @@ const geneticsAccentText = {
 } as const satisfies CSSProperties
 
 const geneticsAccentSurface = {
-  backgroundColor: `color-mix(in oklch, var(${GENETICS_ACCENT_VAR}) 8%, var(--surface-container-lowest))`,
+  backgroundColor: `color-mix(in srgb, var(${GENETICS_ACCENT_VAR}) 8%, var(--surface-container-lowest))`,
 } as const satisfies CSSProperties
 
 export function GeneticsSubNav() {

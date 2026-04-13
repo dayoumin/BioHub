@@ -2,19 +2,22 @@
 
 import { Suspense, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LAYOUT } from '@/components/common/card-styles'
 import { getBioToolWithMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { getBioToolEntry, type BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
+import { BIO_TOOLS } from '@/lib/bio-tools/bio-tool-registry'
 import { TOOL_COMPONENTS } from './tools'
 import { BioToolsHub } from './BioToolsHub'
 import { BioToolSidebar } from './BioToolSidebar'
 import {
   BIO_BG_TINT,
   BIO_HEADER_SURFACE,
+  BIO_SUBNAV_SURFACE,
   BIO_ICON_BG,
   BIO_ICON_COLOR,
+  BIO_ACCENT_TEXT,
   BIO_LAYOUT,
 } from './bio-styles'
 
@@ -61,31 +64,47 @@ export function BioToolWorkspace(): React.ReactElement {
 
   return (
     <div className="flex flex-col h-full min-h-0" style={BIO_BG_TINT}>
-      {/* 도구 헤더 — 뒤로가기 + 도구명 + 히스토리 */}
+      {/* 도구 헤더 — 뒤로가기 + 도구 칩 리스트 */}
       {isToolActive && (
-        <header
-          className={cn(LAYOUT.stickyHeader)}
-          style={BIO_HEADER_SURFACE}
-        >
-          <div className={cn('h-12 flex items-center gap-3 rounded-b-[1.25rem]', BIO_LAYOUT.contentPaddingX)}>
-            <button
-              type="button"
-              onClick={handleBack}
-              className="p-1.5 rounded-md hover:bg-surface-container-high/70 transition-colors text-muted-foreground"
-              aria-label="Bio-Tools 허브로 돌아가기"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <div className="p-1.5 rounded-md" style={BIO_ICON_BG}>
-              <Icon className="w-4 h-4" style={BIO_ICON_COLOR} />
+        <div className={cn(BIO_LAYOUT.contentPaddingX, 'mt-6 shrink-0')}>
+          <div className="flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-surface-container-lowest hover:text-foreground"
+                title="Bio-Tools 허브로 이동"
+              >
+                <ChevronLeft className="h-4.5 w-4.5" />
+              </button>
+              <div className="flex flex-1 overflow-x-auto whitespace-nowrap gap-1 pb-1 -mb-1 scrollbar-hide">
+                {BIO_TOOLS.map(t => {
+                  const isActive = t.id === toolId
+                  const ToolIcon = t.icon
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleSelectTool(t.id)}
+                      className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'text-foreground'
+                          : 'text-muted-foreground hover:bg-surface-container-lowest hover:text-foreground'
+                      }`}
+                      style={isActive ? BIO_SUBNAV_SURFACE : undefined}
+                    >
+                      <ToolIcon
+                        className={`w-4 h-4 ${isActive ? '' : 'text-muted-foreground/70'}`}
+                        style={isActive ? BIO_ACCENT_TEXT : undefined}
+                      />
+                      {t.nameKo}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base font-semibold leading-tight truncate">{tool.nameEn}</h1>
-              <p className="text-xs text-muted-foreground truncate">{tool.nameKo}</p>
-            </div>
-            {/* 히스토리 팝오버 → 사이드바로 이동 (아래 flex 레이아웃) */}
           </div>
-        </header>
+        </div>
       )}
 
       {/* 본문 + 히스토리 사이드바 */}

@@ -48,12 +48,12 @@ const TYPE_DOT_STYLE: Record<GeneticsToolType, CSSProperties> = {
   barcoding: { backgroundColor: 'var(--section-accent-bio)' },
   blast: { backgroundColor: 'var(--section-accent-analysis)' },
   genbank: { backgroundColor: 'var(--section-accent-hub)' },
-  'seq-stats': { backgroundColor: 'color-mix(in oklch, var(--primary) 72%, var(--surface-container-highest) 28%)' },
+  'seq-stats': { backgroundColor: 'color-mix(in srgb, var(--primary) 72%, var(--surface-container-highest) 28%)' },
   similarity: { backgroundColor: 'var(--section-accent-graph)' },
-  phylogeny: { backgroundColor: 'color-mix(in oklch, var(--section-accent-analysis) 78%, var(--section-accent-bio) 22%)' },
-  bold: { backgroundColor: 'color-mix(in oklch, var(--section-accent-bio) 82%, var(--surface-container-highest) 18%)' },
-  translation: { backgroundColor: 'color-mix(in oklch, var(--primary) 58%, var(--section-accent-hub) 42%)' },
-  protein: { backgroundColor: 'color-mix(in oklch, var(--section-accent-graph) 68%, var(--primary) 32%)' },
+  phylogeny: { backgroundColor: 'color-mix(in srgb, var(--section-accent-analysis) 78%, var(--section-accent-bio) 22%)' },
+  bold: { backgroundColor: 'color-mix(in srgb, var(--section-accent-bio) 82%, var(--surface-container-highest) 18%)' },
+  translation: { backgroundColor: 'color-mix(in srgb, var(--primary) 58%, var(--section-accent-hub) 42%)' },
+  protein: { backgroundColor: 'color-mix(in srgb, var(--section-accent-graph) 68%, var(--primary) 32%)' },
 }
 
 // ── 텍스트 검색 ──

@@ -31,7 +31,7 @@ import { TOAST } from '@/lib/constants/toast-messages';
 type LayoutMode = 'upload' | 'setup' | 'editor';
 
 const GRAPH_BG_TINT = {
-  backgroundColor: 'color-mix(in oklch, var(--section-accent-graph) 4%, var(--background))',
+  backgroundColor: 'color-mix(in srgb, var(--section-accent-graph) 4%, var(--background))',
 } as const;
 
 export function resolveGraphProjectName(
