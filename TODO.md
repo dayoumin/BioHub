@@ -107,7 +107,6 @@
 ### ??쓬
 - [x] TD-8: goToPreviousStep() ??Phase D?먯꽌 ?대? ?닿껐??
 - [x] TD-9: experiment-design ?몃옓 ??data-consultation ?≪닔 ?꾨즺
-- [x] TD-9: experiment-design ?紐껋삌 ??data-consultation ??る땾 ?袁⑥┷
 
 ## 8. Smart Flow Step 3 怨듯넻 UX ?꾩냽 ?묒뾽 (2026-04-09)
 
