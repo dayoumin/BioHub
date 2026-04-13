@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.3",
+  "version": "1.44.4",
   "lastUpdated": "2026-04-13",
   "sources": [
     "stats/__tests__/",
@@ -188,6 +188,19 @@
             "DOCX export",
             "idle editor",
             "freshness"
+          ]
+        },
+        {
+          "name": "PackageBuilder refresh 보존 테스트",
+          "purpose": "Step 2 재수집이 발생해도 사용자가 편집한 included, label, order, patternSummary가 유지되도록 고정",
+          "code": "import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';\nimport PackageBuilder from '@/components/papers/PackageBuilder';\n\nit('linked source refresh 후에도 사용자가 편집한 package item 속성을 유지한다', async () => {\n  mockLoadPackage.mockResolvedValue(createPackage({\n    items: [\n      {\n        id: 'item-analysis-1',\n        type: 'analysis',\n        sourceId: 'analysis-1',\n        analysisIds: ['ANAL-01'],\n        label: 'Custom Table Label',\n        section: 'results',\n        order: 0,\n        included: false,\n      },\n    ],\n  }));\n\n  mockListProjectEntityRefs.mockReturnValue([{ entityKind: 'analysis', entityId: 'analysis-1' }]);\n  mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-1', 'Latest analysis')]);\n\n  render(<PackageBuilder packageId=\"pkg-1\" onBack={vi.fn()} />);\n  await screen.findByText('AI 패키지 조립');\n  fireEvent.click(screen.getByRole('button', { name: '2' }));\n\n  await screen.findByDisplayValue('Custom Table Label');\n  expect(screen.getAllByRole('checkbox')[0]).not.toBeChecked();\n\n  act(() => {\n    window.dispatchEvent(new Event('research-project-entity-refs-changed'));\n  });\n\n  await waitFor(() => {\n    expect(mockGetAllHistory).toHaveBeenCalled();\n  });\n\n  expect(screen.getByDisplayValue('Custom Table Label')).toBeInTheDocument();\n  expect(screen.getAllByRole('checkbox')[0]).not.toBeChecked();\n});",
+          "keywords": [
+            "PackageBuilder",
+            "refresh",
+            "preserve edits",
+            "patternSummary",
+            "linked sources",
+            "regression"
           ]
         }
       ]
