@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.2",
+  "version": "1.44.3",
   "lastUpdated": "2026-04-13",
   "sources": [
     "stats/__tests__/",
@@ -175,6 +175,19 @@
             "CTA",
             "visualization bridge",
             "regression"
+          ]
+        },
+        {
+          "name": "연결 자료 변경 후 idle export freshness 테스트",
+          "purpose": "편집기가 유휴 상태여도 linked materials 변경 이벤트 뒤 내보내기 시 최신 reassemble 결과를 사용하도록 고정",
+          "code": "import { act, render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('linked materials change 후 DOCX export는 최신 reassembled document를 사용한다', async () => {\n  const user = userEvent.setup();\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n\n  act(() => {\n    window.dispatchEvent(new CustomEvent('research-project-entity-refs-changed', {\n      detail: { projectIds: ['project-1'] },\n    }));\n  });\n\n  await screen.findByText('프로젝트 분석 또는 그래프가 변경되었습니다.');\n  await user.click(screen.getByRole('button', { name: 'DOCX 다운로드' }));\n\n  await waitFor(() => {\n    expect(mockDocumentToDocx).toHaveBeenCalledTimes(1);\n  });\n\n  const [exportedDoc] = mockDocumentToDocx.mock.calls[0];\n  expect(exportedDoc.sections[0]?.content).toBe('linked materials 기준 최신 내용');\n  expect(mockReassembleDocument).toHaveBeenCalledTimes(1);\n  expect(mockSerialize).not.toHaveBeenCalled();\n});",
+          "keywords": [
+            "DocumentEditor",
+            "linked materials",
+            "reassembleDocument",
+            "DOCX export",
+            "idle editor",
+            "freshness"
           ]
         }
       ]
@@ -975,15 +988,17 @@
         },
         {
           "name": "히스토리 결과 스냅샷 → Graph Studio 브리지 테스트",
-          "purpose": "analysis result의 visualizationData/groupStats만으로 Graph Studio용 컬럼 데이터를 재구성하는 pure adapter 회귀 패턴",
-          "code": "import { describe, expect, it } from 'vitest';\nimport { buildAnalysisVisualizationColumns } from '@/lib/graph-studio';\nimport type { AnalysisResult } from '@/types/analysis';\n\ndescribe('buildAnalysisVisualizationColumns', () => {\n  it('boxplot-multiple visualizationData를 Graph Studio boxplot 데이터로 변환한다', () => {\n    const result: AnalysisResult = {\n      method: 'anova',\n      statistic: 4.2,\n      pValue: 0.01,\n      interpretation: '유의한 차이가 있습니다.',\n      visualizationData: {\n        type: 'boxplot-multiple',\n        data: [\n          { label: 'Control', values: [10, 12, 11] },\n          { label: 'Treatment', values: [14, 16, 15] },\n        ] as unknown as Record<string, unknown>,\n      },\n    };\n\n    const built = buildAnalysisVisualizationColumns(result);\n\n    expect(built?.chartType).toBe('boxplot');\n    expect(built?.data.group).toEqual(['Control', 'Control', 'Control', 'Treatment', 'Treatment', 'Treatment']);\n  });\n\n  it('지원하지 않는 visualizationData여도 groupStats가 있으면 bar 차트로 fallback한다', () => {\n    const built = buildAnalysisVisualizationColumns({\n      method: 'mixed-model',\n      statistic: 2.1,\n      pValue: 0.08,\n      interpretation: '차이가 없습니다.',\n      groupStats: [\n        { name: 'A', mean: 10, std: 2, n: 12 },\n        { name: 'B', mean: 14, std: 3, n: 12 },\n      ],\n      visualizationData: { type: 'unsupported-custom-type', data: {} },\n    });\n\n    expect(built?.chartType).toBe('bar');\n    expect(built?.yField).toBe('mean');\n  });\n});",
+          "purpose": "analysis result의 visualizationData/groupStats만으로 Graph Studio용 컬럼 데이터를 재구성하되 trendline, uncertainty, unsupported 타입 처리까지 fidelity를 고정",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { buildAnalysisVisualizationColumns } from '@/lib/graph-studio';\n\ndescribe('buildAnalysisVisualizationColumns fidelity', () => {\n  it('scatter-regression은 trendline intent를 유지한다', () => {\n    const built = buildAnalysisVisualizationColumns({\n      method: 'simple-regression',\n      statistic: 12.4,\n      pValue: 0.002,\n      interpretation: '회귀선이 유의합니다.',\n      visualizationData: {\n        type: 'scatter-regression',\n        data: { x: [1, 2, 3, 4], y: [2, 4, 6, 8], regression: [2, 4, 6, 8] },\n      },\n    });\n\n    expect(built?.chartType).toBe('scatter');\n    expect(built?.trendline).toEqual({ type: 'linear', showEquation: true });\n  });\n\n  it('mean/error-bar 스타일은 error-bar spec과 error column을 함께 만든다', () => {\n    const built = buildAnalysisVisualizationColumns({\n      method: 'means-plot',\n      statistic: 0,\n      pValue: 1,\n      interpretation: '그룹별 평균입니다.',\n      visualizationData: {\n        type: 'bar',\n        data: {\n          plotData: [\n            { group: 'A', mean: 10, stderr: 1.2 },\n            { group: 'B', mean: 12, stderr: 0.8 },\n          ],\n        },\n      },\n    });\n\n    expect(built?.chartType).toBe('error-bar');\n    expect(built?.errorBar).toEqual({ type: 'stderr' });\n    expect(built?.data.error).toEqual([1.2, 0.8]);\n  });\n\n  it('지원하지 않는 dendrogram은 misleading fallback 대신 null을 반환한다', () => {\n    const built = buildAnalysisVisualizationColumns({\n      method: 'factor-analysis',\n      statistic: 0,\n      pValue: 1,\n      interpretation: '요인 분석 결과입니다.',\n      visualizationData: {\n        type: 'dendrogram',\n        data: { linkage: [[0, 1, 0.4, 2]] },\n      },\n    });\n\n    expect(built).toBeNull();\n  });\n});",
           "keywords": [
             "buildAnalysisVisualizationColumns",
             "history snapshot",
             "Graph Studio",
             "visualizationData",
             "groupStats",
-            "fallback"
+            "trendline",
+            "error-bar",
+            "unsupported"
           ]
         }
       ]
@@ -1061,6 +1076,25 @@
             "hover",
             "localStorage",
             "regression"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Browser E2E Tests",
+      "description": "IndexedDB/localStorage를 직접 시드해 브라우저 회귀를 결정론적으로 고정하는 Playwright 패턴",
+      "patterns": [
+        {
+          "name": "IndexedDB seed 기반 history sidebar 회귀 테스트",
+          "purpose": "업로드 플로우를 반복하지 않고 persisted history와 localStorage pin 상태를 직접 주입해 rename/delete/pin 브라우저 회귀를 빠르게 검증",
+          "code": "import { test, expect } from '@playwright/test';\nimport { readAnalysisHistoryCount, resetAnalysisHistoryStore, seedAnalysisHistoryRecord, readStoredHistorySnapshot } from '../helpers/history-helpers';\n\ntest.beforeEach(async ({ page }) => {\n  await page.addInitScript(() => {\n    sessionStorage.clear();\n    localStorage.removeItem('analysis-history-pinned');\n  });\n});\n\ntest('seeded history can be renamed and persists the new label', async ({ page }) => {\n  await page.goto('/');\n  await resetAnalysisHistoryStore(page);\n  await seedAnalysisHistoryRecord(page, buildSeededRecord({ id: 'history-rename-seed' }));\n  await page.goto('/');\n\n  await expect.poll(async () => readAnalysisHistoryCount(page)).toBe(1);\n  await page.locator('[data-testid=\"analysis-history-more-actions-history-rename-seed\"]').click();\n  await page.locator('[data-testid=\"analysis-history-rename-action-history-rename-seed\"]').click();\n  await page.locator('[data-testid=\"analysis-history-rename-input\"]').fill('Renamed');\n  await page.locator('[data-testid=\"analysis-history-rename-save\"]').click();\n\n  const snapshot = await readStoredHistorySnapshot(page, 'history-rename-seed');\n  expect(snapshot?.name).toBe('Renamed');\n});",
+          "keywords": [
+            "Playwright",
+            "IndexedDB",
+            "analysis history",
+            "seeded record",
+            "localStorage",
+            "browser regression"
           ]
         }
       ]
