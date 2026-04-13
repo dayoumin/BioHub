@@ -37,7 +37,10 @@ export function useLocalStorageSync<T>(
   const skipNextEventRef = useRef(false)
 
   const [value, setValue] = useState<T>(() => {
-    const raw = localStorage.getItem(storageKey)
+    if (typeof window === 'undefined') {
+      return parser(null)
+    }
+    const raw = window.localStorage.getItem(storageKey)
     lastRawRef.current = raw
     return parser(raw)
   })
@@ -45,7 +48,10 @@ export function useLocalStorageSync<T>(
   // parser가 바뀌면 refresh가 재생성 → useEffect가 재실행
   const parserRef = useRef(parser)
   const refresh = useCallback((): void => {
-    const raw = localStorage.getItem(storageKey)
+    if (typeof window === 'undefined') {
+      return
+    }
+    const raw = window.localStorage.getItem(storageKey)
     const parserChanged = parserRef.current !== parser
     if (raw === lastRawRef.current && !parserChanged) return
     lastRawRef.current = raw

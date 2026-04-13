@@ -14,7 +14,7 @@ export const BIO_ACCENT_VAR = '--section-accent-bio'
 
 /** 아이콘 배경 (12% accent) */
 export const BIO_ICON_BG = {
-  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 12%, transparent)`,
+  backgroundColor: `oklch(from var(${BIO_ACCENT_VAR}) l c h / 12%)`,
 } as const
 
 /** 아이콘 전경색 */
@@ -29,30 +29,32 @@ export const BIO_ACCENT_TEXT = {
 
 /** 뱃지 스타일 (BADGE_ANALYSIS_STYLE 패턴) */
 export const BADGE_BIO_STYLE = {
-  background: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 12%, transparent)`,
+  background: `oklch(from var(${BIO_ACCENT_VAR}) l c h / 12%)`,
   color: `var(${BIO_ACCENT_VAR})`,
 } as const
 
 /** 허브 섹션용 소프트 패널 */
 export const BIO_HUB_PANEL_STYLE = {
-  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 5%, var(--surface-container-lowest))`,
-  borderColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 14%, transparent)`,
+  backgroundColor: 'var(--surface-container-low)',
 } as const
 
 /** 허브 카테고리 선택 상태 */
 export const BIO_HUB_ACTIVE_CARD_STYLE = {
-  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 9%, var(--surface-container-lowest))`,
-  boxShadow: `0 12px 32px color-mix(in oklch, var(${BIO_ACCENT_VAR}) 14%, transparent)`,
+  backgroundColor: '#13233a',
+} as const
+
+export const BIO_SUBNAV_SURFACE = {
+  backgroundColor: `color-mix(in srgb, var(${BIO_ACCENT_VAR}) 8%, var(--surface-container-lowest))`,
 } as const
 
 /** 활성 툴 셸 헤더 배경 */
 export const BIO_HEADER_SURFACE = {
-  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 6%, var(--surface-container-lowest))`,
+  backgroundColor: `color-mix(in srgb, var(${BIO_ACCENT_VAR}) 6%, var(--surface-container-lowest))`,
 } as const
 
 /** 페이지 배경 틴트 (AnalysisLayout 패턴 — 4% accent) */
 export const BIO_BG_TINT = {
-  backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 4%, var(--background))`,
+  backgroundColor: `color-mix(in srgb, var(${BIO_ACCENT_VAR}) 4%, var(--background))`,
 } as const
 
 // ─── 배지 레이아웃 ────────────────────────────────
@@ -65,11 +67,11 @@ export const BIO_BADGE_CLASS = 'inline-flex items-center px-2.5 py-1 rounded-ful
 /** p-value 유의성 스타일 (CSS 변수 --stat-significant 사용) */
 export const SIGNIFICANCE_BADGE = {
   significant: {
-    backgroundColor: `color-mix(in oklch, var(--stat-significant) 15%, transparent)`,
+    backgroundColor: `oklch(from var(--stat-significant) l c h / 15%)`,
     color: 'var(--stat-significant)',
   },
   nonSignificant: {
-    backgroundColor: `color-mix(in oklch, var(--stat-non-significant) 15%, transparent)`,
+    backgroundColor: `oklch(from var(--stat-non-significant) l c h / 15%)`,
     color: 'var(--stat-non-significant)',
   },
 } as const

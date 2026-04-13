@@ -1,13 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database, Fingerprint, Atom } from 'lucide-react'
-import type { ComponentType, CSSProperties } from 'react'
+import { ArrowRight } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
-import { Button } from '@/components/ui/button'
-
-// ── 타입 ──
+import {
+  HISTORY_CHANGE_EVENT,
+  HISTORY_KEY,
+  loadGeneticsHistory,
+  type GeneticsHistoryEntry,
+  type GeneticsToolType,
+} from '@/lib/genetics/analysis-history'
+import { useLocalStorageSync } from '@/lib/hooks/use-local-storage-sync'
+import { cn } from '@/lib/utils'
 
 interface Tool {
   id: string
@@ -16,117 +22,145 @@ interface Tool {
   input: string
   href: string
   ready: boolean
-  badge: string
-  icon: ComponentType<{ className?: string }>
 }
 
-// ── 상수 ──
+type ToolCategoryId = 'identification' | 'reference' | 'comparison' | 'protein'
 
-const TOOLS: Tool[] = [
+interface ToolCategory {
+  id: ToolCategoryId
+  label: string
+  description: string
+  toolIds: readonly string[]
+}
+
+interface RecentToolItem {
+  historyId: string
+  toolId: string
+  title: string
+  subtitle: string
+  href: string
+}
+
+const TOOLS: readonly Tool[] = [
   {
     id: 'barcoding',
     title: 'DNA 바코딩 종 판별',
-    description: '서열 입력 → 종 동정 + 결과 해석 + 대안 마커 안내',
-    input: '서열 1개 (FASTA)',
+    description: '서열 하나로 종 후보와 해석 방향을 빠르게 확인합니다.',
+    input: 'FASTA 1개',
     href: '/genetics/barcoding',
     ready: true,
-    badge: '사용 가능',
-    icon: Dna,
   },
   {
     id: 'blast-search',
     title: 'BLAST 서열 검색',
-    description: 'blastn · blastp · blastx — 범용 서열 유사성 검색',
-    input: 'DNA 또는 단백질 서열',
+    description: '가장 넓은 범위의 유사 서열을 빠르게 확인합니다.',
+    input: 'DNA 또는 단백질',
     href: '/genetics/blast',
     ready: true,
-    badge: '사용 가능',
-    icon: Search,
   },
   {
     id: 'genbank-search',
     title: 'GenBank 서열 검색',
-    description: 'NCBI GenBank에서 서열 검색 + FASTA 다운로드',
-    input: '종명, accession, 키워드',
+    description: '참조 서열을 검색하고 FASTA로 내려받습니다.',
+    input: '키워드',
     href: '/genetics/genbank',
     ready: true,
-    badge: '사용 가능',
-    icon: Database,
   },
   {
     id: 'seq-stats',
     title: '서열 기본 통계',
-    description: 'GC 함량, 길이 분포, 염기 조성 분석',
-    input: '서열 2개 이상 (Multi-FASTA)',
+    description: '길이, GC 함량, 염기 조성을 한 번에 요약합니다.',
+    input: '다중 FASTA',
     href: '/genetics/seq-stats',
     ready: true,
-    badge: '사용 가능',
-    icon: BarChart3,
   },
   {
     id: 'similarity',
     title: '다종 유사도 행렬',
-    description: '거리 행렬 (K2P/JC/p-distance) + UPGMA 덴드로그램',
-    input: '서열 여러 개 (정렬된 FASTA)',
+    description: '거리 행렬과 덴드로그램으로 종 간 차이를 비교합니다.',
+    input: '정렬된 FASTA',
     href: '/genetics/similarity',
     ready: true,
-    badge: '사용 가능',
-    icon: Grid3X3,
   },
   {
     id: 'phylogeny',
     title: '계통수 시각화',
-    description: 'NJ / UPGMA 계통수 + Newick 내보내기',
-    input: '서열 여러 개 (정렬된 FASTA)',
+    description: 'NJ 또는 UPGMA 기반 계통수를 만들고 내보냅니다.',
+    input: '정렬된 FASTA',
     href: '/genetics/phylogeny',
     ready: true,
-    badge: '사용 가능',
-    icon: GitFork,
   },
   {
     id: 'bold-id',
     title: 'BOLD ID 종 동정',
-    description: 'BOLD Systems 참조 라이브러리 기반 종 동정 + BIN 매핑',
-    input: 'DNA 바코드 서열 (FASTA)',
+    description: 'BOLD 참조 라이브러리 기준으로 종 동정과 BIN을 확인합니다.',
+    input: 'DNA 바코드 FASTA',
     href: '/genetics/bold-id',
     ready: true,
-    badge: '사용 가능',
-    icon: Fingerprint,
   },
-]
-
-const MOLBIO_TOOLS: Tool[] = [
   {
     id: 'translation',
     title: 'Translation 워크벤치',
-    description: 'DNA → 단백질 번역 + ORF 탐색 + 코돈 사용 빈도 분석',
-    input: 'DNA 서열 (FASTA)',
+    description: 'DNA를 단백질로 번역하고 ORF와 코돈 사용을 살펴봅니다.',
+    input: 'DNA 서열',
     href: '/genetics/translation',
     ready: true,
-    badge: '사용 가능',
-    icon: FlaskConical,
   },
   {
     id: 'protein',
     title: '단백질 특성 분석',
-    description: '분자량, 등전점, 소수성, 안정성 등 물리화학적 특성',
-    input: '단백질 서열',
+    description: '분자량, 등전점, 소수성 같은 물리화학적 특성을 계산합니다.',
+    input: '단백질',
     href: '/genetics/protein',
     ready: true,
-    badge: '사용 가능',
-    icon: Atom,
   },
-]
+] as const
 
-const WORKFLOW_STEPS = [
-  { label: '서열 확보', icon: FileText },
-  { label: '품질 확인', icon: BarChart3 },
-  { label: '종 판별', icon: Dna },
-  { label: '비교 분석', icon: FlaskConical },
-]
+const TOOL_MAP: Readonly<Record<string, Tool>> = TOOLS.reduce<Record<string, Tool>>((acc, tool) => {
+  acc[tool.id] = tool
+  return acc
+}, {})
 
-const READY_TOOLS = TOOLS.filter(t => t.ready)
-const PENDING_TOOLS = [...TOOLS, ...MOLBIO_TOOLS].filter(t => !t.ready)
+const TOOL_CATEGORIES: readonly ToolCategory[] = [
+  {
+    id: 'identification',
+    label: '종 판별',
+    description: '시료가 어떤 종인지 먼저 확인할 때',
+    toolIds: ['barcoding', 'bold-id'],
+  },
+  {
+    id: 'reference',
+    label: '참조 서열 찾기',
+    description: 'DB에서 비슷한 서열이나 기준 서열을 찾을 때',
+    toolIds: ['blast-search', 'genbank-search'],
+  },
+  {
+    id: 'comparison',
+    label: '비교와 계통',
+    description: '길이, 거리, 계통 관계를 비교할 때',
+    toolIds: ['seq-stats', 'similarity', 'phylogeny'],
+  },
+  {
+    id: 'protein',
+    label: '번역과 단백질',
+    description: 'DNA를 단백질 수준으로 확장해서 볼 때',
+    toolIds: ['translation', 'protein'],
+  },
+] as const
+
+const CROSS_LINK_TOOL_IDS = ['hardy-weinberg', 'fst'] as const
+
+const HISTORY_TOOL_TO_TOOL_ID: Record<GeneticsToolType, string> = {
+  barcoding: 'barcoding',
+  blast: 'blast-search',
+  genbank: 'genbank-search',
+  'seq-stats': 'seq-stats',
+  similarity: 'similarity',
+  phylogeny: 'phylogeny',
+  bold: 'bold-id',
+  translation: 'translation',
+  protein: 'protein',
+}
 
 const GENETICS_ACCENT_VAR = '--section-accent-hub' as const
 
@@ -134,266 +168,287 @@ const GENETICS_ACCENT_TEXT = {
   color: `var(${GENETICS_ACCENT_VAR})`,
 } as const satisfies CSSProperties
 
-const GENETICS_ACCENT_ICON_CLASS = 'text-[color:var(--section-accent-hub)]'
-
-const GENETICS_ICON_BG = {
-  backgroundColor: `color-mix(in oklch, var(${GENETICS_ACCENT_VAR}) 12%, transparent)`,
-} as const satisfies CSSProperties
-
-const GENETICS_PROGRESS_FILL = {
-  backgroundColor: `var(${GENETICS_ACCENT_VAR})`,
-} as const satisfies CSSProperties
-
 const GENETICS_PANEL_STYLE = {
-  backgroundColor: `color-mix(in oklch, var(${GENETICS_ACCENT_VAR}) 5%, var(--surface-container-lowest))`,
+  backgroundColor: 'var(--surface-container-low)',
 } as const satisfies CSSProperties
 
-// ── 페이지 ──
+const GENETICS_ACTIVE_CATEGORY_STYLE = {
+  backgroundColor: '#13233a',
+} as const satisfies CSSProperties
 
-export default function GeneticsHome() {
-  const [guideOpen, setGuideOpen] = useState(false)
-  const guideRef = useRef<HTMLDivElement>(null)
+export default function GeneticsHome(): React.ReactElement {
+  const [activeCategory, setActiveCategory] = useState<ToolCategoryId>('identification')
+  const parser = useMemo(
+    () => (raw: string | null): GeneticsHistoryEntry[] => loadGeneticsHistory(undefined, raw),
+    [],
+  )
+  const { value: history } = useLocalStorageSync<GeneticsHistoryEntry[]>(
+    HISTORY_KEY,
+    HISTORY_CHANGE_EVENT,
+    parser,
+  )
 
-  useEffect(() => {
-    if (!guideOpen) return
-    function handleClick(e: MouseEvent): void {
-      if (guideRef.current && !guideRef.current.contains(e.target as Node)) {
-        setGuideOpen(false)
-      }
+  const selectedCategory = useMemo(
+    () => TOOL_CATEGORIES.find((category) => category.id === activeCategory) ?? TOOL_CATEGORIES[0],
+    [activeCategory],
+  )
+
+  const selectedTools = useMemo(
+    () => selectedCategory.toolIds
+      .map((toolId) => TOOL_MAP[toolId])
+      .filter((tool): tool is Tool => Boolean(tool) && tool.ready),
+    [selectedCategory],
+  )
+
+  const recentTools = useMemo(() => {
+    const seenToolIds = new Set<string>()
+    const items: RecentToolItem[] = []
+
+    for (const entry of history) {
+      const toolId = HISTORY_TOOL_TO_TOOL_ID[entry.type]
+      const tool = TOOL_MAP[toolId]
+      if (!tool || seenToolIds.has(toolId)) continue
+
+      seenToolIds.add(toolId)
+      items.push({
+        historyId: entry.id,
+        toolId,
+        title: tool.title,
+        subtitle: getRecentSubtitle(entry),
+        href: `${tool.href}?history=${encodeURIComponent(entry.id)}`,
+      })
+
+      if (items.length >= 3) break
     }
-    function handleKeyDown(e: KeyboardEvent): void {
-      if (e.key === 'Escape') setGuideOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [guideOpen])
+
+    return items
+  }, [history])
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="mb-8 flex items-start justify-between">
+    <div className="mx-auto max-w-5xl space-y-8">
+      <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
-          <p className="text-sm text-muted-foreground">
-            DNA 서열 기반 종 판별, 서열 통계, 계통 분석 도구
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">유전적 분석</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            서열 기반 종 판별, 참조 검색, 비교 분석, 단백질 확장 도구
+          </p>
+          <p className="mt-1 text-sm font-medium" style={GENETICS_ACCENT_TEXT}>
+            처음이라면 DNA 바코딩에서 시작하는 편이 가장 빠릅니다.
           </p>
         </div>
-        <div ref={guideRef} className="relative">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setGuideOpen(prev => !prev)}
-            className={`gap-1.5 text-xs ${
-              guideOpen
-                ? 'border-transparent bg-surface-container-low text-foreground'
-                : 'text-muted-foreground hover:border-transparent hover:bg-surface-container-low hover:text-foreground'
-            }`}
-            style={guideOpen ? GENETICS_PANEL_STYLE : undefined}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-            도움말
-          </Button>
-          {guideOpen && (
-            <div
-              className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-[1.75rem] bg-surface-container-lowest/90 p-5 shadow-[0_12px_32px_rgba(25,28,30,0.08)] backdrop-blur-xl"
-              style={GENETICS_PANEL_STYLE}
-            >
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
-                  <div className="space-y-3">
-                    <GuideRow icon={Dna} question="이 시료가 어떤 종인지 모르겠어요" answer="DNA 바코딩 종 판별" />
-                    <GuideRow icon={Search} question="비슷한 서열을 데이터베이스에서 찾고 싶어요" answer="BLAST 서열 검색" />
-                    <GuideRow icon={Database} question="GenBank에서 참조 서열을 다운로드하고 싶어요" answer="GenBank 서열 검색" />
-                    <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
-                    <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
-                    <GuideRow icon={Fingerprint} question="BOLD 라이브러리로 종을 동정하고 싶어요" answer="BOLD ID 종 동정" />
-                    <GuideRow icon={FlaskConical} question="DNA 서열을 단백질로 번역하고 싶어요" answer="Translation 워크벤치" />
-                    <GuideRow icon={Atom} question="단백질의 물리화학적 특성을 알고 싶어요" answer="단백질 특성 분석" />
-                    <GuideRow icon={Dna} question="집단 간 유전적 차이를 분석하고 싶어요" answer="Bio-Tools → HW 검정 / Fst" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">일반적인 분석 순서</h3>
-                  <div className="space-y-3">
-                    {WORKFLOW_STEPS.map((step, i) => {
-                      const Icon = step.icon
-                      const progressWidth = `${Math.round(((i + 1) / WORKFLOW_STEPS.length) * 100)}%`
-                      return (
-                        <div key={step.label} className="rounded-2xl bg-surface-container-low/70 px-3 py-3">
-                          <div className="mb-2 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-3.5 w-3.5" style={GENETICS_ACCENT_TEXT} />
-                              <span className="text-sm text-foreground/80">{step.label}</span>
-                            </div>
-                            <span className="text-[11px] font-medium text-muted-foreground">
-                              {i + 1}/{WORKFLOW_STEPS.length}
-                            </span>
-                          </div>
-                          <div className="h-0.5 rounded-full bg-surface-container-highest">
-                            <div
-                              className="h-full rounded-full"
-                              style={{ ...GENETICS_PROGRESS_FILL, width: progressWidth }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
-                    처음이라면 <span className="font-medium" style={GENETICS_ACCENT_TEXT}>DNA 바코딩</span>부터 시작하세요.
-                    서열 하나만 있으면 종을 판별할 수 있습니다.
-                  </p>
-                </div>
-              </div>
+      </section>
+
+      {recentTools.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-foreground/90">최근 사용</h2>
+              <p className="mt-1 text-xs text-muted-foreground/70">
+                방금 보던 분석으로 바로 돌아갈 수 있습니다.
+              </p>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* 서열 분석 도구 */}
-      <div className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">서열 분석 도구</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {READY_TOOLS.map((tool) => (
-            <ReadyCard key={tool.id} tool={tool} />
-          ))}
-        </div>
-      </div>
-
-      {/* 분자생물학 도구 */}
-      <div className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">분자생물학 도구</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MOLBIO_TOOLS.map((tool) => (
-            <ReadyCard key={tool.id} tool={tool} />
-          ))}
-        </div>
-      </div>
-
-      {/* 처음 사용자 안내 */}
-      <div
-        className="mb-10 flex items-start gap-3 rounded-[1.75rem] p-5"
-        style={GENETICS_PANEL_STYLE}
-      >
-        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={GENETICS_ICON_BG}>
-          <HelpCircle className="h-3 w-3" style={GENETICS_ACCENT_TEXT} />
-        </div>
-        <p className="text-sm text-foreground/80 leading-relaxed">
-          어떻게 시작할지 막막하시다면, 각 도구 페이지에서 제공하는 <span className="font-semibold" style={GENETICS_ACCENT_TEXT}>예제 서열/검색어 테스트 기능</span>을 통해 즉시 체험해 볼 수 있습니다.
-        </p>
-      </div>
-
-      {/* 준비 중 도구 */}
-      {PENDING_TOOLS.length > 0 && (
-        <div className="mb-6">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            개발 예정
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {PENDING_TOOLS.map((tool) => (
-              <PendingCard key={tool.id} tool={tool} />
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {recentTools.map((item) => (
+              <RecentToolCard key={item.historyId} item={item} />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* 집단 유전학 cross-link */}
-      <PopulationGeneticsLinks />
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground/90">분석 흐름을 고르세요</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {TOOL_CATEGORIES.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              active={category.id === selectedCategory.id}
+              onSelect={setActiveCategory}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">{selectedCategory.label}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">선택한 흐름에서 바로 시작할 수 있는 도구입니다.</p>
+          </div>
+          <span className="text-xs font-medium text-muted-foreground/70">
+            {selectedTools.length}개 도구
+          </span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {selectedTools.map((tool) => (
+            <ReadyCard key={tool.id} tool={tool} />
+          ))}
+        </div>
+      </section>
+
+      <SupportPanel />
     </div>
   )
 }
 
-// ── 컴포넌트 ──
+interface CategoryCardProps {
+  category: ToolCategory
+  active: boolean
+  onSelect: (categoryId: ToolCategoryId) => void
+}
 
-function ReadyCard({ tool }: { tool: Tool }) {
-  const Icon = tool.icon
-
+function CategoryCard({
+  category,
+  active,
+  onSelect,
+}: CategoryCardProps): React.ReactElement {
   return (
-    <Link href={tool.href} className="block h-full">
-      <div className="group flex h-full flex-col rounded-[1.75rem] bg-surface-container-lowest p-6 transition-colors duration-200 hover:bg-surface-container-low/60">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors group-hover:bg-surface-container-high/80" style={GENETICS_ICON_BG}>
-            <Icon className={`h-5 w-5 ${GENETICS_ACCENT_ICON_CLASS}`} />
-          </div>
-          <h2 className="text-base font-semibold text-foreground/90">{tool.title}</h2>
+    <button
+      type="button"
+      onClick={() => onSelect(category.id)}
+      className={cn(
+        'flex h-full min-h-[188px] rounded-[1.75rem] bg-surface-container-lowest p-7 text-left transition-colors duration-200 hover:bg-surface-container-low',
+        active ? 'shadow-none' : 'bg-surface-container-lowest',
+      )}
+      style={active ? GENETICS_ACTIVE_CATEGORY_STYLE : undefined}
+      aria-pressed={active}
+      aria-current={active ? 'true' : undefined}
+    >
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <span
+            className={cn(
+              'text-lg font-semibold tracking-tight',
+              active ? 'text-white' : 'text-foreground/90',
+            )}
+          >
+            {category.label}
+          </span>
         </div>
-        <p className="mb-5 flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
+        <span className={cn(
+          'mt-3 text-sm font-medium',
+          active ? 'text-white/75' : 'text-muted-foreground/70',
+        )}>
+          도구 {category.toolIds.length}개
+        </span>
+        <p className={cn(
+          'mt-3 text-sm leading-relaxed',
+          active ? 'text-white/80' : 'text-muted-foreground',
+        )}>
+          {category.description}
+        </p>
+      </div>
+    </button>
+  )
+}
+
+function RecentToolCard({ item }: { item: RecentToolItem }): React.ReactElement {
+  return (
+    <Link href={item.href} className="block h-full">
+      <div
+        className="group flex h-full flex-col gap-3 rounded-[1.5rem] p-5 transition-colors duration-200 hover:bg-surface-container"
+        style={GENETICS_PANEL_STYLE}
+      >
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-semibold tracking-tight text-foreground/90">{item.title}</h3>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground/75">{item.subtitle}</p>
+        </div>
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground/70">{tool.input}</p>
-          <ArrowRight className="h-4.5 w-4.5 transition-all group-hover:translate-x-1.5" style={GENETICS_ACCENT_TEXT} />
+          <span className="text-xs font-medium" style={GENETICS_ACCENT_TEXT}>이어서 보기</span>
+          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" style={GENETICS_ACCENT_TEXT} />
         </div>
       </div>
     </Link>
   )
 }
 
-function PendingCard({ tool }: { tool: Tool }) {
-  const Icon = tool.icon
-
+function ReadyCard({ tool }: { tool: Tool }): React.ReactElement {
   return (
-    <div className="cursor-not-allowed rounded-[1.5rem] bg-surface-container-low/65 p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-container-high text-muted-foreground">
-          <Icon className={`h-4.5 w-4.5 ${GENETICS_ACCENT_ICON_CLASS}`} />
-        </div>
-        <div className="flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{tool.title}</h3>
-            <span className="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {tool.badge}
-            </span>
+    <Link href={tool.href} className="block h-full">
+      <div className="group flex h-full min-h-[208px] flex-col rounded-[1.75rem] bg-surface-container-lowest p-6 transition-colors duration-200 hover:bg-surface-container-low">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold tracking-tight text-foreground/90">{tool.title}</h3>
           </div>
-          <p className="text-xs leading-relaxed text-muted-foreground/70">{tool.description}</p>
+          <span className="rounded-full bg-surface-container-low px-2.5 py-1 text-[11px] font-medium text-muted-foreground/80">
+            {tool.input}
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col">
+          <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
+        </div>
+        <div className="mt-5 flex items-center justify-between">
+          <span className="text-xs font-medium" style={GENETICS_ACCENT_TEXT}>열기</span>
+          <ArrowRight className="h-4.5 w-4.5 transition-transform duration-200 group-hover:translate-x-1" style={GENETICS_ACCENT_TEXT} />
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 
-const CROSS_LINK_TOOL_IDS = ['hardy-weinberg', 'fst'] as const
-
-const crossLinkClass =
-  'inline-flex items-center gap-1.5 rounded-2xl bg-surface-container-lowest px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container-low'
-
-function PopulationGeneticsLinks(): React.ReactElement | null {
+function SupportPanel(): React.ReactElement | null {
   const tools = CROSS_LINK_TOOL_IDS.map(getBioToolById).filter(
-    (t): t is NonNullable<typeof t> => Boolean(t)
+    (tool): tool is Exclude<ReturnType<typeof getBioToolById>, undefined> => tool !== undefined,
   )
-  if (tools.length === 0) return null
+
+  if (tools.length === 0) {
+    return null
+  }
 
   return (
-    <div className="rounded-[1.75rem] p-6" style={GENETICS_PANEL_STYLE}>
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        집단 유전학 (Population Genetics)
-      </h2>
-      <p className="mb-4 text-sm text-muted-foreground/80">
-        대립유전자 빈도 기반 집단 유전 분석은 통합 Bio-Tools 섹션에서 제공합니다.
-      </p>
+    <section
+      className="flex flex-col gap-4 rounded-[1.75rem] p-6 lg:flex-row lg:items-start lg:justify-between"
+      style={GENETICS_PANEL_STYLE}
+    >
+      <div className="max-w-2xl">
+        <h2 className="text-sm font-semibold text-foreground/90">집단 유전학은 Bio-Tools에서 제공합니다</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          집단 간 유전적 분화나 평형 검정을 하려면 아래 도구로 바로 이동하세요.
+        </p>
+      </div>
       <div className="flex flex-wrap gap-2.5">
         {tools.map((tool) => (
-          <Link key={tool.id} href={`/bio-tools?tool=${tool.id}`} className={crossLinkClass}>
+          <Link
+            key={tool.id}
+            href={`/bio-tools?tool=${tool.id}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-surface-container-low"
+          >
             {tool.nameKo}
             <ArrowRight className="h-4 w-4" style={GENETICS_ACCENT_TEXT} />
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
 
-function GuideRow({ icon: Icon, question, answer }: { icon: ComponentType<{ className?: string }>; question: string; answer: string }) {
-  return (
-    <div className="rounded-xl bg-surface-container-low/45 p-3 transition-colors duration-200 hover:bg-surface-container-low/80">
-      <p className="mb-1 text-xs text-muted-foreground">&ldquo;{question}&rdquo;</p>
-      <div className="flex items-center gap-2">
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${GENETICS_ACCENT_ICON_CLASS}`} />
-        <span className="text-xs font-medium">{answer}</span>
-      </div>
-    </div>
-  )
+
+function getRecentSubtitle(entry: GeneticsHistoryEntry): string {
+  switch (entry.type) {
+    case 'barcoding':
+      return entry.sampleName || '바코딩 분석'
+    case 'blast':
+      return `${entry.program} · ${entry.database}`
+    case 'genbank':
+      return entry.organism ?? entry.query
+    case 'seq-stats':
+      return `${entry.sequenceCount}개 서열`
+    case 'similarity':
+      return `${entry.distanceModel} · ${entry.sequenceCount}개 서열`
+    case 'phylogeny':
+      return `${entry.treeMethod} · ${entry.sequenceCount}개 서열`
+    case 'bold':
+      return entry.sampleName || 'BOLD 종 동정'
+    case 'translation':
+      return entry.analysisMode === 'translate'
+        ? '번역'
+        : entry.analysisMode === 'orf'
+          ? 'ORF 탐색'
+          : '코돈 분석'
+    case 'protein':
+      return entry.analysisName || '단백질 특성 분석'
+  }
 }
