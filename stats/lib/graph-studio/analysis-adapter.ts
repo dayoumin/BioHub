@@ -138,19 +138,27 @@ function buildMultiBoxplotVisualization(data: unknown): AnalysisVisualizationCol
 function buildScatterVisualization(data: unknown): AnalysisVisualizationColumnsResult | null {
   if (!isRecord(data) || !isNumberArray(data.x) || !isNumberArray(data.y)) return null
 
-  const rowCount = Math.min(data.x.length, data.y.length)
+  const xValues = data.x
+  const yValues = data.y
+  const rowCount = Math.min(xValues.length, yValues.length)
   const rows: Record<string, unknown>[] = []
   for (let index = 0; index < rowCount; index += 1) {
-    rows.push({ x: data.x[index], y: data.y[index] })
+    rows.push({ x: xValues[index], y: yValues[index] })
   }
 
   const built = buildColumnsFromRows(rows, 'scatter', 'x', 'y')
   if (!built) return null
 
+  const fittedPoints = isNumberArray(data.regression)
+    ? data.regression
+      .slice(0, Math.min(data.regression.length, xValues.length))
+      .map((value, index) => [xValues[index], value] as [number, number])
+    : undefined
+
   return {
     ...built,
-    trendline: isNumberArray(data.regression)
-      ? { type: 'linear', showEquation: true }
+    trendline: fittedPoints && fittedPoints.length >= 2
+      ? { type: 'linear', showEquation: true, fittedPoints }
       : undefined,
   }
 }
@@ -274,6 +282,10 @@ function buildBarVisualization(data: unknown): AnalysisVisualizationColumnsResul
     rows.push({
       category: xValue,
       value: yValue,
+      lower: typeof entry.lower === 'number' ? entry.lower : null,
+      upper: typeof entry.upper === 'number' ? entry.upper : null,
+      ciLower: typeof entry.ciLower === 'number' ? entry.ciLower : null,
+      ciUpper: typeof entry.ciUpper === 'number' ? entry.ciUpper : null,
       error: typeof entry.stderr === 'number'
         ? entry.stderr
         : typeof entry.std === 'number'
@@ -281,7 +293,9 @@ function buildBarVisualization(data: unknown): AnalysisVisualizationColumnsResul
           : null,
     })
 
-    if (typeof entry.stderr === 'number') {
+    if (typeof entry.ciLower === 'number' && typeof entry.ciUpper === 'number') {
+      explicitErrorType = 'ci'
+    } else if (typeof entry.stderr === 'number') {
       explicitErrorType = 'stderr'
     } else if (typeof entry.std === 'number' && explicitErrorType === null) {
       explicitErrorType = 'stdev'
@@ -391,7 +405,7 @@ export function buildAnalysisVisualizationColumns(
     case 'dendrogram':
       return null
     default:
-      return buildGroupStatsFallback(result)
+      return null
   }
 }
 

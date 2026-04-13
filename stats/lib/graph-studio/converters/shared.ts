@@ -304,12 +304,22 @@ export function buildErrorBarData(
     .map((row) => {
       const category = toStr(row[xField]);
       const mean = toNumber(row[yField]);
-      const explicitLower = toNumber(row.lower ?? row.ciLower);
-      const explicitUpper = toNumber(row.upper ?? row.ciUpper);
+      const explicitLower = toNumber(row.lower);
+      const explicitUpper = toNumber(row.upper);
+      const explicitCiLower = toNumber(row.ciLower);
+      const explicitCiUpper = toNumber(row.ciUpper);
       const explicitError = toNumber(row.error);
       if (isNaN(mean)) return null;
       if (!isNaN(explicitLower) && !isNaN(explicitUpper)) {
         return { category, mean, lower: explicitLower, upper: explicitUpper };
+      }
+      if (!isNaN(explicitCiLower) && !isNaN(explicitCiUpper)) {
+        return {
+          category,
+          mean,
+          lower: Math.max(0, mean - explicitCiLower),
+          upper: Math.max(0, explicitCiUpper - mean),
+        };
       }
       if (!isNaN(explicitError)) {
         return { category, mean, lower: explicitError, upper: explicitError };
@@ -437,19 +447,29 @@ export function buildLinearTrendlineSeries(
   style: StyleConfig,
   seriesName: string,
 ): Record<string, unknown> | null {
-  const valid = points.filter(([x, y]) => !isNaN(x) && !isNaN(y));
+  const sourcePoints = trendline.fittedPoints?.length
+    ? trendline.fittedPoints
+    : points;
+  const valid = sourcePoints.filter(([x, y]) => !isNaN(x) && !isNaN(y));
   const reg = computeLinearRegression(valid);
   if (!reg) return null;
 
-  let xMin = Infinity, xMax = -Infinity;
-  for (const [x] of valid) { if (x < xMin) xMin = x; if (x > xMax) xMax = x; }
+  const lineData: [number, number][] = trendline.fittedPoints?.length
+    ? valid
+    : (() => {
+      let xMin = Infinity, xMax = -Infinity;
+      for (const [x] of valid) { if (x < xMin) xMin = x; if (x > xMax) xMax = x; }
+      if (valid.length === 1 || Math.abs(xMax - xMin) < 1e-12) {
+        return valid;
+      }
 
-  const N = 50;
-  const step = (xMax - xMin) / (N - 1);
-  const lineData: [number, number][] = Array.from({ length: N }, (_, i) => {
-    const x = xMin + i * step;
-    return [x, reg.slope * x + reg.intercept];
-  });
+      const N = 50;
+      const step = (xMax - xMin) / (N - 1);
+      return Array.from({ length: N }, (_, i) => {
+        const x = xMin + i * step;
+        return [x, reg.slope * x + reg.intercept] as [number, number];
+      });
+    })();
 
   const slopeStr = reg.slope >= 0 ? `+${reg.slope.toFixed(4)}` : reg.slope.toFixed(4);
   const interceptStr = reg.intercept >= 0 ? `+${reg.intercept.toFixed(4)}` : reg.intercept.toFixed(4);

@@ -105,6 +105,8 @@ export interface TrendlineSpec {
   strokeDash?: number[];
   /** true이면 회귀 방정식(y = ax + b)과 R² 툴팁에 표시 */
   showEquation?: boolean;
+  /** 저장된 회귀선을 그대로 복원할 때 사용되는 점 목록 */
+  fittedPoints?: Array<[number, number]>;
 }
 
 // ─── Significance Marks ────────────────────────────────────

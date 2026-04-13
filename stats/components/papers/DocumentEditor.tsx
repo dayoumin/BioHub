@@ -28,7 +28,12 @@ import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { CitationRecord } from '@/lib/research/citation-types'
-import { listCitationsByProject, deleteCitation } from '@/lib/research/citation-storage'
+import {
+  deleteCitation,
+  listCitationsByProject,
+  RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
+  type ResearchProjectCitationsChangedDetail,
+} from '@/lib/research/citation-storage'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
 import { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } from './plate-plugins'
 import { EquationElement, InlineEquationElement } from './equation-element'
@@ -120,6 +125,19 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     }
   }, [documentId])
 
+  const reloadCitations = useCallback(async (projectId: string): Promise<void> => {
+    try {
+      const records = await listCitationsByProject(projectId)
+      if (docRef.current?.projectId === projectId) {
+        setCitations(records)
+      }
+    } catch {
+      if (docRef.current?.projectId === projectId) {
+        setCitations([])
+      }
+    }
+  }, [])
+
   useEffect(() => {
     const projectId = doc?.projectId
     if (!projectId) {
@@ -131,12 +149,12 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     setCitations([])
     listCitationsByProject(projectId)
       .then((records) => {
-        if (!cancelled) {
+        if (!cancelled && docRef.current?.projectId === projectId) {
           setCitations(records)
         }
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!cancelled && docRef.current?.projectId === projectId) {
           setCitations([])
         }
       })
@@ -144,7 +162,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     return () => {
       cancelled = true
     }
-  }, [doc?.projectId])
+  }, [doc?.projectId, reloadCitations])
 
   useEffect((): (() => void) => {
     const handleEntityRefChange = (event: Event): void => {
@@ -178,14 +196,29 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       setNeedsReassemble(true)
     }
 
+    const handleCitationChange = (event: Event): void => {
+      const currentProjectId = docRef.current?.projectId
+      if (!currentProjectId) return
+      if (event instanceof CustomEvent) {
+        const detail = event.detail as ResearchProjectCitationsChangedDetail | undefined
+        if (detail && detail.projectId !== currentProjectId) {
+          return
+        }
+      }
+      setNeedsReassemble(true)
+      void reloadCitations(currentProjectId)
+    }
+
     window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
     window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
+    window.addEventListener(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, handleCitationChange)
 
     return (): void => {
       window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
       window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
+      window.removeEventListener(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, handleCitationChange)
     }
-  }, [])
+  }, [reloadCitations])
 
   const scheduleSave = useCallback((updated: DocumentBlueprint) => {
     docRef.current = updated
@@ -275,15 +308,28 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       serializeTimerRef.current = null
     }
     const sectionId = pendingSerializeSectionRef.current
-    if (!sectionId) return
+    if (!sectionId) return null
     pendingSerializeSectionRef.current = null
     try {
+      const currentDoc = docRef.current
+      if (!currentDoc) return null
       const markdown = editor.api.markdown.serialize()
-      updateSection(sectionId, { content: markdown })
+      const newSections = currentDoc.sections.map((section) => (
+        section.id === sectionId ? { ...section, content: markdown } : section
+      ))
+      const updated = {
+        ...currentDoc,
+        sections: newSections,
+        updatedAt: new Date().toISOString(),
+      }
+      setDoc(updated)
+      scheduleSave(updated)
+      return updated
     } catch {
       // serialize 실패 시 무시
+      return null
     }
-  }, [editor, updateSection])
+  }, [editor, scheduleSave])
 
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
@@ -391,8 +437,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
   // 재조립
   const handleReassemble = useCallback(() => {
-    reassembleCurrentDocument()
-  }, [reassembleCurrentDocument])
+    const syncedDoc = flushSerialize()
+    reassembleCurrentDocument(syncedDoc ?? undefined)
+  }, [flushSerialize, reassembleCurrentDocument])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
@@ -465,7 +512,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
   const handleDeleteCitation = useCallback(async (id: string) => {
     await deleteCitation(id)
-    setCitations(prev => prev.filter(c => c.id !== id))
   }, [])
 
   // ── 렌더링 ──

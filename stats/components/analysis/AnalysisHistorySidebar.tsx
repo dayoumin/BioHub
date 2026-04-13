@@ -9,7 +9,7 @@
  * - 고급 기능(내보내기, 재분석)은 per-item 드롭다운으로 접근
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Pencil, RefreshCw, MoreHorizontal } from 'lucide-react'
 import {
@@ -50,6 +50,7 @@ export function AnalysisHistorySidebar(): ReactNode {
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const hasInitializedHistoryRef = useRef(false)
 
   const {
     analysisHistory,
@@ -75,6 +76,10 @@ export function AnalysisHistorySidebar(): ReactNode {
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (stale pin 방어)
   useEffect(() => {
+    if (analysisHistory.length === 0 && !hasInitializedHistoryRef.current) {
+      return
+    }
+    hasInitializedHistoryRef.current = true
     const validIds = new Set(analysisHistory.map((h) => h.id))
     setPinnedIds((prev) => {
       const cleaned = prev.filter((id) => validIds.has(id))

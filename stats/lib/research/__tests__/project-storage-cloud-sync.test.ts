@@ -66,7 +66,7 @@ describe('project-storage cloud sync', () => {
     expect(listResearchProjects()).toEqual(hydrated)
   })
 
-  it('does not reinsert pending unlinks and removes refs that are absent from cloud detail', async () => {
+  it('does not reinsert pending unlinks and preserves local refs that are absent from cloud detail', async () => {
     const {
       hydrateProjectRefsFromCloud,
       listProjectEntityRefs,
@@ -111,7 +111,14 @@ describe('project-storage cloud sync', () => {
 
     await hydrateProjectRefsFromCloud('proj-1')
 
-    expect(listProjectEntityRefs('proj-1')).toEqual([])
+    expect(listProjectEntityRefs('proj-1')).toEqual([
+      expect.objectContaining({
+        projectId: 'proj-1',
+        entityKind: 'analysis',
+        entityId: 'analysis-1',
+        label: 'Local analysis',
+      }),
+    ])
   })
 
   it('keeps a local ref while its cloud link is still pending', async () => {

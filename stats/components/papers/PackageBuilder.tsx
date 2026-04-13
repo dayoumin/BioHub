@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +24,6 @@ import type {
   SummaryStatus,
 } from '@/lib/research/paper-package-types'
 import type { PackageDataSources } from '@/lib/research/paper-package-assembler'
-import type { HistoryRecord } from '@/lib/utils/storage-types'
 import {
   listProjectEntityRefs,
   loadResearchProject,
@@ -427,9 +426,13 @@ function Step3({ references, onChange }: Step3Props): React.ReactElement {
 function mergeCollectedPackageItems(
   previousItems: PackageItem[],
   collectedItems: PackageItem[],
+  referencedSourceKeys: ReadonlySet<string>,
 ): PackageItem[] {
   const previousBySource = new Map(
     previousItems.map((item) => [`${item.type}:${item.sourceId}`, item] as const)
+  )
+  const collectedSourceKeys = new Set(
+    collectedItems.map((item) => `${item.type}:${item.sourceId}`)
   )
 
   const merged = collectedItems.map((item, index) => {
@@ -448,6 +451,14 @@ function mergeCollectedPackageItems(
       patternSummary: existing.patternSummary ?? item.patternSummary,
     }
   })
+
+  for (const item of previousItems) {
+    const sourceKey = `${item.type}:${item.sourceId}`
+    if (!referencedSourceKeys.has(sourceKey) || collectedSourceKeys.has(sourceKey)) {
+      continue
+    }
+    merged.push(item)
+  }
 
   return merged
     .sort((left, right) => left.order - right.order)
@@ -567,7 +578,6 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   const [assemblyResult, setAssemblyResult] = useState<AssemblyResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [itemCollectionRefreshKey, setItemCollectionRefreshKey] = useState(0)
-  const historyCacheRef = useRef<HistoryRecord[] | null>(null)
 
   // 초기 로드
   useEffect(() => {
@@ -628,10 +638,10 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
 
     const collectItems = async (): Promise<void> => {
       try {
-        const historyRecords = historyCacheRef.current ?? await getAllHistory()
-        historyCacheRef.current = historyRecords
+        const historyRecords = await getAllHistory()
         const graphProjects = listProjects()
         const entityRefs = listProjectEntityRefs(currentProjectId)
+        const referencedSourceKeys = new Set<string>()
 
         const historyById = new Map(historyRecords.map(h => [h.id, h]))
         const graphById = new Map(graphProjects.map(g => [g.id, g]))
@@ -641,6 +651,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
 
         for (const ref of entityRefs) {
           if (ref.entityKind === 'analysis') {
+            referencedSourceKeys.add(`analysis:${ref.entityId}`)
             const record = historyById.get(ref.entityId)
             if (record) {
               tableCount++
@@ -656,6 +667,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
               })
             }
           } else if (ref.entityKind === 'figure') {
+            referencedSourceKeys.add(`figure:${ref.entityId}`)
             const graph = graphById.get(ref.entityId)
             if (graph) {
               figureCount++
@@ -680,7 +692,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           if (!prev) return prev
           return {
             ...prev,
-            items: mergeCollectedPackageItems(prev.items, newItems),
+            items: mergeCollectedPackageItems(prev.items, newItems, referencedSourceKeys),
           }
         })
       } catch {
@@ -734,8 +746,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   const handleAssemble = useCallback(async (): Promise<void> => {
     if (!pkg) return
     try {
-      const historyRecords = historyCacheRef.current ?? await getAllHistory()
-      historyCacheRef.current = historyRecords
+      const historyRecords = await getAllHistory()
       const graphProjects = listProjects()
       const sources: PackageDataSources = { historyRecords, graphProjects }
       const result = assemblePaperPackage(pkg, sources)

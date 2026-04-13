@@ -31,6 +31,8 @@ const testState = vi.hoisted(() => ({
     loadedPaperDraft: null as unknown,
     patchHistoryPaperDraft: vi.fn().mockResolvedValue(undefined),
     patchHistoryInterpretation: vi.fn().mockResolvedValue(undefined),
+    setCurrentHistoryId: vi.fn(),
+    setLoadedAiInterpretation: vi.fn(),
     setLoadedPaperDraft: vi.fn(),
     setLoadedInterpretationChat: vi.fn(),
   },
@@ -317,7 +319,11 @@ describe('history result Graph Studio import fidelity', () => {
     const pkg = getLoadedPackage()
 
     expect(spec.chartType).toBe('scatter')
-    expect(spec.trendline).toEqual({ type: 'linear', showEquation: true })
+    expect(spec.trendline).toEqual({
+      type: 'linear',
+      showEquation: true,
+      fittedPoints: [[1, 2], [2, 4], [3, 6], [4, 8]],
+    })
     expect(pkg.analysisResultId).toBe('hist-graph-1')
     expect(pkg.data).toMatchObject({
       x: [1, 2, 3, 4],
@@ -355,6 +361,40 @@ describe('history result Graph Studio import fidelity', () => {
       category: ['A', 'B'],
       value: [10, 12],
       error: [1.2, 0.8],
+    })
+  })
+
+  it('explicit CI bounds history import preserves absolute intervals in the loaded spec', () => {
+    renderHistoryResult(
+      makeHistoryResult({
+        method: 'means-plot',
+        statistic: 0,
+        pValue: 1,
+        interpretation: '신뢰구간이 포함된 평균입니다.',
+        visualizationData: {
+          type: 'bar',
+          data: {
+            plotData: [
+              { group: 'A', mean: 10, ciLower: 8.5, ciUpper: 11.5 },
+              { group: 'B', mean: 12, ciLower: 10.8, ciUpper: 13.1 },
+            ],
+          },
+        },
+      }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Graph Studio' }))
+
+    const spec = getLoadedSpec()
+    const pkg = getLoadedPackage()
+
+    expect(spec.chartType).toBe('error-bar')
+    expect(spec.errorBar).toEqual({ type: 'ci' })
+    expect(pkg.data).toMatchObject({
+      category: ['A', 'B'],
+      value: [10, 12],
+      ciLower: [8.5, 10.8],
+      ciUpper: [11.5, 13.1],
     })
   })
 

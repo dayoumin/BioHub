@@ -184,6 +184,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     loadedPaperDraft,
     patchHistoryPaperDraft,
     patchHistoryInterpretation,
+    setCurrentHistoryId,
+    setLoadedAiInterpretation,
+    setLoadedInterpretationChat,
     setLoadedPaperDraft,
   } = useHistoryStore()
   const historyEntries = useMemo(() => analysisHistory ?? [], [analysisHistory])
@@ -575,6 +578,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setUploadedFile(null)
     setValidationResults(null)
     setResults(null)
+    setCurrentHistoryId(null)
+    setLoadedAiInterpretation(null)
+    setLoadedInterpretationChat(null)
+    setLoadedPaperDraft(null)
     setStepTrack('reanalysis')
     // ★ 새 결과에 대한 AI 자동 해석이 동작하도록 가드 해제
     clearInterpretationGuard()
@@ -583,7 +590,21 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     toast.info(t.results.toast.reanalyzeReady, {
       description: selectedMethod ? t.results.toast.reanalyzeMethod(selectedMethod.name) : ''
     })
-  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setStepTrack, navigateToStep, clearInterpretationGuard, selectedMethod, t])
+  }, [
+    setUploadedData,
+    setUploadedFile,
+    setValidationResults,
+    setResults,
+    setCurrentHistoryId,
+    setLoadedAiInterpretation,
+    setLoadedInterpretationChat,
+    setLoadedPaperDraft,
+    setStepTrack,
+    navigateToStep,
+    clearInterpretationGuard,
+    selectedMethod,
+    t,
+  ])
 
   const handleNewAnalysisConfirm = useCallback(async () => {
     try {

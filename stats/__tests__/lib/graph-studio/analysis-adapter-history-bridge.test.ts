@@ -3,7 +3,7 @@ import { buildAnalysisVisualizationColumns } from '@/lib/graph-studio'
 import type { AnalysisResult } from '@/types/analysis'
 
 type FidelityBridgeResult = NonNullable<ReturnType<typeof buildAnalysisVisualizationColumns>> & {
-  trendline?: { type: 'linear'; showEquation?: boolean }
+  trendline?: { type: 'linear'; showEquation?: boolean; fittedPoints?: Array<[number, number]> }
   errorBar?: { type: string; value?: number }
 }
 
@@ -62,7 +62,7 @@ describe('buildAnalysisVisualizationColumns', () => {
     expect(built?.data.count).toEqual([12, 8, 7, 13])
   })
 
-  it('지원하지 않는 visualizationData여도 groupStats가 있으면 bar 차트로 fallback한다', () => {
+  it('지원하지 않는 visualizationData는 misleading fallback 없이 null을 반환한다', () => {
     const result: AnalysisResult = {
       method: 'mixed-model',
       statistic: 2.1,
@@ -80,12 +80,7 @@ describe('buildAnalysisVisualizationColumns', () => {
 
     const built = buildAnalysisVisualizationColumns(result)
 
-    expect(built).not.toBeNull()
-    expect(built?.chartType).toBe('bar')
-    expect(built?.xField).toBe('group')
-    expect(built?.yField).toBe('mean')
-    expect(built?.data.group).toEqual(['A', 'B'])
-    expect(built?.data.mean).toEqual([10, 14])
+    expect(built).toBeNull()
   })
 
   it('scatter-regression visualizationData를 trendline이 있는 scatter 데이터로 변환한다', () => {
@@ -112,7 +107,11 @@ describe('buildAnalysisVisualizationColumns', () => {
     expect(built?.yField).toBe('y')
     expect(built?.data.x).toEqual([1, 2, 3, 4])
     expect(built?.data.y).toEqual([2, 4, 6, 8])
-    expect(built?.trendline).toEqual({ type: 'linear', showEquation: true })
+    expect(built?.trendline).toEqual({
+      type: 'linear',
+      showEquation: true,
+      fittedPoints: [[1, 2], [2, 4], [3, 6], [4, 8]],
+    })
   })
 
   it('bar visualizationData with stderr is converted into explicit error-bar data', () => {
@@ -142,6 +141,32 @@ describe('buildAnalysisVisualizationColumns', () => {
     expect(built?.data.value).toEqual([10, 12])
     expect(built?.data.error).toEqual([1.2, 0.8])
     expect(built?.errorBar).toEqual({ type: 'stderr' })
+  })
+
+  it('bar visualizationData with explicit CI bounds preserves absolute intervals', () => {
+    const result: AnalysisResult = {
+      method: 'means-plot',
+      statistic: 0,
+      pValue: 1,
+      interpretation: '신뢰구간이 포함된 평균입니다.',
+      visualizationData: {
+        type: 'bar',
+        data: {
+          plotData: [
+            { group: 'A', mean: 10, ciLower: 8.5, ciUpper: 11.5 },
+            { group: 'B', mean: 12, ciLower: 10.8, ciUpper: 13.1 },
+          ],
+        },
+      },
+    }
+
+    const built = buildAnalysisVisualizationColumns(result) as FidelityBridgeResult | null
+
+    expect(built).not.toBeNull()
+    expect(built?.chartType).toBe('error-bar')
+    expect(built?.errorBar).toEqual({ type: 'ci' })
+    expect(built?.data.ciLower).toEqual([8.5, 10.8])
+    expect(built?.data.ciUpper).toEqual([11.5, 13.1])
   })
 
   it('dendrogram visualizationData는 잘못된 선형 차트로 변환하지 않는다', () => {

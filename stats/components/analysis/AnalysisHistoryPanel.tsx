@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   Clock,
   Trash2,
@@ -84,6 +84,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   })
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
+  const hasInitializedHistoryRef = useRef(false)
 
   const toggleExpand = (id: string) => {
     setExpandedItems(prev => {
@@ -111,6 +112,10 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (방어적 백업)
   useEffect(() => {
+    if (analysisHistory.length === 0 && !hasInitializedHistoryRef.current) {
+      return
+    }
+    hasInitializedHistoryRef.current = true
     const validIds = new Set(analysisHistory.map(h => h.id))
     setPinnedIds(prev => {
       const cleaned = prev.filter(id => validIds.has(id))

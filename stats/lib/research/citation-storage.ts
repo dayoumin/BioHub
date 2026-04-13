@@ -8,9 +8,22 @@
 import type { CitationRecord } from './citation-types'
 import { citationKey } from './citation-types'
 import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
-import { txPut, txGetByIndex, txDelete } from '@/lib/utils/indexeddb-helpers'
+import { txDelete, txGet, txGetByIndex } from '@/lib/utils/indexeddb-helpers'
 
 const STORE_NAME = 'citations'
+export const RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT = 'research-project-citations-changed'
+
+export interface ResearchProjectCitationsChangedDetail {
+  projectId: string
+}
+
+function notifyProjectCitationsChanged(projectId: string): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent<ResearchProjectCitationsChangedDetail>(
+    RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
+    { detail: { projectId } },
+  ))
+}
 
 /** 인용 저장 — 동일 프로젝트 내 citationKey 중복 시 무시 (idempotent, 단일 트랜잭션) */
 export async function saveCitation(record: CitationRecord): Promise<void> {
@@ -27,7 +40,10 @@ export async function saveCitation(record: CitationRecord): Promise<void> {
         return
       }
       const putReq = store.put(record)
-      putReq.onsuccess = () => resolve()
+      putReq.onsuccess = () => {
+        notifyProjectCitationsChanged(record.projectId)
+        resolve()
+      }
       putReq.onerror = () => reject(putReq.error)
     }
     req.onerror = () => reject(req.error)
@@ -44,5 +60,9 @@ export async function listCitationsByProject(projectId: string): Promise<Citatio
 /** 인용 삭제 */
 export async function deleteCitation(id: string): Promise<void> {
   const db = await openDB()
+  const existing = await txGet<CitationRecord>(db, STORE_NAME, id)
   await txDelete(db, STORE_NAME, id)
+  if (existing?.projectId) {
+    notifyProjectCitationsChanged(existing.projectId)
+  }
 }

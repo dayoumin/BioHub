@@ -782,6 +782,7 @@ const defaultHistoryStoreState = {
   currentHistoryId: null as string | null,
   patchHistoryPaperDraft: vi.fn(),
   patchHistoryInterpretation: vi.fn(),
+  setCurrentHistoryId: vi.fn(),
   setLoadedAiInterpretation: vi.fn(),
   setLoadedInterpretationChat: vi.fn(),
   setLoadedPaperDraft: vi.fn(),
@@ -1306,6 +1307,10 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     })
 
     it('재분석 클릭 → store 초기화 + step 1로 이동', async () => {
+      mockHistoryStoreState = {
+        ...defaultHistoryStoreState,
+        currentHistoryId: 'history-1',
+      }
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       const reanalyzeBtn = screen.getByText('다른 데이터로 재분석')
@@ -1316,6 +1321,10 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(mockStoreState.setUploadedData).toHaveBeenCalledWith(null)
       expect(mockStoreState.setUploadedFile).toHaveBeenCalledWith(null)
       expect(mockStoreState.setResults).toHaveBeenCalledWith(null)
+      expect(mockHistoryStoreState.setCurrentHistoryId).toHaveBeenCalledWith(null)
+      expect(mockHistoryStoreState.setLoadedAiInterpretation).toHaveBeenCalledWith(null)
+      expect(mockHistoryStoreState.setLoadedInterpretationChat).toHaveBeenCalledWith(null)
+      expect(mockHistoryStoreState.setLoadedPaperDraft).toHaveBeenCalledWith(null)
       expect(mockModeStoreState.setStepTrack).toHaveBeenCalledWith('reanalysis')
       expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(1)
     })

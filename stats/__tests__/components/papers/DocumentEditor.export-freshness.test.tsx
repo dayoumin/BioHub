@@ -4,24 +4,29 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DocumentEditor from '@/components/papers/DocumentEditor'
 import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
 import type { AssemblerDataSources } from '@/lib/research/document-assembler'
+import type { CitationRecord } from '@/lib/research/citation-types'
 
 const {
   mockDocumentToDocx,
   mockSaveDocumentBlueprint,
   mockLoadDocumentBlueprint,
   mockReassembleDocument,
+  mockListCitationsByProject,
   mockSerialize,
   mockDeserialize,
   mockSetValue,
+  RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
   mockDocumentToDocx: vi.fn(async (_doc: DocumentBlueprint) => undefined),
   mockSaveDocumentBlueprint: vi.fn(async (_doc: DocumentBlueprint) => undefined),
   mockLoadDocumentBlueprint: vi.fn<() => Promise<DocumentBlueprint | null>>(),
   mockReassembleDocument: vi.fn<(doc: DocumentBlueprint) => DocumentBlueprint>(),
+  mockListCitationsByProject: vi.fn<(projectId: string) => Promise<CitationRecord[]>>(),
   mockSerialize: vi.fn(() => 'serialized editor content'),
   mockDeserialize: vi.fn(() => [{ type: 'p', children: [{ text: 'loaded nodes' }] }]),
   mockSetValue: vi.fn(),
+  RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT: 'research-project-citations-changed',
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
 }))
 
@@ -42,7 +47,11 @@ vi.mock('platejs/react', () => ({
 }))
 
 vi.mock('@/components/papers/PlateEditor', () => ({
-  default: () => <div data-testid="paper-plate-editor" />,
+  default: ({ onChange }: { onChange: () => void }) => (
+    <button type="button" data-testid="paper-plate-editor" onClick={onChange}>
+      editor
+    </button>
+  ),
 }))
 
 vi.mock('@/components/papers/plate-plugins', () => ({
@@ -72,7 +81,9 @@ vi.mock('@/components/papers/DocumentSectionList', () => ({
 }))
 
 vi.mock('@/components/papers/MaterialPalette', () => ({
-  default: () => <div data-testid="material-palette" />,
+  default: ({ citations }: { citations: Array<{ id: string }> }) => (
+    <div data-testid="material-palette">Citations: {citations.length}</div>
+  ),
 }))
 
 vi.mock('@/lib/research/document-blueprint-storage', () => ({
@@ -106,7 +117,8 @@ vi.mock('@/lib/genetics/analysis-history', () => ({
 }))
 
 vi.mock('@/lib/research/citation-storage', () => ({
-  listCitationsByProject: vi.fn(async () => []),
+  RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
+  listCitationsByProject: (projectId: string) => mockListCitationsByProject(projectId),
   deleteCitation: vi.fn(async () => undefined),
 }))
 
@@ -153,11 +165,13 @@ describe('DocumentEditor export freshness', () => {
     mockSaveDocumentBlueprint.mockClear()
     mockLoadDocumentBlueprint.mockReset()
     mockReassembleDocument.mockReset()
+    mockListCitationsByProject.mockReset()
     mockSerialize.mockClear()
     mockDeserialize.mockClear()
     mockSetValue.mockClear()
 
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('이전 내용'))
+    mockListCitationsByProject.mockResolvedValue([])
     mockReassembleDocument.mockImplementation((doc: DocumentBlueprint) => ({
       ...doc,
       updatedAt: '2026-04-13T00:00:00.000Z',
@@ -197,5 +211,64 @@ describe('DocumentEditor export freshness', () => {
 
     expect(mockReassembleDocument).toHaveBeenCalledTimes(1)
     expect(mockSerialize).not.toHaveBeenCalled()
+  })
+
+  it('flushes pending editor content before manual reassemble', async () => {
+    const user = userEvent.setup()
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    await user.click(screen.getByTestId('paper-plate-editor'))
+    await user.click(screen.getByRole('button', { name: '재조립' }))
+
+    await waitFor(() => {
+      expect(mockReassembleDocument).toHaveBeenCalledTimes(1)
+    })
+
+    expect(mockSerialize).toHaveBeenCalled()
+    const [reassembledDoc] = mockReassembleDocument.mock.calls[0] as [DocumentBlueprint]
+    expect(reassembledDoc.sections[0]?.content).toBe('serialized editor content')
+  })
+
+  it('reloads citations and marks the document for reassembly when citations change', async () => {
+    mockListCitationsByProject
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'cit-1',
+          projectId: 'project-1',
+          item: {
+            id: 'paper-1',
+            source: 'openalex',
+            title: 'Citation title',
+            authors: ['Kim'],
+            year: 2024,
+            url: 'https://example.com/paper-1',
+            searchedName: 'Species',
+          },
+          addedAt: '2026-04-13T00:00:00.000Z',
+        },
+      ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await waitFor(() => {
+      expect(screen.getByText('Citations: 0')).toBeInTheDocument()
+    })
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, {
+        detail: { projectId: 'project-1' },
+      }))
+    })
+
+    await waitFor(() => {
+      expect(mockListCitationsByProject).toHaveBeenCalledTimes(2)
+      expect(screen.getByText('Citations: 1')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '재조립 필요' })).toBeInTheDocument()
+    })
   })
 })

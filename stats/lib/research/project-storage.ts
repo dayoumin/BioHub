@@ -289,9 +289,7 @@ function mergeProjectEntityRefs(projectId: string, refs: ProjectEntityRef[]): vo
       merged.set(key, pickNewerProjectRef(ref, existingRef))
       continue
     }
-    if (pendingEntityLinks.has(key)) {
-      merged.set(key, ref)
-    }
+    merged.set(key, ref)
   }
 
   writeJson(PROJECT_REFS_KEY, [...remaining, ...merged.values()])
