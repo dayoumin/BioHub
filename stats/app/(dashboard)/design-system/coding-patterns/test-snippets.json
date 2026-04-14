@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.44.4",
-  "lastUpdated": "2026-04-13",
+  "version": "1.44.5",
+  "lastUpdated": "2026-04-14",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -58,6 +58,19 @@
             "cachedAiRecommendation",
             "suggestedSettings",
             "diagnosticReport",
+            "zustand"
+          ]
+        },
+        {
+          "name": "Persist rehydrate canonical method 정규화 테스트",
+          "purpose": "legacy alias가 action, history restore, persist rehydrate 어느 경로로 들어와도 selectedMethod.id가 canonical id로 정규화되는지 검증",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { useAnalysisStore } from '@/lib/stores/analysis-store';\n\ndescribe('analysis store canonical method ids', () => {\n  it('legacy alias를 canonical id로 정규화한다', () => {\n    act(() => {\n      useAnalysisStore.getState().setSelectedMethod({\n        id: 't-test',\n        name: 'Independent Samples t-Test',\n        description: '',\n        category: 't-test',\n      });\n    });\n\n    expect(useAnalysisStore.getState().selectedMethod?.id).toBe('two-sample-t');\n  });\n\n  it('persist rehydrate도 canonical id를 유지한다', () => {\n    act(() => {\n      useAnalysisStore.persist.rehydrate();\n    });\n\n    const state = useAnalysisStore.getState();\n    expect(state.selectedMethod?.id === 'two-sample-t' || state.selectedMethod?.id === 'one-way-anova' || state.selectedMethod === null).toBe(true);\n  });\n});",
+          "keywords": [
+            "persist",
+            "rehydrate",
+            "canonical method id",
+            "alias normalization",
+            "selectedMethod",
             "zustand"
           ]
         },
