@@ -13,7 +13,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Database, Sparkles, X } from 'lucide-react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
+import {
+  selectAutoColorField,
+  selectXYFields,
+} from '@/lib/graph-studio/chart-spec-utils';
 import { createDefaultChartSpec, CHART_TYPE_HINTS, STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 import { loadTemplates, deleteTemplate } from '@/lib/graph-studio/style-template-storage';
@@ -214,11 +217,12 @@ export function ChartSetupPanel(): React.ReactElement {
 
     // line/scatter: nominal 컬럼 자동 color
     if ((selectedType === 'line' || selectedType === 'scatter') && colorField === 'none') {
-      const nominalCol = columns.find(
-        c => c.type === 'nominal' && c.name !== xField && c.name !== yField,
-      );
-      if (nominalCol) {
-        spec.encoding.color = { field: nominalCol.name, type: 'nominal' };
+      const autoColorField = selectAutoColorField(columns, xField, yField);
+      if (autoColorField) {
+        const autoColorColumn = columns.find(c => c.name === autoColorField);
+        if (autoColorColumn) {
+          spec.encoding.color = { field: autoColorColumn.name, type: autoColorColumn.type };
+        }
       }
     }
 

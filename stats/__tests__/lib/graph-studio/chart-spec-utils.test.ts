@@ -5,6 +5,7 @@ import {
   columnsToRows,
   createChartSpecFromDataPackage,
   inferColumnMeta,
+  selectAutoColorField,
   sanitizeChartSpecForRenderer,
   selectXYFields,
   suggestChartType,
@@ -146,6 +147,121 @@ describe('selectXYFields', () => {
 
     expect(xField).toBe('group');
     expect(yField).toBe('value');
+  });
+
+  it('prefers readable grouping columns over id-like categorical fields', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        nominal('sample_id'),
+        nominal('treatment'),
+        quantitative('score'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('treatment');
+    expect(yField).toBe('score');
+  });
+
+  it('prefers response-like quantitative fields as y when multiple metrics exist', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        { ...nominal('group'), uniqueCount: 3 },
+        quantitative('length_cm'),
+        quantitative('weight_g'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('group');
+    expect(yField).toBe('weight_g');
+  });
+
+  it('understands camelCase headers when scoring grouping and response fields', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        nominal('sampleId'),
+        nominal('treatmentGroup'),
+        quantitative('bodyWeight'),
+        quantitative('bodyLength'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('treatmentGroup');
+    expect(yField).toBe('bodyWeight');
+  });
+
+  it('does not treat code-like grouping columns as opaque ids', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        nominal('sample_id'),
+        nominal('treatment_code'),
+        quantitative('score'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('treatment_code');
+    expect(yField).toBe('score');
+  });
+
+  it('allows index-like suffixes on real grouping columns', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        nominal('sample_id'),
+        nominal('group_index'),
+        quantitative('value'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('group_index');
+    expect(yField).toBe('value');
+  });
+
+  it('picks category-named *_id columns over sample_id (CATEGORY suppresses generic id penalty)', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        nominal('sample_id'),
+        nominal('treatment_id'),
+        quantitative('score'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('treatment_id');
+    expect(yField).toBe('score');
+  });
+});
+
+describe('selectAutoColorField', () => {
+  const quantitative = (name: string): ColumnMeta => ({
+    name,
+    type: 'quantitative',
+    uniqueCount: 10,
+    sampleValues: [],
+    hasNull: false,
+  });
+
+  it('picks a small categorical grouping field for auto color', () => {
+    const autoColorField = selectAutoColorField([
+      quantitative('time'),
+      quantitative('value'),
+      { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+    ], 'time', 'value');
+
+    expect(autoColorField).toBe('species');
+  });
+
+  it('skips high-cardinality categorical fields to avoid legend overload', () => {
+    const autoColorField = selectAutoColorField([
+      quantitative('x'),
+      quantitative('y'),
+      { name: 'sampleId', type: 'nominal', uniqueCount: 24, sampleValues: [], hasNull: false },
+    ], 'x', 'y');
+
+    expect(autoColorField).toBeNull();
   });
 });
 

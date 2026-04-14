@@ -320,16 +320,176 @@ export function selectXYFields(
 ): { xField: string; yField: string } {
   const xCandidates = columns.filter(c => c.type === hints.suggestedXType);
   const yCandidates = columns.filter(c => c.type === 'quantitative');
-  const xField = xCandidates[0]?.name ?? columns[0]?.name ?? 'x';
+  const xField = pickPreferredColumnName(
+    xCandidates,
+    hints.suggestedXType,
+    scoreXAxisCandidate,
+  ) ?? columns[0]?.name ?? 'x';
 
-  // y 후보 우선순위: xField를 제외한 quantitative → xField를 제외한 임의 컬럼 → xField 자체
+  // y 후보 우선순위: 의미상 더 "결과값"에 가까운 quantitative → xField 제외 임의 컬럼 → xField 자체
   // (histogram 등 y를 실제로 사용하지 않는 차트는 어떤 값이든 무방)
-  const yField =
-    yCandidates.find(c => c.name !== xField)?.name ??
+  const yField = pickPreferredColumnName(
+    yCandidates.filter(candidate => candidate.name !== xField),
+    'quantitative',
+    scoreYAxisCandidate,
+  ) ??
     columns.find(c => c.name !== xField)?.name ??
     xField;
 
   return { xField, yField };
+}
+
+const ID_LIKE_TOKENS = new Set([
+  'id', 'idx', 'uuid', 'accession',
+]);
+
+const CATEGORY_FRIENDLY_TOKENS = new Set([
+  'group', 'treatment', 'condition', 'cohort', 'class', 'category',
+  'type', 'species', 'sex', 'genotype', 'cluster', 'batch', 'arm',
+]);
+
+const TIME_LIKE_TOKENS = new Set([
+  'time', 'date', 'day', 'week', 'month', 'year', 'hour', 'minute',
+  'second', 'visit', 'age',
+]);
+
+const RESPONSE_LIKE_TOKENS = new Set([
+  'value', 'score', 'amount', 'total', 'count', 'rate', 'ratio',
+  'weight', 'response', 'outcome', 'expression', 'abundance',
+  'concentration', 'level', 'intensity', 'signal',
+]);
+
+const PREDICTOR_LIKE_TOKENS = new Set([
+  'time', 'date', 'day', 'week', 'month', 'year', 'visit', 'age',
+  'dose', 'temperature', 'temp', 'length', 'height', 'width',
+  'depth', 'distance', 'size', 'volume',
+]);
+
+function normalizeFieldName(name: string): string[] {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+function hasToken(tokens: string[], dictionary: Set<string>): boolean {
+  return tokens.some(token => dictionary.has(token));
+}
+
+function hasIdLikeName(tokens: string[]): boolean {
+  if (hasToken(tokens, ID_LIKE_TOKENS)) return true;
+  if (tokens.length === 1 && (tokens[0] === 'row' || tokens[0] === 'index')) return true;
+  return tokens.some((token, index) => {
+    const nextToken = tokens[index + 1];
+    return token === 'sample' && nextToken === 'id' ||
+      token === 'subject' && nextToken === 'id' ||
+      token === 'patient' && nextToken === 'id' ||
+      token === 'participant' && nextToken === 'id' ||
+      token === 'row' && nextToken === 'index' ||
+      token === 'record' && nextToken === 'index';
+  });
+}
+
+function scoreReadableCategoryCount(uniqueCount: number): number {
+  if (uniqueCount <= 1) return -8;
+  if (uniqueCount <= 6) return 8;
+  if (uniqueCount <= 12) return 6;
+  if (uniqueCount <= 20) return 3;
+  if (uniqueCount <= 40) return 0;
+  return -6;
+}
+
+function scoreXAxisCandidate(column: ColumnMeta, targetType: ColumnMeta['type']): number {
+  const tokens = normalizeFieldName(column.name);
+  const isIdLike = hasIdLikeName(tokens);
+  const hasCategoryHint = hasToken(tokens, CATEGORY_FRIENDLY_TOKENS);
+  const hasTimeHint = hasToken(tokens, TIME_LIKE_TOKENS);
+  const hasPredictorHint = hasToken(tokens, PREDICTOR_LIKE_TOKENS);
+  const hasResponseHint = hasToken(tokens, RESPONSE_LIKE_TOKENS);
+
+  if (targetType === 'temporal') {
+    return (hasTimeHint ? 12 : 4) +
+      Math.min(column.uniqueCount, 24) * 0.2 -
+      (isIdLike ? 6 : 0) -
+      (column.hasNull ? 1 : 0);
+  }
+
+  if (targetType === 'nominal' || targetType === 'ordinal') {
+    // CATEGORY 힌트가 있으면 일반 `_id` 접미사는 식별자가 아니라 그룹 키로 간주
+    // (treatment_id, group_id 등이 sample_id와 동급으로 감점되지 않도록)
+    const effectiveIdLike = isIdLike && !hasCategoryHint;
+    return scoreReadableCategoryCount(column.uniqueCount) +
+      (hasCategoryHint ? 8 : 0) -
+      (hasTimeHint ? 2 : 0) -
+      (effectiveIdLike ? 12 : 0) -
+      (column.hasNull ? 1 : 0) +
+      (column.type === 'ordinal' ? 0.5 : 0);
+  }
+
+  return (hasPredictorHint ? 6 : 0) -
+    (hasResponseHint ? 2 : 0) -
+    (isIdLike ? 12 : 0) -
+    (column.hasNull ? 1 : 0) +
+    Math.min(column.uniqueCount, 20) * 0.1;
+}
+
+function scoreYAxisCandidate(column: ColumnMeta): number {
+  const tokens = normalizeFieldName(column.name);
+  const isIdLike = hasIdLikeName(tokens);
+  const hasPredictorHint = hasToken(tokens, PREDICTOR_LIKE_TOKENS);
+  const hasResponseHint = hasToken(tokens, RESPONSE_LIKE_TOKENS);
+
+  return (hasResponseHint ? 8 : 0) -
+    (hasPredictorHint ? 2 : 0) -
+    (isIdLike ? 12 : 0) -
+    (column.hasNull ? 1 : 0) +
+    Math.min(column.uniqueCount, 20) * 0.1;
+}
+
+function pickPreferredColumnName(
+  candidates: ColumnMeta[],
+  targetType: ColumnMeta['type'],
+  scorer: (column: ColumnMeta, targetType: ColumnMeta['type']) => number,
+): string | null {
+  // 최고점 선택, 동점 시 원래 순서 우선. wide-format(수천 컬럼) 대비 index를 누적
+  // 페널티로 쓰지 않음 — 스코어 차이를 덮어버리는 문제 방지.
+  let bestName: string | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  candidates.forEach((candidate) => {
+    const score = scorer(candidate, targetType);
+    if (score > bestScore) {
+      bestScore = score;
+      bestName = candidate.name;
+    }
+  });
+
+  return bestName;
+}
+
+const AUTO_COLOR_GROUP_MIN = 2;
+const AUTO_COLOR_GROUP_MAX = 8;
+
+export function selectAutoColorField(
+  columns: ColumnMeta[],
+  xField: string,
+  yField: string,
+): string | null {
+  const candidate = columns.find((column) => {
+    const isCategorical = column.type === 'nominal' || column.type === 'ordinal';
+    const withinReadableGroupCount =
+      column.uniqueCount >= AUTO_COLOR_GROUP_MIN &&
+      column.uniqueCount <= AUTO_COLOR_GROUP_MAX;
+
+    return isCategorical &&
+      withinReadableGroupCount &&
+      column.name !== xField &&
+      column.name !== yField;
+  });
+
+  return candidate?.name ?? null;
 }
 
 // ─── CSV 데이터 → ChartSpec 자동 생성 ──────────────────────

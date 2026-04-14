@@ -617,19 +617,55 @@ export function applyMarkLineAnnotations(
   return option;
 }
 
+// ─── Legend orient helpers ─────────────────────────────────
+// Single source of truth so grid/legend math stays in sync if new orients are added.
+
+const TOP_ORIENTS = new Set(['top', 'top-left', 'top-right'] as const);
+const BOTTOM_ORIENTS = new Set(['bottom', 'bottom-left', 'bottom-right'] as const);
+
+function isTopOrient(orient: string | undefined): boolean {
+  return orient === undefined ? false : TOP_ORIENTS.has(orient as never);
+}
+
+function isBottomOrient(orient: string | undefined): boolean {
+  return orient === undefined ? false : BOTTOM_ORIENTS.has(orient as never);
+}
+
+// title.top=8 기본. legend가 top 계열일 때 이 오프셋만큼 아래로 밀어서 겹침 방지.
+const TITLE_TOP = 8;
+const TITLE_BOTTOM_PADDING = 10;
+function legendTopBelowTitle(style: StyleConfig): number {
+  return TITLE_TOP + style.titleSize + TITLE_BOTTOM_PADDING;
+}
+
 // ─── Base option builder ───────────────────────────────────
 
 export function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOption {
+  const legendOrient = spec.encoding.color?.legend?.orient;
+  const showLegend = !!spec.encoding.color && legendOrient !== 'none';
+  // 명시 orient가 없으면 buildLegend가 'top'으로 fallback → top legend로 취급
+  const hasTopLegend = showLegend && (!legendOrient || isTopOrient(legendOrient));
+  const hasBottomLegend = showLegend && isBottomOrient(legendOrient);
+  const hasLeftLegend = showLegend && legendOrient === 'left';
+  const hasRightLegend = showLegend && legendOrient === 'right';
+  const needsExtraBottomRoom =
+    !!spec.style.showSampleCounts ||
+    Math.abs(spec.encoding.x.labelAngle ?? 0) >= 30;
+
   const base: EChartsOption = {
     backgroundColor: style.background,
     color: style.colors,
     textStyle: { fontFamily: style.fontFamily, fontSize: style.fontSize },
     grid: {
       containLabel: true,
-      left: '8%',
-      right: '5%',
-      top: spec.title ? '14%' : '6%',
-      bottom: '10%',
+      left: hasLeftLegend ? '16%' : '8%',
+      right: hasRightLegend ? '16%' : '5%',
+      top: spec.title
+        ? (hasTopLegend ? '20%' : '14%')
+        : (hasTopLegend ? '12%' : '6%'),
+      bottom: hasBottomLegend
+        ? (needsExtraBottomRoom ? '20%' : '16%')
+        : (needsExtraBottomRoom ? '16%' : '10%'),
     },
     tooltip: { trigger: 'axis' as const },
   };
@@ -834,8 +870,15 @@ export function buildLegend(
   const customLabels = spec.encoding.color?.legend?.customLabels ?? {};
   const legend = spec.encoding.color?.legend;
   const hasCustom = Object.keys(customLabels).length > 0;
+  const resolvedOrient = orient && posMap[orient] ? orient : 'top';
+  const basePos = posMap[resolvedOrient];
+  // spec.title이 있으면 title.top=8 + titleSize + padding만큼 legend를 아래로 밀어 겹침 방지.
+  // titleSize가 사용자 설정으로 커져도 계산식으로 따라가도록 매직넘버 회피.
+  const pos = spec.title && isTopOrient(resolvedOrient)
+    ? { ...basePos, top: legendTopBelowTitle(style) }
+    : basePos;
   return {
-    ...(orient && posMap[orient] ? posMap[orient] : { orient: 'horizontal' }),
+    ...pos,
     textStyle: { fontFamily: style.fontFamily, fontSize: legend?.fontSize ?? style.labelSize },
     ...(hasCustom && seriesNames?.length ? {
       formatter: (name: string) => customLabels[name] ?? name,

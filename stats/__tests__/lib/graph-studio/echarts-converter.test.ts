@@ -85,6 +85,18 @@ describe('bar chart', () => {
     const title = opt.title as AnyOption
     expect(title.text).toBe('My Bar Chart')
   })
+
+  it('showSampleCounts 기본값이 켜지면 x축 보조 라벨 공간을 추가 확보한다', () => {
+    const opt = toAny(chartSpecToECharts(
+      makeSpec({
+        chartType: 'bar',
+        style: { preset: 'default', showSampleCounts: true },
+      }),
+      rows,
+    ))
+    const grid = opt.grid as AnyOption
+    expect(grid.bottom).toBe('16%')
+  })
 })
 
 describe('axis formatting and scale options', () => {
@@ -245,6 +257,125 @@ describe('scatter chart', () => {
     const yAxis = opt.yAxis as AnyOption
     expect(xAxis.scale).toBe(true)
     expect(yAxis.scale).toBe(true)
+  })
+
+  it('colorField 있음 → 기본 범례를 상단에 두고 plot 영역과 분리한다', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'A' },
+      { x: 5, y: 1, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal' },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const legend = opt.legend as AnyOption
+    const grid = opt.grid as AnyOption
+
+    expect(legend.top).toBe(0)
+    expect(legend.left).toBe('center')
+    expect(grid.top).toBe('12%')
+  })
+
+  it('title + colorField 상단 범례 조합에서 범례가 title 아래로 밀린다', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      title: '산점도 제목',
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal' },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const title = opt.title as AnyOption
+    const legend = opt.legend as AnyOption
+    const grid = opt.grid as AnyOption
+
+    expect(title.top).toBe(8)
+    expect(legend.top).toBeGreaterThan(title.top as number)
+    expect(legend.top).toBe(32)
+    expect(grid.top).toBe('20%')
+  })
+
+  it('title + 명시적 top-right 범례 조합에서도 title을 피해 배치된다', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      title: '제목',
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal', legend: { orient: 'top-right' } },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const legend = opt.legend as AnyOption
+
+    expect(legend.top).toBe(32)
+    expect(legend.right).toBe(0)
+  })
+
+  it('title이 있어도 bottom 범례는 top 오프셋 영향을 받지 않는다', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      title: '제목',
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal', legend: { orient: 'bottom' } },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const legend = opt.legend as AnyOption
+
+    expect(legend.bottom).toBe(0)
+    expect(legend.top).toBeUndefined()
+  })
+
+  it('titleSize가 커지면 legend 오프셋도 같이 증가한다', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      title: '큰 제목',
+      style: { preset: 'default', font: { titleSize: 24 } },
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal' },
+      },
+    })
+
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const legend = opt.legend as AnyOption
+    const title = opt.title as AnyOption
+
+    // 기본(titleSize=14)이면 legend.top=32. titleSize=24면 8 + 24 + 10 = 42
+    expect(legend.top).toBe(42)
+    expect(legend.top).toBeGreaterThan(title.top as number)
   })
 })
 

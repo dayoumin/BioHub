@@ -115,12 +115,12 @@ describe('샘플 데이터 컬럼 타입 추론', () => {
 describe('차트 유형별 selectXYFields 매핑', () => {
   const cases: Array<[ChartType, string, string]> = [
     // [chartType, 기대 xField, 기대 yField]
-    ['bar',       'species',   'length_cm'],  // nominal X, quantitative Y
+    ['bar',       'species',   'weight_g'],   // nominal X, quantitative Y(주 결과 변수 우선)
     ['scatter',   'length_cm', 'weight_g'],   // quantitative X, 다른 quantitative Y
-    ['line',      'year',      'length_cm'],  // temporal X (버그 수정 핵심)
-    ['boxplot',   'species',   'length_cm'],  // nominal X, quantitative Y
+    ['line',      'year',      'weight_g'],   // temporal X + 결과 변수 Y
+    ['boxplot',   'species',   'weight_g'],   // nominal X, quantitative Y
     ['histogram', 'length_cm', 'weight_g'],   // quantitative X, 다른 quantitative Y
-    ['heatmap',   'species',   'length_cm'],  // nominal X, quantitative Y
+    ['heatmap',   'species',   'weight_g'],   // nominal X, quantitative Y
   ];
 
   it.each(cases)(
@@ -165,6 +165,7 @@ describe('차트 유형별 ChartSpec 생성', () => {
     const spec = createDefaultChartSpec('src-3', 'bar', xField, yField, SAMPLE_COLUMNS);
     expect(spec.encoding.x.field).toBe('species');
     expect(spec.encoding.x.type).toBe('nominal');
+    expect(spec.encoding.y.field).toBe('weight_g');
   });
 });
 
