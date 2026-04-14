@@ -1,8 +1,10 @@
 import { act, render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import GraphStudioContent, { resolveGraphProjectName } from '@/app/graph-studio/GraphStudioContent';
+import GraphStudioContent from '@/app/graph-studio/GraphStudioContent';
+import { resolveGraphProjectName } from '@/lib/graph-studio/session-coordinator';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import * as projectStorage from '@/lib/graph-studio/project-storage';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys';
 import type { ChartSpec, GraphProject } from '@/types/graph-studio';
 
 vi.mock('next/navigation', () => ({
@@ -126,6 +128,64 @@ describe('GraphStudioContent route sync', () => {
 
     await waitFor(() => {
       expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-2');
+    });
+  });
+
+  it('disconnects the current session and clears the stale route when a project delete event arrives', async () => {
+    let projectExists = true;
+    vi.spyOn(projectStorage, 'loadProject').mockImplementation((projectId: string) => {
+      if (!projectExists || projectId !== 'proj-1') {
+        return null;
+      }
+      return makeProject('proj-1');
+    });
+    window.history.replaceState({}, '', '/graph-studio?project=proj-1');
+
+    render(<GraphStudioContent />);
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-1');
+    });
+
+    projectExists = false;
+    act(() => {
+      window.dispatchEvent(new CustomEvent(projectStorage.GRAPH_PROJECTS_CHANGED_EVENT, {
+        detail: { projectIds: ['proj-1'] },
+      }));
+    });
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().currentProject).toBeNull();
+      expect(window.location.search).toBe('');
+    });
+  });
+
+  it('clears a stale route when another tab removes the project from localStorage', async () => {
+    const project = makeProject('proj-3');
+    let routeProject: GraphProject | null = project;
+    vi.spyOn(projectStorage, 'loadProject').mockImplementation((projectId: string) => {
+      return projectId === 'proj-3' ? routeProject : null;
+    });
+    window.history.replaceState({}, '', '/graph-studio?project=proj-3');
+
+    render(<GraphStudioContent />);
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-3');
+    });
+
+    routeProject = null;
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: STORAGE_KEYS.graphStudio.projects,
+        oldValue: JSON.stringify([project]),
+        newValue: JSON.stringify([]),
+      }));
+    });
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().currentProject).toBeNull();
+      expect(window.location.search).toBe('');
     });
   });
 });

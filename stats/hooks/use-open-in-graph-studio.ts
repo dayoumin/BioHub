@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import { createAutoConfiguredChartSpec } from '@/lib/graph-studio/chart-spec-utils'
 import type { ColumnMeta, ChartSpec, ChartType, DataPackage } from '@/types/graph-studio'
 
 /** 어댑터 빌더 반환 공통 형태 */
@@ -34,7 +34,7 @@ export function useOpenInGraphStudio(): (opts: OpenOptions) => void {
     const pkgId = crypto.randomUUID()
     // histogram 등 yField가 undefined인 경우 xField로 대체 (createDefaultChartSpec이 필수 요구)
     const yField = built.yField ?? built.xField
-    const spec = createDefaultChartSpec(pkgId, chartType, built.xField, yField, built.columns)
+    const spec = createAutoConfiguredChartSpec(pkgId, chartType, built.xField, yField, built.columns)
 
     if (built.colorField) {
       spec.encoding.color = { field: built.colorField, type: 'nominal' }

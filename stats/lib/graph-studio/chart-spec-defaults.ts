@@ -5,6 +5,8 @@
  */
 
 import type { ChartSpec, ChartType, StyleSpec, ExportConfig, StylePreset, ErrorBarSpec, TrendlineSpec } from '@/types/graph-studio';
+import { CHART_CAPABILITIES } from './chart-capabilities';
+import type { ChartCapability } from './chart-capabilities';
 
 // ─── ColorBrewer + viridis 팔레트 ──────────────────────────
 
@@ -141,153 +143,101 @@ export type JournalPresetKey = typeof JOURNAL_SIZE_PRESETS[number]['key'];
 
 // ─── 차트 유형별 권장 설정 ──────────────────────────────────
 
-interface ChartTypeHint {
+export interface ChartTypeHint {
   label: string;
   description: string;
   suggestedXType: 'nominal' | 'ordinal' | 'quantitative' | 'temporal';
   suggestedYType: 'nominal' | 'ordinal' | 'quantitative' | 'temporal';
-  supportsColor: boolean;
-  supportsErrorBar: boolean;
-  supportsAggregate: boolean;
-  /** 이중 Y축 지원 (bar, line만 true) */
-  supportsY2: boolean;
-  /** 패싯 지원 (bar, scatter만 true) */
-  supportsFacet: boolean;
 }
 
-export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
+const CHART_TYPE_BASE_HINTS: Record<ChartType, ChartTypeHint> = {
   bar: {
     label: '막대 차트',
     description: '범주별 값 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: true,
-    supportsAggregate: true,
-    supportsY2: true,
-    supportsFacet: true,
   },
   'grouped-bar': {
     label: '그룹 막대 차트',
     description: '그룹별 범주 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: true,
-    supportsAggregate: true,
-    supportsY2: false,
-    supportsFacet: false,
   },
   'stacked-bar': {
     label: '누적 막대 차트',
     description: '구성 비율 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: false,
-    supportsAggregate: true,
-    supportsY2: false,
-    supportsFacet: false,
   },
   line: {
     label: '꺾은선 그래프',
     description: '시간/순서에 따른 추세',
     suggestedXType: 'temporal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: true,
-    supportsAggregate: true,
-    supportsY2: true,
-    supportsFacet: false,
   },
   scatter: {
     label: '산점도',
     description: '두 변수의 관계',
     suggestedXType: 'quantitative',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: false,
-    supportsAggregate: false,
-    supportsY2: false,
-    supportsFacet: true,
   },
   boxplot: {
     label: '박스 플롯',
     description: '분포 비교 (중앙값, 사분위수)',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: false,
-    supportsAggregate: false,
-    supportsY2: false,
-    supportsFacet: false,
   },
   histogram: {
     label: '히스토그램',
     description: '빈도 분포',
     suggestedXType: 'quantitative',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: false,
-    supportsAggregate: false,
-    supportsY2: false,
-    supportsFacet: false,
   },
   'error-bar': {
     label: '에러 바 차트',
     description: '평균 ± 오차 표시',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: true,
-    supportsAggregate: true,
-    supportsY2: false,
-    supportsFacet: false,
   },
   heatmap: {
     label: '히트맵',
     description: '행렬형 값 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: false,
-    supportsErrorBar: false,
-    supportsAggregate: true,
-    supportsY2: false,
-    supportsFacet: false,
   },
   violin: {
     label: '바이올린 플롯',
     description: '분포 형태 비교 (자체 KDE renderItem)',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: false,
-    supportsErrorBar: false,
-    supportsAggregate: false,
-    supportsY2: false,
-    supportsFacet: false,
   },
   'km-curve': {
     label: 'Kaplan-Meier 생존 곡선',
     description: '생존율 시간 경과 시각화 (그룹 비교 포함)',
     suggestedXType: 'quantitative',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: false,
-    supportsAggregate: false,
-    supportsY2: false,
-    supportsFacet: false,
   },
   'roc-curve': {
     label: 'ROC 곡선',
     description: '진단 정확도 평가 (AUC, 민감도/특이도)',
     suggestedXType: 'quantitative',
     suggestedYType: 'quantitative',
-    supportsColor: true,
-    supportsErrorBar: false,
-    supportsAggregate: false,
-    supportsY2: false,
-    supportsFacet: false,
   },
+};
+
+export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint & ChartCapability> = {
+  bar: { ...CHART_TYPE_BASE_HINTS.bar, ...CHART_CAPABILITIES.bar },
+  'grouped-bar': { ...CHART_TYPE_BASE_HINTS['grouped-bar'], ...CHART_CAPABILITIES['grouped-bar'] },
+  'stacked-bar': { ...CHART_TYPE_BASE_HINTS['stacked-bar'], ...CHART_CAPABILITIES['stacked-bar'] },
+  line: { ...CHART_TYPE_BASE_HINTS.line, ...CHART_CAPABILITIES.line },
+  scatter: { ...CHART_TYPE_BASE_HINTS.scatter, ...CHART_CAPABILITIES.scatter },
+  boxplot: { ...CHART_TYPE_BASE_HINTS.boxplot, ...CHART_CAPABILITIES.boxplot },
+  histogram: { ...CHART_TYPE_BASE_HINTS.histogram, ...CHART_CAPABILITIES.histogram },
+  'error-bar': { ...CHART_TYPE_BASE_HINTS['error-bar'], ...CHART_CAPABILITIES['error-bar'] },
+  heatmap: { ...CHART_TYPE_BASE_HINTS.heatmap, ...CHART_CAPABILITIES.heatmap },
+  violin: { ...CHART_TYPE_BASE_HINTS.violin, ...CHART_CAPABILITIES.violin },
+  'km-curve': { ...CHART_TYPE_BASE_HINTS['km-curve'], ...CHART_CAPABILITIES['km-curve'] },
+  'roc-curve': { ...CHART_TYPE_BASE_HINTS['roc-curve'], ...CHART_CAPABILITIES['roc-curve'] },
 };
 
 // ─── Figure 빠른 시작 프리셋 ───────────────────────────────

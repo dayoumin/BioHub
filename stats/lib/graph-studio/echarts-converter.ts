@@ -12,6 +12,7 @@
 
 import type { ChartSpec } from '@/types/graph-studio';
 import type { EChartsOption } from 'echarts';
+import { getChartCapabilities, isRegisteredChartType } from './chart-capabilities';
 import type { ConverterContext } from './converters/types';
 import {
   getStyleConfig,
@@ -31,10 +32,35 @@ import {
   buildKmCurveChart,
   buildRocCurveChart,
 } from './converters';
-import { applyMarkLineAnnotations, xAxisBase, yAxisBase } from './converters/shared';
 
-/** 패싯을 렌더링할 차트 유형 */
-const FACET_CHART_TYPES = new Set<string>(['bar', 'scatter']);
+function buildUnsupportedChartOption(
+  base: EChartsOption,
+  chartType: string,
+): EChartsOption {
+  return {
+    ...base,
+    title: {
+      text: 'Unsupported chart type',
+      subtext: `"${chartType}" is not registered in Graph Studio.`,
+      left: 'center',
+      top: 'middle',
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'normal',
+      },
+      subtextStyle: {
+        fontSize: 12,
+      },
+    },
+    grid: undefined,
+    xAxis: undefined,
+    yAxis: undefined,
+    dataset: undefined,
+    series: [],
+    tooltip: undefined,
+    graphic: undefined,
+  };
+}
 
 export function chartSpecToECharts(
   spec: ChartSpec,
@@ -46,6 +72,13 @@ export function chartSpecToECharts(
 
   const style = getStyleConfig(spec);
   const base = buildBaseOption(spec, style);
+  if (!isRegisteredChartType(spec.chartType)) {
+    return buildUnsupportedChartOption(base, spec.chartType);
+  }
+  const capabilities = getChartCapabilities(spec.chartType);
+  if (!capabilities) {
+    return buildUnsupportedChartOption(base, spec.chartType);
+  }
   const xField = spec.encoding.x.field;
   const yField = spec.encoding.y.field;
   const colorField = spec.encoding.color?.field;
@@ -74,7 +107,7 @@ export function chartSpecToECharts(
     : rawWorkRows;
 
   // ── facet (최우선 분기) ──────────────────────────────────
-  if (spec.facet && FACET_CHART_TYPES.has(spec.chartType)) {
+  if (spec.facet && capabilities.supportsFacet) {
     return buildFacetOption(spec, workRows, style, base);
   }
 
@@ -97,16 +130,6 @@ export function chartSpecToECharts(
     case 'km-curve':    return buildKmCurveChart(ctx);
     case 'roc-curve':   return buildRocCurveChart(ctx);
     default:
-      break;
+      return buildUnsupportedChartOption(base, String(spec.chartType));
   }
-
-  // ── fallback ───────────────────────────────────────────────
-  return applyMarkLineAnnotations({
-    ...base,
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    xAxis: { ...xAxisBase(spec, style, 'category') },
-    yAxis: yAxisBase(spec, style),
-    dataset: { source: workRows },
-    series: [{ type: 'bar', encode: { x: xField, y: yField }, name: yField }],
-  }, spec.annotations, spec.orientation);
 }

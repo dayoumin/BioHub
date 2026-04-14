@@ -14,10 +14,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Database, Sparkles, X } from 'lucide-react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import {
-  selectAutoColorField,
+  createAutoConfiguredChartSpec,
   selectXYFields,
+  suggestChartType,
 } from '@/lib/graph-studio/chart-spec-utils';
-import { createDefaultChartSpec, CHART_TYPE_HINTS, STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
+import { CHART_TYPE_HINTS, STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
+import {
+  assignSetupFieldSelection,
+  getDefaultSetupFieldSelection,
+  isAxisColumnTypeAllowed,
+  normalizeChartSpecForEditorRules,
+} from '@/lib/graph-studio/editor-actions';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 import { loadTemplates, deleteTemplate } from '@/lib/graph-studio/style-template-storage';
 import { StepIndicator } from '@/components/graph-studio/StepIndicator';
@@ -113,15 +120,17 @@ export function ChartSetupPanel(): React.ReactElement {
 
   // ── 로컬 상태 ────────────────────────────────────────
   const recommended = useMemo(() => getRecommendedTypes(columns), [columns]);
-  const defaultType: ChartType = recommended.has('bar') ? 'bar' : recommended.values().next().value ?? 'bar';
+  const defaultType = useMemo<ChartType>(() => suggestChartType(columns), [columns]);
 
   const [selectedType, setSelectedType] = useState<ChartType>(previousSpec?.chartType ?? defaultType);
   const [selectedPreset, setSelectedPreset] = useState<StylePreset>(previousSpec?.style.preset ?? 'default');
 
   // 선택된 차트 유형에 맞는 기본 X/Y 필드
   const defaultFields = useMemo(() => {
-    if (columns.length === 0) return { xField: '', yField: '' };
-    return selectXYFields(columns, CHART_TYPE_HINTS[selectedType]);
+    if (columns.length === 0) {
+      return { xField: '', yField: '', colorField: 'none' };
+    }
+    return getDefaultSetupFieldSelection(columns, selectedType);
   }, [columns, selectedType]);
 
   // previousSpec 필드 복원: 같은 데이터이므로 이전 인코딩 필드가 현재 컬럼에 있으면 사용
@@ -139,6 +148,7 @@ export function ChartSetupPanel(): React.ReactElement {
   const [colorField, setColorField] = useState<string>(
     prevColorField && colNames.has(prevColorField) ? prevColorField : 'none',
   );
+  const supportsSetupColor = CHART_TYPE_HINTS[selectedType].supportsColor;
 
   // ── 스타일 템플릿 ─────────────────────────────────────
   const [templates, setTemplates] = useState<StyleTemplate[]>(() => loadTemplates());
@@ -177,17 +187,54 @@ export function ChartSetupPanel(): React.ReactElement {
   // 차트 유형 변경 시 필드 자동 업데이트
   const handleChartTypeSelect = useCallback((type: ChartType) => {
     setSelectedType(type);
-    const fields = selectXYFields(columns, CHART_TYPE_HINTS[type]);
-    setXField(fields.xField);
-    setYField(fields.yField);
-    setColorField('none');
+    const nextSelection = getDefaultSetupFieldSelection(columns, type);
+    setXField(nextSelection.xField);
+    setYField(nextSelection.yField);
+    setColorField(nextSelection.colorField);
   }, [columns]);
+
+  const handleXFieldChange = useCallback((value: string) => {
+    const nextSelection = assignSetupFieldSelection(
+      { xField, yField, colorField },
+      'x',
+      value,
+      selectedType,
+      columns,
+    );
+    setXField(nextSelection.xField);
+    setYField(nextSelection.yField);
+    setColorField(nextSelection.colorField);
+  }, [xField, yField, colorField, selectedType, columns]);
+
+  const handleYFieldChange = useCallback((value: string) => {
+    const nextSelection = assignSetupFieldSelection(
+      { xField, yField, colorField },
+      'y',
+      value,
+      selectedType,
+      columns,
+    );
+    setXField(nextSelection.xField);
+    setYField(nextSelection.yField);
+    setColorField(nextSelection.colorField);
+  }, [xField, yField, colorField, selectedType, columns]);
+
+  const handleColorFieldChange = useCallback((value: string) => {
+    const nextSelection = assignSetupFieldSelection(
+      { xField, yField, colorField },
+      'color',
+      value,
+      selectedType,
+      columns,
+    );
+    setColorField(nextSelection.colorField);
+  }, [xField, yField, colorField, selectedType, columns]);
 
   // ── "차트 만들기" ────────────────────────────────────
   const handleCreate = useCallback(() => {
     if (!dataPackage) return;
 
-    const spec = createDefaultChartSpec(
+    const spec = createAutoConfiguredChartSpec(
       dataPackage.id,
       selectedType,
       xField,
@@ -215,18 +262,9 @@ export function ChartSetupPanel(): React.ReactElement {
       }
     }
 
-    // line/scatter: nominal 컬럼 자동 color
-    if ((selectedType === 'line' || selectedType === 'scatter') && colorField === 'none') {
-      const autoColorField = selectAutoColorField(columns, xField, yField);
-      if (autoColorField) {
-        const autoColorColumn = columns.find(c => c.name === autoColorField);
-        if (autoColorColumn) {
-          spec.encoding.color = { field: autoColorColumn.name, type: autoColorColumn.type };
-        }
-      }
-    }
+    const normalizedSpec = normalizeChartSpecForEditorRules(spec);
 
-    loadDataPackageWithSpec(dataPackage, spec, {
+    loadDataPackageWithSpec(dataPackage, normalizedSpec, {
       preserveCurrentProject: currentProjectId !== null,
     });
   }, [dataPackage, selectedType, xField, yField, colorField, selectedPreset, selectedTemplateId, templates, columns, loadDataPackageWithSpec, currentProjectId]);
@@ -330,13 +368,18 @@ export function ChartSetupPanel(): React.ReactElement {
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs">X축 필드</Label>
-          <Select value={xField} onValueChange={setXField}>
+          <Select value={xField} onValueChange={handleXFieldChange}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {columns.map(col => (
-                <SelectItem key={col.name} value={col.name} className="text-sm" disabled={col.name === yField}>
+                <SelectItem
+                  key={col.name}
+                  value={col.name}
+                  className="text-sm"
+                  disabled={col.name === yField || !isAxisColumnTypeAllowed(selectedType, 'x', col.type)}
+                >
                   {col.name} ({col.type})
                 </SelectItem>
               ))}
@@ -345,13 +388,18 @@ export function ChartSetupPanel(): React.ReactElement {
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Y축 필드</Label>
-          <Select value={yField} onValueChange={setYField}>
+          <Select value={yField} onValueChange={handleYFieldChange}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {columns.map(col => (
-                <SelectItem key={col.name} value={col.name} className="text-sm" disabled={col.name === xField}>
+                <SelectItem
+                  key={col.name}
+                  value={col.name}
+                  className="text-sm"
+                  disabled={col.name === xField || !isAxisColumnTypeAllowed(selectedType, 'y', col.type)}
+                >
                   {col.name} ({col.type})
                 </SelectItem>
               ))}
@@ -360,7 +408,7 @@ export function ChartSetupPanel(): React.ReactElement {
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">색상 그룹</Label>
-          <Select value={colorField} onValueChange={setColorField}>
+          <Select value={colorField} onValueChange={handleColorFieldChange} disabled={!supportsSetupColor}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -375,6 +423,9 @@ export function ChartSetupPanel(): React.ReactElement {
                 ))}
             </SelectContent>
           </Select>
+          {!supportsSetupColor && (
+            <p className="text-xs text-muted-foreground">현재 차트 유형은 색상 그룹 매핑을 지원하지 않습니다.</p>
+          )}
         </div>
       </div>
 

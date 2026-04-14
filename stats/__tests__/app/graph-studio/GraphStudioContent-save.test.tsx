@@ -153,9 +153,10 @@ describe('GraphStudioContent save flow', () => {
     await waitFor(() => {
       expect(useGraphStudioStore.getState().currentProject?.name).toBe('Growth Curve');
     });
+    expect(toastSuccessMock).toHaveBeenCalledWith("'Growth Curve'에 저장됨");
   });
 
-  it('keeps the previous snapshot and warns when snapshot persistence fails', async () => {
+  it('shows warning without success toast when snapshot persistence fails', async () => {
     saveSnapshotMock.mockRejectedValue(new Error('idb failed'));
     const user = userEvent.setup();
 
@@ -167,7 +168,7 @@ describe('GraphStudioContent save flow', () => {
       expect(saveSnapshotMock).toHaveBeenCalled();
     });
 
-    expect(toastWarningMock).toHaveBeenCalled();
-    expect(toastSuccessMock).toHaveBeenCalled();
+    expect(toastWarningMock).toHaveBeenCalledWith("'Growth Curve' 저장 완료 (미리보기 스냅샷 갱신 실패)");
+    expect(toastSuccessMock).not.toHaveBeenCalled();
   });
 });

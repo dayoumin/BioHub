@@ -40,6 +40,7 @@ import {
   getPValueLabel,
 } from '@/lib/graph-studio/useDataTabLogic';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
+import { isAxisColumnTypeAllowed } from '@/lib/graph-studio/editor-actions';
 import type { ChartType } from '@/types/graph-studio';
 
 export function DataTab(): React.ReactElement {
@@ -88,6 +89,7 @@ export function DataTab(): React.ReactElement {
         <Label htmlFor="chart-title" className="text-xs">제목</Label>
         <Input
           id="chart-title"
+          data-testid="graph-studio-chart-title-input"
           value={titleInput}
           onChange={(e) => setTitleInput(e.target.value)}
           onBlur={handleTitleBlur}
@@ -139,7 +141,12 @@ export function DataTab(): React.ReactElement {
             {columns.map(col => {
               const isUsedByY = col.name === chartSpec.encoding.y.field;
               return (
-                <SelectItem key={col.name} value={col.name} className="text-sm" disabled={isUsedByY}>
+                <SelectItem
+                  key={col.name}
+                  value={col.name}
+                  className="text-sm"
+                  disabled={isUsedByY || !isAxisColumnTypeAllowed(chartSpec.chartType, 'x', col.type)}
+                >
                   {col.name} ({col.type}){isUsedByY ? ' — Y축 사용 중' : ''}
                 </SelectItem>
               );
@@ -182,7 +189,12 @@ export function DataTab(): React.ReactElement {
             {columns.map(col => {
               const isUsedByX = col.name === chartSpec.encoding.x.field;
               return (
-                <SelectItem key={col.name} value={col.name} className="text-sm" disabled={isUsedByX}>
+                <SelectItem
+                  key={col.name}
+                  value={col.name}
+                  className="text-sm"
+                  disabled={isUsedByX || !isAxisColumnTypeAllowed(chartSpec.chartType, 'y', col.type)}
+                >
                   {col.name} ({col.type}){isUsedByX ? ' — X축 사용 중' : ''}
                 </SelectItem>
               );

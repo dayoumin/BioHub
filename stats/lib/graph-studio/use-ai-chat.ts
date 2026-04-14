@@ -19,9 +19,15 @@ import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { KeyboardEvent, RefObject } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
+import { changeChartType, normalizeChartSpecForEditorRules } from '@/lib/graph-studio/editor-actions';
 import { editChart, buildAiEditRequest, AiServiceError } from '@/lib/graph-studio/ai-service';
 import { summarizePatches } from '@/lib/graph-studio/ai-patch-summary';
 import type { PatchSummaryItem } from '@/lib/graph-studio/ai-patch-summary';
+import {
+  makeGraphStudioDraftChatStorageKey,
+  makeGraphStudioProjectChatStorageKey,
+  resolveGraphStudioChatStorageKey,
+} from '@/lib/graph-studio/session-coordinator';
 import { logger } from '@/lib/utils/logger';
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
@@ -73,16 +79,19 @@ export function useAiChat(): AiChatHook {
   useEffect(() => { chartSpecRef.current = chartSpec; }, [chartSpec]);
 
   const draftChatStorageKey = useMemo(
-    () => chartSpec?.data.sourceId ? `${CHAT_STORAGE_KEY}:draft:${chartSpec.data.sourceId}` : null,
+    () => chartSpec?.data.sourceId
+      ? makeGraphStudioDraftChatStorageKey(CHAT_STORAGE_KEY, chartSpec.data.sourceId)
+      : null,
     [chartSpec?.data.sourceId],
   );
 
   const chatStorageKey = useMemo(() => {
-    if (currentProjectId) {
-      return `${CHAT_STORAGE_KEY}:project:${currentProjectId}`;
-    }
-    return draftChatStorageKey ?? CHAT_STORAGE_KEY;
-  }, [currentProjectId, draftChatStorageKey]);
+    return resolveGraphStudioChatStorageKey(
+      CHAT_STORAGE_KEY,
+      currentProjectId,
+      chartSpec?.data.sourceId ?? null,
+    );
+  }, [currentProjectId, chartSpec?.data.sourceId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -90,7 +99,7 @@ export function useAiChat(): AiChatHook {
 
     try {
       if (currentProjectId && draftChatStorageKey !== null) {
-        const projectChatStorageKey = `${CHAT_STORAGE_KEY}:project:${currentProjectId}`;
+        const projectChatStorageKey = makeGraphStudioProjectChatStorageKey(CHAT_STORAGE_KEY, currentProjectId);
         const existingProjectHistory = localStorage.getItem(projectChatStorageKey);
         if (existingProjectHistory === null) {
           const draftHistory = localStorage.getItem(draftChatStorageKey);
@@ -100,7 +109,7 @@ export function useAiChat(): AiChatHook {
           }
         }
       } else if (!currentProjectId && previousProjectId && draftChatStorageKey !== null) {
-        const previousProjectChatStorageKey = `${CHAT_STORAGE_KEY}:project:${previousProjectId}`;
+        const previousProjectChatStorageKey = makeGraphStudioProjectChatStorageKey(CHAT_STORAGE_KEY, previousProjectId);
         const projectHistory = localStorage.getItem(previousProjectChatStorageKey);
         if (projectHistory !== null) {
           localStorage.setItem(draftChatStorageKey, projectHistory);
@@ -188,7 +197,26 @@ export function useAiChat(): AiChatHook {
         return;
       }
 
-      const hasChanges = JSON.stringify(patchResult.spec) !== requestSpecSnapshot;
+      const chartTypeChanged = patchResult.spec.chartType !== requestSpec.chartType;
+      const patchesTouchAxisFields = response.patches.some((patch) => {
+        if (!('path' in patch) || typeof patch.path !== 'string') {
+          return false;
+        }
+        return (
+          patch.path === '/encoding/x' ||
+          patch.path === '/encoding/y' ||
+          patch.path === '/encoding/x/field' ||
+          patch.path === '/encoding/y/field'
+        );
+      });
+
+      const reconciledSpec =
+        chartTypeChanged && !patchesTouchAxisFields
+          ? changeChartType(patchResult.spec, patchResult.spec.chartType)
+          : patchResult.spec;
+
+      const normalizedSpec = normalizeChartSpecForEditorRules(reconciledSpec);
+      const hasChanges = JSON.stringify(normalizedSpec) !== requestSpecSnapshot;
       if (!hasChanges) {
         appendMessage({
           role: 'error',
@@ -197,7 +225,7 @@ export function useAiChat(): AiChatHook {
         return;
       }
 
-      updateChartSpec(patchResult.spec);
+      updateChartSpec(normalizedSpec);
       const summary = summarizePatches(response.patches);
       appendMessage({
         role: 'assistant',

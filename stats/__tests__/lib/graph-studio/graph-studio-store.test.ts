@@ -9,10 +9,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { act } from '@testing-library/react'
+import { act, waitFor } from '@testing-library/react'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
 import * as researchProjectStorage from '@/lib/research/project-storage'
 import * as projectStorage from '@/lib/graph-studio/project-storage'
+import * as snapshotStorage from '@/lib/graph-studio/chart-snapshot-storage'
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import type { ChartSpec, DataPackage, GraphProject } from '@/types/graph-studio'
 
@@ -23,7 +24,13 @@ function makeSpec(title = 'Test Chart'): ChartSpec {
     version: '1.0',
     chartType: 'bar',
     title,
-    data: { sourceId: 'test', columns: [] },
+    data: {
+      sourceId: 'test',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['control', 'treated'], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 8, sampleValues: ['1.2', '1.8'], hasNull: false },
+      ],
+    },
     encoding: {
       x: { field: 'group', type: 'nominal' },
       y: { field: 'value', type: 'quantitative' },
@@ -63,7 +70,7 @@ describe('review regression fixes', () => {
   })
 
   it('loadDataPackageWithSpec can preserve currentProject for in-place chart recreation', () => {
-    const project = makeProject({ id: 'persisted-project' })
+    const project = makeProject({ id: 'persisted-project', projectId: 'research-project-1' })
     const currentPkg = makePkg({ id: 'pkg-current' })
     const recreatedSpec = makeSpec('Recreated Graph')
 
@@ -76,6 +83,7 @@ describe('review regression fixes', () => {
 
     const state = useGraphStudioStore.getState()
     expect(state.currentProject?.id).toBe('persisted-project')
+    expect(state.linkedResearchProjectId).toBe('research-project-1')
     expect(state.chartSpec?.title).toBe('Recreated Graph')
     expect(state.dataPackage?.id).toBe('pkg-current')
   })
@@ -159,14 +167,35 @@ describe('review regression fixes', () => {
 
   it('clearData clears currentProject so a new session does not keep the old project id', () => {
     act(() => {
-      useGraphStudioStore.getState().setProject(makeProject(), makePkg({ id: 'pkg-1' }))
+      useGraphStudioStore.getState().setProject(
+        makeProject({ projectId: 'research-project-1' }),
+        makePkg({ id: 'pkg-1', projectId: 'research-project-1' })
+      )
       useGraphStudioStore.getState().clearData()
     })
 
     const state = useGraphStudioStore.getState()
     expect(state.currentProject).toBeNull()
+    expect(state.linkedResearchProjectId).toBeNull()
     expect(state.chartSpec).toBeNull()
     expect(state.dataPackage).toBeNull()
+  })
+
+  it('disconnectProject preserves the linked research project binding for the next save', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject({ id: 'persisted-project', projectId: 'research-project-1' }),
+        makePkg({ id: 'pkg-1', projectId: 'research-project-1' })
+      )
+      useGraphStudioStore.getState().disconnectProject()
+      useGraphStudioStore.getState().setChartSpec(makeSpec('Detached Session'))
+      useGraphStudioStore.getState().saveCurrentProject('Detached Save')
+    })
+
+    expect(useGraphStudioStore.getState().currentProject?.projectId).toBe('research-project-1')
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 'research-project-1' }))
   })
 
   it('restorePreviousChartSpec returns from setup mode to the previous chart session', () => {
@@ -533,8 +562,8 @@ describe('loadDataPackage — 프로젝트 복원 모드', () => {
     const pkg = makePkg({
       id: 'new-upload',
       columns: [
-        { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
-        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['control', 'treated'], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: ['1.5', '2.2'], hasNull: false },
       ],
     })
     act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
@@ -547,6 +576,28 @@ describe('loadDataPackage — 프로젝트 복원 모드', () => {
     // 프로젝트 연결 유지
     expect(state.currentProject?.id).toBe('proj-1')
     expect(state.isDataLoaded).toBe(true)
+  })
+
+  it('setProject 후 메타 컬럼이 추가된 데이터 업로드도 기존 chartSpec을 재연결한다', () => {
+    const spec = makeSpec('My Custom Chart')
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const pkg = makePkg({
+      id: 'same-data-plus-meta',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['control', 'treated'], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: ['1.5', '2.2'], hasNull: false },
+        { name: 'sample_id', type: 'nominal', uniqueCount: 10, sampleValues: ['S1', 'S2'], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec?.title).toBe('My Custom Chart')
+    expect(state.chartSpec?.data.sourceId).toBe('same-data-plus-meta')
+    expect(state.currentProject?.id).toBe('proj-1')
   })
 
   it('setProject 후 다른 컬럼의 데이터 업로드 → 새 spec 생성 + currentProject 해제', () => {
@@ -658,6 +709,47 @@ describe('loadDataPackage — 프로젝트 복원 모드', () => {
     expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Partial Match')
     expect(useGraphStudioStore.getState().currentProject).toBeNull()
   })
+
+  it('같은 헤더명이더라도 범주형 샘플값이 겹치지 않으면 → 새 spec + currentProject 해제', () => {
+    const spec = makeSpec('Semantic Drift')
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const pkg = makePkg({
+      id: 'same-headers-different-meaning',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['north', 'south'], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: ['15', '22'], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Semantic Drift')
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
+  })
+
+  it('기존 스키마에 없던 추가 컬럼이 있어도 → 기존 spec 유지 + currentProject 유지', () => {
+    const spec = makeSpec('Extra Columns')
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const pkg = makePkg({
+      id: 'extra-column-upload',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['control', 'treated'], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: ['1.5', '2.2'], hasNull: false },
+        { name: 'visit', type: 'ordinal', uniqueCount: 3, sampleValues: ['1', '2', '3'], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec?.title).toBe('Extra Columns')
+    expect(state.chartSpec?.data.sourceId).toBe('extra-column-upload')
+    expect(state.currentProject?.id).toBe('proj-1')
+  })
 })
 
 // ─── clearData ────────────────────────────────────────────
@@ -749,6 +841,22 @@ describe('saveCurrentProject', () => {
     expect(state.currentProject?.name).toBe('My Chart')
   })
 
+  it('dataPackage의 projectId를 세션 바인딩으로 저장에 사용한다', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+
+    act(() => {
+      useGraphStudioStore.getState().loadDataOnly(makePkg({
+        id: 'pkg-linked',
+        projectId: 'research-project-2',
+      }))
+      useGraphStudioStore.getState().setChartSpec(makeSpec('Linked Session'))
+      useGraphStudioStore.getState().saveCurrentProject('My Linked Chart')
+    })
+
+    expect(useGraphStudioStore.getState().linkedResearchProjectId).toBe('research-project-2')
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 'research-project-2' }))
+  })
+
   it('재저장 시 동일 ID 재사용 (새 ID 발급 안 함)', () => {
     act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec()) })
 
@@ -777,6 +885,37 @@ describe('saveCurrentProject', () => {
     act(() => { useGraphStudioStore.getState().saveCurrentProject('Second') })
 
     expect(useGraphStudioStore.getState().currentProject?.createdAt).toBe(createdAt)
+  })
+
+  it('eviction cleanup failures do not abort the new save path', async () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec('Eviction Safe Save')) })
+
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject').mockReturnValue(['evicted-project'])
+    const deleteSnapshotsSpy = vi.spyOn(snapshotStorage, 'deleteSnapshots').mockRejectedValue(new Error('snapshot cleanup failed'))
+    const removeRefSpy = vi.spyOn(researchProjectStorage, 'removeProjectEntityRefsByEntityIds').mockImplementation(() => {
+      throw new Error('entity ref cleanup failed')
+    })
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    let projectId: string | null = null
+    act(() => {
+      projectId = useGraphStudioStore.getState().saveCurrentProject('Eviction Safe Save')
+    })
+
+    expect(projectId).not.toBeNull()
+    expect(useGraphStudioStore.getState().currentProject?.name).toBe('Eviction Safe Save')
+    expect(saveSpy).toHaveBeenCalled()
+    expect(deleteSnapshotsSpy).toHaveBeenCalledWith(['evicted-project'])
+    expect(removeRefSpy).toHaveBeenCalledWith('figure', ['evicted-project'])
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled()
+    })
+
+    saveSpy.mockRestore()
+    deleteSnapshotsSpy.mockRestore()
+    removeRefSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
   })
 
   it('linked project ref 저장이 실패하면 graph project 저장을 롤백하고 null을 반환한다', () => {

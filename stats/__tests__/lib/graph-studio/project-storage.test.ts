@@ -14,11 +14,14 @@ import {
   loadProject,
   saveProject,
   deleteProject,
+  deleteProjectCascade,
   generateProjectId,
   MAX_GRAPH_PROJECTS,
 } from '@/lib/graph-studio/project-storage';
 import type { GraphProject } from '@/types/graph-studio';
 import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults';
+import * as snapshotStorage from '@/lib/graph-studio/chart-snapshot-storage';
+import * as researchProjectStorage from '@/lib/research/project-storage';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -122,6 +125,38 @@ describe('deleteProject', () => {
     saveProject(makeProject('p1'));
     expect(() => deleteProject('ghost')).not.toThrow();
     expect(listProjects()).toHaveLength(1); // 원래 데이터 그대로
+  });
+});
+
+describe('deleteProjectCascade', () => {
+  it('entity ref cleanup failure does not prevent local project deletion', async () => {
+    saveProject(makeProject('p1'));
+    const removeSpy = vi.spyOn(researchProjectStorage, 'removeProjectEntityRefsByEntityIds').mockImplementation(() => {
+      throw new Error('ref cleanup failed');
+    });
+    const deleteSnapshotSpy = vi.spyOn(snapshotStorage, 'deleteSnapshot').mockResolvedValue(undefined);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await deleteProjectCascade('p1');
+
+    expect(loadProject('p1')).toBeNull();
+    expect(removeSpy).toHaveBeenCalledWith('figure', ['p1']);
+    expect(deleteSnapshotSpy).toHaveBeenCalledWith('p1');
+
+    removeSpy.mockRestore();
+    deleteSnapshotSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('snapshot cleanup failure does not prevent local project deletion', async () => {
+    saveProject(makeProject('p2'));
+    const deleteSnapshotSpy = vi.spyOn(snapshotStorage, 'deleteSnapshot').mockRejectedValue(new Error('snapshot cleanup failed'));
+
+    await expect(deleteProjectCascade('p2')).resolves.toBeUndefined();
+    expect(loadProject('p2')).toBeNull();
+    expect(deleteSnapshotSpy).toHaveBeenCalledWith('p2');
+
+    deleteSnapshotSpy.mockRestore();
   });
 });
 

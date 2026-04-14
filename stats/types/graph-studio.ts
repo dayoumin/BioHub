@@ -395,6 +395,8 @@ export type AiPanelDock = 'bottom';
 export interface GraphStudioState {
   // 프로젝트
   currentProject: GraphProject | null;
+  /** 현재 Graph Studio 세션이 명시적으로 연결된 연구 프로젝트 ID */
+  linkedResearchProjectId: string | null;
 
   // 데이터
   dataPackage: DataPackage | null;

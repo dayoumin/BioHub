@@ -136,8 +136,10 @@ export const S = {
   graphStudioFileInput: '[data-testid="graph-studio-file-input"]',
   /** Graph Studio 설정 — 차트 유형 썸네일 */
   graphStudioChartType: (type: string) => `[data-testid="chart-setup-type-${type}"]`,
-  /** Graph Studio 업로드 — "샘플 데이터로 시작" 버튼 */
-  graphStudioSampleBtn: '[data-testid="graph-studio-sample-btn"]',
+  /** Graph Studio 업로드 — 기본 샘플(어류 성장) 버튼 */
+  graphStudioSampleBtn: '[data-testid="graph-studio-sample-fish-growth"]',
+  /** Graph Studio 업로드 — 샘플 데이터 버튼 */
+  graphStudioSample: (id: string) => `[data-testid="graph-studio-sample-${id}"]`,
   /** Graph Studio 설정 — "차트 만들기" CTA 버튼 */
   graphStudioCreateBtn: '[data-testid="chart-setup-create-btn"]',
   /** Graph Studio 설정 — 스타일 프리셋 */
@@ -152,6 +154,14 @@ export const S = {
   graphStudioRightPanel: '[data-testid="graph-studio-right-panel"]',
   /** Graph Studio 좌측 패널 토글 (G5.0) */
   graphStudioLeftToggle: '[data-testid="graph-studio-left-toggle"]',
+  /** Graph Studio 데이터 탭 — 차트 제목 입력 */
+  graphStudioChartTitleInput: '[data-testid="graph-studio-chart-title-input"]',
+  /** Graph Studio 스타일 탭 — 범례 위치 Select trigger */
+  graphStudioLegendOrientTrigger: '[data-testid="graph-studio-legend-orient-trigger"]',
+  /** Graph Studio 스타일 탭 — 범례 위치 Select item */
+  graphStudioLegendOrientOption: (orient: string) => `[data-testid="graph-studio-legend-orient-${orient}"]`,
+  /** Graph Studio 스타일 탭 — 차트 제목 글꼴 크기 입력 */
+  graphStudioTitleSizeInput: '[data-testid="graph-studio-title-size-input"]',
 
   // ===== Quick Analysis Pills =====
   quickPill: (id: string) => `[data-testid="quick-pill-${id}"]`,

@@ -8,7 +8,8 @@
 import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
-import type { ChartType, LegendSpec, StylePreset } from '@/types/graph-studio';
+import { getChartCapabilities } from '@/lib/graph-studio/chart-capabilities';
+import type { LegendSpec, StylePreset } from '@/types/graph-studio';
 
 /** 폰트 옵션 목록 */
 export const FONT_OPTIONS: { value: string; label: string }[] = [
@@ -18,11 +19,6 @@ export const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: 'Courier New, monospace',         label: 'Courier New (monospace)' },
   { value: 'Georgia, serif',                 label: 'Georgia (serif)' },
 ];
-
-/** 데이터 레이블을 지원하는 차트 유형 */
-const DATA_LABEL_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
-/** n= 표본 수 표기를 지원하는 차트 유형 */
-const SAMPLE_COUNT_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar', 'error-bar']);
 
 export const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = [
   { key: 'default',   label: 'Default',   description: '깔끔한 기본 스타일 (Arial, 컬러)' },
@@ -286,9 +282,10 @@ export function useStyleTabLogic(): StyleTabLogic | null {
     chartSpec.style.font?.family
     ?? STYLE_PRESETS[chartSpec.style.preset]?.font?.family
     ?? 'Arial, Helvetica, sans-serif';
+  const capabilities = getChartCapabilities(chartSpec.chartType);
   const showLegend = chartSpec.encoding.color !== undefined;
-  const showDataLabelOption = DATA_LABEL_CHART_TYPES.has(chartSpec.chartType);
-  const showSampleCountOption = SAMPLE_COUNT_CHART_TYPES.has(chartSpec.chartType);
+  const showDataLabelOption = !!capabilities?.supportsDataLabels;
+  const showSampleCountOption = !!capabilities?.supportsSampleCounts;
   const currentSort = chartSpec.encoding.x.sort ?? null;
   const isCategoryX = chartSpec.encoding.x.type === 'nominal' || chartSpec.encoding.x.type === 'ordinal';
   const presetColors = STYLE_PRESETS[chartSpec.style.preset]?.colors ?? [];

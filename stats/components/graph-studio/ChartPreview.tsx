@@ -19,11 +19,14 @@ import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import type { ECharts, EChartsOption } from 'echarts';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { chartSpecToECharts, columnsToRows } from '@/lib/graph-studio';
 import { CHART_DATA_LIMITS } from '@/lib/graph-studio/chart-data-guard';
+import { getChartCapabilities } from '@/lib/graph-studio/chart-capabilities';
 import { TOAST } from '@/lib/constants/toast-messages';
+import { resolveAxisColors } from '@/lib/charts/chart-color-resolver';
 import { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
 import { CanvasToolbar } from './CanvasToolbar';
 import type { ChartSpec } from '@/types/graph-studio';
@@ -35,10 +38,6 @@ interface ChartPreviewProps {
   onExport?: () => void;
 }
 
-/** 유의성 브래킷을 렌더링할 차트 유형 */
-const SIG_CHART_TYPES = new Set<string>(['bar', 'grouped-bar', 'error-bar']);
-
-const BRACKET_LINE_STYLE = { stroke: '#333', lineWidth: 1.5 };
 const BRACKET_TICK_H = 6;   // 틱 길이 (px) — 수직 막대에서 아래 방향, 수평 막대에서 왼쪽 방향
 const BRACKET_LABEL_GAP = 14; // 라벨과 브래킷 사이 거리 (px)
 const BRACKET_Y_RATIO = 1.12; // 값 축 최댓값 대비 첫 번째 브래킷 위치 배율
@@ -57,9 +56,11 @@ function buildSignificanceGraphics(
   spec: ChartSpec,
   rows: Record<string, unknown>[],
   baseGraphic: Record<string, unknown>[],
+  inkColor: string,
 ): Record<string, unknown>[] | null {
   const marks = spec.significance;
   if (!marks?.length) return null;
+  const bracketLineStyle = { stroke: inkColor, lineWidth: 1.5 };
 
   // error-bar는 converter에서 항상 수직(xAxis=category)으로 렌더링하므로
   // spec.orientation이 'horizontal'이라도 브래킷은 수직 레이아웃을 사용해야 함
@@ -132,21 +133,21 @@ function buildSignificanceGraphics(
       brackets.push({
         type: 'line',
         shape: { x1: bracketPos, y1: c1, x2: bracketPos, y2: c2 },
-        style: BRACKET_LINE_STYLE,
+        style: bracketLineStyle,
         silent: true,
       });
       // 위쪽 수평 틱
       brackets.push({
         type: 'line',
         shape: { x1: bracketPos, y1: c1, x2: bracketPos - BRACKET_TICK_H, y2: c1 },
-        style: BRACKET_LINE_STYLE,
+        style: bracketLineStyle,
         silent: true,
       });
       // 아래쪽 수평 틱
       brackets.push({
         type: 'line',
         shape: { x1: bracketPos, y1: c2, x2: bracketPos - BRACKET_TICK_H, y2: c2 },
-        style: BRACKET_LINE_STYLE,
+        style: bracketLineStyle,
         silent: true,
       });
       // 라벨 (브래킷 오른쪽)
@@ -159,7 +160,7 @@ function buildSignificanceGraphics(
             text: label,
             textAlign: 'left',
             textVerticalAlign: 'middle',
-            fill: '#333',
+            fill: inkColor,
             fontSize: 13,
           },
           silent: true,
@@ -171,21 +172,21 @@ function buildSignificanceGraphics(
       brackets.push({
         type: 'line',
         shape: { x1: c1, y1: bracketPos, x2: c2, y2: bracketPos },
-        style: BRACKET_LINE_STYLE,
+        style: bracketLineStyle,
         silent: true,
       });
       // 왼쪽 수직 틱
       brackets.push({
         type: 'line',
         shape: { x1: c1, y1: bracketPos, x2: c1, y2: bracketPos + BRACKET_TICK_H },
-        style: BRACKET_LINE_STYLE,
+        style: bracketLineStyle,
         silent: true,
       });
       // 오른쪽 수직 틱
       brackets.push({
         type: 'line',
         shape: { x1: c2, y1: bracketPos, x2: c2, y2: bracketPos + BRACKET_TICK_H },
-        style: BRACKET_LINE_STYLE,
+        style: bracketLineStyle,
         silent: true,
       });
       // 라벨 (브래킷 위)
@@ -197,7 +198,7 @@ function buildSignificanceGraphics(
           style: {
             text: label,
             textAlign: 'center',
-            fill: '#333',
+            fill: inkColor,
             fontSize: 13,
           },
           silent: true,
@@ -212,6 +213,7 @@ function buildSignificanceGraphics(
 
 export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React.ReactElement {
   const { chartSpec, dataPackage } = useGraphStudioStore();
+  const { resolvedTheme } = useTheme();
 
   // localRef: echartsRef가 주입되지 않을 때 폴백 (유의성 마커 렌더 사용)
   const localRef = useRef<EChartsReactCore | null>(null);
@@ -232,6 +234,14 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
     () => dataPackage ? columnsToRows(dataPackage.data) : [],
     [dataPackage],
   );
+  const capabilities = useMemo(
+    () => chartSpec ? getChartCapabilities(chartSpec.chartType) : null,
+    [chartSpec],
+  );
+  const annotationInk = useMemo(
+    () => resolveAxisColors().tooltipText,
+    [chartSpec?.chartType, chartSpec?.style.preset, resolvedTheme],
+  );
 
   const baseOption = useMemo(
     () => chartSpec ? chartSpecToECharts(chartSpec, rows) : null,
@@ -242,8 +252,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
   // heatmap/facet은 dataZoom 비호환 → 제외
   const option = useMemo(() => {
     if (!baseOption || !chartSpec) return baseOption;
-    const noZoom = chartSpec.chartType === 'heatmap' || !!chartSpec.facet;
-    if (noZoom) return baseOption;
+    if (!capabilities?.supportsZoom || chartSpec.facet) return baseOption;
 
     const isScatter = chartSpec.chartType === 'scatter';
     const dataZoom: Record<string, unknown>[] = [
@@ -253,7 +262,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
       dataZoom.push({ type: 'inside', yAxisIndex: 0, filterMode: 'none' });
     }
     return { ...baseOption, dataZoom };
-  }, [baseOption, chartSpec]);
+  }, [baseOption, capabilities, chartSpec]);
 
   // SVG export 선택 시 SVG 렌더러 사용 (getDataURL 정확도 보장)
   // useMemo로 안정화: opts 매 렌더 새 객체 생성 시 ECharts 불필요한 재초기화 방지
@@ -287,7 +296,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
   const handleFinished = useCallback(() => {
     if (isDrawingRef.current) return;
     if (!chartSpec?.significance?.length) return;
-    if (!SIG_CHART_TYPES.has(chartSpec.chartType)) return;
+    if (!capabilities?.supportsSignificance) return;
     // 패싯 모드에서는 멀티 grid라 convertToPixel이 단일 grid 가정 → 무시
     if (chartSpec.facet) return;
 
@@ -299,7 +308,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
       ? ((baseOption as EChartsOption).graphic as Record<string, unknown>[])
       : [];
 
-    const combined = buildSignificanceGraphics(instance, chartSpec, rows, baseGraphic);
+    const combined = buildSignificanceGraphics(instance, chartSpec, rows, baseGraphic, annotationInk);
     if (!combined) return;
 
     isDrawingRef.current = true;
@@ -314,7 +323,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
         isDrawingRef.current = false;
       });
     });
-  }, [effectiveRef, chartSpec, rows, baseOption]);
+  }, [effectiveRef, chartSpec, rows, baseOption, annotationInk, capabilities]);
 
   // finished 이벤트: 렌더링 시간 측정 + 유의성 브래킷 (래퍼로 병합)
   const handleFinishedCombined = useCallback(() => {
@@ -342,7 +351,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
         <CanvasToolbar
           echartsRef={effectiveRef}
           onExport={onExport}
-          zoomEnabled={chartSpec.chartType !== 'heatmap' && !chartSpec.facet}
+          zoomEnabled={!!capabilities?.supportsZoom && !chartSpec.facet}
         />
         <ReactECharts
           ref={effectiveRef}

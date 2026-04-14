@@ -149,4 +149,127 @@ describe('useAiChat', () => {
 
     expect(localStorage.getItem(draftKey)).toContain('project-history');
   });
+
+  it('normalizes AI patch results before updating the store', async () => {
+    vi.mocked(editChart).mockResolvedValueOnce({
+      patches: [
+        { op: 'add', path: '/encoding/y2', value: { field: 'secondary', type: 'quantitative' } },
+        { op: 'add', path: '/facet', value: { field: 'group' } },
+        { op: 'add', path: '/encoding/color', value: { field: 'group', type: 'nominal' } },
+      ],
+      explanation: '보조 축을 추가했습니다.',
+      confidence: 0.8,
+    });
+
+    const spec = createDefaultChartSpec('src-1', 'bar', 'group', 'value', [
+      { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+      { name: 'secondary', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+    ]);
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(spec);
+    });
+
+    const { result } = renderHook(() => useAiChat());
+
+    act(() => {
+      result.current.setInputValue('보조축 추가');
+    });
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const nextSpec = useGraphStudioStore.getState().chartSpec;
+    expect(nextSpec?.encoding.y2).toEqual({ field: 'secondary', type: 'quantitative' });
+    expect(nextSpec?.facet).toBeUndefined();
+    expect(nextSpec?.encoding.color).toBeUndefined();
+    expect(result.current.messages.at(-1)?.role).toBe('assistant');
+  });
+
+  it('reselects compatible axes when AI changes only the chart type', async () => {
+    vi.mocked(editChart).mockResolvedValueOnce({
+      patches: [
+        { op: 'replace', path: '/chartType', value: 'scatter' },
+      ],
+      explanation: '산점도로 변경했습니다.',
+      confidence: 0.8,
+    });
+
+    const spec = createDefaultChartSpec('src-1', 'bar', 'group', 'value', [
+      { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+      { name: 'secondary', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+    ]);
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(spec);
+    });
+
+    const { result } = renderHook(() => useAiChat());
+
+    act(() => {
+      result.current.setInputValue('산점도로 바꿔줘');
+    });
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const nextSpec = useGraphStudioStore.getState().chartSpec;
+    expect(nextSpec?.chartType).toBe('scatter');
+    expect(nextSpec?.encoding.x.type).toBe('quantitative');
+    expect(nextSpec?.encoding.y.type).toBe('quantitative');
+    expect(nextSpec?.encoding.x.field).not.toBe(nextSpec?.encoding.y.field);
+  });
+
+  it('reselects compatible axes when AI changes chart type and only axis types', async () => {
+    vi.mocked(editChart).mockResolvedValueOnce({
+      patches: [
+        { op: 'replace', path: '/chartType', value: 'scatter' },
+        { op: 'replace', path: '/encoding/x/type', value: 'quantitative' },
+      ],
+      explanation: '산점도로 정리했습니다.',
+      confidence: 0.82,
+    });
+
+    const initialSpec = makeSpec();
+    initialSpec.data.columns.push({
+      name: 'secondary',
+      type: 'quantitative',
+      uniqueCount: 10,
+      sampleValues: [],
+      hasNull: false,
+    });
+    act(() => {
+      useGraphStudioStore.getState().updateChartSpec(initialSpec);
+    });
+
+    const { result } = renderHook(() => useAiChat());
+
+    act(() => {
+      result.current.setInputValue('scatter로 바꿔줘');
+    });
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const nextSpec = useGraphStudioStore.getState().chartSpec;
+    expect(nextSpec?.chartType).toBe('scatter');
+    expect(nextSpec?.encoding.x.type).toBe('quantitative');
+    expect(nextSpec?.encoding.y.type).toBe('quantitative');
+    expect(['value', 'secondary']).toContain(nextSpec?.encoding.x.field);
+    expect(['value', 'secondary']).toContain(nextSpec?.encoding.y.field);
+    expect(nextSpec?.encoding.x.field).not.toBe(nextSpec?.encoding.y.field);
+  });
 });

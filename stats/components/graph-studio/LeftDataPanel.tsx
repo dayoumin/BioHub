@@ -10,8 +10,14 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
-import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { createAutoConfiguredChartSpec, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
+import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import {
+  assignFieldRole,
+  getFieldRoleMap,
+  getRoleAssignmentVisibility,
+  unassignFieldRole,
+} from '@/lib/graph-studio/editor-actions';
 import { toast } from 'sonner';
 import { parseFile } from '@/lib/graph-studio/file-parser';
 import { getDataSizeLevel, getRowCount } from '@/lib/graph-studio/chart-data-guard';
@@ -59,74 +65,29 @@ export function LeftDataPanel(): React.ReactElement {
 
   // 현재 인코딩에서 사용 중인 필드 → 역할 매핑
   const fieldRoles = useMemo(() => {
-    const map = new Map<string, string>();
-    if (chartSpec) {
-      if (chartSpec.encoding.x?.field) map.set(chartSpec.encoding.x.field, 'X');
-      if (chartSpec.encoding.y?.field) map.set(chartSpec.encoding.y.field, 'Y');
-      if (chartSpec.encoding.y2?.field) map.set(chartSpec.encoding.y2.field, 'Y2');
-      if (chartSpec.encoding.color?.field) map.set(chartSpec.encoding.color.field, 'Color');
-      if (chartSpec.facet?.field) map.set(chartSpec.facet.field, 'Facet');
-    }
-    return map;
+    if (!chartSpec) return new Map<string, string>();
+    return getFieldRoleMap(chartSpec);
   }, [chartSpec]);
 
-  // 상호 배타 조건 (useDataTabLogic 동일 로직)
-  const hints = chartSpec ? CHART_TYPE_HINTS[chartSpec.chartType] : null;
-  const hasY2 = !!chartSpec?.encoding.y2;
-  const hasFacet = !!chartSpec?.facet;
-  const canAssignColor = !!hints?.supportsColor && !hasY2 && !hasFacet;
-  const canAssignFacet = !!hints?.supportsFacet && !hasY2;
-  const canAssignY2 = !!hints?.supportsY2 && !hasFacet && chartSpec?.orientation !== 'horizontal';
+  const roleVisibility = useMemo(
+    () => (chartSpec ? getRoleAssignmentVisibility(chartSpec) : null),
+    [chartSpec],
+  );
+  const canAssignColor = roleVisibility?.canAssignColor ?? false;
+  const canAssignFacet = roleVisibility?.canAssignFacet ?? false;
+  const canAssignY2 = roleVisibility?.canAssignY2 ?? false;
 
   const assignRole = useCallback((field: string, role: 'x' | 'y' | 'color' | 'facet' | 'y2', colType: DataType) => {
     if (!chartSpec) return;
-    const xField = chartSpec.encoding.x.field;
-    const yField = chartSpec.encoding.y.field;
-    switch (role) {
-      case 'x':
-        // useDataTabLogic parity: X===Y 방지 + 동일 필드 재클릭 방지
-        if (field === yField || field === xField) return;
-        updateChartSpec({ ...chartSpec, encoding: { ...chartSpec.encoding, x: { ...chartSpec.encoding.x, field, type: colType } } });
-        break;
-      case 'y':
-        // useDataTabLogic parity: Y===X 방지 + 동일 필드 재클릭 방지
-        if (field === xField || field === yField) return;
-        updateChartSpec({ ...chartSpec, encoding: { ...chartSpec.encoding, y: { ...chartSpec.encoding.y, field, type: colType } } });
-        break;
-      case 'color':
-        // useDataTabLogic parity: X/Y 사용 중인 필드 제외 + 동일 필드 재클릭 방지
-        if (field === xField || field === yField) return;
-        if (chartSpec.encoding.color?.field === field) return;
-        updateChartSpec({ ...chartSpec, encoding: { ...chartSpec.encoding, color: { field, type: colType } } });
-        break;
-      case 'facet':
-        if (chartSpec.facet?.field === field) return;
-        updateChartSpec({ ...chartSpec, facet: { field } });
-        break;
-      case 'y2':
-        // useDataTabLogic parity: X/Y 사용 중인 필드 제외 + 동일 필드 재클릭 방지
-        if (field === xField || field === yField) return;
-        if (chartSpec.encoding.y2?.field === field) return;
-        updateChartSpec({ ...chartSpec, encoding: { ...chartSpec.encoding, y2: { field, type: 'quantitative' } } });
-        break;
-    }
+    const nextSpec = assignFieldRole(chartSpec, field, role, colType);
+    if (nextSpec) updateChartSpec(nextSpec);
   }, [chartSpec, updateChartSpec]);
 
   const unassignRole = useCallback((field: string) => {
     if (!chartSpec) return;
-    const role = fieldRoles.get(field);
-    if (!role || role === 'X' || role === 'Y') return; // X/Y는 필수 — 해제 불가
-    if (role === 'Color') {
-      const { color: _, ...restEncoding } = chartSpec.encoding;
-      updateChartSpec({ ...chartSpec, encoding: restEncoding });
-    } else if (role === 'Facet') {
-      const { facet: _, ...restSpec } = chartSpec;
-      updateChartSpec(restSpec);
-    } else if (role === 'Y2') {
-      const { y2: _, ...restEncoding } = chartSpec.encoding;
-      updateChartSpec({ ...chartSpec, encoding: restEncoding });
-    }
-  }, [chartSpec, fieldRoles, updateChartSpec]);
+    const nextSpec = unassignFieldRole(chartSpec, field);
+    if (nextSpec) updateChartSpec(nextSpec);
+  }, [chartSpec, updateChartSpec]);
 
   // 데이터 교체 (CSV/XLSX) — 기존 스타일 보존
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +124,7 @@ export function LeftDataPanel(): React.ReactElement {
       const existingSpec = chartSpec;
       const chartType = existingSpec?.chartType ?? 'bar';
       const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
-      const newSpec = createDefaultChartSpec(pkg.id, chartType, xField, yField, columns);
+      const newSpec = createAutoConfiguredChartSpec(pkg.id, chartType, xField, yField, columns);
 
       if (existingSpec) {
         // 스타일 + 주석 + 출력 설정 복원
@@ -195,13 +156,13 @@ export function LeftDataPanel(): React.ReactElement {
 
   return (
     <div
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex h-full flex-col overflow-y-auto"
       data-testid="graph-studio-left-panel"
     >
       {/* A. 데이터 소스 카드 */}
-      <div className="p-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+      <div className="p-3 pb-2">
+        <div className="flex items-center gap-2 rounded-lg bg-surface-container-lowest px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
             <Database className="h-4 w-4 text-primary" />
           </div>
           {dataPackage ? (
@@ -219,23 +180,25 @@ export function LeftDataPanel(): React.ReactElement {
 
       {/* B. 변수 목록 */}
       {dataPackage && (
-        <div className="p-3 border-b border-border space-y-1.5">
-          <h3 className="text-xs font-medium text-muted-foreground">변수 목록</h3>
-          <div className="space-y-0.5">
-            {dataPackage.columns.map(col => (
-              <VariableRow
-                key={col.name}
-                col={col}
-                role={fieldRoles.get(col.name)}
-                xField={chartSpec?.encoding.x.field ?? ''}
-                yField={chartSpec?.encoding.y.field ?? ''}
-                canAssignColor={canAssignColor}
-                canAssignFacet={canAssignFacet}
-                canAssignY2={canAssignY2}
-                onAssign={assignRole}
-                onUnassign={unassignRole}
-              />
-            ))}
+        <div className="px-3 pb-3">
+          <div className="space-y-1.5 rounded-lg bg-surface-container-lowest p-2.5">
+            <h3 className="px-1 text-xs font-medium text-muted-foreground">변수 목록</h3>
+            <div className="space-y-0.5">
+              {dataPackage.columns.map(col => (
+                <VariableRow
+                  key={col.name}
+                  col={col}
+                  role={fieldRoles.get(col.name)}
+                  xField={chartSpec?.encoding.x.field ?? ''}
+                  yField={chartSpec?.encoding.y.field ?? ''}
+                  canAssignColor={canAssignColor}
+                  canAssignFacet={canAssignFacet}
+                  canAssignY2={canAssignY2}
+                  onAssign={assignRole}
+                  onUnassign={unassignRole}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -315,8 +278,7 @@ function VariableRow({ col, role, xField, yField, canAssignColor, canAssignFacet
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 text-xs px-2 py-1 rounded
-                     hover:bg-muted/50 cursor-pointer transition-colors w-full text-left"
+          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-surface-container-low"
           data-testid={`left-panel-var-${col.name}`}
         >
           <Icon className={`h-3 w-3 shrink-0 ${cfg.color.split(' ')[0]}`} />
@@ -346,7 +308,7 @@ function VariableRow({ col, role, xField, yField, canAssignColor, canAssignFacet
           )}
           {canUnassign && (
             <>
-              <div className="border-t border-border my-1" />
+              <div className="my-1 h-1 rounded-full bg-surface-container-high" />
               <RoleMenuItem label="역할 해제" destructive onClick={handleUnassign} />
             </>
           )}
@@ -373,8 +335,8 @@ function RoleMenuItem({ label, active, disabled, destructive, onClick }: RoleMen
       disabled={disabled}
       onClick={onClick}
       className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors
-        ${disabled ? 'text-muted-foreground/50 cursor-not-allowed' : 'hover:bg-muted cursor-pointer'}
-        ${active ? 'font-medium text-primary bg-primary/10' : ''}
+        ${disabled ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer hover:bg-surface-container-low'}
+        ${active ? 'bg-surface-container-high font-medium text-primary' : ''}
         ${destructive ? 'text-destructive hover:bg-destructive/10' : ''}`}
     >
       {label}

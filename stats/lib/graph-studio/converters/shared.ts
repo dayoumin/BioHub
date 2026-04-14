@@ -14,6 +14,7 @@ import type { EChartsOption, XAXisComponentOption, YAXisComponentOption } from '
 import { STYLE_PRESETS, ALL_PALETTES, CHART_TYPE_HINTS } from '../chart-spec-defaults';
 import { getPercentile } from '@/lib/utils/stats-math';
 import type { StyleConfig } from './types';
+import { TOP_LEGEND_ORIENTS, BOTTOM_LEGEND_ORIENTS } from '../legend-orients';
 
 // ─── Re-exports for convenience ─────────────────────────────
 export { CHART_TYPE_HINTS };
@@ -620,8 +621,8 @@ export function applyMarkLineAnnotations(
 // ─── Legend orient helpers ─────────────────────────────────
 // Single source of truth so grid/legend math stays in sync if new orients are added.
 
-const TOP_ORIENTS = new Set(['top', 'top-left', 'top-right'] as const);
-const BOTTOM_ORIENTS = new Set(['bottom', 'bottom-left', 'bottom-right'] as const);
+const TOP_ORIENTS = new Set(TOP_LEGEND_ORIENTS);
+const BOTTOM_ORIENTS = new Set(BOTTOM_LEGEND_ORIENTS);
 
 function isTopOrient(orient: string | undefined): boolean {
   return orient === undefined ? false : TOP_ORIENTS.has(orient as never);
@@ -634,8 +635,36 @@ function isBottomOrient(orient: string | undefined): boolean {
 // title.top=8 기본. legend가 top 계열일 때 이 오프셋만큼 아래로 밀어서 겹침 방지.
 const TITLE_TOP = 8;
 const TITLE_BOTTOM_PADDING = 10;
+const TOP_LEGEND_GRID_DEFAULT_PERCENT = 12;
+const TOP_LEGEND_WITH_TITLE_GRID_DEFAULT_PERCENT = 20;
+const TITLE_ONLY_GRID_DEFAULT_PERCENT = 14;
+const BASE_GRID_TOP_PERCENT = 6;
+const GRID_TOP_HEIGHT_ESTIMATE_PX = 200;
+const TOP_LEGEND_GRID_GUARD_RATIO = 0.18;
+const LEGEND_ROW_ESTIMATE_PX = 12;
+
 function legendTopBelowTitle(style: StyleConfig): number {
   return TITLE_TOP + style.titleSize + TITLE_BOTTOM_PADDING;
+}
+
+function resolveGridTop(spec: ChartSpec, style: StyleConfig, hasTopLegend: boolean): string {
+  const defaultPercent = spec.title
+    ? (hasTopLegend ? TOP_LEGEND_WITH_TITLE_GRID_DEFAULT_PERCENT : TITLE_ONLY_GRID_DEFAULT_PERCENT)
+    : (hasTopLegend ? TOP_LEGEND_GRID_DEFAULT_PERCENT : BASE_GRID_TOP_PERCENT);
+
+  if (!spec.title || !hasTopLegend) {
+    return `${defaultPercent}%`;
+  }
+
+  const legendTopPx = legendTopBelowTitle(style);
+  if (legendTopPx / GRID_TOP_HEIGHT_ESTIMATE_PX <= TOP_LEGEND_GRID_GUARD_RATIO) {
+    return `${defaultPercent}%`;
+  }
+
+  const minPercent = Math.ceil(
+    ((legendTopPx + LEGEND_ROW_ESTIMATE_PX) / GRID_TOP_HEIGHT_ESTIMATE_PX) * 100,
+  );
+  return `${Math.max(defaultPercent, minPercent)}%`;
 }
 
 // ─── Base option builder ───────────────────────────────────
@@ -660,9 +689,7 @@ export function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOpt
       containLabel: true,
       left: hasLeftLegend ? '16%' : '8%',
       right: hasRightLegend ? '16%' : '5%',
-      top: spec.title
-        ? (hasTopLegend ? '20%' : '14%')
-        : (hasTopLegend ? '12%' : '6%'),
+      top: resolveGridTop(spec, style, hasTopLegend),
       bottom: hasBottomLegend
         ? (needsExtraBottomRoom ? '20%' : '16%')
         : (needsExtraBottomRoom ? '16%' : '10%'),
@@ -675,7 +702,7 @@ export function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOpt
       text: spec.title,
       textStyle: { fontFamily: style.fontFamily, fontSize: style.titleSize, fontWeight: 'normal' },
       left: 'center',
-      top: 8,
+      top: TITLE_TOP,
     };
   }
 

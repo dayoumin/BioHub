@@ -184,15 +184,18 @@ export function StyleTab(): React.ReactElement {
             value={chartSpec.encoding.color?.legend?.orient ?? 'top'}
             onValueChange={handleLegendOrientChange}
           >
-            <SelectTrigger className="h-8 text-sm">
+            <SelectTrigger
+              className="h-8 text-sm"
+              data-testid="graph-studio-legend-orient-trigger"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="top" className="text-sm">위</SelectItem>
-              <SelectItem value="right" className="text-sm">오른쪽</SelectItem>
-              <SelectItem value="bottom" className="text-sm">아래</SelectItem>
-              <SelectItem value="left" className="text-sm">왼쪽</SelectItem>
-              <SelectItem value="none" className="text-sm">숨김</SelectItem>
+              <SelectItem value="top" className="text-sm" data-testid="graph-studio-legend-orient-top">위</SelectItem>
+              <SelectItem value="right" className="text-sm" data-testid="graph-studio-legend-orient-right">오른쪽</SelectItem>
+              <SelectItem value="bottom" className="text-sm" data-testid="graph-studio-legend-orient-bottom">아래</SelectItem>
+              <SelectItem value="left" className="text-sm" data-testid="graph-studio-legend-orient-left">왼쪽</SelectItem>
+              <SelectItem value="none" className="text-sm" data-testid="graph-studio-legend-orient-none">숨김</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -274,6 +277,7 @@ export function StyleTab(): React.ReactElement {
             <span className="text-xs text-muted-foreground w-16 shrink-0">차트 제목</span>
             <Input
               type="number"
+              data-testid="graph-studio-title-size-input"
               value={currentTitleSize}
               onChange={(e) => handleFontSizeChange('titleSize', parseInt(e.target.value, 10))}
               className="h-6 text-xs w-16"

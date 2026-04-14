@@ -17,6 +17,7 @@ import type { MatplotlibExportConfig, MatplotlibExportResult } from '@/types/mat
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service';
 import type { WorkerMethodParam } from '@/lib/services/pyodide/core/pyodide-core.service';
 import { downloadBase64File } from '@/lib/graph-studio/export-utils';
+import { getMatplotlibCompatibilityReport } from '@/lib/graph-studio/matplotlib-compat';
 
 /** Worker 6 번호 상수 */
 const MATPLOTLIB_WORKER = 6 as const;
@@ -85,6 +86,13 @@ export class MatplotlibExportService {
     config: MatplotlibExportConfig,
     onProgress?: ProgressCallback,
   ): Promise<{ warnings?: string[] }> {
+    const compatibility = getMatplotlibCompatibilityReport(chartSpec);
+    if (!compatibility.isExportable) {
+      throw new Error(
+        `matplotlib export 미지원: ${compatibility.blockingIssues.map((issue) => issue.message).join(' ')}`,
+      );
+    }
+
     // 1. Worker 준비
     await this.ensureReady(onProgress);
 

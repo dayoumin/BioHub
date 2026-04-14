@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 
 interface AnnotationForm {
@@ -89,7 +88,7 @@ export function AnnotationTab(): React.ReactElement | null {
     <div className="space-y-3 py-1">
 
       {/* ── 수평선 ── */}
-      <section>
+      <section className="rounded-lg bg-surface-container-lowest p-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-medium">수평선 (Y축)</span>
           <Button
@@ -104,7 +103,7 @@ export function AnnotationTab(): React.ReactElement | null {
         </div>
 
         {showHlineForm && (
-          <div className="space-y-2 mb-2 p-2 border rounded-md bg-muted/30">
+          <div className="mb-2 space-y-2 rounded-lg bg-surface-container-low p-2.5">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Y값 *</Label>
@@ -132,7 +131,7 @@ export function AnnotationTab(): React.ReactElement | null {
                 <Label className="text-xs">색상</Label>
                 <input
                   type="color"
-                  className="h-6 w-8 cursor-pointer rounded border"
+                  className="h-6 w-8 cursor-pointer rounded-md bg-surface-container-lowest p-0.5"
                   value={hlineForm.color}
                   onChange={(e) => setHlineForm((f) => ({ ...f, color: e.target.value }))}
                 />
@@ -164,11 +163,11 @@ export function AnnotationTab(): React.ReactElement | null {
               ann.type !== 'hline' ? null : (
                 <li
                   key={i}
-                  className="flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-muted/40"
+                  className="flex items-center gap-1.5 rounded-md bg-surface-container-low px-2 py-1 text-xs"
                 >
-                  <Badge variant="outline" className="text-xs px-1 py-0 shrink-0 font-mono">
+                  <span className="shrink-0 rounded-full bg-secondary/10 px-1.5 py-0.5 font-mono text-[11px] text-secondary">
                     H
-                  </Badge>
+                  </span>
                   <span
                     className="font-mono flex-1 truncate"
                     title={`Y=${ann.value}${ann.text ? ` "${ann.text}"` : ''}`}
@@ -180,6 +179,7 @@ export function AnnotationTab(): React.ReactElement | null {
                     <span className="text-muted-foreground text-xs">- -</span>
                   )}
                   <button
+                    type="button"
                     onClick={() => deleteAnnotation(i)}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                     title="삭제"
@@ -197,10 +197,10 @@ export function AnnotationTab(): React.ReactElement | null {
         )}
       </section>
 
-      <div className="border-t" />
+      <div className="h-1 rounded-full bg-surface-container-high" />
 
       {/* ── 수직선 ── */}
-      <section>
+      <section className="rounded-lg bg-surface-container-lowest p-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-medium">수직선 (X축)</span>
           <Button
@@ -215,7 +215,7 @@ export function AnnotationTab(): React.ReactElement | null {
         </div>
 
         {showVlineForm && (
-          <div className="space-y-2 mb-2 p-2 border rounded-md bg-muted/30">
+          <div className="mb-2 space-y-2 rounded-lg bg-surface-container-low p-2.5">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">X값 *</Label>
@@ -243,7 +243,7 @@ export function AnnotationTab(): React.ReactElement | null {
                 <Label className="text-xs">색상</Label>
                 <input
                   type="color"
-                  className="h-6 w-8 cursor-pointer rounded border"
+                  className="h-6 w-8 cursor-pointer rounded-md bg-surface-container-lowest p-0.5"
                   value={vlineForm.color}
                   onChange={(e) => setVlineForm((f) => ({ ...f, color: e.target.value }))}
                 />
@@ -275,11 +275,11 @@ export function AnnotationTab(): React.ReactElement | null {
               ann.type !== 'vline' ? null : (
                 <li
                   key={i}
-                  className="flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-muted/40"
+                  className="flex items-center gap-1.5 rounded-md bg-surface-container-low px-2 py-1 text-xs"
                 >
-                  <Badge variant="outline" className="text-xs px-1 py-0 shrink-0 font-mono">
+                  <span className="shrink-0 rounded-full bg-secondary/10 px-1.5 py-0.5 font-mono text-[11px] text-secondary">
                     V
-                  </Badge>
+                  </span>
                   <span
                     className="font-mono flex-1 truncate"
                     title={`X=${ann.value}${ann.text ? ` "${ann.text}"` : ''}`}
@@ -291,6 +291,7 @@ export function AnnotationTab(): React.ReactElement | null {
                     <span className="text-muted-foreground text-xs">- -</span>
                   )}
                   <button
+                    type="button"
                     onClick={() => deleteAnnotation(i)}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                     title="삭제"

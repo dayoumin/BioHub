@@ -19,6 +19,12 @@ export {
   JOURNAL_SIZE_PRESETS,
 } from './chart-spec-defaults';
 export type { JournalPresetKey } from './chart-spec-defaults';
+export {
+  CHART_CAPABILITIES,
+  REGISTERED_CHART_TYPES,
+  getChartCapabilities,
+  isRegisteredChartType,
+} from './chart-capabilities';
 
 // 유틸리티
 export {
@@ -29,11 +35,22 @@ export {
   analysisVizTypeToChartType,
   selectXYFields,
   selectAutoColorField,
+  createAutoConfiguredChartSpec,
   applyAnalysisContext,
   autoCreateChartSpec,
   columnsToRows,
   createChartSpecFromDataPackage,
 } from './chart-spec-utils';
+export {
+  ID_LIKE_TOKENS,
+  CATEGORY_FRIENDLY_TOKENS,
+  TIME_LIKE_TOKENS,
+  RESPONSE_LIKE_TOKENS,
+  PREDICTOR_LIKE_TOKENS,
+  normalizeFieldName,
+  hasToken,
+  hasIdLikeName,
+} from './chart-spec-heuristics';
 
 // 패싯 레이아웃
 export { partitionRowsByFacet, computeFacetLayout } from './facet-layout';

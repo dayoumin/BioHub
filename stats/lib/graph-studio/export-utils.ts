@@ -61,6 +61,30 @@ function writeUint32BE(buf: Uint8Array, offset: number, value: number): void {
   buf[offset + 3] =  value         & 0xff;
 }
 
+function resolveRenderedBackgroundColor(
+  echartsInstance: EChartsType,
+  config: ExportConfig,
+): string {
+  if (config.transparentBackground) {
+    return 'transparent';
+  }
+
+  if (typeof echartsInstance.getOption === 'function') {
+    const option = echartsInstance.getOption();
+    if (
+      option !== null &&
+      typeof option === 'object' &&
+      'backgroundColor' in option &&
+      typeof option.backgroundColor === 'string' &&
+      option.backgroundColor.trim() !== ''
+    ) {
+      return option.backgroundColor;
+    }
+  }
+
+  return '#ffffff';
+}
+
 /**
  * PNG Data URL에 pHYs chunk를 삽입해 DPI 메타데이터를 기록.
  *
@@ -153,10 +177,11 @@ export function downloadChart(
     // physicalSize 지정 시: resize()로 이미 목표 px에 맞췄으므로 pixelRatio=1
     // physicalSize 미지정 시: DOM 크기 × pixelRatio = 고해상도 PNG
     const pixelRatio = needsResize ? 1 : dpiToPixelRatio(config.dpi);
+    const backgroundColor = resolveRenderedBackgroundColor(echartsInstance, config);
     dataUrl = echartsInstance.getDataURL({
       type: 'png',
       pixelRatio,
-      backgroundColor: config.transparentBackground ? 'transparent' : '#ffffff',
+      backgroundColor,
     });
     // pHYs DPI 메타데이터 주입 (없으면 InDesign 등에서 96 DPI로 처리)
     dataUrl = injectPngDpiMetadata(dataUrl, config.dpi);

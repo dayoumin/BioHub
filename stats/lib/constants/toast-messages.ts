@@ -51,6 +51,7 @@ export const TOAST = {
     templateSaveError: '템플릿 저장에 실패했습니다 (저장 공간 부족)',
     saveError: '차트 저장에 실패했습니다',
     snapshotWarning: '차트는 저장되었지만 미리보기 스냅샷 갱신에 실패했습니다',
+    savedWithoutSnapshot: (name: string): string => `'${name}' 저장 완료 (미리보기 스냅샷 갱신 실패)`,
     colorCopied: (color: string): string => `${color} 복사됨`,
     largeDataWarning: (rows: number): string =>
       `데이터가 큽니다 (${rows.toLocaleString()}행). 집계 또는 필터링을 권장합니다.`,

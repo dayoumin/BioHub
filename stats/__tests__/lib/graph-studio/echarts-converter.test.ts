@@ -372,10 +372,12 @@ describe('scatter chart', () => {
     const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
     const legend = opt.legend as AnyOption
     const title = opt.title as AnyOption
+    const grid = opt.grid as AnyOption
 
     // 기본(titleSize=14)이면 legend.top=32. titleSize=24면 8 + 24 + 10 = 42
     expect(legend.top).toBe(42)
     expect(legend.top).toBeGreaterThan(title.top as number)
+    expect(grid.top).toBe('27%')
   })
 })
 

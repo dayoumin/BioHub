@@ -9,6 +9,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { act } from '@testing-library/react'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
+import {
+  assignFieldRole,
+  getFieldRoleMap,
+  getRoleAssignmentVisibility,
+  unassignFieldRole,
+} from '@/lib/graph-studio/editor-actions'
 import type { ChartSpec, ChartType, ColumnMeta, DataPackage, DataType } from '@/types/graph-studio'
 
 // ─── 픽스처 ──────────────────────────────────────────────
@@ -42,79 +48,34 @@ function makeSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {
   }
 }
 
-// LeftDataPanel.assignRole 로직을 순수 함수로 추출 (useDataTabLogic parity 가드 포함)
 function assignRole(
   chartSpec: ChartSpec,
   field: string,
   role: 'x' | 'y' | 'color' | 'facet' | 'y2',
   colType: DataType,
 ): ChartSpec | null {
-  const xField = chartSpec.encoding.x.field
-  const yField = chartSpec.encoding.y.field
-  switch (role) {
-    case 'x':
-      if (field === yField || field === xField) return null
-      return { ...chartSpec, encoding: { ...chartSpec.encoding, x: { ...chartSpec.encoding.x, field, type: colType } } }
-    case 'y':
-      if (field === xField || field === yField) return null
-      return { ...chartSpec, encoding: { ...chartSpec.encoding, y: { ...chartSpec.encoding.y, field, type: colType } } }
-    case 'color':
-      if (field === xField || field === yField) return null
-      if (chartSpec.encoding.color?.field === field) return null
-      return { ...chartSpec, encoding: { ...chartSpec.encoding, color: { field, type: colType } } }
-    case 'facet':
-      if (chartSpec.facet?.field === field) return null
-      return { ...chartSpec, facet: { field } }
-    case 'y2':
-      if (field === xField || field === yField) return null
-      if (chartSpec.encoding.y2?.field === field) return null
-      return { ...chartSpec, encoding: { ...chartSpec.encoding, y2: { field, type: 'quantitative' } } }
-  }
+  return assignFieldRole(chartSpec, field, role, colType)
 }
 
-// LeftDataPanel.unassignRole 로직
 function unassignRole(chartSpec: ChartSpec, field: string, fieldRoles: Map<string, string>): ChartSpec | null {
-  const role = fieldRoles.get(field)
-  if (!role || role === 'X' || role === 'Y') return null // 해제 불가
-  if (role === 'Color') {
-    const { color: _, ...restEncoding } = chartSpec.encoding
-    return { ...chartSpec, encoding: restEncoding }
-  }
-  if (role === 'Facet') {
-    const { facet: _, ...restSpec } = chartSpec
-    return restSpec
-  }
-  if (role === 'Y2') {
-    const { y2: _, ...restEncoding } = chartSpec.encoding
-    return { ...chartSpec, encoding: restEncoding }
-  }
-  return null
+  const _fieldRoles = fieldRoles
+  return unassignFieldRole(chartSpec, field)
 }
 
-// LeftDataPanel.fieldRoles 로직
 function getFieldRoles(spec: ChartSpec): Map<string, string> {
-  const map = new Map<string, string>()
-  if (spec.encoding.x?.field) map.set(spec.encoding.x.field, 'X')
-  if (spec.encoding.y?.field) map.set(spec.encoding.y.field, 'Y')
-  if (spec.encoding.y2?.field) map.set(spec.encoding.y2.field, 'Y2')
-  if (spec.encoding.color?.field) map.set(spec.encoding.color.field, 'Color')
-  if (spec.facet?.field) map.set(spec.facet.field, 'Facet')
-  return map
+  return getFieldRoleMap(spec)
 }
 
-// LeftDataPanel 상호 배타 조건
 function getMutualExclusion(spec: ChartSpec): {
   canAssignColor: boolean
   canAssignFacet: boolean
   canAssignY2: boolean
 } {
-  const hints = CHART_TYPE_HINTS[spec.chartType]
-  const hasY2 = !!spec.encoding.y2
-  const hasFacet = !!spec.facet
+  const visibility = getRoleAssignmentVisibility(spec)
   return {
-    canAssignColor: !!hints?.supportsColor && !hasY2 && !hasFacet,
-    canAssignFacet: !!hints?.supportsFacet && !hasY2,
-    canAssignY2: !!hints?.supportsY2 && !hasFacet && spec.orientation !== 'horizontal',
+    canAssignColor: visibility.canAssignColor,
+    canAssignFacet: visibility.canAssignFacet,
+    canAssignY2: visibility.canAssignY2,
   }
 }
 

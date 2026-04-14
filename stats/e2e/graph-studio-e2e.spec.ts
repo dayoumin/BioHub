@@ -27,8 +27,21 @@ import { S } from './selectors'
 
 /** /graph-studio로 이동 후 React hydration 완료까지 대기. */
 async function navigateToGraphStudio(page: Page): Promise<void> {
-  await page.goto('about:blank')
-  await page.goto('/graph-studio', { waitUntil: 'load', timeout: 60_000 })
+  await page.goto('/graph-studio/', { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  const direct = await page
+    .locator(S.graphStudioPage)
+    .isVisible({ timeout: 10_000 })
+    .catch(() => false)
+
+  if (!direct) {
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    await page.waitForLoadState('networkidle')
+    const graphStudioLink = page.locator('a[href*="graph-studio"]').first()
+    if (await graphStudioLink.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await graphStudioLink.click()
+    }
+  }
+
   await page.waitForFunction(
     () => document.documentElement.getAttribute('data-graph-studio-ready') === 'true',
     { timeout: 30_000 },

@@ -139,7 +139,7 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
         <div className="bg-primary text-primary-foreground rounded-lg rounded-tr-sm px-3 py-2 text-sm max-w-[85%]">
           {message.content}
         </div>
-        <div className="shrink-0 h-6 w-6 rounded-full bg-muted flex items-center justify-center mt-0.5">
+        <div className="shrink-0 h-6 w-6 rounded-full bg-surface-container-lowest flex items-center justify-center mt-0.5">
           <User className="h-3 w-3" />
         </div>
       </div>
@@ -152,7 +152,7 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
         <div className="shrink-0 h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center mt-0.5">
           <AlertCircle className="h-3 w-3 text-destructive" />
         </div>
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg rounded-tl-sm px-3 py-2 text-sm text-destructive max-w-[85%]">
+        <div className="max-w-[85%] rounded-lg rounded-tl-sm bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {message.content}
         </div>
       </div>
@@ -164,13 +164,13 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
       <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
         <Bot className="h-3 w-3 text-primary" />
       </div>
-      <div className="bg-muted rounded-lg rounded-tl-sm px-3 py-2 text-sm max-w-[85%] space-y-1.5">
+      <div className="max-w-[85%] space-y-1.5 rounded-lg rounded-tl-sm bg-surface-container-lowest px-3 py-2 text-sm">
         <p>{message.content}</p>
         {(message.confidence !== undefined || message.patchCount !== undefined) && (
-          <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+          <div className="flex items-center gap-2 rounded-md bg-surface-container-low px-2 py-1.5">
             {message.patchCount !== undefined && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                <CheckCircle2 className="h-3 w-3 text-primary" />
                 {message.patchCount}개 수정 적용됨
               </span>
             )}
@@ -224,9 +224,9 @@ export function AiPanel(): React.ReactElement {
   const selectedL1Data = AI_CARD_TREE.find(c => c.id === selectedL1);
 
   return (
-    <div className="border-t border-border bg-background flex flex-col" style={{ height: 220 }}>
+    <div className="flex flex-col bg-surface-container-low" style={{ height: 220 }}>
       {/* 헤더 바 */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
+      <div className="flex shrink-0 items-center justify-between bg-surface-container px-3 py-2">
         <span className="text-xs font-medium text-muted-foreground">AI 어시스턴트</span>
         <Button
           variant="ghost" size="icon"
@@ -239,7 +239,7 @@ export function AiPanel(): React.ReactElement {
       </div>
 
       {/* 콘텐츠 영역 */}
-      <div className="flex flex-1 min-h-0 flex-row gap-2 p-2">
+      <div className="flex min-h-0 flex-1 flex-row gap-2 p-2.5">
 
         {/* L1/L2 카드 영역 */}
         <div className="flex flex-col gap-1 shrink-0 w-[260px]">
@@ -254,10 +254,10 @@ export function AiPanel(): React.ReactElement {
                   type="button"
                   onClick={() => setSelectedL1(isActive ? null : card.id)}
                   className={[
-                    'flex items-center gap-1 text-xs border rounded px-2 py-1 transition-colors',
+                    'flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors',
                     isActive
-                      ? 'border-primary bg-primary/10 text-primary font-medium'
-                      : 'border-border hover:bg-muted',
+                      ? 'bg-surface-container-highest font-medium text-primary'
+                      : 'bg-surface-container-lowest text-muted-foreground hover:bg-surface-container-high hover:text-foreground',
                   ].join(' ')}
                 >
                   <Icon className="h-3 w-3" />
@@ -275,7 +275,7 @@ export function AiPanel(): React.ReactElement {
                   key={child.id}
                   type="button"
                   onClick={() => handleL2Click(child)}
-                  className="text-xs border border-border rounded px-2 py-1 hover:bg-primary/10 hover:border-primary hover:text-primary transition-colors"
+                  className="rounded-md bg-surface-container-lowest px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-surface-container-high hover:text-primary"
                 >
                   {child.label}
                 </button>
@@ -298,7 +298,7 @@ export function AiPanel(): React.ReactElement {
                 <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
                   <Loader2 className="h-3 w-3 text-primary animate-spin" />
                 </div>
-                <div className="bg-muted rounded-lg rounded-tl-sm px-3 py-2 text-sm text-muted-foreground">
+                <div className="rounded-lg rounded-tl-sm bg-surface-container-lowest px-3 py-2 text-sm text-muted-foreground">
                   차트 수정 중…
                 </div>
               </div>

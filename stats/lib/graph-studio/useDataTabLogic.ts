@@ -8,15 +8,15 @@
 import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS, ALL_PALETTES, FIGURE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
+import { getChartCapabilities } from '@/lib/graph-studio/chart-capabilities';
+import {
+  assignFieldRole,
+  changeChartType,
+  getRoleAssignmentVisibility,
+  normalizeChartSpecForEditorRules,
+} from '@/lib/graph-studio/editor-actions';
 import { selectXYFields, getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
 import type { ChartType, ErrorBarSpec, SignificanceMark, ColumnMeta } from '@/types/graph-studio';
-
-/** 에러바를 지원하는 차트 유형 */
-const ERROR_BAR_CHART_TYPES = new Set<ChartType>(['bar', 'line', 'error-bar']);
-/** orientation(수평 막대)을 지원하는 차트 유형 */
-const ORIENTATION_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
-/** 유의성 마커를 지원하는 차트 유형 */
-const SIG_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'error-bar']);
 
 /** 과학 기호 헬퍼 목록 */
 export const SCIENCE_SYMBOLS: { label: string; value: string }[] = [
@@ -173,53 +173,22 @@ export function useDataTabLogic(): DataTabLogic | null {
   const handleChartTypeChange = useCallback((value: string) => {
     if (!chartSpec) return;
     const newType = value as ChartType;
-    const hint = CHART_TYPE_HINTS[newType];
-    const columns = chartSpec.data.columns;
-    const { xField, yField } = selectXYFields(columns, hint);
-    const xCol = columns.find(c => c.name === xField);
-    const yCol = columns.find(c => c.name === yField);
-    const { color: prevColor, y2: prevY2, ...baseEncoding } = chartSpec.encoding;
-    const cleanEncoding = {
-      ...baseEncoding,
-      ...(hint.supportsColor && prevColor ? { color: prevColor } : {}),
-      ...(hint.supportsY2 && prevY2 ? { y2: prevY2 } : {}),
-      x: { ...chartSpec.encoding.x, field: xField, type: xCol?.type ?? hint.suggestedXType },
-      y: { ...chartSpec.encoding.y, field: yField, type: yCol?.type ?? 'quantitative' },
-    };
-    const { facet: _f, errorBar: _eb, trendline: _tl, ...cleanSpec } = chartSpec;
-    updateChartSpec({
-      ...cleanSpec,
-      chartType: newType,
-      encoding: cleanEncoding,
-      ...(hint.supportsFacet && chartSpec.facet ? { facet: chartSpec.facet } : {}),
-      ...(hint.supportsErrorBar && chartSpec.errorBar ? { errorBar: chartSpec.errorBar } : {}),
-      ...(newType === 'scatter' && chartSpec.trendline ? { trendline: chartSpec.trendline } : {}),
-    });
+    updateChartSpec(changeChartType(chartSpec, newType));
   }, [chartSpec, updateChartSpec]);
 
   // ─── 필드 변경 ─────────────────────────────────────────
   const handleXFieldChange = useCallback((value: string) => {
-    if (!chartSpec || value === chartSpec.encoding.y.field) return;
+    if (!chartSpec) return;
     const column = chartSpec.data.columns.find(c => c.name === value);
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        x: { ...chartSpec.encoding.x, field: value, type: column?.type ?? 'nominal' },
-      },
-    });
+    const nextSpec = assignFieldRole(chartSpec, value, 'x', column?.type ?? 'nominal');
+    if (nextSpec) updateChartSpec(nextSpec);
   }, [chartSpec, updateChartSpec]);
 
   const handleYFieldChange = useCallback((value: string) => {
-    if (!chartSpec || value === chartSpec.encoding.x.field) return;
+    if (!chartSpec) return;
     const column = chartSpec.data.columns.find(c => c.name === value);
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        y: { ...chartSpec.encoding.y, field: value, type: column?.type ?? 'quantitative' },
-      },
-    });
+    const nextSpec = assignFieldRole(chartSpec, value, 'y', column?.type ?? 'quantitative');
+    if (nextSpec) updateChartSpec(nextSpec);
   }, [chartSpec, updateChartSpec]);
 
   const handleColorFieldChange = useCallback((value: string) => {
@@ -229,13 +198,8 @@ export function useDataTabLogic(): DataTabLogic | null {
       updateChartSpec({ ...chartSpec, encoding: restEncoding });
     } else {
       const column = chartSpec.data.columns.find(c => c.name === value);
-      updateChartSpec({
-        ...chartSpec,
-        encoding: {
-          ...chartSpec.encoding,
-          color: { field: value, type: column?.type ?? 'nominal' },
-        },
-      });
+      const nextSpec = assignFieldRole(chartSpec, value, 'color', column?.type ?? 'nominal');
+      if (nextSpec) updateChartSpec(nextSpec);
     }
   }, [chartSpec, updateChartSpec]);
 
@@ -253,7 +217,12 @@ export function useDataTabLogic(): DataTabLogic | null {
     if (!chartSpec) return;
     const preset = FIGURE_PRESETS[presetKey];
     if (!preset) return;
-    updateChartSpec({ ...chartSpec, chartType: preset.chartType, errorBar: preset.errorBar, trendline: preset.trendline });
+    const nextSpec = changeChartType(chartSpec, preset.chartType);
+    updateChartSpec(normalizeChartSpecForEditorRules({
+      ...nextSpec,
+      errorBar: preset.errorBar,
+      trendline: preset.trendline,
+    }));
   }, [chartSpec, updateChartSpec]);
 
   // ─── 토글 핸들러 ───────────────────────────────────────
@@ -289,10 +258,8 @@ export function useDataTabLogic(): DataTabLogic | null {
       const { y2: _y2, ...restEncoding } = chartSpec.encoding;
       updateChartSpec({ ...chartSpec, encoding: restEncoding });
     } else {
-      updateChartSpec({
-        ...chartSpec,
-        encoding: { ...chartSpec.encoding, y2: { field: value, type: 'quantitative' as const } },
-      });
+      const nextSpec = assignFieldRole(chartSpec, value, 'y2', 'quantitative');
+      if (nextSpec) updateChartSpec(nextSpec);
     }
   }, [chartSpec, updateChartSpec]);
 
@@ -339,7 +306,9 @@ export function useDataTabLogic(): DataTabLogic | null {
       const { facet: _f, ...restSpec } = chartSpec;
       updateChartSpec(restSpec);
     } else {
-      updateChartSpec({ ...chartSpec, facet: { field: value } });
+      const column = chartSpec.data.columns.find(c => c.name === value);
+      const nextSpec = assignFieldRole(chartSpec, value, 'facet', column?.type ?? 'nominal');
+      if (nextSpec) updateChartSpec(nextSpec);
     }
   }, [chartSpec, updateChartSpec]);
 
@@ -348,18 +317,21 @@ export function useDataTabLogic(): DataTabLogic | null {
 
   const columns = chartSpec.data.columns;
   const hints = CHART_TYPE_HINTS[chartSpec.chartType];
+  const capabilities = getChartCapabilities(chartSpec.chartType);
+  if (!capabilities) return null;
   const hasY2 = !!chartSpec.encoding.y2;
   const hasFacet = !!chartSpec.facet;
-  const showY2 = hints.supportsY2 && !hasFacet && chartSpec.orientation !== 'horizontal';
-  const showFacet = hints.supportsFacet && !hasY2;
-  const showColorField = hints.supportsColor && !hasY2 && !hasFacet;
-  const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && !hasY2 && !hasFacet && (
+  const roleVisibility = getRoleAssignmentVisibility(chartSpec);
+  const showY2 = roleVisibility.showY2Field;
+  const showFacet = roleVisibility.showFacetField;
+  const showColorField = roleVisibility.showColorField;
+  const showErrorBar = capabilities.supportsErrorBar && !hasY2 && !hasFacet && (
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')
   );
-  const showTrendline = chartSpec.chartType === 'scatter' && !hasFacet;
-  const showOrientation = ORIENTATION_CHART_TYPES.has(chartSpec.chartType);
-  const showSignificance = SIG_CHART_TYPES.has(chartSpec.chartType);
+  const showTrendline = capabilities.supportsTrendline && !hasFacet;
+  const showOrientation = capabilities.supportsOrientation;
+  const showSignificance = capabilities.supportsSignificance;
   const paletteColors = chartSpec.style.scheme ? (ALL_PALETTES[chartSpec.style.scheme] ?? []).slice(0, 6) : [];
 
   return {

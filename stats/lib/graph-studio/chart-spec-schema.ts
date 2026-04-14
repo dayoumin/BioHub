@@ -8,6 +8,7 @@
  */
 
 import { z } from 'zod';
+import { LEGEND_ORIENTS } from './legend-orients';
 
 // ─── 기본 타입 ─────────────────────────────────────────────
 
@@ -53,10 +54,7 @@ const scaleSchema = z.object({
 }).strict();
 
 const legendSchema = z.object({
-  orient: z.enum([
-    'top', 'bottom', 'left', 'right',
-    'top-left', 'top-right', 'bottom-left', 'bottom-right', 'none',
-  ]).optional(),
+  orient: z.enum(LEGEND_ORIENTS).optional(),
   fontSize: z.number().positive().optional(),
   customLabels: z.record(z.string(), z.string()).optional(),
 }).strict();

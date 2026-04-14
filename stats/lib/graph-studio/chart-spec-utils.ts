@@ -20,6 +20,15 @@ import type {
 import type { AnalysisVizType } from '@/types/analysis';
 import { chartSpecSchema } from './chart-spec-schema';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from './chart-spec-defaults';
+import {
+  CATEGORY_FRIENDLY_TOKENS,
+  PREDICTOR_LIKE_TOKENS,
+  RESPONSE_LIKE_TOKENS,
+  TIME_LIKE_TOKENS,
+  hasIdLikeName,
+  hasToken,
+  normalizeFieldName,
+} from './chart-spec-heuristics';
 
 function hasOwnKeys(value: Record<string, unknown>): boolean {
   return Object.keys(value).length > 0;
@@ -322,13 +331,19 @@ export function suggestChartType(columns: ColumnMeta[]): ChartType {
   const catCols = columns.filter(c => c.type === 'nominal' || c.type === 'ordinal');
   const timeCols = columns.filter(c => c.type === 'temporal');
 
-  // 시간 + 수치 → line
-  if (timeCols.length >= 1 && quantCols.length >= 1) {
+  // 범주형 그룹 + 수치 2개 이상 → scatter
+  // (species/length/weight/year 같은 실데이터에서 관계형 플롯이 기본 기대치인 경우가 많다)
+  if (quantCols.length >= 2 && catCols.length >= 1) {
+    return 'scatter';
+  }
+
+  // 시간 + 단일 수치 → line
+  if (timeCols.length >= 1 && quantCols.length === 1) {
     return 'line';
   }
 
-  // 수치 2개 → scatter
-  if (quantCols.length >= 2 && catCols.length === 0) {
+  // 수치 2개 이상 → scatter
+  if (quantCols.length >= 2) {
     return 'scatter';
   }
 
@@ -357,7 +372,12 @@ export function selectXYFields(
   columns: ColumnMeta[],
   hints: { suggestedXType: ColumnMeta['type'] },
 ): { xField: string; yField: string } {
-  const xCandidates = columns.filter(c => c.type === hints.suggestedXType);
+  const xCandidates = columns.filter((column) => {
+    if (hints.suggestedXType === 'nominal' || hints.suggestedXType === 'ordinal') {
+      return column.type === 'nominal' || column.type === 'ordinal';
+    }
+    return column.type === hints.suggestedXType;
+  });
   const yCandidates = columns.filter(c => c.type === 'quantitative');
   const xField = pickPreferredColumnName(
     xCandidates,
@@ -376,59 +396,6 @@ export function selectXYFields(
     xField;
 
   return { xField, yField };
-}
-
-const ID_LIKE_TOKENS = new Set([
-  'id', 'idx', 'uuid', 'accession',
-]);
-
-const CATEGORY_FRIENDLY_TOKENS = new Set([
-  'group', 'treatment', 'condition', 'cohort', 'class', 'category',
-  'type', 'species', 'sex', 'genotype', 'cluster', 'batch', 'arm',
-]);
-
-const TIME_LIKE_TOKENS = new Set([
-  'time', 'date', 'day', 'week', 'month', 'year', 'hour', 'minute',
-  'second', 'visit', 'age',
-]);
-
-const RESPONSE_LIKE_TOKENS = new Set([
-  'value', 'score', 'amount', 'total', 'count', 'rate', 'ratio',
-  'weight', 'response', 'outcome', 'expression', 'abundance',
-  'concentration', 'level', 'intensity', 'signal',
-]);
-
-const PREDICTOR_LIKE_TOKENS = new Set([
-  'time', 'date', 'day', 'week', 'month', 'year', 'visit', 'age',
-  'dose', 'temperature', 'temp', 'length', 'height', 'width',
-  'depth', 'distance', 'size', 'volume',
-]);
-
-function normalizeFieldName(name: string): string[] {
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean);
-}
-
-function hasToken(tokens: string[], dictionary: Set<string>): boolean {
-  return tokens.some(token => dictionary.has(token));
-}
-
-function hasIdLikeName(tokens: string[]): boolean {
-  if (hasToken(tokens, ID_LIKE_TOKENS)) return true;
-  if (tokens.length === 1 && (tokens[0] === 'row' || tokens[0] === 'index')) return true;
-  return tokens.some((token, index) => {
-    const nextToken = tokens[index + 1];
-    return token === 'sample' && nextToken === 'id' ||
-      token === 'subject' && nextToken === 'id' ||
-      token === 'patient' && nextToken === 'id' ||
-      token === 'participant' && nextToken === 'id' ||
-      token === 'row' && nextToken === 'index' ||
-      token === 'record' && nextToken === 'index';
-  });
 }
 
 function scoreReadableCategoryCount(uniqueCount: number): number {
@@ -480,6 +447,9 @@ function scoreYAxisCandidate(column: ColumnMeta): number {
   const hasPredictorHint = hasToken(tokens, PREDICTOR_LIKE_TOKENS);
   const hasResponseHint = hasToken(tokens, RESPONSE_LIKE_TOKENS);
 
+  // Y축 quantitative 선택은 "측정값/반응값" 우선이 더 중요하다.
+  // 따라서 X축 nominal/ordinal과 달리 category-hinted *_id라도 식별자 페널티를 유지해
+  // treatment_id 같은 수치형 그룹 코드를 결과 변수로 고르는 일을 계속 강하게 방지한다.
   return (hasResponseHint ? 8 : 0) -
     (hasPredictorHint ? 2 : 0) -
     (isIdLike ? 12 : 0) -
@@ -543,6 +513,42 @@ export function selectAutoColorField(
   return null;
 }
 
+function shouldApplyDefaultAutoColor(chartType: ChartType): boolean {
+  return chartType === 'line' || chartType === 'scatter';
+}
+
+export function createAutoConfiguredChartSpec(
+  sourceId: string,
+  chartType: ChartType,
+  xField: string,
+  yField: string,
+  columns: ColumnMeta[],
+): ChartSpec {
+  const spec = createDefaultChartSpec(sourceId, chartType, xField, yField, columns);
+
+  if (!shouldApplyDefaultAutoColor(chartType) || spec.encoding.color) {
+    return spec;
+  }
+
+  const autoColorField = selectAutoColorField(columns, xField, yField);
+  if (!autoColorField) {
+    return spec;
+  }
+
+  const autoColorColumn = columns.find((column) => column.name === autoColorField);
+  if (!autoColorColumn) {
+    return spec;
+  }
+
+  return {
+    ...spec,
+    encoding: {
+      ...spec.encoding,
+      color: { field: autoColorColumn.name, type: autoColorColumn.type },
+    },
+  };
+}
+
 // ─── CSV 데이터 → ChartSpec 자동 생성 ──────────────────────
 
 export function autoCreateChartSpec(
@@ -552,7 +558,7 @@ export function autoCreateChartSpec(
   const columns = inferColumnMeta(data);
   const chartType = suggestChartType(columns);
   const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
-  return createDefaultChartSpec(sourceId, chartType, xField, yField, columns);
+  return createAutoConfiguredChartSpec(sourceId, chartType, xField, yField, columns);
 }
 
 // ─── 유의성 마커 유틸 ──────────────────────────────────────
@@ -602,7 +608,7 @@ export function columnsToRows(
 export function createChartSpecFromDataPackage(pkg: DataPackage): ChartSpec {
   const chartType = suggestChartType(pkg.columns);
   const { xField, yField } = selectXYFields(pkg.columns, CHART_TYPE_HINTS[chartType]);
-  return createDefaultChartSpec(pkg.id, chartType, xField, yField, pkg.columns);
+  return createAutoConfiguredChartSpec(pkg.id, chartType, xField, yField, pkg.columns);
 }
 
 // ─── AnalysisContext 적용 ─────────────────────────────────────

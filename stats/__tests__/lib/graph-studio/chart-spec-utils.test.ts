@@ -5,6 +5,7 @@ import {
   applyPatches,
   autoCreateChartSpec,
   columnsToRows,
+  createAutoConfiguredChartSpec,
   createChartSpecFromDataPackage,
   inferColumnMeta,
   selectAutoColorField,
@@ -98,6 +99,17 @@ describe('suggestChartType', () => {
     ];
 
     expect(suggestChartType(columns)).toBe('line');
+  });
+
+  it('prefers scatter for grouped datasets with two quantitative variables even when a temporal column exists', () => {
+    const columns: ColumnMeta[] = [
+      { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: ['Bass', 'Bream'], hasNull: false },
+      { name: 'length_cm', type: 'quantitative', uniqueCount: 30, sampleValues: ['12.3', '18.7'], hasNull: false },
+      { name: 'weight_g', type: 'quantitative', uniqueCount: 30, sampleValues: ['28.5', '82.1'], hasNull: false },
+      { name: 'year', type: 'temporal', uniqueCount: 10, sampleValues: ['2015-01-01', '2016-01-01'], hasNull: false },
+    ];
+
+    expect(suggestChartType(columns)).toBe('scatter');
   });
 
   it('uses scatter for two quantitative columns', () => {
@@ -250,6 +262,20 @@ describe('selectXYFields', () => {
     expect(yField).toBe('score');
   });
 
+  it('does not penalize visit-like ordinal columns as fake time labels in grouped data', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        { name: 'visit', type: 'ordinal', uniqueCount: 4, sampleValues: ['1', '2'], hasNull: false },
+        nominal('phase'),
+        quantitative('score'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('visit');
+    expect(yField).toBe('score');
+  });
+
   it('allows index-like suffixes on real grouping columns', () => {
     const { xField, yField } = selectXYFields(
       [
@@ -276,6 +302,49 @@ describe('selectXYFields', () => {
 
     expect(xField).toBe('treatment_id');
     expect(yField).toBe('score');
+  });
+
+  it('understands Korean headers when scoring grouping and response fields', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        nominal('샘플ID'),
+        nominal('처리군'),
+        quantitative('체중'),
+        quantitative('체장'),
+      ],
+      CHART_TYPE_HINTS.bar,
+    );
+
+    expect(xField).toBe('처리군');
+    expect(yField).toBe('체중');
+  });
+
+  it('prefers dose-like predictors on X over concentration-like measurements in dose-response data', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        quantitative('dose'),
+        quantitative('concentration'),
+        quantitative('response'),
+      ],
+      CHART_TYPE_HINTS.scatter,
+    );
+
+    expect(xField).toBe('dose');
+    expect(yField).toBe('response');
+  });
+
+  it('keeps category-hinted numeric ids out of Y when a real response metric exists', () => {
+    const { xField, yField } = selectXYFields(
+      [
+        quantitative('dose'),
+        quantitative('treatment_id'),
+        quantitative('signal'),
+      ],
+      CHART_TYPE_HINTS.scatter,
+    );
+
+    expect(xField).toBe('dose');
+    expect(yField).toBe('signal');
   });
 });
 
@@ -333,6 +402,16 @@ describe('selectAutoColorField', () => {
     expect(autoColorField).toBe('treatment_id');
   });
 
+  it('picks Korean grouping columns for auto color', () => {
+    const autoColorField = selectAutoColorField([
+      quantitative('시간'),
+      quantitative('값'),
+      { name: '처리군', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+    ], '시간', '값');
+
+    expect(autoColorField).toBe('처리군');
+  });
+
   it('selectXYFields -> selectAutoColorField 통합: X로 뽑힌 treatment_id가 color 후보에서 자동 제외된다', () => {
     // treatment_id가 X로 선택되면 auto-color는 같은 컬럼을 재사용하지 않아야 함.
     // species가 남은 유일한 유효 범주형이므로 color로 선택됨.
@@ -352,26 +431,68 @@ describe('selectAutoColorField', () => {
     expect(autoColorField).not.toBe('treatment_id');
     expect(autoColorField).not.toBe('sample_id');
   });
+
+  it('selectXYFields -> selectAutoColorField 통합: X로 선택된 species는 auto-color에서 제외된다', () => {
+    const columns: ColumnMeta[] = [
+      { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      quantitative('length_cm'),
+      quantitative('weight_g'),
+    ];
+
+    const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS.bar);
+    expect(xField).toBe('species');
+    expect(yField).toBe('weight_g');
+
+    const autoColorField = selectAutoColorField(columns, xField, yField);
+    expect(autoColorField).toBeNull();
+  });
 });
 
 describe('chart spec creation', () => {
+  it('createAutoConfiguredChartSpec adds auto color for grouped scatter defaults', () => {
+    const spec = createAutoConfiguredChartSpec('src-1', 'scatter', 'length_cm', 'weight_g', [
+      { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: ['Bass', 'Bream'], hasNull: false },
+      { name: 'length_cm', type: 'quantitative', uniqueCount: 30, sampleValues: [], hasNull: false },
+      { name: 'weight_g', type: 'quantitative', uniqueCount: 30, sampleValues: [], hasNull: false },
+      { name: 'year', type: 'temporal', uniqueCount: 10, sampleValues: [], hasNull: false },
+    ]);
+
+    expect(spec.encoding.color).toEqual({ field: 'species', type: 'nominal' });
+  });
+
   it('autoCreateChartSpec keeps sourceId', () => {
     const spec = autoCreateChartSpec('my-source', [{ group: 'A', value: 1 }]);
     expect(spec.data.sourceId).toBe('my-source');
+  });
+
+  it('autoCreateChartSpec applies grouped scatter defaults consistently', () => {
+    const spec = autoCreateChartSpec('fish-study', [
+      { species: 'Bass', length_cm: 12.3, weight_g: 28.5, year: '2015-01-01' },
+      { species: 'Bream', length_cm: 15.4, weight_g: 55.3, year: '2016-01-01' },
+      { species: 'Carp', length_cm: 22.3, weight_g: 142.8, year: '2017-01-01' },
+    ]);
+
+    expect(spec.chartType).toBe('scatter');
+    expect(spec.encoding.x.field).toBe('length_cm');
+    expect(spec.encoding.y.field).toBe('weight_g');
+    expect(spec.encoding.color).toEqual({ field: 'species', type: 'nominal' });
   });
 
   it('createChartSpecFromDataPackage reuses package columns', () => {
     const pkg = makeDataPackage({
       id: 'pkg-scatter',
       columns: [
-        { name: 'weight', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
-        { name: 'height', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+        { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: ['Bass', 'Bream'], hasNull: false },
+        { name: 'length_cm', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+        { name: 'weight_g', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+        { name: 'year', type: 'temporal', uniqueCount: 10, sampleValues: [], hasNull: false },
       ],
     });
 
     const spec = createChartSpecFromDataPackage(pkg);
     expect(spec.chartType).toBe('scatter');
     expect(spec.data.columns).toBe(pkg.columns);
+    expect(spec.encoding.color).toEqual({ field: 'species', type: 'nominal' });
   });
 });
 

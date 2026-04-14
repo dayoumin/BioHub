@@ -27,10 +27,12 @@ const MOCK_SVG_URL = 'data:image/svg+xml;base64,PHN2Zzx5eik=';
 function makeMockECharts(overrides: Partial<{
   getDataURL: () => string;
   getSvgDataURL: () => string;
+  getOption: () => { backgroundColor?: string };
 }> = {}): EChartsType {
   return {
     getDataURL: vi.fn().mockReturnValue(MOCK_PNG_URL),
     getSvgDataURL: vi.fn().mockReturnValue(MOCK_SVG_URL),
+    getOption: vi.fn().mockReturnValue({ backgroundColor: '#ffffff' }),
     ...overrides,
   } as unknown as EChartsType;
 }
@@ -98,6 +100,34 @@ describe('downloadChart', () => {
       backgroundColor: '#ffffff',
     });
     expect(mockLink.download).toBe('result.png');
+  });
+
+  it('PNG: 실제 렌더 option의 backgroundColor를 export 배경으로 사용', () => {
+    const echarts = makeMockECharts({
+      getOption: vi.fn().mockReturnValue({ backgroundColor: '#f7f9fb' }),
+    });
+
+    downloadChart(echarts, makeConfig({ format: 'png', dpi: 96 }), 'result');
+
+    expect(echarts.getDataURL).toHaveBeenCalledWith({
+      type: 'png',
+      pixelRatio: 1,
+      backgroundColor: '#f7f9fb',
+    });
+  });
+
+  it('PNG: transparentBackground=true면 렌더 배경보다 투명을 우선한다', () => {
+    const echarts = makeMockECharts({
+      getOption: vi.fn().mockReturnValue({ backgroundColor: '#f7f9fb' }),
+    });
+
+    downloadChart(echarts, makeConfig({ format: 'png', dpi: 96, transparentBackground: true }), 'result');
+
+    expect(echarts.getDataURL).toHaveBeenCalledWith({
+      type: 'png',
+      pixelRatio: 1,
+      backgroundColor: 'transparent',
+    });
   });
 
   it('PNG: 192dpi → pixelRatio=2 (HiDPI)', () => {

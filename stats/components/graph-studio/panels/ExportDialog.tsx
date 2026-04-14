@@ -9,7 +9,7 @@
  * 저널 프리셋: Nature/Cell/PNAS/ACS 표준 칼럼 너비를 한 번에 입력
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,7 +58,10 @@ const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG (래스터)' },
 ];
 
-import { MPL_SUPPORTED_CHART_TYPES } from '@/lib/graph-studio/matplotlib-compat';
+import {
+  getMatplotlibCompatibilityReport,
+  getMatplotlibSupportedChartTypeLabels,
+} from '@/lib/graph-studio/matplotlib-compat';
 
 // 다른 OS에서도 렌더링이 보장되는 웹 안전 폰트 (A4 경고 기준)
 const WEB_SAFE_FONTS = new Set([
@@ -99,7 +102,14 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
   const [mplStyle, setMplStyle] = useState<MatplotlibStylePreset>(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.style);
   const [mplDpi, setMplDpi] = useState(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.dpi);
 
-  const isMplSupported = chartSpec ? MPL_SUPPORTED_CHART_TYPES.has(chartSpec.chartType) : false;
+  const mplCompatibility = useMemo(
+    () => (chartSpec ? getMatplotlibCompatibilityReport(chartSpec) : null),
+    [chartSpec],
+  );
+  const supportedMplLabels = useMemo(
+    () => getMatplotlibSupportedChartTypeLabels().join(', '),
+    [],
+  );
 
   // 물리적 크기 로컬 state — onBlur 시 setExportConfig (undo 히스토리 제외 의도)
   const [widthInput, setWidthInput] = useState(() =>
@@ -114,6 +124,10 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
     setWidthInput(toInput(chartSpec?.exportConfig.physicalWidth));
     setHeightInput(toInput(chartSpec?.exportConfig.physicalHeight));
   }, [chartSpec?.exportConfig.physicalWidth, chartSpec?.exportConfig.physicalHeight]);
+
+  useEffect(() => {
+    clearMplWarnings();
+  }, [chartSpec, clearMplWarnings]);
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
@@ -199,7 +213,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="border-0 bg-surface-container-lowest/95 shadow-[0px_12px_32px_rgba(25,28,30,0.06)] backdrop-blur-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>차트 내보내기</DialogTitle>
         </DialogHeader>
@@ -209,7 +223,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
         ) : (
           <div className="space-y-4">
             {/* 포맷 */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 rounded-lg bg-surface-container-low p-3">
               <Label className="text-xs">포맷</Label>
               <Select value={chartSpec.exportConfig.format} onValueChange={handleFormatChange}>
                 <SelectTrigger className="h-8 text-sm">
@@ -227,7 +241,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
             {/* DPI (PNG만) */}
             {chartSpec.exportConfig.format === 'png' && (
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 rounded-lg bg-surface-container-low p-3">
                 <Label className="text-xs">DPI</Label>
                 <Select value={String(chartSpec.exportConfig.dpi)} onValueChange={handleDpiChange}>
                   <SelectTrigger className="h-8 text-sm">
@@ -246,7 +260,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
             {/* 투명 배경 (PNG만) — A2 */}
             {chartSpec.exportConfig.format === 'png' && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between rounded-lg bg-surface-container-low px-3 py-2.5">
                 <Label htmlFor="transparent-bg" className="text-xs cursor-pointer">
                   투명 배경
                 </Label>
@@ -260,15 +274,17 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
             {/* SVG 비웹 안전 폰트 경고 — A4 */}
             {showFontWarning && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+              <div className="flex items-start gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-xs text-muted-foreground">
                 <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-                SVG 내보내기 시 선택한 폰트가 다른 시스템에서 깨질 수 있습니다.
-                웹 안전 폰트(Arial, Times New Roman)를 권장합니다.
-              </p>
+                <p>
+                  SVG 내보내기 시 선택한 폰트가 다른 시스템에서 깨질 수 있습니다.
+                  웹 안전 폰트(Arial, Times New Roman)를 권장합니다.
+                </p>
+              </div>
             )}
 
             {/* 출력 크기 (선택) */}
-            <div className="space-y-2">
+            <div className="space-y-2 rounded-lg bg-surface-container-low p-3">
               <Label className="text-xs">출력 크기 (mm, 선택)</Label>
 
               {/* 저널 프리셋 버튼 */}
@@ -281,10 +297,10 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
                       type="button"
                       onClick={() => handleJournalPreset(width)}
                       className={[
-                        'text-xs border rounded px-1.5 py-0.5 transition-colors',
+                        'rounded-md px-1.5 py-0.5 text-xs transition-colors',
                         isActive
-                          ? 'border-primary bg-primary/10 text-primary font-medium'
-                          : 'border-border hover:bg-muted',
+                          ? 'bg-surface-container-highest font-medium text-primary'
+                          : 'bg-surface-container-lowest text-muted-foreground hover:bg-surface-container-high hover:text-foreground',
                       ].join(' ')}
                       title={`너비 ${width}mm`}
                       aria-pressed={isActive}
@@ -349,7 +365,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
             {/* 캡션 작성 참고 — A3 */}
             {(chartSpec.errorBar || chartSpec.chartType === 'boxplot') && (
-              <div className="rounded-md bg-muted/50 p-2.5 text-xs space-y-1">
+              <div className="space-y-1 rounded-lg bg-surface-container-low p-2.5 text-xs">
                 <p className="font-medium">캡션 작성 참고</p>
                 {chartSpec.errorBar && (
                   <p className="text-muted-foreground">{getErrorBarCaption(chartSpec.errorBar)}</p>
@@ -372,7 +388,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
             </Button>
 
             {/* ── 논문용 내보내기 (matplotlib) ── */}
-            <div className="border-t pt-4 space-y-3">
+            <div className="space-y-3 rounded-lg bg-surface-container-low p-3">
               <div className="flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">논문용 내보내기</span>
@@ -382,11 +398,26 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
                 matplotlib + SciencePlots로 저널 투고 품질 출력 (PDF/TIFF/EPS)
               </p>
 
-              {!isMplSupported && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+              {mplCompatibility && !mplCompatibility.isExportable && (
+                <div className="flex items-start gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-xs text-muted-foreground">
                   <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-                  현재 차트 타입({chartSpec?.chartType})은 논문용 내보내기 미지원. Bar, Line, Scatter만 지원합니다.
-                </p>
+                  <div className="space-y-1">
+                    <p>현재 차트는 matplotlib 논문용 내보내기 계약을 만족하지 않습니다.</p>
+                    <p>지원 차트: {supportedMplLabels}</p>
+                    {mplCompatibility.blockingIssues.map((issue) => (
+                      <p key={issue.code}>• {issue.message}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {mplCompatibility && mplCompatibility.warningIssues.length > 0 && (
+                <div className="space-y-1 rounded-lg bg-surface-container-high p-2 text-xs">
+                  <p className="font-medium text-foreground">사전 경고:</p>
+                  {mplCompatibility.warningIssues.map((issue) => (
+                    <p key={issue.code} className="text-muted-foreground">• {issue.message}</p>
+                  ))}
+                </div>
               )}
 
               {/* 포맷 + 스타일 */}
@@ -442,15 +473,15 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
               {/* TIFF + 고DPI 경고 */}
               {mplFormat === 'tiff' && mplDpi >= 600 && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+                <div className="flex items-start gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-xs text-muted-foreground">
                   <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-                  TIFF 600 DPI는 파일 크기가 20-30MB 이상 될 수 있습니다.
-                </p>
+                  <p>TIFF 600 DPI는 파일 크기가 20-30MB 이상 될 수 있습니다.</p>
+                </div>
               )}
 
               {/* 에러 표시 + ECharts 대체 안내 */}
               {mplError && (
-                <div className="text-xs space-y-1.5 bg-destructive/5 border border-destructive/20 rounded-md p-2.5">
+                <div className="space-y-1.5 rounded-lg bg-destructive/10 p-2.5 text-xs">
                   <p className="text-destructive font-medium">{mplError}</p>
                   <p className="text-muted-foreground">일반 내보내기(SVG/PNG)로 대신 다운로드할 수 있습니다. 위 &quot;일반 내보내기&quot; 섹션을 이용해주세요.</p>
                 </div>
@@ -458,10 +489,10 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
               {/* 미지원 옵션 경고 (export 완료 후에도 유지) */}
               {mplWarnings.length > 0 && (
-                <div className="text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 space-y-1">
-                  <p className="font-medium text-amber-700 dark:text-amber-300">미지원 옵션 경고:</p>
+                <div className="space-y-1 rounded-lg bg-surface-container-high p-2 text-xs">
+                  <p className="font-medium text-foreground">미지원 옵션 경고:</p>
                   {mplWarnings.map((w, i) => (
-                    <p key={i} className="text-amber-600 dark:text-amber-400">• {w}</p>
+                    <p key={i} className="text-muted-foreground">• {w}</p>
                   ))}
                 </div>
               )}
@@ -478,7 +509,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
               <Button
                 className="w-full"
                 variant="secondary"
-                disabled={isMplExporting || !isMplSupported}
+                disabled={isMplExporting || !mplCompatibility?.isExportable}
                 onClick={handleMatplotlibExport}
               >
                 {isMplExporting ? (

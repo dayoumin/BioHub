@@ -9,7 +9,9 @@ import { create } from 'zustand';
 import type {
   AiPanelDock,
   ChartSpec,
+  ColumnMeta,
   DataPackage,
+  DataType,
   ExportConfig,
   GraphProject,
   GraphStudioState,
@@ -25,7 +27,6 @@ import {
 } from '@/lib/graph-studio/project-storage';
 import { deleteSnapshots } from '@/lib/graph-studio/chart-snapshot-storage';
 import { upsertProjectEntityRef, removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
-import { useResearchProjectStore } from '@/lib/stores/research-project-store';
 
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
@@ -47,6 +48,121 @@ function clearAiChatHistory(activeDraftSourceId: string | null): void {
 
 interface LoadDataPackageWithSpecOptions {
   preserveCurrentProject?: boolean;
+}
+
+interface ColumnTypeMismatch {
+  field: string;
+  expected: DataType;
+  actual: DataType;
+}
+
+interface ProjectRelinkCompatibility {
+  isCompatible: boolean;
+  missingFields: string[];
+  extraFields: string[];
+  typeMismatches: ColumnTypeMismatch[];
+  semanticMismatchFields: string[];
+}
+
+function collectReferencedFields(spec: ChartSpec): string[] {
+  const fields: Array<string | undefined> = [
+    spec.encoding.x?.field,
+    spec.encoding.y?.field,
+    spec.encoding.y2?.field,
+    spec.encoding.color?.field,
+    spec.facet?.field,
+    ...(spec.aggregate?.groupBy ?? []),
+  ];
+
+  return [...new Set(fields.filter((field): field is string => Boolean(field)))];
+}
+
+function normalizeSampleValue(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function hasSampleValueOverlap(expected: readonly string[], actual: readonly string[]): boolean {
+  const expectedValues = expected
+    .map(normalizeSampleValue)
+    .filter((value) => value.length > 0);
+  const actualValues = new Set(
+    actual
+      .map(normalizeSampleValue)
+      .filter((value) => value.length > 0),
+  );
+
+  if (expectedValues.length === 0 || actualValues.size === 0) {
+    return true;
+  }
+
+  return expectedValues.some((value) => actualValues.has(value));
+}
+
+function buildColumnMetaMap(columns: readonly ColumnMeta[]): Map<string, ColumnMeta> {
+  return new Map(columns.map((column) => [column.name, column]));
+}
+
+function getProjectRelinkCompatibility(
+  spec: ChartSpec,
+  pkg: DataPackage,
+): ProjectRelinkCompatibility {
+  const expectedColumns = spec.data.columns;
+  const expectedMap = buildColumnMetaMap(expectedColumns);
+  const actualMap = buildColumnMetaMap(pkg.columns);
+  const referencedFields = collectReferencedFields(spec);
+
+  const missingFields = referencedFields.filter((field) => !actualMap.has(field));
+  const typeMismatches: ColumnTypeMismatch[] = referencedFields.flatMap((field) => {
+    const expected = expectedMap.get(field);
+    const actual = actualMap.get(field);
+
+    if (!expected || !actual || expected.type === actual.type) {
+      return [];
+    }
+
+    return [{ field, expected: expected.type, actual: actual.type }];
+  });
+
+  const extraFields =
+    expectedColumns.length === 0
+      ? []
+      : pkg.columns
+        .filter((column) => !expectedMap.has(column.name))
+        .map((column) => column.name);
+
+  const schemaMissingFields =
+    expectedColumns.length === 0
+      ? []
+      : expectedColumns
+        .filter((column) => !actualMap.has(column.name))
+        .map((column) => column.name);
+
+  const semanticMismatchFields = referencedFields.filter((field) => {
+    const expected = expectedMap.get(field);
+    const actual = actualMap.get(field);
+
+    if (!expected || !actual) {
+      return false;
+    }
+
+    if (expected.type === 'quantitative' || actual.type === 'quantitative') {
+      return false;
+    }
+
+    return !hasSampleValueOverlap(expected.sampleValues, actual.sampleValues);
+  });
+
+  return {
+    isCompatible:
+      schemaMissingFields.length === 0 &&
+      missingFields.length === 0 &&
+      typeMismatches.length === 0 &&
+      semanticMismatchFields.length === 0,
+    missingFields: [...new Set([...schemaMissingFields, ...missingFields])],
+    extraFields,
+    typeMismatches,
+    semanticMismatchFields,
+  };
 }
 
 interface GraphStudioActions {
@@ -93,6 +209,7 @@ interface GraphStudioActions {
 
 const initialState: GraphStudioState = {
   currentProject: null,
+  linkedResearchProjectId: null,
   dataPackage: null,
   isDataLoaded: false,
   chartSpec: null,
@@ -118,28 +235,18 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
       // 프로젝트 복원 모드: ?project= 경유로 setProject가 호출된 뒤 데이터만 재업로드.
       // 기존 chartSpec을 보존하되 dataSourceId만 갱신한다.
-      // encoding 필드가 새 데이터 컬럼에 없으면 호환 불가 → 새 spec 생성 + currentProject 해제.
+      // 동일 필드명만으로 재부착하지 않고, 참조 필드/컬럼 스키마/범주 샘플값 호환성까지 본다.
       if (currentProject && existingSpec) {
-        const colNames = new Set(pkg.columns.map(c => c.name));
+        const compatibility = getProjectRelinkCompatibility(existingSpec, pkg);
 
-        // 모든 인코딩 필드 + aggregate.groupBy + facet.field 검사
-        const fieldsToCheck: (string | undefined)[] = [
-          existingSpec.encoding.x?.field,
-          existingSpec.encoding.y?.field,
-          existingSpec.encoding.y2?.field,
-          existingSpec.encoding.color?.field,
-          existingSpec.facet?.field,
-          ...(existingSpec.aggregate?.groupBy ?? []),
-        ];
-        const allFieldsOk = fieldsToCheck.every(f => !f || colNames.has(f));
-
-        if (allFieldsOk) {
+        if (compatibility.isCompatible) {
           const restoredSpec: ChartSpec = {
             ...existingSpec,
             data: { ...existingSpec.data, sourceId: pkg.id },
           };
           set({
             dataPackage: pkg,
+            linkedResearchProjectId: currentProject.projectId ?? pkg.projectId ?? null,
             isDataLoaded: true,
             chartSpec: restoredSpec,
             specHistory: [restoredSpec],
@@ -149,17 +256,22 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
           });
           return;
         }
-        // encoding 불일치 → 기존 프로젝트 연결 해제 (덮어쓰기 방지)
-        const missingFields = fieldsToCheck.filter(f => f && !colNames.has(f));
         console.warn(
-          '[graph-studio-store] 프로젝트 인코딩 불일치 — 프로젝트 연결을 해제합니다.',
-          { projectName: currentProject.name, missingFields },
+          '[graph-studio-store] 프로젝트 데이터 호환성 불일치 — 프로젝트 연결을 해제합니다.',
+          {
+            projectName: currentProject.name,
+            missingFields: compatibility.missingFields,
+            extraFields: compatibility.extraFields,
+            typeMismatches: compatibility.typeMismatches,
+            semanticMismatchFields: compatibility.semanticMismatchFields,
+          },
         );
       }
 
       const spec = createChartSpecFromDataPackage(pkg);
       set({
         dataPackage: pkg,
+        linkedResearchProjectId: pkg.projectId ?? null,
         isDataLoaded: true,
         chartSpec: spec,
         specHistory: [spec],
@@ -175,9 +287,13 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const currentProject = options?.preserveCurrentProject
         ? get().currentProject
         : null;
+      const linkedResearchProjectId = options?.preserveCurrentProject
+        ? get().linkedResearchProjectId
+        : pkg.projectId ?? null;
       const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
       set({
         dataPackage: pkg,
+        linkedResearchProjectId,
         isDataLoaded: true,
         chartSpec: sanitizedSpec,
         specHistory: [sanitizedSpec],
@@ -196,6 +312,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       clearAiChatHistory(activeDraftSourceId);
       set({
         dataPackage: pkg,
+        linkedResearchProjectId: pkg.projectId ?? null,
         isDataLoaded: true,
         chartSpec: null,
         specHistory: [],
@@ -214,6 +331,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       clearAiChatHistory(activeDraftSourceId);
       set({
         dataPackage: null,
+        linkedResearchProjectId: null,
         isDataLoaded: false,
         chartSpec: null,
         specHistory: [],
@@ -346,6 +464,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       });
       set({
         currentProject: project,
+        linkedResearchProjectId: project.projectId ?? dataPackage?.projectId ?? null,
         dataPackage: dataPackage ?? null,
         isDataLoaded: dataPackage != null,
         chartSpec: spec,
@@ -359,7 +478,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     saveCurrentProject: (name) => {
-      const { chartSpec, dataPackage, currentProject } = get();
+      const { chartSpec, dataPackage, currentProject, linkedResearchProjectId } = get();
       if (!chartSpec) return null;
       const sanitizedChartSpec = sanitizeChartSpecForRenderer(chartSpec);
 
@@ -369,7 +488,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const project: GraphProject = {
         id: projectId,
         name,
-        projectId: currentProject?.projectId ?? dataPackage?.projectId ?? useResearchProjectStore.getState().activeResearchProjectId ?? undefined,
+        projectId: currentProject?.projectId ?? linkedResearchProjectId ?? dataPackage?.projectId ?? undefined,
         analysisId: currentProject?.analysisId ?? dataPackage?.analysisResultId,
         chartSpec: sanitizedChartSpec,
         dataPackageId: dataPackage?.id ?? '',
@@ -428,7 +547,10 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         }
         return null;
       }
-      set({ currentProject: project });
+      set({
+        currentProject: project,
+        linkedResearchProjectId: project.projectId ?? null,
+      });
       return projectId;
     },
 
