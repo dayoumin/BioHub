@@ -1,6 +1,20 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
+import { UnifiedVariableSelector, CANDIDATE_STATUS_LABELS } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
+
+function setupTwoSampleDataset() {
+  mockAnalyzeDataset.mockReturnValue({
+    columns: [
+      makeColumn({ name: 'score', type: 'continuous', dataType: 'number', uniqueCount: 18, samples: [71, 74, 80, 77] }),
+      makeColumn({ name: 'sex', type: 'categorical', dataType: 'string', uniqueCount: 2, samples: ['M', 'F', 'M', 'F'] }),
+      makeColumn({ name: 'age', type: 'continuous', dataType: 'number', uniqueCount: 18, samples: [21, 22, 23, 24] }),
+    ],
+  })
+}
+
+function expectCandidateStatus(columnName: string, label: string) {
+  expect(screen.getByTestId(`pool-var-${columnName}-status`)).toHaveTextContent(label)
+}
 
 const mockAnalyzeDataset = vi.fn()
 
@@ -361,5 +375,84 @@ describe('UnifiedVariableSelector', () => {
         dependentVar: 'outcome',
       })
     )
+  })
+})
+
+// Why: click-first UX가 성립하려면 pool의 상태 뱃지(추천/가능/불가/배정됨)가
+// 활성 슬롯에 따라 정확히 재계산되어야 한다. 잘못 돌면 사용자가 맞는 변수를 고를 수 없다.
+describe('UnifiedVariableSelector — role-based candidate filtering', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const renderGroupComparison = () =>
+    render(
+      <UnifiedVariableSelector
+        data={[{ score: 71, sex: 'M', age: 21 }]}
+        selectorType="group-comparison"
+        methodId="two-sample-t"
+        onComplete={vi.fn()}
+      />,
+    )
+
+  it('moves sex from 불가 (dependent focus) to 추천 (factor focus) as active slot changes', () => {
+    setupTwoSampleDataset()
+    renderGroupComparison()
+
+    // 기본 focus는 dependent → 범주형 sex는 부적합("불가").
+    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.invalid)
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.recommended)
+
+    // factor 슬롯으로 focus 이동하면 sex가 2-level binary라 "추천"으로 전환.
+    const factorButton = screen.getByTestId('slot-factor').querySelector('button')
+    fireEvent.click(factorButton as HTMLButtonElement)
+
+    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.recommended)
+    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.invalid)
+  })
+
+  it('shows 추천 on numeric columns by default when dependent slot is the first required focus', () => {
+    setupTwoSampleDataset()
+    renderGroupComparison()
+
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.recommended)
+    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.recommended)
+    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.invalid)
+  })
+
+  it('marks assigned variable as 배정됨 and re-clicking unassigns it (toggle UX)', () => {
+    setupTwoSampleDataset()
+    renderGroupComparison()
+
+    fireEvent.click(screen.getByTestId('pool-var-score'))
+    expect(screen.getByTestId('chip-score')).toBeInTheDocument()
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.assigned)
+
+    // 배정된 상태에서 재클릭 → 언어사인 (disabled 아닌 toggle 동작).
+    fireEvent.click(screen.getByTestId('pool-var-score'))
+    expect(screen.queryByTestId('chip-score')).not.toBeInTheDocument()
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.recommended)
+  })
+
+  it('shows "추천 후보 2개" when two numeric columns qualify for the focused dependent slot', () => {
+    setupTwoSampleDataset()
+    renderGroupComparison()
+
+    expect(screen.getByText(/추천 후보\s+2개/)).toBeInTheDocument()
+  })
+
+  it('blocks progression when user force-clicks a numeric into factor slot (role mismatch guard)', () => {
+    setupTwoSampleDataset()
+    renderGroupComparison()
+
+    const factorButton = screen.getByTestId('slot-factor').querySelector('button')
+    fireEvent.click(factorButton as HTMLButtonElement)
+    fireEvent.click(screen.getByTestId('pool-var-age'))
+
+    expect(screen.queryByTestId('chip-age')).not.toBeInTheDocument()
+    expect(screen.getByTestId('variable-selection-next')).toBeDisabled()
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    // 상태 뱃지는 여전히 "불가" — 클릭으로 바뀌지 않았음을 재확인.
+    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.invalid)
   })
 })

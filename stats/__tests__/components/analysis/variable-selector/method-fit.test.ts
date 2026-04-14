@@ -4,9 +4,11 @@ import {
   buildSlotsFromMethodRequirements,
   buildMethodFitState,
   buildVariableCandidates,
+  canAssignToSlot,
   resolveMethodSlots,
   type SelectorColumnInfo,
 } from '@/components/analysis/variable-selector/method-fit'
+import type { SlotConfig } from '@/components/analysis/variable-selector/slot-configs'
 
 function getGroupComparisonSlots() {
   const requirements = getMethodRequirements('two-sample-t')
@@ -221,5 +223,84 @@ describe('method-fit helpers', () => {
 
     expect(result.status).toBe('mismatch')
     expect(result.actionLabel).toContain('대응표본')
+  })
+})
+
+// canAssignToSlot: click과 DnD 양쪽 경로가 공유하는 4게이트 판정 순수 함수.
+describe('canAssignToSlot', () => {
+  const baseSlot = {
+    description: '',
+    colorScheme: 'info' as const,
+    mappingKey: 'dependentVar' as const,
+  }
+  const singleNumericSlot: SlotConfig = {
+    ...baseSlot,
+    id: 'dependent',
+    label: '종속변수',
+    accepts: ['numeric'],
+    required: true,
+    multiple: false,
+  }
+  const multiNumericSlot: SlotConfig = {
+    ...baseSlot,
+    id: 'variables',
+    label: '변수들',
+    accepts: ['numeric'],
+    required: true,
+    multiple: true,
+    maxCount: 3,
+  }
+  const singleCategoricalSlot: SlotConfig = {
+    ...baseSlot,
+    id: 'factor',
+    label: '요인',
+    accepts: ['categorical'],
+    colorScheme: 'highlight',
+    mappingKey: 'groupVar',
+    required: true,
+    multiple: false,
+  }
+
+  it('allows assignment when type matches and slot is empty', () => {
+    expect(
+      canAssignToSlot({ columnType: 'numeric', isSelectable: true }, singleNumericSlot, {}),
+    ).toBe(true)
+  })
+
+  it('rejects when candidate is not selectable (invalid status)', () => {
+    expect(
+      canAssignToSlot({ columnType: 'numeric', isSelectable: false }, singleNumericSlot, {}),
+    ).toBe(false)
+  })
+
+  it('rejects when column type does not match slot accepts', () => {
+    expect(
+      canAssignToSlot({ columnType: 'categorical', isSelectable: true }, singleNumericSlot, {}),
+    ).toBe(false)
+    expect(
+      canAssignToSlot({ columnType: 'numeric', isSelectable: true }, singleCategoricalSlot, {}),
+    ).toBe(false)
+  })
+
+  it('rejects when single-assignment slot is already occupied', () => {
+    expect(
+      canAssignToSlot({ columnType: 'numeric', isSelectable: true }, singleNumericSlot, { dependent: ['score'] }),
+    ).toBe(false)
+  })
+
+  it('allows multi-slot until maxCount is reached', () => {
+    expect(
+      canAssignToSlot({ columnType: 'numeric', isSelectable: true }, multiNumericSlot, { variables: ['a'] }),
+    ).toBe(true)
+    expect(
+      canAssignToSlot({ columnType: 'numeric', isSelectable: true }, multiNumericSlot, { variables: ['a', 'b', 'c'] }),
+    ).toBe(false)
+  })
+
+  it('treats missing assignments entry as empty (both paths should produce same result)', () => {
+    const emptyExplicit = canAssignToSlot({ columnType: 'numeric', isSelectable: true }, singleNumericSlot, { dependent: [] })
+    const emptyMissing = canAssignToSlot({ columnType: 'numeric', isSelectable: true }, singleNumericSlot, {})
+    expect(emptyExplicit).toBe(emptyMissing)
+    expect(emptyMissing).toBe(true)
   })
 })

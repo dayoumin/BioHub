@@ -35,9 +35,9 @@
 - [ ] **[P2] session / persistence coordinator 분리**: route sync, project detach, draft chat lifecycle, snapshot save 의미를 한 수명 주기로 재구성.
 - [x] **[P2] save transaction semantics 정리**: metadata 저장 성공과 snapshot 저장 실패가 사용자에게 같은 "저장 완료"로 보이지 않게 상태와 토스트 기준 정리. (`GraphStudioContent.tsx`, `GraphStudioContent-save.test.tsx`, 2026-04-14)
 - [x] **[P2] chart capability registry 도입**: preview/export/overlay/facet/style capability를 chart type별 단일 선언으로 통합. (`chart-capabilities.ts`, `ChartPreview.tsx`, `useDataTabLogic.ts`, `useStyleTabLogic.ts`, `echarts-converter.ts`, `matplotlib-compat.ts`, `chart-capabilities.test.ts`, 2026-04-14)
-- [ ] **[P2] matplotlib export contract 정렬**: preview spec과 export spec이 같은 필드 집합과 validation 규칙을 공유하도록 정리.
-- [ ] **[P2] editor action layer 공용화**: `LeftDataPanel`, `DataTab`, `AiPanel`의 field assignment / direct mutation 규칙을 공용 액션으로 통합.
-- [ ] **[P3] ambient research project 의존 제거**: `saveCurrentProject()`가 외부 active project singleton을 직접 읽지 않도록 session binding 경로 정리.
+- [x] **[P2] matplotlib export contract 정렬**: preview와 동일 재현이 안 되는 spec(feature-level mismatch)은 preflight에서 차단하고, dialog/service가 같은 validation 규칙을 공유하도록 정리. (`matplotlib-compat.ts`, `ExportDialog.tsx`, `matplotlib-export.service.ts`, `matplotlib-compat.test.ts`, `matplotlib-export.service.test.ts`, 2026-04-14)
+- [x] **[P2] editor action layer 공용화**: `LeftDataPanel`, `DataTab`, `ChartSetupPanel`, AI patch apply 경로의 field assignment / chart mutation 규칙을 공용 action helper로 통합. (`editor-actions.ts`, `LeftDataPanel.tsx`, `useDataTabLogic.ts`, `ChartSetupPanel.tsx`, `use-ai-chat.ts`, `editor-actions.test.ts`, `use-ai-chat.test.ts`, 2026-04-14)
+- [x] **[P3] ambient research project 의존 제거**: `saveCurrentProject()`가 외부 active project singleton을 직접 읽지 않도록 session binding(`linkedResearchProjectId`) 경로로 정리. (`graph-studio-store.ts`, `graph-studio-store.test.ts`, 2026-04-14)
 
 ## 1. 시각화 및 UX 컴포넌트 고도화
 - [x] AI 해석의 요약 (결론 도출 근거) 정보를 결과 카드에 축약하여 노출 (Hero Card의 AI 요약 첫 줄) (2026-04-07)
@@ -139,7 +139,7 @@
 - [x] handler 계층에 `methodSettings` 전달 연결 (`7ed3db6c`, 2026-04-10)
 - [x] `variable-requirements`의 `notes` / `dataFormat` 필드 Step 3 표시 (`MethodGuidancePanel`)
 - [x] Step 4 결과 화면에 분석 옵션 표시 (`alternative`, `postHoc`, `ciMethod` 등) 추가 (2026-04-14 formatAnalysisOptionBadges + HeroCard 메타 row, 9/9 테스트)
-- [ ] Step 3 E2E/스모크 테스트 시나리오 추가 (click-first, slot 가드, 역할 필터) *(부분 — click-first/타입가드 완료, 역할필터+진짜 E2E 미완)*
+- [x] Step 3 E2E/스모크 테스트 시나리오 추가 (click-first, slot 가드, 역할 필터) (2026-04-14 역할 필터 5개 시나리오 추가, 11/11 통과)
 
 ### 타입 검증
 - [x] `pnpm exec tsc --noEmit` 통과 (2026-04-14 확인, 0 errors)
@@ -151,6 +151,17 @@
 - [ ] `stats/components/analysis/steps/VariableSelectionStep.tsx`
 - [ ] `stats/components/analysis/steps/AnalysisExecutionStep.tsx`
 
+
+### Section 7 후속 playbook (별도 세션)
+- [ ] Optional slot 테스트 추가 (ANCOVA covariate `required:false`) — multi-var 메서드 경로 가드
+- [ ] Multi-slot 메서드 테스트 (one-way ANOVA 3-level factor, repeated-measures) — ANOVA 계열 regression 방지
+- [ ] 엣지 픽스처 상태 검증 (ID 컬럼, uniqueCount=1/50+, 날짜 컬럼) — 실데이터 크래시 방지
+- [ ] `CANDIDATE_STATUS_LABELS` → `lib/terminology/selector-labels.ts` 이관 — 드리프트 방지 (드리프트 증거 나온 후)
+- [ ] `caution` 상태 재도입 (제품 요구 발생 시) — type union + labels + CSS + terminology 4포인트 동시 개방
+
+### 사전 존재 이슈 (본 세션 스코프 외)
+- [ ] Method-ID canonicalization drift — AES만 정규화, VSS/ResultsActionStep은 raw id. `useCanonicalSelectedMethod` 공유 hook 추출
+- [ ] `variable-requirements` 라벨 워딩 재검토 — "등분산 가정 등분산 가정", "Welch ANOVA 표준 ANOVA" 중복/모순, option vs setting 라벨 분리 UX 결정 필요
 ## 8. Statistics UI Polish Follow-up (2026-04-10)
 
 - [ ] 모바일 해상도에서 Hub hero, 빠른 분석 pills, 보조 도구 카드 밀도 재점검 *(모바일 보류 — 배포 후)*

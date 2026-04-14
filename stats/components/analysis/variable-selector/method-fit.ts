@@ -6,6 +6,7 @@ import type {
 import { isTypeCompatibleWithValues } from '@/lib/utils/variable-type-mapper'
 import {
   getSlotConfigs,
+  isTypeAccepted,
   type AcceptedType,
   type SelectorType,
   type SlotColorScheme,
@@ -40,9 +41,25 @@ export interface MethodFitState {
 
 export interface VariableCandidate {
   column: SelectorColumnInfo
-  status: 'recommended' | 'valid' | 'caution' | 'invalid' | 'assigned'
+  status: 'recommended' | 'valid' | 'invalid' | 'assigned'
   reason: string
   isSelectable: boolean
+}
+
+// Click과 DnD 양쪽 경로가 공유해야 하는 "이 후보를 이 슬롯에 붙일 수 있는가" 판정.
+// 4개 게이트: (1) status=invalid 등으로 isSelectable=false인 후보 (2) 슬롯 accept 타입 불일치
+// (3) 단일 슬롯이 이미 찼음 (4) 복수 슬롯이 maxCount 도달. 모두 통과해야 true.
+export function canAssignToSlot(
+  input: { columnType: AcceptedType; isSelectable: boolean },
+  slot: SlotConfig,
+  assignments: Record<string, readonly string[]>,
+): boolean {
+  if (!input.isSelectable) return false
+  if (!isTypeAccepted(slot, input.columnType)) return false
+  const assigned = assignments[slot.id] ?? []
+  if (!slot.multiple && assigned.length >= 1) return false
+  if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) return false
+  return true
 }
 
 const EXACT_TWO_LEVEL_FACTOR_METHODS = new Set([
@@ -620,8 +637,7 @@ export function buildVariableCandidates(params: {
     recommended: 0,
     assigned: 1,
     valid: 2,
-    caution: 3,
-    invalid: 4,
+    invalid: 3,
   }
 
   return columns

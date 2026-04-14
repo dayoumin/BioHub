@@ -38,6 +38,7 @@ import { MethodGuidancePanel } from './MethodGuidancePanel'
 import {
   buildMethodFitState,
   buildVariableCandidates,
+  canAssignToSlot,
   type MethodFitState,
   type MethodMismatchHint,
   type SelectorColumnInfo,
@@ -59,6 +60,14 @@ interface UnifiedVariableSelectorProps {
   mismatchHint?: MethodMismatchHint
   onFitAction?: () => void
 }
+
+// 테스트와 공유되는 상태 라벨 — 카피 드리프트 시 test도 같이 깨지도록 SSOT 유지.
+export const CANDIDATE_STATUS_LABELS = {
+  recommended: '추천',
+  valid: '가능',
+  assigned: '배정됨',
+  invalid: '불가',
+} as const
 
 const COLOR_MAP = {
   info: {
@@ -140,16 +149,16 @@ function PoolVariable({
           </Badge>
           <Badge
             variant="outline"
+            data-testid={`pool-var-${column.name}-status`}
             className={cn(
               'text-[10px] px-1.5 py-0',
               status === 'recommended' && 'border-primary/30 bg-primary/10 text-primary',
               status === 'valid' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
               status === 'assigned' && 'border-border/50 bg-muted text-muted-foreground',
-              status === 'caution' && 'border-amber-300 bg-amber-50 text-amber-700',
               status === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
             )}
           >
-            {status === 'recommended' ? '추천' : status === 'valid' ? '가능' : status === 'assigned' ? '배정됨' : status === 'caution' ? '주의' : '불가'}
+            {CANDIDATE_STATUS_LABELS[status]}
           </Badge>
         </div>
         <p className="mt-1 truncate text-[11px] text-muted-foreground">{candidate.reason}</p>
@@ -463,30 +472,18 @@ export function UnifiedVariableSelector({
   }), [columns, slots, assignments, focusedSlotId, methodRequirements, methodId])
 
   const findTargetSlot = useCallback((varType: AcceptedType): SlotConfig | undefined => {
-    if (focusedSlot && isTypeAccepted(focusedSlot, varType)) {
-      const assigned = assignments[focusedSlot.id] ?? []
-      const isFull = !focusedSlot.multiple && assigned.length >= 1
-      const isMultiFull = focusedSlot.multiple && focusedSlot.maxCount !== undefined && assigned.length >= focusedSlot.maxCount
-      if (!isFull && !isMultiFull) return focusedSlot
-    }
+    // Focus 슬롯 우선 → required 빈 슬롯 → 아무 accept 가능한 슬롯 순.
+    // status 게이트는 호출 전에 확인되므로 isSelectable=true로 가정.
+    const input = { columnType: varType, isSelectable: true }
 
-    for (const slot of slots) {
-      if (!isTypeAccepted(slot, varType)) continue
-      const assigned = assignments[slot.id] ?? []
-      if (!slot.multiple && assigned.length >= 1) continue
-      if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) continue
-      if (slot.required && assigned.length === 0) return slot
-    }
+    if (focusedSlot && canAssignToSlot(input, focusedSlot, assignments)) return focusedSlot
 
-    for (const slot of slots) {
-      if (!isTypeAccepted(slot, varType)) continue
-      const assigned = assignments[slot.id] ?? []
-      if (!slot.multiple && assigned.length >= 1) continue
-      if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) continue
-      return slot
-    }
+    const requiredEmpty = slots.find(slot =>
+      slot.required && (assignments[slot.id] ?? []).length === 0 && canAssignToSlot(input, slot, assignments),
+    )
+    if (requiredEmpty) return requiredEmpty
 
-    return undefined
+    return slots.find(slot => canAssignToSlot(input, slot, assignments))
   }, [focusedSlot, assignments, slots])
 
   const handlePoolClick = useCallback((candidate: VariableCandidate) => {
@@ -556,15 +553,16 @@ export function UnifiedVariableSelector({
     if (!payload || typeof payload.columnName !== 'string' || typeof payload.columnType !== 'string') return
 
     const slot = slots.find(item => item.id === slotId)
-    if (!slot || !isTypeAccepted(slot, payload.columnType as AcceptedType)) return
-
-    const assigned = assignments[slotId] ?? []
-    if (!slot.multiple && assigned.length >= 1) return
-    if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) return
+    if (!slot) return
     if (assignedSet.has(payload.columnName)) return
 
     const candidate = variableCandidates.find(item => item.column.name === payload.columnName)
-    if (!candidate?.isSelectable) return
+    if (!candidate) return
+    if (!canAssignToSlot(
+      { columnType: payload.columnType as AcceptedType, isSelectable: candidate.isSelectable },
+      slot,
+      assignments,
+    )) return
 
     setAssignments(prev => ({
       ...prev,
