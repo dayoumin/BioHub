@@ -10,6 +10,8 @@ export { InlineError } from './InlineError'
 export { LangToggle } from './LangToggle'
 /** 추천 카드 — 왼쪽 컬러 보더 + 설명 */
 export { RecommendationCard } from './RecommendationCard'
+/** 정렬 가능한 고정 카드 그리드 — DnD로 재정렬, bio-tools/genetics 공용 */
+export { SortablePinnedCardGrid } from './SortablePinnedCardGrid'
 /** 타이핑 인디케이터 — AI 응답 대기 애니메이션 */
 export { TypingIndicator } from './TypingIndicator'
 /** 변수 선택기 토글 — 변수 역할 전환 버튼 */

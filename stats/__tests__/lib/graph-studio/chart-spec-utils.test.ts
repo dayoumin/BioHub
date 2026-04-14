@@ -332,6 +332,26 @@ describe('selectAutoColorField', () => {
 
     expect(autoColorField).toBe('treatment_id');
   });
+
+  it('selectXYFields -> selectAutoColorField 통합: X로 뽑힌 treatment_id가 color 후보에서 자동 제외된다', () => {
+    // treatment_id가 X로 선택되면 auto-color는 같은 컬럼을 재사용하지 않아야 함.
+    // species가 남은 유일한 유효 범주형이므로 color로 선택됨.
+    const columns: ColumnMeta[] = [
+      { name: 'sample_id', type: 'nominal', uniqueCount: 50, sampleValues: [], hasNull: false },
+      { name: 'treatment_id', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      quantitative('score'),
+    ];
+
+    const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS.bar);
+    expect(xField).toBe('treatment_id');
+    expect(yField).toBe('score');
+
+    const autoColorField = selectAutoColorField(columns, xField, yField);
+    expect(autoColorField).toBe('species');
+    expect(autoColorField).not.toBe('treatment_id');
+    expect(autoColorField).not.toBe('sample_id');
+  });
 });
 
 describe('chart spec creation', () => {
