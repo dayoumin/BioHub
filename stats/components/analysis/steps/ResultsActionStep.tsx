@@ -75,6 +75,7 @@ import {
   buildRocCurveColumns,
   inferColumnMeta,
   suggestChartType,
+  analysisVizTypeToChartType,
   selectXYFields,
   applyAnalysisContext,
   createDefaultChartSpec,
@@ -204,7 +205,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       }),
     [currentHistoryId, results, uploadedData, validationResults],
   )
-  const historyVisualizationColumns = useMemo(
+  const analysisVisualizationColumns = useMemo(
     () => (results ? buildAnalysisVisualizationColumns(results) : null),
     [results],
   )
@@ -662,26 +663,30 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       xField = built.xField
       yField = built.yField
       colorField = undefined
+    } else if (analysisVisualizationColumns) {
+      // Adapter 경로 우선: buildAnalysisVisualizationColumns가 handler의 visualizationData.type에 맞는
+      // 파생 row shape + chartType + colorField까지 계산해준다 (interaction-plot multi-series,
+      // time-series 분해, frequency-bar 관측/기대 등).
+      columns = analysisVisualizationColumns.columns
+      data = analysisVisualizationColumns.data
+      chartType = analysisVisualizationColumns.chartType
+      xField = analysisVisualizationColumns.xField
+      yField = analysisVisualizationColumns.yField
+      colorField = analysisVisualizationColumns.colorField
     } else if (uploadedData?.length) {
-      // 일반 분석: 업로드 데이터 사용
+      // Adapter가 null 반환한 경우만: 원본 CSV로 LCD 폴백.
+      // vizType이 `ANALYSIS_VIZ_TYPE_MAP`에 있으면 그 매핑을 쓰고, 없으면 컬럼 기반 자동 추천.
       const rows = uploadedData as Record<string, unknown>[]
       columns = inferColumnMeta(rows)
       data = {}
       for (const col of columns) {
         data[col.name] = rows.map(r => r[col.name])
       }
-      chartType = suggestChartType(columns)
+      chartType = analysisVizTypeToChartType(vizType) ?? suggestChartType(columns)
       const hint = CHART_TYPE_HINTS[chartType]
       const fields = selectXYFields(columns, hint)
       xField = fields.xField
       yField = fields.yField
-    } else if (historyVisualizationColumns) {
-      columns = historyVisualizationColumns.columns
-      data = historyVisualizationColumns.data
-      chartType = historyVisualizationColumns.chartType
-      xField = historyVisualizationColumns.xField
-      yField = historyVisualizationColumns.yField
-      colorField = historyVisualizationColumns.colorField
     } else {
       toast.error(historyResultView
         ? '이 기록에는 그래프 작성을 위한 원본 데이터가 없어 바로 열 수 없습니다.'
@@ -693,11 +698,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     if (colorField) {
       spec.encoding.color = { field: colorField, type: 'nominal' }
     }
-    if (historyVisualizationColumns?.trendline) {
-      spec.trendline = historyVisualizationColumns.trendline
+    if (analysisVisualizationColumns?.trendline) {
+      spec.trendline = analysisVisualizationColumns.trendline
     }
-    if (historyVisualizationColumns?.errorBar) {
-      spec.errorBar = historyVisualizationColumns.errorBar
+    if (analysisVisualizationColumns?.errorBar) {
+      spec.errorBar = analysisVisualizationColumns.errorBar
     }
 
     const pkg: DataPackage = {
@@ -720,7 +725,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     loadDataPackageWithSpec(pkg, finalSpec)
     disconnectProject() // 결과 가져오기는 새 작업 — 기존 프로젝트 덮어쓰기 방지
     router.push('/graph-studio')
-  }, [results, uploadedData, historyVisualizationColumns, historyResultView, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router, t])
+  }, [results, uploadedData, analysisVisualizationColumns, historyResultView, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router, t])
 
   // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
@@ -975,7 +980,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {historyVisualizationColumns ? (
+                {analysisVisualizationColumns ? (
                   <Button type="button" variant="secondary" size="sm" className="h-9 px-3" onClick={handleOpenInGraphStudio}>
                     <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
                     Graph Studio

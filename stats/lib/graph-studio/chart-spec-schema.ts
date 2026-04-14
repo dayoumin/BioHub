@@ -77,6 +77,15 @@ const axisSchema = z.object({
   ]).optional(),
 }).strict();
 
+// Intentional gap (defense-in-depth, 2026-04-14 재검토 유지):
+//   아래 필드들은 스키마로 '허용'되지만 렌더러가 구현 안 함. 제거하지 않는 이유:
+//   1) chart-spec-utils.sanitize()가 제거 → 렌더러에 도달 안 함 (sanitize 테스트 6건)
+//   2) ai-service.ts UNRENDERED_PATH_PREFIXES / assertNoUnrenderedScaleTypes가 AI 패치 차단
+//   3) 구 버전 save 파일에 남아 있을 수 있어 Zod reject로 로드 실패 방지
+//   구현 계획 필요 시 별도 스펙 후 모든 레이어 동시 개방할 것.
+//   - encoding.color.scale (scheme/range)
+//   - encoding.shape, encoding.size
+//   - scale.type: 'sqrt' | 'symlog' (linear/log만 실렌더)
 const colorSchema = z.object({
   field: z.string().min(1),
   type: dataTypeSchema,
@@ -87,7 +96,6 @@ const colorSchema = z.object({
   legend: legendSchema.optional(),
 }).strict();
 
-// NOTE: shape/size는 스키마에 정의되어 있으나 echarts-converter에서 미렌더링 (ai-service.ts에서 AI에 안내)
 const shapeSchema = z.object({
   field: z.string().min(1),
   type: dataTypeSchema,

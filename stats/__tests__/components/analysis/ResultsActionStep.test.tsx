@@ -830,6 +830,7 @@ vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
     { name: 'group', type: 'nominal' },
   ]),
   suggestChartType: vi.fn().mockReturnValue('bar'),
+  analysisVizTypeToChartType: vi.fn().mockReturnValue(null),
   selectXYFields: vi.fn().mockReturnValue({ xField: 'group', yField: 'score' }),
   applyAnalysisContext: vi.fn().mockImplementation((spec: unknown) => spec),
 }))

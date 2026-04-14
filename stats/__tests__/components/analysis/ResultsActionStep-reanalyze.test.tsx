@@ -191,6 +191,7 @@ vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
 vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
   inferColumnMeta: vi.fn(() => []),
   suggestChartType: vi.fn(() => 'bar'),
+  analysisVizTypeToChartType: vi.fn(() => null),
   selectXYFields: vi.fn(() => ({ xField: 'x', yField: 'y' })),
   applyAnalysisContext: vi.fn((spec: unknown) => spec),
 }))

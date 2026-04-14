@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildAnalysisVisualizationColumns } from '@/lib/graph-studio'
-import type { AnalysisResult } from '@/types/analysis'
+import type { AnalysisResult, AnalysisVizType } from '@/types/analysis'
 
 type FidelityBridgeResult = NonNullable<ReturnType<typeof buildAnalysisVisualizationColumns>> & {
   trendline?: { type: 'linear'; showEquation?: boolean; fittedPoints?: Array<[number, number]> }
@@ -73,7 +73,8 @@ describe('buildAnalysisVisualizationColumns', () => {
         { name: 'B', mean: 14, std: 3, n: 12 },
       ],
       visualizationData: {
-        type: 'unsupported-custom-type',
+        // 런타임에 invalid vizType이 흘러들어오는 경우의 회귀 방어 — 타입 시스템 우회를 의도적으로 시뮬레이션.
+        type: 'unsupported-custom-type' as unknown as AnalysisVizType,
         data: {},
       },
     }

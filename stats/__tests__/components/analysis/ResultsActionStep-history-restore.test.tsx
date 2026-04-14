@@ -192,6 +192,7 @@ vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
 vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
   inferColumnMeta: vi.fn(() => []),
   suggestChartType: vi.fn(() => 'bar'),
+  analysisVizTypeToChartType: vi.fn(() => null),
   selectXYFields: vi.fn(() => ({ xField: 'x', yField: 'y' })),
   applyAnalysisContext: vi.fn((s: unknown) => s),
 }))
@@ -249,10 +250,11 @@ vi.mock('@/components/analysis/steps/results/MethodSpecificResults', () => ({ Me
 // ─── Lazy import (mocks 등록 후 — vi.mock hoisted이므로 beforeAll 1회만 실행) ─────────
 let ResultsActionStep: React.ComponentType<{ results: AnalysisResult }>
 
+// Windows + ESM transform 환경에서 cold-start 시 10s 기본값으로는 부족.
 beforeAll(async () => {
   const mod = await import('@/components/analysis/steps/ResultsActionStep')
   ResultsActionStep = mod.ResultsActionStep
-})
+}, 30_000)
 
 // ─── Test data ───────────────────────────────────────────
 

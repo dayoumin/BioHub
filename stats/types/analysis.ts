@@ -543,10 +543,48 @@ export interface GroupStats {
 }
 
 /**
+ * Handler가 선언 가능한 visualization type 목록 (SSOT).
+ * 신규 handler가 새 타입을 쓰려면 여기 먼저 등록해야 한다.
+ * - `chart-spec-utils.ts`의 `ANALYSIS_VIZ_TYPE_MAP`
+ * - `analysis-adapter.ts`의 switch문
+ * - `__tests__/lib/graph-studio/chart-spec-utils.test.ts`의 매핑 테이블
+ * 이 세 곳이 이 union 기반으로 정합성을 보장한다.
+ */
+export const ANALYSIS_VIZ_TYPES = [
+  'bar',
+  'boxplot',
+  'boxplot-multiple',
+  'cluster-plot',
+  'contingency-table',
+  'dendrogram',
+  'discriminant-plot',
+  'dose-response',
+  'forest-plot',
+  'frequency-bar',
+  'histogram',
+  'interaction-plot',
+  'item-total',
+  'km-curve',
+  'line',
+  'logistic-regression',
+  'ordinal-regression',
+  'poisson-regression',
+  'response-surface',
+  'roc-curve',
+  'scatter',
+  'scatter-regression',
+  'scree-plot',
+  'stepwise-regression',
+  'time-series',
+] as const
+
+export type AnalysisVizType = typeof ANALYSIS_VIZ_TYPES[number]
+
+/**
  * 시각화 데이터 설정
  */
 export interface VisualizationData {
-  type: string  // 'histogram', 'boxplot', 'scatter', 'bar', 'line', 'heatmap', 'pca-biplot', 'roc-curve', etc.
+  type: AnalysisVizType
   data: Record<string, unknown>
   options?: Record<string, unknown>
 }

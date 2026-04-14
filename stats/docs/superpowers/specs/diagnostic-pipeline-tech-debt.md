@@ -12,10 +12,10 @@
 - **해결**: `statistical-executor.ts` switch → settings 전달, `handle-t-test.ts` alternative 지원, `handle-anova.ts` postHoc 선호 방법 지원
 - Python Worker(`worker2-hypothesis.py`)에도 `alternative` 파라미터 추가 (SciPy 네이티브)
 
-### TD-2. auto 셀렉터 12개 메서드 변수 입력 UI
-- **현황**: friedman, MANOVA, survival 등 `auto` 셀렉터 타입은 슬롯이 비어 있어 프리필 불완전
-- **범위**: AutoConfirmSelector에 "자동 감지됨" 배지 + 수동 조정 UI
-- **장기**: auto → 전용 셀렉터 전환
+### ~~TD-2. auto 셀렉터 12개 메서드 변수 입력 UI~~ ✅ 해결됨
+- ~~friedman, MANOVA, survival 등 `auto` 셀렉터 타입은 슬롯이 비어 있어 프리필 불완전~~
+- **해결**: 11개 메서드를 7개 전용 SelectorType(repeated-measures, manova, survival, time-series, mixed-model, discriminant, roc-curve)으로 이전 (`8b9d54fc`, 2026-04-08). power-analysis만 auto 유지.
+- AutoConfirmSelector UI 개선도 별도 완료 (`a749331b`, 2026-04-10)
 
 ---
 
