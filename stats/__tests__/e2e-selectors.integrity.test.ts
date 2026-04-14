@@ -112,15 +112,16 @@ function findTestIdInSource(id: string, sourceContent: string): boolean {
   const templateIdx = id.indexOf('${')
   if (templateIdx >= 0) {
     const prefix = id.slice(0, templateIdx)
+    if (sourceContent.includes(`data-testid="${prefix}`)) return true
     if (sourceContent.includes(`data-testid={\`${prefix}`)) return true
     if (sourceContent.includes('data-testid=`' + prefix)) return true
   }
 
   // 3b. 정적 id이나 컴포넌트에서 동적으로 생성: "filter-ai" → prefix "filter-"
-  // 마지막 '-' 기준으로 prefix 추출 후 template literal 검색
-  const lastDash = id.lastIndexOf('-')
-  if (lastDash > 0) {
-    const prefix = id.slice(0, lastDash + 1)
+  // 모든 '-' 경계를 따라 prefix 후보를 줄여가며 dynamic data-testid 생성 패턴을 찾는다.
+  const dashIndices = Array.from(id.matchAll(/-/g), match => match.index).filter((index): index is number => index !== undefined)
+  for (let i = dashIndices.length - 1; i >= 0; i -= 1) {
+    const prefix = id.slice(0, dashIndices[i] + 1)
     if (sourceContent.includes(`data-testid={\`${prefix}`)) return true
     if (sourceContent.includes('data-testid=`' + prefix)) return true
   }

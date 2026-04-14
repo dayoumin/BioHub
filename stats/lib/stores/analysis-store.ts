@@ -27,6 +27,7 @@ import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
 import {
   createHistoryRestorePatch,
   createHistorySettingsRestorePatch,
+  normalizeSelectedMethod,
 } from './analysis-transitions'
 
 /**
@@ -46,6 +47,25 @@ const MANAGED_ANALYSIS_OPTION_KEYS = new Set<keyof AnalysisOptions>([
   'alternative',
   'ciMethod',
 ])
+
+function isPersistedAnalysisState(value: unknown): value is Partial<AnalysisState> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizePersistedAnalysisState(
+  state: Partial<AnalysisState>
+): Partial<AnalysisState> {
+  if (state.selectedMethod === undefined) {
+    return state
+  }
+
+  const normalizedSelectedMethod = normalizeSelectedMethod(state.selectedMethod)
+
+  return {
+    ...state,
+    selectedMethod: normalizedSelectedMethod,
+  }
+}
 
 function parseTrackedKeys(value: string | number | boolean | undefined): Set<string> {
   if (typeof value !== 'string' || value.length === 0) {
@@ -243,7 +263,7 @@ export const useAnalysisStore = create<AnalysisState>()(
       setAssumptionResults: (results) => set({ assumptionResults: results }),
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set((state) => ({
-        selectedMethod: method,
+        selectedMethod: normalizeSelectedMethod(method),
         assumptionResults: null,
         analysisOptions: {
           ...DEFAULT_ANALYSIS_OPTIONS,
@@ -439,6 +459,16 @@ export const useAnalysisStore = create<AnalysisState>()(
           isLoading: false,
           error: null
         } as AnalysisState
+      },
+      merge: (persistedState, currentState) => {
+        const normalizedPersisted = isPersistedAnalysisState(persistedState)
+          ? normalizePersistedAnalysisState(persistedState)
+          : {}
+
+        return {
+          ...currentState,
+          ...normalizedPersisted,
+        }
       },
       storage: createJSONStorage(() => sessionStorage),
       onRehydrateStorage: () => (state) => {

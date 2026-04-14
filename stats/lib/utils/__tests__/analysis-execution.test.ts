@@ -104,7 +104,7 @@ describe('buildAnalysisExecutionContext', () => {
       expect.arrayContaining([
         { key: 'alpha', label: 'alpha', value: '0.05' },
         { key: 'postHoc', label: '사후검정 방법', value: 'Games-Howell' },
-        { key: 'welch', label: 'Welch ANOVA', value: 'Welch ANOVA' },
+        { key: 'welch', label: '분산 동질성 처리', value: 'Welch ANOVA' },
         { key: 'showAssumptions', label: '가정 검정', value: '건너뜀' },
         { key: 'showEffectSize', label: '효과크기', value: '표시' },
       ])

@@ -57,7 +57,7 @@ describe('analysis-store + mode-store 통합', () => {
       const store = useAnalysisStore.getState()
       expect(mode.showHub).toBe(false)
       expect(mode.stepTrack).toBe('quick')
-      expect(store.selectedMethod?.id).toBe('t-test')
+      expect(store.selectedMethod?.id).toBe('two-sample-t')
       expect(store.currentStep).toBe(1)
     })
   })
@@ -143,7 +143,7 @@ describe('analysis-store + mode-store 통합', () => {
       })
 
       const state = useAnalysisStore.getState()
-      expect(state.selectedMethod?.id).toBe('anova')
+      expect(state.selectedMethod?.id).toBe('one-way-anova')
       expect(state.selectedMethod?.name).toBe('ANOVA')
     })
   })

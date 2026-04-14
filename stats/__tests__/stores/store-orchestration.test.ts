@@ -111,7 +111,7 @@ describe('store-orchestration', () => {
 
       expect(snapshot.results).not.toBeNull()
       expect(snapshot.analysisPurpose).toBe('그룹 비교')
-      expect(snapshot.selectedMethod?.id).toBe('t-test')
+      expect(snapshot.selectedMethod?.id).toBe('two-sample-t')
       expect(snapshot.uploadedFileName).toBe('test.csv')
       expect(snapshot.lastAiRecommendation?.confidence).toBe(0.9)
     })
@@ -200,6 +200,8 @@ describe('store-orchestration', () => {
           provider: 'openrouter',
           alternatives: [],
         })
+        useAnalysisStore.getState().setUploadedData([{ stale: true }] as never)
+        useAnalysisStore.getState().setValidationResults({ isValid: true } as never)
       })
 
       // loadFromHistory를 mock
@@ -225,6 +227,9 @@ describe('store-orchestration', () => {
       // mode 정규화 확인
       expect(useModeStore.getState().stepTrack).toBe('normal')
       expect(useModeStore.getState().lastAiRecommendation).toBeNull()
+      expect(useAnalysisStore.getState().selectedMethod?.id).toBe('two-sample-t')
+      expect(useAnalysisStore.getState().uploadedData).toBeNull()
+      expect(useAnalysisStore.getState().validationResults).toBeNull()
     })
 
     it('loadFromHistory가 null이면 restoreFromHistory를 호출하지 않는다', async () => {

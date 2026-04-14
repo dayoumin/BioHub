@@ -26,7 +26,7 @@ import {
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
+import { normalizeSelectedMethod } from '@/lib/stores/analysis-transitions'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/analysis/common'
@@ -37,11 +37,6 @@ import { useTerminology } from '@/hooks/use-terminology'
 // Stage IDs (순서 고정)
 const STAGE_IDS = ['prepare', 'preprocess', 'assumptions', 'analysis', 'additional', 'finalize'] as const
 type StageId = typeof STAGE_IDS[number]
-
-const REDUNDANT_CANONICAL_ALIASES = new Set([
-  't-test',
-  'anova',
-])
 
 // 진행률 범위 정의
 const STAGE_RANGES: Record<StageId, [number, number]> = {
@@ -97,26 +92,13 @@ export function AnalysisExecutionStep({
   const setAssumptionResults = useAnalysisStore(state => state.setAssumptionResults)
   const suggestedSettings = useAnalysisStore(state => state.suggestedSettings)
   const analysisOptions = useAnalysisStore(state => state.analysisOptions)
-  const effectiveSelectedMethod = useMemo(() => {
-    if (!selectedMethod) return null
-
-    if (!REDUNDANT_CANONICAL_ALIASES.has(selectedMethod.id)) {
-      return selectedMethod
-    }
-
-    const canonical = getMethodByIdOrAlias(selectedMethod.id)
-    if (!canonical) return selectedMethod
-
-    return {
-      ...selectedMethod,
-      id: canonical.id,
-      category: canonical.category,
-      description: selectedMethod.description || canonical.description,
-    }
-  }, [selectedMethod])
+  const normalizedSelectedMethod = useMemo(
+    () => normalizeSelectedMethod(selectedMethod),
+    [selectedMethod]
+  )
   const methodRequirements = useMemo(
-    () => (effectiveSelectedMethod?.id ? getMethodRequirements(effectiveSelectedMethod.id) : undefined),
-    [effectiveSelectedMethod?.id]
+    () => (normalizedSelectedMethod?.id ? getMethodRequirements(normalizedSelectedMethod.id) : undefined),
+    [normalizedSelectedMethod?.id]
   )
   const {
     effectiveExecutionSettings,
@@ -125,13 +107,13 @@ export function AnalysisExecutionStep({
   } = useMemo(() => buildAnalysisExecutionContext({
     analysisOptions,
     methodRequirements,
-    selectedMethodId: effectiveSelectedMethod?.id,
+    selectedMethodId: normalizedSelectedMethod?.id,
     suggestedSettings,
     variableMapping,
   }), [
     analysisOptions,
     methodRequirements,
-    effectiveSelectedMethod?.id,
+    normalizedSelectedMethod?.id,
     suggestedSettings,
     variableMapping,
   ])
@@ -167,7 +149,7 @@ export function AnalysisExecutionStep({
    * 분석 실행 함수
    */
   const runAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedMethod || !effectiveSelectedMethod) {
+    if (!uploadedData || !normalizedSelectedMethod) {
       setError(t.analysis.execution.dataRequired)
       return
     }
@@ -226,7 +208,7 @@ export function AnalysisExecutionStep({
           try {
             assumptionResult = await awaitPreemptiveAssumptions()
           } catch (err) {
-            logger.error('선행 가정 검정 대기 실패', { error: err, method: effectiveSelectedMethod.id })
+            logger.error('선행 가정 검정 대기 실패', { error: err, method: normalizedSelectedMethod.id })
           }
 
           if (assumptionResult) {
@@ -235,7 +217,7 @@ export function AnalysisExecutionStep({
             try {
               assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
             } catch (err) {
-              logger.error('가정 검정 실행 실패', { error: err, method: effectiveSelectedMethod.id })
+              logger.error('가정 검정 실행 실패', { error: err, method: normalizedSelectedMethod.id })
             }
             if (!assumptionResult) {
               addLog(logs.assumptionSkipped)
@@ -256,7 +238,7 @@ export function AnalysisExecutionStep({
       updateStage('analysis', 60)
 
       // Stage 4: 주 분석 실행
-      addLog(logs.methodExecuting(selectedMethod.name))
+      addLog(logs.methodExecuting(normalizedSelectedMethod.name))
 
       // 적용되는 설정 로그 표시
       addLog(logs.aiSettingsApplied(Number(effectiveExecutionSettings.alpha ?? 0.05)))
@@ -268,7 +250,7 @@ export function AnalysisExecutionStep({
       }
 
       const result = await executor.executeMethod(
-        effectiveSelectedMethod,
+        normalizedSelectedMethod,
         uploadedData,
         effectiveExecutionVariables,
         effectiveExecutionSettings
@@ -326,8 +308,7 @@ export function AnalysisExecutionStep({
     }
   }, [
     uploadedData,
-    effectiveSelectedMethod,
-    selectedMethod,
+    normalizedSelectedMethod,
     effectiveExecutionVariables,
     effectiveExecutionSettings,
     methodRequirements,

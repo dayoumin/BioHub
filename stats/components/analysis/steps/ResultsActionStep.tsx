@@ -55,6 +55,7 @@ import {
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
+import { normalizeSelectedMethod } from '@/lib/stores/analysis-transitions'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
 import { cn } from '@/lib/utils'
 import { AI_ACCENT } from '@/lib/design-tokens'
@@ -80,7 +81,7 @@ import {
   analysisVizTypeToChartType,
   selectXYFields,
   applyAnalysisContext,
-  createDefaultChartSpec,
+  createAutoConfiguredChartSpec,
   CHART_TYPE_HINTS,
 } from '@/lib/graph-studio'
 import type { DataPackage, ChartType } from '@/types/graph-studio'
@@ -212,19 +213,23 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     () => (results ? buildAnalysisVisualizationColumns(results) : null),
     [results],
   )
+  const normalizedSelectedMethod = useMemo(
+    () => normalizeSelectedMethod(selectedMethod),
+    [selectedMethod],
+  )
   const methodRequirements = useMemo(
-    () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
-    [selectedMethod?.id],
+    () => (normalizedSelectedMethod?.id ? getMethodRequirements(normalizedSelectedMethod.id) : undefined),
+    [normalizedSelectedMethod?.id],
   )
   const { executionSettingEntries } = useMemo(
     () => buildAnalysisExecutionContext({
       analysisOptions,
       methodRequirements,
-      selectedMethodId: selectedMethod?.id,
+      selectedMethodId: normalizedSelectedMethod?.id,
       suggestedSettings,
       variableMapping,
     }),
-    [analysisOptions, methodRequirements, selectedMethod?.id, suggestedSettings, variableMapping],
+    [analysisOptions, methodRequirements, normalizedSelectedMethod?.id, suggestedSettings, variableMapping],
   )
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
@@ -560,11 +565,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, selectedMethod, currentHistoryProjectId, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, t])
 
   // 재현 가능 코드 내보내기 (R/Python)
-  const codeExportAvailable = isCodeExportAvailable(selectedMethod?.id)
+  const codeExportAvailable = isCodeExportAvailable(normalizedSelectedMethod?.id)
 
   const handleCodeExport = useCallback((language: CodeLanguage) => {
     const exportResult = exportCodeFromAnalysis({
-      method: selectedMethod,
+      method: normalizedSelectedMethod,
       variableMapping,
       analysisOptions,
       dataFileName: uploadedFileName ?? null,
@@ -579,7 +584,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } else {
       toast.error(exportResult.error ?? TOAST.codeExport.error)
     }
-  }, [selectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
+  }, [normalizedSelectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
@@ -711,7 +716,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       return
     }
 
-    const spec = createDefaultChartSpec(pkgId, chartType, xField, yField, columns)
+    const spec = createAutoConfiguredChartSpec(pkgId, chartType, xField, yField, columns)
     if (colorField) {
       spec.encoding.color = { field: colorField, type: 'nominal' }
     }

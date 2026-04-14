@@ -3,9 +3,11 @@ import {
   type AIRecommendation,
   type AnalysisOptions,
   type DiagnosticReport,
+  type StatisticalMethod,
   type StatisticalAssumptions,
   type SuggestedSettings,
 } from '@/types/analysis'
+import { getMethodByAlias } from '@/lib/constants/statistical-methods'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import type { AnalysisState, DetectedVariables } from './analysis-store'
 import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
@@ -79,10 +81,46 @@ export function createManualMethodBrowsingPatch(): AnalysisTransitionPatch {
   }
 }
 
+/**
+ * selectedMethod.id invariant: analysis-store에 들어오는 모든 id는 canonical로 정규화한다.
+ * legacy alias('t-test', 'anova' 등)는 getMethodByAlias로 canonical entry를 조회해 id/category를
+ * 승격한다. 원본 name은 보존하고, description이 비어 있거나 없을 때만 canonical 설명으로 보완한다.
+ */
+export function normalizeSelectedMethod(
+  method: unknown
+): StatisticalMethod | null {
+  if (!method) return null
+  if (typeof method !== 'object') return null
+  const candidate = method as Record<string, unknown>
+  if (!('id' in candidate) || !('name' in candidate) || !('category' in candidate)) return null
+  if (typeof candidate.id !== 'string' || typeof candidate.name !== 'string' || typeof candidate.category !== 'string') {
+    return null
+  }
+
+  const normalizedMethod: StatisticalMethod = {
+    id: candidate.id,
+    name: candidate.name,
+    category: candidate.category as StatisticalMethod['category'],
+    description: typeof candidate.description === 'string' ? candidate.description : '',
+  }
+
+  const canonical = getMethodByAlias(normalizedMethod.id)
+  if (!canonical || canonical.id === normalizedMethod.id) {
+    return normalizedMethod
+  }
+
+  return {
+    ...normalizedMethod,
+    id: canonical.id,
+    category: canonical.category,
+    description: normalizedMethod.description || canonical.description,
+  }
+}
+
 export function createHistoryRestorePatch(data: HistoryLoadResult): AnalysisTransitionPatch {
   return {
     analysisPurpose: data.analysisPurpose,
-    selectedMethod: data.selectedMethod,
+    selectedMethod: normalizeSelectedMethod(data.selectedMethod),
     variableMapping: data.variableMapping,
     results: data.results,
     uploadedFileName: data.uploadedFileName,
@@ -113,7 +151,7 @@ export function createHistorySettingsRestorePatch(data: HistorySettingsResult): 
     error: null,
     dataCharacteristics: null,
     assumptionResults: null,
-    selectedMethod: data.selectedMethod,
+    selectedMethod: normalizeSelectedMethod(data.selectedMethod),
     variableMapping: data.variableMapping,
     analysisPurpose: data.analysisPurpose,
     cachedAiRecommendation: null,

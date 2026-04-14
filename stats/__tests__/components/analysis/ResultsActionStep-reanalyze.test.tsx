@@ -13,6 +13,7 @@
 
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { toast } from 'sonner'
 import { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
@@ -397,7 +398,7 @@ describe('ResultsActionStep - 재분석 로직 (Store-level)', () => {
   it('"다른 데이터로 재분석" 시 selectedMethod는 유지된다', () => {
     simulateReanalyze()
     const state = useAnalysisStore.getState()
-    expect(state.selectedMethod?.id).toBe('t-test')
+    expect(state.selectedMethod?.id).toBe('two-sample-t')
     expect(state.selectedMethod?.name).toBe('t-검정')
   })
 
@@ -436,8 +437,10 @@ describe('ResultsActionStep - handleReanalyze 초기화 순서', () => {
     setLoadedInterpretationChatSpy.mockClear()
     setLoadedPaperDraftSpy.mockClear()
     setCurrentHistoryIdSpy.mockClear()
+    vi.mocked(toast.info).mockClear()
 
     useHistoryStore.setState({
+      currentHistoryId: 'history-1',
       setLoadedAiInterpretation: setLoadedAiInterpretationSpy,
       setLoadedInterpretationChat: setLoadedInterpretationChatSpy,
       setLoadedPaperDraft: setLoadedPaperDraftSpy,
@@ -478,6 +481,30 @@ describe('ResultsActionStep - handleReanalyze 초기화 순서', () => {
     expect(chatOrder).toBeLessThan(historyIdOrder)
     expect(draftOrder).toBeLessThan(historyIdOrder)
   })
+
+  it('실제 재분석 클릭 경로가 store 상태를 초기화하고 재분석 모드로 전환한다', async () => {
+    await act(async () => {
+      render(<ResultsActionStep results={mockResults} />)
+    })
+
+    const reanalyzeButton = screen.getByRole('button', { name: '다른 데이터로 재분석' })
+
+    await act(async () => {
+      fireEvent.click(reanalyzeButton)
+    })
+
+    const state = useAnalysisStore.getState()
+    expect(useModeStore.getState().stepTrack).toBe('reanalysis')
+    expect(state.currentStep).toBe(1)
+    expect(state.uploadedData).toBeNull()
+    expect(state.validationResults).toBeNull()
+    expect(state.results).toBeNull()
+    expect(state.selectedMethod?.id).toBe('two-sample-t')
+    expect(setCurrentHistoryIdSpy).toHaveBeenCalledWith(null)
+    expect(vi.mocked(toast.info)).toHaveBeenCalledWith('새 데이터를 업로드하세요', {
+      description: 't-검정 분석이 준비되어 있습니다',
+    })
+  })
 })
 
 // ===== 흐름 시뮬레이션: 재분석 전체 플로우 =====
@@ -516,7 +543,7 @@ describe('재분석 전체 플로우 시뮬레이션', () => {
     const stateAfterReanalyze = useAnalysisStore.getState()
     expect(useModeStore.getState().stepTrack).toBe('reanalysis')
     expect(stateAfterReanalyze.currentStep).toBe(1)
-    expect(stateAfterReanalyze.selectedMethod?.id).toBe('anova')
+    expect(stateAfterReanalyze.selectedMethod?.id).toBe('one-way-anova')
     expect(stateAfterReanalyze.variableMapping?.dependentVar).toBe('score')
     expect(stateAfterReanalyze.uploadedData).toBeNull()
     expect(stateAfterReanalyze.results).toBeNull()
@@ -534,6 +561,6 @@ describe('재분석 전체 플로우 시뮬레이션', () => {
     const finalState = useAnalysisStore.getState()
     expect(finalState.currentStep).toBe(4)
     expect(finalState.uploadedData?.length).toBe(3)
-    expect(finalState.selectedMethod?.id).toBe('anova')
+    expect(finalState.selectedMethod?.id).toBe('one-way-anova')
   })
 })

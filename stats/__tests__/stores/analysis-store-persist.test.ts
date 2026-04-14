@@ -63,6 +63,75 @@ describe('analysis-store persistence and explicit override tracking', () => {
     })
   })
 
+  it('rehydrate 시 legacy selectedMethod alias를 canonical ID로 정규화한다', async () => {
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
+      state: {
+        currentStep: 2,
+        completedSteps: [1],
+        analysisPurpose: 'group comparison',
+        uploadedData: null,
+        validationResults: null,
+        selectedMethod: {
+          id: 't-test',
+          name: '독립표본 t-검정',
+          description: '두 그룹 평균 비교',
+          category: 't-test',
+        },
+        variableMapping: null,
+        detectedVariables: null,
+        suggestedSettings: null,
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+        },
+        results: null,
+        uploadedFileName: null,
+      },
+      version: 5,
+    }))
+
+    await act(async () => {
+      await useAnalysisStore.persist.rehydrate()
+    })
+
+    const restored = useAnalysisStore.getState()
+    expect(restored.selectedMethod?.id).toBe('two-sample-t')
+    expect(restored.selectedMethod?.category).toBe('t-test')
+  })
+
+  it('rehydrate 시 malformed selectedMethod payload는 null로 드롭한다', async () => {
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
+      state: {
+        selectedMethod: 't-test',
+      },
+      version: 5,
+    }))
+
+    await act(async () => {
+      await useAnalysisStore.persist.rehydrate()
+    })
+
+    expect(useAnalysisStore.getState().selectedMethod).toBeNull()
+
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
+      state: {
+        selectedMethod: {
+          id: 42,
+          name: 'broken',
+          category: 't-test',
+        },
+      },
+      version: 5,
+    }))
+
+    await act(async () => {
+      await useAnalysisStore.persist.rehydrate()
+    })
+
+    expect(useAnalysisStore.getState().selectedMethod).toBeNull()
+  })
+
   it('tracks explicit re-selection of a managed default value', () => {
     act(() => {
       useAnalysisStore.getState().setAnalysisOptions({

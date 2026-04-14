@@ -156,7 +156,7 @@ describe('useDataUpload scenarios', () => {
     const hubState = useHubChatStore.getState()
 
     expect(vi.mocked(extractDetectedVariables)).toHaveBeenCalledWith(
-      't-test',
+      'two-sample-t',
       VALIDATION_RESULT,
       null,
     )

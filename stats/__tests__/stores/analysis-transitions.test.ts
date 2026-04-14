@@ -59,7 +59,11 @@ describe('analysis transition helpers', () => {
       loadedPaperDraft: null,
     })).toEqual(expect.objectContaining({
       analysisPurpose: 'history purpose',
-      selectedMethod: { id: 't-test', name: 't-test', category: 't-test', description: '' },
+      selectedMethod: expect.objectContaining({
+        id: 'two-sample-t',
+        name: 't-test',
+        category: 't-test',
+      }),
       variableMapping: { dependentVar: 'score' },
       uploadedData: null,
       validationResults: null,
@@ -80,7 +84,11 @@ describe('analysis transition helpers', () => {
       uploadedData: null,
       uploadedFile: null,
       uploadedFileName: null,
-      selectedMethod: { id: 'anova', name: 'anova', category: 'anova', description: '' },
+      selectedMethod: expect.objectContaining({
+        id: 'one-way-anova',
+        name: 'anova',
+        category: 'anova',
+      }),
       variableMapping: { groupVar: 'group' },
       analysisPurpose: 'settings only',
       currentStep: 1,

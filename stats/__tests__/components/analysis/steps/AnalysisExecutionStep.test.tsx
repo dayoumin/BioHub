@@ -312,7 +312,7 @@ describe('AnalysisExecutionStep', () => {
       await runAllTimers()
 
       expect(mockExecuteMethod).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'proportion-test' }),
+        expect.objectContaining({ id: 'one-sample-proportion' }),
         expect.any(Array),
         expect.objectContaining({
           dependentVar: 'gender',
@@ -420,7 +420,19 @@ describe('AnalysisExecutionStep', () => {
       )
     })
 
-    it('legacy alias selectedMethod도 canonical ID로 executor에 전달한다', async () => {
+    it('legacy alias selectedMethod도 canonical ID와 설정 정규화로 executor에 전달한다', async () => {
+      storeState = {
+        ...makeStoreState(),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          methodSettings: {
+            equalVar: 'true',
+          },
+        },
+      }
+
       render(
         <AnalysisExecutionStep
           selectedMethod={{ id: 't-test', name: 't-test (독립표본)', description: '', category: 't-test' }}
@@ -436,7 +448,9 @@ describe('AnalysisExecutionStep', () => {
           dependentVar: 'score',
           groupVar: 'gender',
         }),
-        expect.any(Object)
+        expect.not.objectContaining({
+          equalVar: 'true',
+        })
       )
     })
 

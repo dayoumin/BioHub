@@ -819,14 +819,11 @@ vi.mock('@/lib/stores/research-project-store', () => ({
 }))
 
 // Graph Studio utility mocks (handleOpenInGraphStudio 내부에서 사용)
-vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
+vi.mock('@/lib/graph-studio', () => ({
   toAnalysisContext: vi.fn().mockReturnValue({ method: 'test' }),
   buildAnalysisVisualizationColumns: mockBuildAnalysisVisualizationColumns,
   buildKmCurveColumns: vi.fn(),
   buildRocCurveColumns: vi.fn(),
-}))
-
-vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
   inferColumnMeta: vi.fn().mockReturnValue([
     { name: 'score', type: 'quantitative' },
     { name: 'group', type: 'nominal' },
@@ -835,10 +832,7 @@ vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
   analysisVizTypeToChartType: vi.fn().mockReturnValue(null),
   selectXYFields: vi.fn().mockReturnValue({ xField: 'group', yField: 'score' }),
   applyAnalysisContext: vi.fn().mockImplementation((spec: unknown) => spec),
-}))
-
-vi.mock('@/lib/graph-studio/chart-spec-defaults', () => ({
-  createDefaultChartSpec: vi.fn().mockReturnValue({ encoding: { x: {}, y: {} } }),
+  createAutoConfiguredChartSpec: vi.fn().mockReturnValue({ encoding: { x: {}, y: {} } }),
   CHART_TYPE_HINTS: { bar: {} },
 }))
 
