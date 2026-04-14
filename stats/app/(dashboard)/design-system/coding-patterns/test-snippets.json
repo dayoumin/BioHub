@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.5",
+  "version": "1.44.6",
   "lastUpdated": "2026-04-14",
   "sources": [
     "stats/__tests__/",
@@ -213,6 +213,19 @@
             "preserve edits",
             "patternSummary",
             "linked sources",
+            "regression"
+          ]
+        },
+        {
+          "name": "Graph Studio setup normalization flow 테스트",
+          "purpose": "ChartSetupPanel에서 preset/template 선택 후 create가 실제 store 경로를 통해 normalized chartSpec과 project binding을 반영하는지 고정",
+          "code": "import { act, render, screen } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { ChartSetupPanel } from '@/components/graph-studio/ChartSetupPanel';\nimport { useGraphStudioStore } from '@/lib/stores/graph-studio-store';\n\nit('template 적용 후 차트 생성은 실제 store에 normalized spec을 적재한다', async () => {\n  const user = userEvent.setup();\n\n  act(() => {\n    useGraphStudioStore.getState().setProject(makeProject(), makeDataPackage());\n    useGraphStudioStore.getState().goToSetup();\n  });\n\n  render(<ChartSetupPanel />);\n\n  await user.click(screen.getByTestId('chart-setup-type-scatter'));\n  await user.click(screen.getByTestId('chart-setup-template-tmpl-1'));\n  await user.click(screen.getByTestId('chart-setup-create-btn'));\n\n  const state = useGraphStudioStore.getState();\n  expect(state.currentProject?.id).toBe('proj-1');\n  expect(state.chartSpec?.chartType).toBe('scatter');\n  expect(state.chartSpec?.style.showDataLabels).toBeUndefined();\n  expect(state.chartSpec?.exportConfig.format).toBe('svg');\n});",
+          "keywords": [
+            "Graph Studio",
+            "ChartSetupPanel",
+            "normalization",
+            "zustand",
+            "project binding",
             "regression"
           ]
         }
