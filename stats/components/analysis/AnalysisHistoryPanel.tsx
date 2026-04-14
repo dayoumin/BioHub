@@ -43,16 +43,14 @@ import { useHistoryStore } from '@/lib/stores/history-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { buildHistorySnapshot, loadAndRestoreHistory } from '@/lib/stores/store-orchestration'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
-import type { AnalysisResult } from '@/types/analysis'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useTerminology } from '@/hooks/use-terminology'
 import { focusRing } from '@/lib/design-tokens/common'
 import { ConfirmAlertDialog } from '@/components/common/ConfirmAlertDialog'
 import { cn } from '@/lib/utils'
-import { ExportService } from '@/lib/services/export/export-service'
-import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
-import type { ExportContentOptions, ExportContext, ExportFormat } from '@/lib/services/export/export-types'
+import type { ExportContentOptions, ExportFormat } from '@/lib/services/export/export-types'
+import { useAnalysisExport } from '@/hooks/use-analysis-export'
 import { toast } from 'sonner'
 import { TOAST } from '@/lib/constants/toast-messages'
 import { logger } from '@/lib/utils/logger'
@@ -109,6 +107,8 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     clearHistory,
     saveToHistory,
   } = useHistoryStore()
+
+  const { exportAnalysis } = useAnalysisExport()
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (방어적 백업)
   useEffect(() => {
@@ -211,86 +211,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     }
   }
 
-  const handleExport = async (
-    item: AnalysisHistory,
-    format: ExportFormat = 'docx',
-    optionsOverride?: ExportContentOptions,
-  ) => {
-    try {
-      if (!item.results) {
-        toast.error(TOAST.history.noResults)
-        return
-      }
-
-      const effectiveOptions: ExportContentOptions = {
-        includeInterpretation: true,
-        includeRawData: false, // 히스토리에는 원본 데이터 미저장
-        includeMethodology: false,
-        includeReferences: false,
-        ...(optionsOverride ?? {}),
-      }
-
-      const safeGetString = (value: unknown): string | null => {
-        if (typeof value !== 'string') return null
-        const trimmed = value.trim()
-        return trimmed.length > 0 ? trimmed : null
-      }
-
-      const resultRecord = typeof item.results === 'object' && item.results !== null
-        ? item.results as Record<string, unknown>
-        : null
-      const recoveredAiInterpretation =
-        safeGetString(item.aiInterpretation) ??
-        safeGetString(resultRecord?.aiInterpretation)
-      const recoveredApaFormat =
-        safeGetString(item.apaFormat) ??
-        safeGetString(resultRecord?.apaFormat)
-
-      // 1. StatisticalResult 변환
-      // 히스토리 아이템에는 uploadedData가 없을 수 있으므로 메타데이터에서 일부 정보 복원 시도
-      const analysisResult = item.results as unknown as AnalysisResult
-      const statisticalResult = convertToStatisticalResult(analysisResult, {
-        sampleSize: item.dataRowCount,
-        timestamp: new Date(item.timestamp)
-      })
-
-      // 2. ExportContext 생성
-      const context: ExportContext = {
-        analysisResult,
-        statisticalResult,
-        aiInterpretation: recoveredAiInterpretation,
-        apaFormat: recoveredApaFormat,
-        exportOptions: effectiveOptions,
-        dataInfo: {
-          fileName: item.dataFileName,
-          totalRows: item.dataRowCount,
-          columnCount: 0, // 정보 없음 (선택적)
-          variables: []
-        },
-        rawDataRows: null,
-      }
-
-      toast.info(TOAST.history.reportGenerating(format))
-
-      // 3. 내보내기
-      const result = await ExportService.export(context, format)
-
-      if (result.success) {
-        toast.success(TOAST.history.reportSuccess, {
-          description: result.fileName
-        })
-
-      } else {
-        toast.error(TOAST.history.reportError, {
-          description: result.error
-        })
-      }
-    } catch (error) {
-      console.error('Export failed:', error)
-      toast.error(TOAST.history.exportError)
-    }
-  }
-
   const openExportDialog = (item: AnalysisHistory) => {
     setExportTargetItem(item)
     setExportFormat('docx')
@@ -300,7 +220,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   const handleExportConfirm = async () => {
     if (!exportTargetItem) return
     setExportDialogOpen(false)
-    await handleExport(exportTargetItem, exportFormat, exportOptions)
+    await exportAnalysis(exportTargetItem, exportFormat, exportOptions)
   }
 
   if (analysisHistory.length === 0) {

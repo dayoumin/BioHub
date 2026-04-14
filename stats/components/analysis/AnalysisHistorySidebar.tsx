@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { Pencil, RefreshCw, MoreHorizontal } from 'lucide-react'
+import { Pencil, RefreshCw, MoreHorizontal, Download } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,7 @@ import {
   togglePinId,
 } from '@/lib/utils/pinned-history-storage'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useAnalysisExport } from '@/hooks/use-analysis-export'
 import { toast } from 'sonner'
 import { TOAST } from '@/lib/constants/toast-messages'
 import { logger } from '@/lib/utils/logger'
@@ -47,6 +48,7 @@ import type { HistoryItem } from '@/types/history'
 
 export function AnalysisHistorySidebar(): ReactNode {
   const t = useTerminology()
+  const { exportAnalysis } = useAnalysisExport()
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -236,7 +238,18 @@ export function AnalysisHistorySidebar(): ReactNode {
                   <RefreshCw className="mr-2 h-3 w-3" />
                   <span className="text-xs">{t.history.tooltips.reanalyze}</span>
                 </DropdownMenuItem>
-                {/* 내보내기: AnalysisHistoryPanel의 export 로직 추출 후 연결 예정 */}
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.stopPropagation()
+                    // errors are toasted inside useAnalysisExport
+                    void exportAnalysis(entry, 'docx')
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                  data-testid={`analysis-history-export-action-${item.id}`}
+                >
+                  <Download className="mr-2 h-3 w-3" />
+                  <span className="text-xs">{t.history.tooltips.exportReport}</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -257,7 +270,14 @@ export function AnalysisHistorySidebar(): ReactNode {
         </div>
       )
     },
-    [handleReanalyze, handleRenameRequest, t.history.tooltips.reanalyze, t.history.tooltips.rename],
+    [
+      exportAnalysis,
+      handleReanalyze,
+      handleRenameRequest,
+      t.history.tooltips.exportReport,
+      t.history.tooltips.reanalyze,
+      t.history.tooltips.rename,
+    ],
   )
 
   return (
