@@ -1,4 +1,6 @@
 import {
+  ANALYSIS_VIZ_TYPE_MAP,
+  analysisVizTypeToChartType,
   applyAndValidatePatches,
   applyPatches,
   autoCreateChartSpec,
@@ -10,6 +12,7 @@ import {
   selectXYFields,
   suggestChartType,
 } from '@/lib/graph-studio/chart-spec-utils';
+import { ANALYSIS_VIZ_TYPES, type AnalysisVizType } from '@/types/analysis';
 import {
   CHART_TYPE_HINTS,
   createDefaultChartSpec,
@@ -104,6 +107,47 @@ describe('suggestChartType', () => {
     ];
 
     expect(suggestChartType(columns)).toBe('scatter');
+  });
+});
+
+describe('analysisVizTypeToChartType', () => {
+  // Map에서 파생된 항목은 반드시 매핑을 지킨다.
+  // 수동 복제 대신 `ANALYSIS_VIZ_TYPE_MAP` 자체를 SSOT로 사용 — drift 불가능.
+  const mappedEntries = Object.entries(ANALYSIS_VIZ_TYPE_MAP);
+
+  it.each(mappedEntries)('maps handler vizType "%s" → ChartType "%s"', (vizType, expected) => {
+    expect(analysisVizTypeToChartType(vizType)).toBe(expected);
+  });
+
+  it('returns null for undefined/null/empty input so caller can fall back to column-based inference', () => {
+    expect(analysisVizTypeToChartType(undefined)).toBeNull();
+    expect(analysisVizTypeToChartType(null)).toBeNull();
+    expect(analysisVizTypeToChartType('')).toBeNull();
+  });
+
+  // AnalysisVizType 중 map에 의도적으로 생략된 것들: adapter 또는 버튼 비활성화로 처리.
+  const unmappedVizTypes = ANALYSIS_VIZ_TYPES.filter(
+    (t): t is AnalysisVizType => !(t in ANALYSIS_VIZ_TYPE_MAP),
+  );
+
+  it('leaves specific vizTypes unmapped (adapter path or disabled UI expected)', () => {
+    // 의도된 생략 목록 고정 — 이 집합이 바뀌면 테스트가 실패해 검토가 강제된다.
+    expect(unmappedVizTypes.sort()).toEqual([
+      'cluster-plot',
+      'contingency-table',
+      'dendrogram',
+      'discriminant-plot',
+      'item-total',
+    ].sort());
+  });
+
+  it.each(unmappedVizTypes)('returns null for intentionally unmapped vizType "%s"', (vizType) => {
+    expect(analysisVizTypeToChartType(vizType)).toBeNull();
+  });
+
+  it('returns null for arbitrary unknown strings (non-AnalysisVizType)', () => {
+    expect(analysisVizTypeToChartType('unknown-chart')).toBeNull();
+    expect(analysisVizTypeToChartType('random')).toBeNull();
   });
 });
 
@@ -262,6 +306,31 @@ describe('selectAutoColorField', () => {
     ], 'x', 'y');
 
     expect(autoColorField).toBeNull();
+  });
+
+  it('skips low-cardinality ID-like categorical columns even when count fits the range', () => {
+    // batch_id(unique=3)는 AUTO_COLOR 범위(2~8)에 들어가지만 ID-like라 color로 부적합.
+    // treatment(unique=3)를 선택해야 함.
+    const autoColorField = selectAutoColorField([
+      quantitative('time'),
+      quantitative('value'),
+      { name: 'batch_id', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      { name: 'treatment', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+    ], 'time', 'value');
+
+    expect(autoColorField).toBe('treatment');
+    expect(autoColorField).not.toBe('batch_id');
+  });
+
+  it('keeps category-named *_id columns (CATEGORY hint suppresses ID rejection)', () => {
+    // treatment_id는 ID 접미사지만 CATEGORY 힌트가 있어 color로 허용됨.
+    const autoColorField = selectAutoColorField([
+      quantitative('time'),
+      quantitative('value'),
+      { name: 'treatment_id', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+    ], 'time', 'value');
+
+    expect(autoColorField).toBe('treatment_id');
   });
 });
 

@@ -17,6 +17,7 @@ import type {
   SignificanceMark,
   AnalysisContext,
 } from '@/types/graph-studio';
+import type { AnalysisVizType } from '@/types/analysis';
 import { chartSpecSchema } from './chart-spec-schema';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from './chart-spec-defaults';
 
@@ -278,6 +279,44 @@ function inferDataType(values: unknown[]): DataType {
 
 // ─── 차트 유형 자동 추천 ───────────────────────────────────
 
+// Handler가 `visualizationData.type`에 선언하는 메서드-레벨 레이블을 Graph Studio ChartType으로 매핑.
+// 용도: analysis-adapter.ts의 `buildAnalysisVisualizationColumns()`가 null을 반환할 때의 LCD 폴백.
+// adapter가 메서드-전용 파생 데이터/colorField를 내는 경우가 정상 경로이고, 이 map은 그 경로가 실패할 때만 사용된다.
+//
+// `satisfies Partial<Record<AnalysisVizType, ChartType>>`로 컴파일 타임 정합성 보장:
+// - `AnalysisVizType`에 없는 키 사용 시 컴파일 에러 (유효 vizType만 허용)
+// - 일부 vizType은 생략 가능 (LCD 매핑이 적절하지 않은 경우 Partial 허용)
+export const ANALYSIS_VIZ_TYPE_MAP = {
+  bar: 'bar',
+  'frequency-bar': 'bar',
+  boxplot: 'boxplot',
+  'boxplot-multiple': 'boxplot',
+  histogram: 'histogram',
+  scatter: 'scatter',
+  'scatter-regression': 'scatter',
+  'stepwise-regression': 'scatter',
+  'dose-response': 'scatter',
+  'response-surface': 'scatter',
+  'logistic-regression': 'scatter',
+  'poisson-regression': 'scatter',
+  'ordinal-regression': 'scatter',
+  line: 'line',
+  'time-series': 'line',
+  'interaction-plot': 'line',
+  'scree-plot': 'bar',
+  'forest-plot': 'error-bar',
+  'km-curve': 'km-curve',
+  'roc-curve': 'roc-curve',
+  // 의도적 제외 (전용 렌더러 없음, adapter가 null 반환):
+  // - cluster-plot, contingency-table, discriminant-plot, dendrogram, item-total
+  // 이들은 호출자가 suggestChartType(columns) 컬럼 기반 폴백을 사용하거나 버튼 비활성화 UX를 제공해야 한다.
+} as const satisfies Partial<Record<AnalysisVizType, ChartType>>;
+
+export function analysisVizTypeToChartType(vizType: string | undefined | null): ChartType | null {
+  if (!vizType) return null;
+  return (ANALYSIS_VIZ_TYPE_MAP as Record<string, ChartType>)[vizType] ?? null;
+}
+
 export function suggestChartType(columns: ColumnMeta[]): ChartType {
   const quantCols = columns.filter(c => c.type === 'quantitative');
   const catCols = columns.filter(c => c.type === 'nominal' || c.type === 'ordinal');
@@ -477,19 +516,31 @@ export function selectAutoColorField(
   xField: string,
   yField: string,
 ): string | null {
-  const candidate = columns.find((column) => {
+  // 1차 필터: 범주형 + unique 2~8 + xField/yField 아님
+  const candidates = columns.filter((column) => {
     const isCategorical = column.type === 'nominal' || column.type === 'ordinal';
     const withinReadableGroupCount =
       column.uniqueCount >= AUTO_COLOR_GROUP_MIN &&
       column.uniqueCount <= AUTO_COLOR_GROUP_MAX;
-
     return isCategorical &&
       withinReadableGroupCount &&
       column.name !== xField &&
       column.name !== yField;
   });
 
-  return candidate?.name ?? null;
+  // 2차 우선순위: ID-like가 아닌 후보 > ID-like지만 CATEGORY 힌트 있는 후보 > null.
+  // `batch_id` 같은 low-cardinality identifier는 CATEGORY 토큰(batch)이 있어도
+  // 개별 식별자라 color 범례에 부적합 → 비-ID 대안이 있으면 그 쪽을 선택.
+  const nonIdLike = candidates.find((c) => !hasIdLikeName(normalizeFieldName(c.name)));
+  if (nonIdLike) return nonIdLike.name;
+
+  const categoryHintedId = candidates.find((c) => {
+    const tokens = normalizeFieldName(c.name);
+    return hasIdLikeName(tokens) && hasToken(tokens, CATEGORY_FRIENDLY_TOKENS);
+  });
+  if (categoryHintedId) return categoryHintedId.name;
+
+  return null;
 }
 
 // ─── CSV 데이터 → ChartSpec 자동 생성 ──────────────────────
