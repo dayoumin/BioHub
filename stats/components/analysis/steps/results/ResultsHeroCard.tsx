@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { VALIDATION_METADATA } from '@/lib/constants/validation-metadata'
+import type { ExecutionSettingEntry } from '@/lib/utils/analysis-execution'
+import { getSettingOptionLabel } from '@/lib/utils/analysis-execution'
+import type { StatisticalMethodRequirements } from '@/lib/statistics/variable-requirements'
 import {
   heroRevealVariants,
 } from './results-helpers'
@@ -30,8 +33,40 @@ export interface ResultsHeroCardProps {
   apaFormat: string | null
   uploadedFileName: string | null
   uploadedData: Record<string, unknown>[] | null
+  /** Step 3 `buildAnalysisExecutionContext`가 생성한 라벨 해석 entry. Hero 메타 배지로 표시. */
+  executionSettingEntries?: ExecutionSettingEntry[]
+  /** 각 entry의 default 값을 조회해 "기본값 그대로"인 배지는 숨기는 데 쓴다. */
+  methodRequirements?: StatisticalMethodRequirements
   prefersReducedMotion: boolean
   t: Pick<TerminologyDictionary, 'results'>
+}
+
+// showAssumptions/showEffectSize는 hero에 노출하기에 과도함 (assumption은 별도 섹션, effect는 StatsCards).
+// alpha는 기본값(0.05)이면 숨긴다. methodRequirements가 있으면 각 setting.default와 비교해
+// 기본값 그대로인 항목은 숨겨 "사용자가 실제로 바꾼 옵션"만 hero 상단에 강조한다.
+// 의도적 비대칭: alpha는 methodRequirements 유무와 무관하게 하드코딩 default(0.05)로 숨김,
+// 다른 항목은 methodRequirements 있을 때만 숨김. 히스토리 복원처럼 method 해석이 불가능한
+// 경우 default-but-shown 배지가 노출될 수 있으나, 이는 "선택 이력이 보존됐다"는 시각적 신호로
+// 수용한다. 통합 숨김이 필요하면 KNOWN_DEFAULT_LABELS 폴백 맵 추가 고려.
+const HERO_HIDDEN_ENTRY_KEYS = new Set(['showAssumptions', 'showEffectSize'])
+const DEFAULT_ALPHA = 0.05
+
+export function pickHeroOptionEntries(
+  entries: ExecutionSettingEntry[] | undefined,
+  methodRequirements?: StatisticalMethodRequirements,
+): ExecutionSettingEntry[] {
+  if (!entries) return []
+  const settings = methodRequirements?.settings
+  return entries.filter((entry) => {
+    if (HERO_HIDDEN_ENTRY_KEYS.has(entry.key)) return false
+    if (entry.key === 'alpha') return Number(entry.value) !== DEFAULT_ALPHA
+    const setting = settings?.[entry.key]
+    if (setting?.default !== undefined && setting?.default !== null) {
+      const defaultLabel = getSettingOptionLabel(setting.options, setting.default)
+      if (entry.value === defaultLabel) return false
+    }
+    return true
+  })
 }
 
 export function ResultsHeroCard({
@@ -43,12 +78,15 @@ export function ResultsHeroCard({
   apaFormat,
   uploadedFileName,
   uploadedData,
+  executionSettingEntries,
+  methodRequirements,
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
   const resolvedMethodId = methodId ?? statisticalResult.testName
   const methodEntry = resolvedMethodId ? STATISTICAL_METHODS[resolvedMethodId] : null
   const validationMeta = resolvedMethodId ? VALIDATION_METADATA[resolvedMethodId] : undefined
+  const heroOptionEntries = pickHeroOptionEntries(executionSettingEntries, methodRequirements)
   const showBinaryConclusion = methodEntry ? (!methodEntry.isDataTool && 
     methodEntry.category !== 'multivariate' && 
     methodEntry.category !== 'design' &&
@@ -224,6 +262,22 @@ export function ResultsHeroCard({
                       </p>
                     </TooltipContent>
                   </Tooltip>
+                )}
+
+                {heroOptionEntries.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 bg-surface-container/25 rounded-md px-2 py-1.5" data-testid="analysis-options-badges">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 self-start pt-[3px]">옵션</span>
+                    {heroOptionEntries.map((entry) => (
+                      <Badge
+                        key={entry.key}
+                        variant="outline"
+                        className="border-border/50 bg-background/70 text-[11px] font-normal"
+                        data-testid={`option-badge-${entry.key}`}
+                      >
+                        {entry.label === entry.value ? entry.label : `${entry.label} ${entry.value}`}
+                      </Badge>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

@@ -53,6 +53,8 @@ import {
   type DraftContext,
 } from '@/lib/services'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
+import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
+import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
 import { cn } from '@/lib/utils'
 import { AI_ACCENT } from '@/lib/design-tokens'
@@ -175,6 +177,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     selectedMethod,
     assumptionResults,
     analysisOptions,
+    suggestedSettings,
   } = useAnalysisStore()
   const { setStepTrack } = useModeStore()
   const {
@@ -208,6 +211,20 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const analysisVisualizationColumns = useMemo(
     () => (results ? buildAnalysisVisualizationColumns(results) : null),
     [results],
+  )
+  const methodRequirements = useMemo(
+    () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
+    [selectedMethod?.id],
+  )
+  const { executionSettingEntries } = useMemo(
+    () => buildAnalysisExecutionContext({
+      analysisOptions,
+      methodRequirements,
+      selectedMethodId: selectedMethod?.id,
+      suggestedSettings,
+      variableMapping,
+    }),
+    [analysisOptions, methodRequirements, selectedMethod?.id, suggestedSettings, variableMapping],
   )
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
@@ -1004,6 +1021,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           apaFormat={apaFormat}
           uploadedFileName={uploadedFileName ?? null}
           uploadedData={uploadedData}
+          executionSettingEntries={executionSettingEntries}
+          methodRequirements={methodRequirements}
           prefersReducedMotion={prefersReducedMotion}
           t={t}
         />

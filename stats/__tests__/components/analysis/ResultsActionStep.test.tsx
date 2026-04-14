@@ -750,6 +750,8 @@ const defaultStoreState = {
   selectedMethod: null,
   validationResults: null,
   assumptionResults: null,
+  analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true, methodSettings: {} },
+  suggestedSettings: null,
 }
 
 let mockStoreState = { ...defaultStoreState }

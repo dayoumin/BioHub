@@ -17,23 +17,33 @@
 - [ ] **[P3] `converters/shared.ts:678` `base.title.top: 8` 하드코딩**: 같은 파일에 이미 `TITLE_TOP = 8` 상수 있음. 재사용하여 single source of truth 확보(다음 shared.ts 편집 시 1줄 수정).
 - [ ] **[P3] 샘플 데이터 preferredXY override**: 어류 생태 샘플(`species`/`length_cm`/`weight_g`/`year`)에서 `length-weight relationship`이 흔한 분석 축이지만 현재 글로벌 RESPONSE_LIKE 스코어가 `weight`를 우선시 → `length_cm`이 Y로 잡히지 않음. 제품 샘플로 계속 쓸 데이터면 CSV 메타에 `preferredXY: { x: 'length_cm', y: 'weight_g' }` 필드 추가 또는 analysis adapter에서 명시하는 방식이 더 안정적 (글로벌 weight 우선은 유지).
 - [ ] **[P3] Legend-title 오프셋 CI 검증 — Playwright screenshot diff**: 현재 오프셋 `8 + titleSize + 10`은 single-line title 가정. multiline title / titleSize 24+ / small viewport 엣지 케이스는 단위 테스트로 못 잡음. Playwright로 `title 있음` × `titleSize 기본/24+` × `top legend/bottom legend` × `multiline title/small viewport` 최소 4~8 fixture screenshot diff 추가.
+- [ ] **[P1] Legend orient schema drift 방지**: `converters/shared.ts:623-624`의 `TOP_ORIENTS`/`BOTTOM_ORIENTS` Set이 `chart-spec-schema.ts:56-59`의 zod enum SSOT와 독립 선언. `top-center` 등이 schema에 추가되면 silent fall-through. `legendSchema.shape.orient._def.values`에서 derive하거나 별도 `LEGEND_ORIENTS` 공용 상수 배열에서 schema도 derive.
+- [ ] **[P2] 토큰 사전 + 유니코드 tokenizer 분리**: 5종 토큰 사전이 이미 `selectXYFields`+`selectAutoColorField` 2곳에서 사용 (3번째 도입 임박). `stats/lib/graph-studio/chart-spec-heuristics.ts`로 분리 + `normalizeFieldName`의 정규식을 `/[^a-z0-9]+/` → `/[^\p{L}\p{N}]+/u`로 변경하여 한국어 사전 추가를 pure additive 확장으로 만들 것.
+- [ ] **[P2] `selectXYFields → selectAutoColorField` 통합 테스트 (완료 `e18a6e4a` 이후)**: 통합 케이스 1건 추가 완료 (`xField=treatment_id` 선택 후 auto-color가 species로 빠지는 시나리오). 추가 케이스 후보: `length_cm + weight_g + species` → X=species, Y=weight_g, color=null(species=X이므로 제외) 확인.
+- [ ] **[P2] `legend.top(px)` vs `grid.top(%)` 산술 guard**: 작은 캔버스(<200px) 또는 `titleSize >= 24`에서 legend가 plot 영역 침범 가능. `buildBaseOption`에 runtime guard 추가: `legendTopBelowTitle(px) / chartHeightEstimate > 0.18` 시 fallback(legend 높이 축소 or grid.top 재조정).
+- [ ] **[P3] `components/common/index.ts` barrel 갱신 (완료 `SortablePinnedCardGrid`)**: 추가됨. 이후 `common/` 신규 컴포넌트는 barrel 동기 필수.
+- [ ] **[P3] `MAX_PINNED_TOOLS` 팩토리 파라미터화**: `createPinnedToolsStore(persistKey)` — 현재 6 하드코딩. 미래 다른 한도(e.g., favorite analyses 10개)가 생길 때 `createPinnedToolsStore(persistKey, { maxItems = 6 } = {})`로 확장. 지금 선제 구현 불필요 — YAGNI.
+- [ ] **[P3] `app/genetics/page.tsx` `tool.ready` 필터 회귀 테스트**: L203, L210의 `.filter((tool): tool is Tool => Boolean(tool) && tool.ready)` 필터가 load-bearing (미래 `ready: false` 추가 시 tool 숨김). 현재 모든 tool이 `ready: true`라 필터 효과 없어 테스트 미작성. 페이지 전체 mock 비용 과함 → 필터 로직만 pure 함수로 추출(`filterReadyTools(ids, map)`)한 뒤 단위 테스트 추가하는 방식이 저비용.
+- [ ] **[P3] Bisect quirk — `e18a6e4a`**: barrel이 `analysisVizTypeToChartType` 재-export하지만 이 symbol은 `b94b7bb2`에서야 `chart-spec-utils.ts`에 추가됨. 해당 SHA에서 fresh checkout + tsc 시 실패. 원인: 내 barrel 커밋 staging 시 다른 세션 uncommitted 변경도 함께 포함됨. 실용상 main은 정상, bisect 특수 케이스만 영향. history rewrite 불필요.
+- [ ] **[P3] CLAUDE.md Graph Studio 토큰 휴리스틱 섹션**: 5종 토큰 사전(ID/CATEGORY/TIME/RESPONSE/PREDICTOR)과 스코어 가중치가 implicit contract. 향후 기여자가 토큰 추가/제거 시 회귀 유발 가능 → CLAUDE.md나 `stats/docs/graph-studio/`에 휴리스틱 설계 문서화.
+- [ ] **[P2] `patternSummary` Textarea readonly 전환 + 자동 생성 라벨**: [PackageBuilder.tsx:238-244](stats/components/papers/PackageBuilder.tsx#L238-L244) Textarea가 편집 가능이지만 [PackageBuilder.tsx:451](stats/components/papers/PackageBuilder.tsx#L451) refresh 시 자동 생성본으로 덮어써짐 → silent data loss. 커밋 `685c19fe`에서 저자가 의도적으로 "자동 파생 필드"로 재정의했으므로 UI 계약도 동기화 필요. `readOnly` prop + 레이블 "📊 분석 결과 기반 자동 생성" 추가. 사용자 커스텀 워딩은 최종 DOCX export에서 수행. 구현 ~10줄 + refresh-preservation 테스트 1건 업데이트.
 
 ### Graph Studio architecture stabilization follow-up (2026-04-14)
-- [ ] 계획 문서 기준선 확정: [`stats/docs/graph-studio/PLAN-ARCHITECTURE-STABILIZATION.md`](stats/docs/graph-studio/PLAN-ARCHITECTURE-STABILIZATION.md)
-- [ ] **[P1] project restore compatibility 강화**: 동일 필드명만으로 기존 `chartSpec`을 재부착하지 않도록 dataset compatibility 기준 재설계.
-- [ ] **[P1] preview/export contract 일치화**: preview 배경과 PNG/SVG export 배경이 같은 `style.background` 경로를 따르도록 정리.
+- [ ] 계획 문서 기준선 확정: [`stats/docs/graph-studio/PLAN-ARCHITECTURE-STABILIZATION.md`](stats/docs/graph-studio/PLAN-ARCHITECTURE-STABILIZATION.md) 기준으로 기존 계획과 충돌 지점 정리 + 유지할 기존 결정 명시
+- [x] **[P1] project restore compatibility 강화**: 동일 필드명만으로 기존 `chartSpec`을 재부착하지 않도록 dataset compatibility 기준 재설계. (`graph-studio-store.ts`, `graph-studio-store.test.ts`, 2026-04-14)
+- [x] **[P1] preview/export contract 일치화**: preview 배경과 PNG/SVG export 배경이 같은 `style.background` 경로를 따르도록 정리. (`export-utils.ts`, `export-utils.test.ts`, 2026-04-14)
 - [ ] **[P2] session / persistence coordinator 분리**: route sync, project detach, draft chat lifecycle, snapshot save 의미를 한 수명 주기로 재구성.
-- [ ] **[P2] save transaction semantics 정리**: metadata 저장 성공과 snapshot 저장 실패가 사용자에게 같은 "저장 완료"로 보이지 않게 상태와 토스트 기준 정리.
-- [ ] **[P2] chart capability registry 도입**: preview/export/overlay/facet 지원 여부를 chart type별 단일 선언으로 통합.
+- [x] **[P2] save transaction semantics 정리**: metadata 저장 성공과 snapshot 저장 실패가 사용자에게 같은 "저장 완료"로 보이지 않게 상태와 토스트 기준 정리. (`GraphStudioContent.tsx`, `GraphStudioContent-save.test.tsx`, 2026-04-14)
+- [x] **[P2] chart capability registry 도입**: preview/export/overlay/facet/style capability를 chart type별 단일 선언으로 통합. (`chart-capabilities.ts`, `ChartPreview.tsx`, `useDataTabLogic.ts`, `useStyleTabLogic.ts`, `echarts-converter.ts`, `matplotlib-compat.ts`, `chart-capabilities.test.ts`, 2026-04-14)
 - [ ] **[P2] matplotlib export contract 정렬**: preview spec과 export spec이 같은 필드 집합과 validation 규칙을 공유하도록 정리.
 - [ ] **[P2] editor action layer 공용화**: `LeftDataPanel`, `DataTab`, `AiPanel`의 field assignment / direct mutation 규칙을 공용 액션으로 통합.
 - [ ] **[P3] ambient research project 의존 제거**: `saveCurrentProject()`가 외부 active project singleton을 직접 읽지 않도록 session binding 경로 정리.
 
-## 1. ?쒓컖??諛?UX 而댄룷?뚰듃 怨좊룄??
-- [x] AI ?댁꽍???붿빟 (寃곕줎 ?꾩텧 洹쇨굅) ?뺣낫瑜?寃곌낵 移대뱶??異뺤빟?섏뿬 ?몄텧 ??Hero Card??AI ?붿빟 ??以??몃씪??(2026-04-07)
-- [ ] 遺꾩꽍 ?좏삎蹂??듦퀎 硫붿꽌?쒕퀎) 湲곕낯 ?쒓컖??而댄룷?뚰듃 留ㅽ븨 ?쇨????뺣낫
-- [ ] ?ъ슜???몄뼱(吏덈Ц 湲곕컲)媛 ?듦퀎???꾨??⑥쓣 ?댁튂?붿? ?뺤씤?섍퀬 臾멸뎄 誘몄꽭 議곗젙 諛?紐⑤땲?곕쭅
-- [ ] **ResultsActionStep ??異붿텧**: useResultsExport, useResultsHistory, useResultsNavigation, usePaperDraft 遺꾨━ (1025以????몃뱾??濡쒖쭅 罹≪뒓??
+## 1. 시각화 및 UX 컴포넌트 고도화
+- [x] AI 해석의 요약 (결론 도출 근거) 정보를 결과 카드에 축약하여 노출 (Hero Card의 AI 요약 첫 줄) (2026-04-07)
+- [x] 분석 유형별(통계 메서드별) 기본 시각화 컴포넌트 매핑 일관성 확보 (`b94b7bb2`, 2026-04-14 analysisVizTypeToChartType + adapter 우선 priority + AnalysisVizType union)
+- [ ] 사용자 언어(질문 기반)가 통계 엄밀함을 해치는지 확인하고 문구 미세 조정 및 모니터링 *(부분 — terminology 인프라 구축, 자동 검증 lint 없음)*
+- [ ] **ResultsActionStep 훅 추출**: useResultsExport, useResultsHistory, useResultsNavigation, usePaperDraft 분리 (1158줄 → 핸들러 로직 캡슐화, 2026-04-14 실측)
 
 ## 2. StatisticalExecutor 留덉씠洹몃젅?댁뀡 諛??뚯꽌 踰꾧렇 ?닿껐 (B2)
 - [x] **Poisson / Ordinal Regression Model-level p-value**: Worker + Handler ?묒そ `llrPValue`/`llrStatistic` ?꾩쟾 援ы쁽 ?뺤씤 (2026-04-07 寃??
@@ -128,8 +138,8 @@
 - [x] `AutoConfirmSelector` UI 보강 (`a749331b`, 2026-04-10)
 - [x] handler 계층에 `methodSettings` 전달 연결 (`7ed3db6c`, 2026-04-10)
 - [x] `variable-requirements`의 `notes` / `dataFormat` 필드 Step 3 표시 (`MethodGuidancePanel`)
-- [ ] Step 4 결과 화면에 분석 옵션 표시 (`alternative`, `postHoc`, `ciMethod` 등) 추가
-- [ ] Step 3 E2E/스모크 테스트 시나리오 추가 (click-first, slot 가드, 역할 필터)
+- [x] Step 4 결과 화면에 분석 옵션 표시 (`alternative`, `postHoc`, `ciMethod` 등) 추가 (2026-04-14 formatAnalysisOptionBadges + HeroCard 메타 row, 9/9 테스트)
+- [ ] Step 3 E2E/스모크 테스트 시나리오 추가 (click-first, slot 가드, 역할 필터) *(부분 — click-first/타입가드 완료, 역할필터+진짜 E2E 미완)*
 
 ### 타입 검증
 - [x] `pnpm exec tsc --noEmit` 통과 (2026-04-14 확인, 0 errors)
@@ -144,8 +154,8 @@
 ## 8. Statistics UI Polish Follow-up (2026-04-10)
 
 - [ ] 모바일 해상도에서 Hub hero, 빠른 분석 pills, 보조 도구 카드 밀도 재점검 *(모바일 보류 — 배포 후)*
-- [ ] 결과 화면 우측 히스토리 사이드바 정보 밀도와 액션 노출 수준 재조정
-- [ ] 결과 화면 Hero 메타 영역에서 메서드별 중요 정보 우선순위 재정의
+- [ ] 결과 화면 우측 히스토리 사이드바 정보 밀도와 액션 노출 수준 재조정 *(부분 — `685c19fe` 액션 재배치, 내보내기 예정)*
+- [x] 결과 화면 Hero 메타 영역에서 메서드별 중요 정보 우선순위 재정의 (`7b83b1cd`, 2026-04-10 ResultsHeroCard.tsx 96→52줄 + methodEntry 분기)
 - [ ] AI 해석 카드의 섹션 pill/전체 보기 동작을 모바일과 긴 텍스트 기준으로 추가 검토 *(모바일 보류 — 배포 후)*
 - [x] Data Exploration Step에서 업로드 교체 상태와 경고 배너의 시각적 우선순위 재검토 (`500dc963`, 2026-04-12)
 - [x] 실제 사용자 시나리오 기준으로 Hub → Step 1 → Result 전체 흐름 e2e 스모크 테스트 추가 (`c91cff4c`, 2026-04-13 (부분 — 사이드바+smoke-test.mjs))

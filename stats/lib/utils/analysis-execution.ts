@@ -159,7 +159,7 @@ function valuesMatch(left: unknown, right: unknown): boolean {
   return String(left) === String(right)
 }
 
-function getSettingOptionLabel(
+export function getSettingOptionLabel(
   options: Array<{ value: string | number | boolean; label: string; description: string }> | undefined,
   value: unknown
 ): string {
