@@ -765,15 +765,11 @@ export function resolveVariableFromAnswer(
     }
   }
 
+  // shouldFillDependent=true면 main 루프에서 모든 numeric이 이미 result.dependent로 push됨 →
+  // 여기 도달했을 땐 matched에 numeric이 없다는 뜻. categorical만 있는데 shouldFillGroup=false면
+  // 배정할 자리가 없으므로 null로 떨어져야 함.
   if (Object.keys(result).length === 0 && shouldFillDependent) {
-    const numericMatches = matched.filter((col) => col.type === 'numeric')
-    if (numericMatches.length === 0) {
-      return null
-    }
-    for (const col of numericMatches) {
-      if (!result.dependent) result.dependent = []
-      result.dependent.push(col.column)
-    }
+    return null
   }
 
   return result
