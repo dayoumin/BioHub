@@ -55,7 +55,6 @@ import {
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
-import { normalizeSelectedMethod } from '@/lib/stores/analysis-transitions'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
 import { cn } from '@/lib/utils'
 import { AI_ACCENT } from '@/lib/design-tokens'
@@ -213,23 +212,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     () => (results ? buildAnalysisVisualizationColumns(results) : null),
     [results],
   )
-  const normalizedSelectedMethod = useMemo(
-    () => normalizeSelectedMethod(selectedMethod),
-    [selectedMethod],
-  )
   const methodRequirements = useMemo(
-    () => (normalizedSelectedMethod?.id ? getMethodRequirements(normalizedSelectedMethod.id) : undefined),
-    [normalizedSelectedMethod?.id],
+    () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
+    [selectedMethod?.id],
   )
   const { executionSettingEntries } = useMemo(
     () => buildAnalysisExecutionContext({
       analysisOptions,
       methodRequirements,
-      selectedMethodId: normalizedSelectedMethod?.id,
+      selectedMethodId: selectedMethod?.id,
       suggestedSettings,
       variableMapping,
     }),
-    [analysisOptions, methodRequirements, normalizedSelectedMethod?.id, suggestedSettings, variableMapping],
+    [analysisOptions, methodRequirements, selectedMethod?.id, suggestedSettings, variableMapping],
   )
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
@@ -565,11 +560,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, selectedMethod, currentHistoryProjectId, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, t])
 
   // 재현 가능 코드 내보내기 (R/Python)
-  const codeExportAvailable = isCodeExportAvailable(normalizedSelectedMethod?.id)
+  const codeExportAvailable = isCodeExportAvailable(selectedMethod?.id)
 
   const handleCodeExport = useCallback((language: CodeLanguage) => {
     const exportResult = exportCodeFromAnalysis({
-      method: normalizedSelectedMethod,
+      method: selectedMethod,
       variableMapping,
       analysisOptions,
       dataFileName: uploadedFileName ?? null,
@@ -584,7 +579,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } else {
       toast.error(exportResult.error ?? TOAST.codeExport.error)
     }
-  }, [normalizedSelectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
+  }, [selectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)

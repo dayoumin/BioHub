@@ -102,7 +102,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     const id = selectedMethod?.id ?? ''
     const base = getSelectorType(id)
     if (
-      (id === 'one-way-anova' || id === 'anova') &&
+      id === 'one-way-anova' &&
       detectedVariables?.factors &&
       detectedVariables.factors.length >= 2
     ) {
@@ -129,9 +129,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     setValidationAlert(null)
 
     if (selectedMethod && columnInfo.length > 0) {
-      const mappingForValidation = (
-        selectedMethod.id === 'proportion-test' || selectedMethod.id === 'one-sample-proportion'
-      )
+      const mappingForValidation = selectedMethod.id === 'one-sample-proportion'
         ? {
             ...mapping,
             nullProportion: String(analysisOptions.nullProportion ?? 0.5),
@@ -408,7 +406,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const mismatchHint = useMemo(() => {
     if (!selectedMethod || selectorType !== 'group-comparison' || !detectedVariables) return undefined
 
-    const isIndependentComparisonMethod = ['t-test', 'two-sample-t', 'welch-t', 'mann-whitney'].includes(selectedMethod.id)
+    const isIndependentComparisonMethod = ['two-sample-t', 'welch-t', 'mann-whitney'].includes(selectedMethod.id)
     if (!isIndependentComparisonMethod) return undefined
 
     if (detectedVariables.pairedVars?.length === 2 && !detectedVariables.groupVariable) {

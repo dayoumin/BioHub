@@ -313,12 +313,12 @@ describe('VariableSelectionStep', () => {
 
   describe('anova factor override', () => {
     it('keeps group-comparison when anova has one factor', () => {
-      renderWithMethod('anova', 'ANOVA', { factors: ['gender'] })
+      renderWithMethod('one-way-anova', 'ANOVA', { factors: ['gender'] })
       expect(capturedSelectorType).toBe('group-comparison')
     })
 
     it('upgrades to two-way-anova when anova has two factors', () => {
-      renderWithMethod('anova', 'ANOVA', {
+      renderWithMethod('one-way-anova', 'ANOVA', {
         factors: ['gender', 'treatment'],
         dependentCandidate: 'score',
       })
