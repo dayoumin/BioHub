@@ -1,5 +1,5 @@
 import type { AIRecommendation, StatisticalMethod, SuggestedSettings } from '@/types/analysis'
-import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
+import { getMethodByIdOrAlias, promoteMethodToCanonical } from '@/lib/constants/statistical-methods'
 
 export const WELCH_ANOVA_DISPLAY_NAME = 'Welch ANOVA'
 export const WELCH_ANOVA_DESCRIPTION = '등분산 가정 위반에 강건한 일원분산분석'
@@ -46,18 +46,7 @@ export function normalizeWelchAnovaMethod(
   method: StatisticalMethod
   forcedSuggestedSettings: SuggestedSettings | null
 } {
-  const canonical = getMethodByIdOrAlias(method.id)
-
-  if (!canonical) {
-    return { method, forcedSuggestedSettings: null }
-  }
-
-  const normalizedMethod: StatisticalMethod = {
-    ...method,
-    id: canonical.id,
-    category: canonical.category,
-    description: method.description || canonical.description,
-  }
+  const normalizedMethod = promoteMethodToCanonical(method)
 
   if (!isWelchAnovaVariant({ method, suggestedSettings })) {
     return { method: normalizedMethod, forcedSuggestedSettings: null }

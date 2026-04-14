@@ -14,6 +14,7 @@
 
 import { PyodideCoreService } from './core/pyodide-core.service'
 import type { StatisticalMethod } from '@/types/analysis'
+import { getMethodByAlias } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
 
 /**
@@ -58,7 +59,12 @@ export function prefetchWorkerForMethod(method: StatisticalMethod): void {
   // Pyodide가 아직 초기화되지 않았으면 prefetch 무의미
   if (!coreService.isInitialized()) return
 
-  const workers = CATEGORY_WORKER_MAP[method.category]
+  // Primary: method.category로 직접 조회.
+  // Fallback: canonical entry category (category가 stale하거나 legacy alias가 id에만 남은 경우 방어).
+  const canonicalCategory = getMethodByAlias(method.id)?.category
+  const workers =
+    CATEGORY_WORKER_MAP[method.category] ??
+    (canonicalCategory ? CATEGORY_WORKER_MAP[canonicalCategory] : undefined)
   if (!workers) return
 
   for (const workerNum of workers) {

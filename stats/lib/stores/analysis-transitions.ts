@@ -5,6 +5,7 @@ import {
   type AnalysisOptions,
   type DiagnosticReport,
   type StatisticalMethod,
+  type StatisticalMethodCategory,
   type StatisticalAssumptions,
   type SuggestedSettings,
 } from '@/types/analysis'
@@ -101,18 +102,21 @@ export function normalizeSelectedMethod(
   const description = typeof candidate.description === 'string' ? candidate.description : ''
   const canonical = getMethodByAlias(candidate.id)
 
-  if (!canonical && !isStatisticalMethodCategory(candidate.category)) return null
-
-  const base: StatisticalMethod = {
-    id: candidate.id,
-    name: candidate.name,
-    category: canonical
-      ? canonical.category
-      : (candidate.category as StatisticalMethod['category']),
-    description,
+  let category: StatisticalMethodCategory
+  if (isStatisticalMethodCategory(candidate.category)) {
+    category = candidate.category
+  } else if (canonical) {
+    category = canonical.category
+  } else {
+    return null
   }
 
-  return promoteMethodToCanonical(base)
+  return promoteMethodToCanonical({
+    id: candidate.id,
+    name: candidate.name,
+    category,
+    description,
+  })
 }
 
 export function createHistoryRestorePatch(data: HistoryLoadResult): AnalysisTransitionPatch {

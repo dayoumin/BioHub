@@ -6,6 +6,7 @@
  */
 
 import { getNumericColumns } from '@/lib/data-validation'
+import { getMethodByAlias } from '@/lib/constants/statistical-methods'
 
 export interface FormatValidationResult {
   /** 데이터 형태가 적합한지 여부 */
@@ -323,9 +324,32 @@ const METHOD_FORMAT_RULES: Record<string, MethodFormatRule> = {
 }
 
 /**
+ * methodId로 rule을 조회한다. Analysis flow 브릿지 대비 canonical ↔ legacy-alias 양방향 매칭:
+ * 1) 직접 조회 (legacy key)
+ * 2) canonical id로 조회 (Analysis flow가 canonical id를 넘길 때)
+ * 3) canonical entry의 alias 중 rule에 등록된 첫 키 사용 (legacy-keyed rule 매핑)
+ */
+function resolveMethodFormatRule(methodId: string): MethodFormatRule | undefined {
+  const direct = METHOD_FORMAT_RULES[methodId]
+  if (direct) return direct
+
+  const canonical = getMethodByAlias(methodId)
+  if (!canonical) return undefined
+
+  const byCanonicalId = METHOD_FORMAT_RULES[canonical.id]
+  if (byCanonicalId) return byCanonicalId
+
+  for (const alias of canonical.aliases) {
+    const ruleForAlias = METHOD_FORMAT_RULES[alias]
+    if (ruleForAlias) return ruleForAlias
+  }
+  return undefined
+}
+
+/**
  * 업로드된 데이터가 통계 방법의 기대 형태와 맞는지 검증합니다.
  *
- * @param methodId - 통계 방법 ID
+ * @param methodId - 통계 방법 ID (canonical 또는 legacy alias 모두 허용)
  * @param data - 업로드된 데이터 (parsed rows)
  * @returns 검증 결과 (경고 메시지 포함)
  *
@@ -361,7 +385,7 @@ export function validateDataFormat(
     rowCount: data.length,
   }
 
-  const rule = METHOD_FORMAT_RULES[methodId]
+  const rule = resolveMethodFormatRule(methodId)
   if (!rule) {
     // 규칙이 없는 메서드는 기본 검증만
     return { isCompatible: true, warnings: [], detected }
@@ -397,8 +421,9 @@ export function validateDataFormat(
     warnings.push(...customWarnings)
   }
 
-  // 이진형 검정에서 이진 열 확인
-  if (methodId === 'mcnemar' && binaryColumns.length < 2) {
+  // 이진형 검정에서 이진 열 확인 (canonical id 또는 alias 모두 수용)
+  const canonicalId = getMethodByAlias(methodId)?.id ?? methodId
+  if (canonicalId === 'mcnemar' && binaryColumns.length < 2) {
     warnings.push('이진값(2가지 값) 열이 2개 이상 필요합니다')
   }
 
