@@ -11,10 +11,11 @@
  *   (Radix DropdownMenu는 JSDOM Portal 렌더링 한계로 store-level 테스트 사용)
  */
 
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import type { AnalysisResult } from '@/types/analysis'
 
@@ -405,6 +406,76 @@ describe('ResultsActionStep - 재분석 로직 (Store-level)', () => {
     await startNewAnalysis()
 
     expect(startNewAnalysis).toHaveBeenCalled()
+  })
+})
+
+// ===== handleReanalyze 상태 초기화 순서 (회귀 방지) =====
+describe('ResultsActionStep - handleReanalyze 초기화 순서', () => {
+  const mockMethod = {
+    id: 't-test',
+    name: 't-검정',
+    category: 't-test' as const,
+    description: '두 그룹 평균 비교',
+  }
+
+  const mockResults: AnalysisResult = {
+    method: 't-test',
+    pValue: 0.05,
+    statistic: 2.5,
+    interpretation: '유의미한 차이가 있습니다',
+  }
+
+  const setLoadedAiInterpretationSpy = vi.fn()
+  const setLoadedInterpretationChatSpy = vi.fn()
+  const setLoadedPaperDraftSpy = vi.fn()
+  const setCurrentHistoryIdSpy = vi.fn()
+
+  beforeEach(() => {
+    setLoadedAiInterpretationSpy.mockClear()
+    setLoadedInterpretationChatSpy.mockClear()
+    setLoadedPaperDraftSpy.mockClear()
+    setCurrentHistoryIdSpy.mockClear()
+
+    useHistoryStore.setState({
+      setLoadedAiInterpretation: setLoadedAiInterpretationSpy,
+      setLoadedInterpretationChat: setLoadedInterpretationChatSpy,
+      setLoadedPaperDraft: setLoadedPaperDraftSpy,
+      setCurrentHistoryId: setCurrentHistoryIdSpy,
+    })
+
+    const store = useAnalysisStore.getState()
+    store.reset()
+    store.setSelectedMethod(mockMethod)
+    store.setUploadedData([{ id: 1, value: 10 }])
+    store.setUploadedFileName('test-data.csv')
+    store.setResults(mockResults)
+    store.setCurrentStep(4)
+  })
+
+  it('setLoaded* 리셋이 setCurrentHistoryId보다 먼저 호출된다', async () => {
+    await act(async () => {
+      render(<ResultsActionStep results={mockResults} />)
+    })
+
+    const reanalyzeButton = screen.getByRole('button', { name: '다른 데이터로 재분석' })
+
+    await act(async () => {
+      fireEvent.click(reanalyzeButton)
+    })
+
+    expect(setLoadedAiInterpretationSpy).toHaveBeenCalledWith(null)
+    expect(setLoadedInterpretationChatSpy).toHaveBeenCalledWith(null)
+    expect(setLoadedPaperDraftSpy).toHaveBeenCalledWith(null)
+    expect(setCurrentHistoryIdSpy).toHaveBeenCalledWith(null)
+
+    const aiOrder = setLoadedAiInterpretationSpy.mock.invocationCallOrder[0]
+    const chatOrder = setLoadedInterpretationChatSpy.mock.invocationCallOrder[0]
+    const draftOrder = setLoadedPaperDraftSpy.mock.invocationCallOrder[0]
+    const historyIdOrder = setCurrentHistoryIdSpy.mock.invocationCallOrder[0]
+
+    expect(aiOrder).toBeLessThan(historyIdOrder)
+    expect(chatOrder).toBeLessThan(historyIdOrder)
+    expect(draftOrder).toBeLessThan(historyIdOrder)
   })
 })
 

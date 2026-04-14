@@ -1,57 +1,30 @@
 import { usePinnedGeneticsToolsStore } from '@/lib/genetics/pinned-tools-store'
+import { usePinnedToolsStore } from '@/lib/bio-tools/pinned-tools-store'
 
-describe('usePinnedGeneticsToolsStore', () => {
+describe('usePinnedGeneticsToolsStore (genetics wrapper)', () => {
   beforeEach(() => {
-    window.localStorage.clear()
     usePinnedGeneticsToolsStore.setState({ pinnedIds: [] })
+    usePinnedToolsStore.setState({ pinnedIds: [] })
+    window.localStorage.clear()
   })
 
   afterEach(() => {
     usePinnedGeneticsToolsStore.persist.clearStorage()
+    usePinnedToolsStore.persist.clearStorage()
   })
 
-  it('도구를 고정하고 다시 해제할 수 있다', () => {
-    const { togglePin } = usePinnedGeneticsToolsStore.getState()
+  it('genetics 전용 persist 키를 사용한다', () => {
+    usePinnedGeneticsToolsStore.getState().togglePin('barcoding')
 
-    togglePin('barcoding')
+    expect(window.localStorage.getItem('biohub-pinned-genetics-tools')).not.toBeNull()
+    expect(window.localStorage.getItem('biohub-pinned-bio-tools')).toBeNull()
+  })
+
+  it('bio-tools 스토어와 상태가 격리된다', () => {
+    usePinnedGeneticsToolsStore.getState().togglePin('barcoding')
+
     expect(usePinnedGeneticsToolsStore.getState().pinnedIds).toEqual(['barcoding'])
-    expect(usePinnedGeneticsToolsStore.getState().isPinned('barcoding')).toBe(true)
-
-    togglePin('barcoding')
-    expect(usePinnedGeneticsToolsStore.getState().pinnedIds).toEqual([])
-    expect(usePinnedGeneticsToolsStore.getState().isPinned('barcoding')).toBe(false)
-  })
-
-  it('최대 6개까지만 고정한다', () => {
-    const { togglePin } = usePinnedGeneticsToolsStore.getState()
-
-    for (const toolId of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) {
-      togglePin(toolId)
-    }
-
-    expect(usePinnedGeneticsToolsStore.getState().pinnedIds).toEqual(['a', 'b', 'c', 'd', 'e', 'f'])
-  })
-
-  it('고정된 도구 순서를 다시 배치할 수 있다', () => {
-    usePinnedGeneticsToolsStore.setState({ pinnedIds: ['barcoding', 'phylogeny', 'protein'] })
-
-    usePinnedGeneticsToolsStore.getState().reorderPins('protein', 'barcoding')
-
-    expect(usePinnedGeneticsToolsStore.getState().pinnedIds).toEqual(['protein', 'barcoding', 'phylogeny'])
-  })
-
-  it('persist 저장소에서 고정 순서를 다시 복원한다', async () => {
-    window.localStorage.setItem(
-      'biohub-pinned-genetics-tools',
-      JSON.stringify({
-        state: { pinnedIds: ['barcoding', 'protein', 'phylogeny'] },
-        version: 0,
-      }),
-    )
-
-    usePinnedGeneticsToolsStore.persist.rehydrate()
-    await Promise.resolve()
-
-    expect(usePinnedGeneticsToolsStore.getState().pinnedIds).toEqual(['barcoding', 'protein', 'phylogeny'])
+    expect(usePinnedToolsStore.getState().pinnedIds).toEqual([])
+    expect(usePinnedToolsStore.getState().isPinned('barcoding')).toBe(false)
   })
 })

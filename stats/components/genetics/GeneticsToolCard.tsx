@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowRight, Star } from 'lucide-react'
-import type { CSSProperties, ReactNode } from 'react'
+import { memo, type CSSProperties, type ReactNode } from 'react'
 import { actionCardBase, focusRing } from '@/components/common/card-styles'
 import { usePinnedGeneticsToolsStore } from '@/lib/genetics/pinned-tools-store'
 import { cn } from '@/lib/utils'
@@ -12,13 +12,12 @@ interface GeneticsToolCardProps {
     id: string
     title: string
     href: string
-    ready: boolean
   }
   accentStyle: CSSProperties
   dragHandle?: ReactNode
 }
 
-export function GeneticsToolCard({
+export const GeneticsToolCard = memo(function GeneticsToolCard({
   tool,
   accentStyle,
   dragHandle,
@@ -80,4 +79,4 @@ export function GeneticsToolCard({
       </button>
     </div>
   )
-}
+})

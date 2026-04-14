@@ -342,5 +342,15 @@ describe('DocumentEditor export freshness', () => {
     await waitFor(() => {
       expect(screen.getByText('Citations: 1')).toBeInTheDocument()
     })
+
+    expect(screen.queryByText('Citations: 0')).not.toBeInTheDocument()
+    expect(mockListCitationsByProject).toHaveBeenCalledTimes(3)
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'DOCX 다운로드' }))
+
+    await waitFor(() => {
+      expect(mockDocumentToDocx).toHaveBeenCalledTimes(1)
+    })
+    expect(mockListCitationsByProject).toHaveBeenCalledTimes(3)
   })
 })
