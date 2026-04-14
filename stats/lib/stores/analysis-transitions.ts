@@ -1,5 +1,6 @@
 import {
   DEFAULT_ANALYSIS_OPTIONS,
+  isStatisticalMethodCategory,
   type AIRecommendation,
   type AnalysisOptions,
   type DiagnosticReport,
@@ -97,23 +98,25 @@ export function normalizeSelectedMethod(
     return null
   }
 
-  const normalizedMethod: StatisticalMethod = {
-    id: candidate.id,
-    name: candidate.name,
-    category: candidate.category as StatisticalMethod['category'],
-    description: typeof candidate.description === 'string' ? candidate.description : '',
+  const description = typeof candidate.description === 'string' ? candidate.description : ''
+  const canonical = getMethodByAlias(candidate.id)
+
+  if (canonical && canonical.id !== candidate.id) {
+    return {
+      id: canonical.id,
+      name: candidate.name,
+      category: canonical.category,
+      description: description || canonical.description,
+    }
   }
 
-  const canonical = getMethodByAlias(normalizedMethod.id)
-  if (!canonical || canonical.id === normalizedMethod.id) {
-    return normalizedMethod
-  }
+  if (!isStatisticalMethodCategory(candidate.category)) return null
 
   return {
-    ...normalizedMethod,
-    id: canonical.id,
-    category: canonical.category,
-    description: normalizedMethod.description || canonical.description,
+    id: candidate.id,
+    name: candidate.name,
+    category: candidate.category,
+    description,
   }
 }
 

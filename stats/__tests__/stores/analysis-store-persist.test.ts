@@ -100,6 +100,41 @@ describe('analysis-store persistence and explicit override tracking', () => {
     expect(restored.selectedMethod?.category).toBe('t-test')
   })
 
+  it('rehydrate 시 version < 5 migrate 경로에서도 legacy alias를 canonical로 승격한다', async () => {
+    sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
+      state: {
+        currentStep: 2,
+        completedSteps: [1],
+        analysisPurpose: 'group comparison',
+        uploadedData: null,
+        validationResults: null,
+        selectedMethod: {
+          id: 'anova',
+          name: '일원분산분석',
+          description: '',
+          category: 'anova',
+        },
+        variableMapping: null,
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+        },
+        results: null,
+        uploadedFileName: null,
+      },
+      version: 4,
+    }))
+
+    await act(async () => {
+      await useAnalysisStore.persist.rehydrate()
+    })
+
+    const restored = useAnalysisStore.getState()
+    expect(restored.selectedMethod?.id).toBe('one-way-anova')
+    expect(restored.selectedMethod?.category).toBe('anova')
+  })
+
   it('rehydrate 시 malformed selectedMethod payload는 null로 드롭한다', async () => {
     sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
       state: {

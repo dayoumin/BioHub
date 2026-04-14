@@ -85,24 +85,36 @@ export interface AnalysisConfig {
   parameters?: Record<string, string | number | boolean>
 }
 
+export const STATISTICAL_METHOD_CATEGORIES = [
+  'descriptive',
+  't-test',
+  'anova',
+  'regression',
+  'correlation',
+  'chi-square',
+  'nonparametric',
+  'timeseries',
+  'psychometrics',
+  'design',
+  'survival',
+  'multivariate',
+  'other',
+] as const
+
+export type StatisticalMethodCategory = (typeof STATISTICAL_METHOD_CATEGORIES)[number]
+
+export function isStatisticalMethodCategory(value: unknown): value is StatisticalMethodCategory {
+  return (
+    typeof value === 'string' &&
+    (STATISTICAL_METHOD_CATEGORIES as readonly string[]).includes(value)
+  )
+}
+
 export interface StatisticalMethod {
   id: string
   name: string
   description: string
-  category:
-    | 'descriptive'
-    | 't-test'
-    | 'anova'
-    | 'regression'
-    | 'correlation'
-    | 'chi-square'
-    | 'nonparametric'
-    | 'timeseries'
-    | 'psychometrics'
-    | 'design'
-    | 'survival'
-    | 'multivariate'
-    | 'other'
+  category: StatisticalMethodCategory
   subcategory?: string
   requirements?: {
     minSampleSize?: number

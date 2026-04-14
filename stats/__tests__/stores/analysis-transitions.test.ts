@@ -5,6 +5,7 @@ import {
   createHistoryRestorePatch,
   createHistorySettingsRestorePatch,
   createManualMethodBrowsingPatch,
+  normalizeSelectedMethod,
 } from '@/lib/stores/analysis-transitions'
 
 describe('analysis transition helpers', () => {
@@ -72,6 +73,45 @@ describe('analysis transition helpers', () => {
       currentStep: 4,
       completedSteps: [1, 2, 3],
     }))
+  })
+
+  describe('normalizeSelectedMethod — category union guard', () => {
+    it('unknown id + 비-union category는 null로 드롭한다', () => {
+      const result = normalizeSelectedMethod({
+        id: 'unknown-method-xyz',
+        name: 'Custom',
+        description: '',
+        category: 'not-a-real-category',
+      })
+      expect(result).toBeNull()
+    })
+
+    it('unknown id + 유효한 union category는 그대로 보존한다', () => {
+      const result = normalizeSelectedMethod({
+        id: 'unknown-method-xyz',
+        name: 'Custom',
+        description: '',
+        category: 't-test',
+      })
+      expect(result).toEqual({
+        id: 'unknown-method-xyz',
+        name: 'Custom',
+        description: '',
+        category: 't-test',
+      })
+    })
+
+    it('alias id는 category가 비-union이어도 canonical category로 복원한다', () => {
+      // 의도: alias 승격 경로는 canonical category로 덮어쓰므로, 사용자의 잘못된 category는 자연 치유된다.
+      const result = normalizeSelectedMethod({
+        id: 't-test',
+        name: '독립표본 t-검정',
+        description: '',
+        category: 'garbage-category',
+      })
+      expect(result?.id).toBe('two-sample-t')
+      expect(result?.category).toBe('t-test')
+    })
   })
 
   it('createHistorySettingsRestorePatch resets the live dataset and restarts from Step 1', () => {
