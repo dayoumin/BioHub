@@ -761,6 +761,26 @@ export function getMethodByAlias(alias: string): StatisticalMethodEntry | null {
 }
 
 /**
+ * Promote a `StatisticalMethod` to its canonical form:
+ * - `id`/`category`를 canonical entry 기준으로 덮어쓴다 (alias → canonical 승격).
+ * - `description`이 비어 있으면 canonical description으로 채운다.
+ * - canonical 엔트리가 없으면 입력을 그대로 반환.
+ *
+ * `normalizeSelectedMethod` (analysis-transitions) 및 `normalizeWelchAnovaMethod`
+ * (welch-anova-variant)이 공유하는 canonical 승격 primitive.
+ */
+export function promoteMethodToCanonical(method: StatisticalMethod): StatisticalMethod {
+  const canonical = getMethodByAlias(method.id)
+  if (!canonical) return method
+  return {
+    ...method,
+    id: canonical.id,
+    category: canonical.category,
+    description: method.description || canonical.description,
+  }
+}
+
+/**
  * Get all methods that share a page route
  */
 export function getMethodsByPage(pageId: string): StatisticalMethodEntry[] {

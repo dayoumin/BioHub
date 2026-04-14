@@ -8,7 +8,7 @@ import {
   type StatisticalAssumptions,
   type SuggestedSettings,
 } from '@/types/analysis'
-import { getMethodByAlias } from '@/lib/constants/statistical-methods'
+import { getMethodByAlias, promoteMethodToCanonical } from '@/lib/constants/statistical-methods'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import type { AnalysisState, DetectedVariables } from './analysis-store'
 import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
@@ -101,23 +101,18 @@ export function normalizeSelectedMethod(
   const description = typeof candidate.description === 'string' ? candidate.description : ''
   const canonical = getMethodByAlias(candidate.id)
 
-  if (canonical && canonical.id !== candidate.id) {
-    return {
-      id: canonical.id,
-      name: candidate.name,
-      category: canonical.category,
-      description: description || canonical.description,
-    }
-  }
+  if (!canonical && !isStatisticalMethodCategory(candidate.category)) return null
 
-  if (!isStatisticalMethodCategory(candidate.category)) return null
-
-  return {
+  const base: StatisticalMethod = {
     id: candidate.id,
     name: candidate.name,
-    category: candidate.category,
+    category: canonical
+      ? canonical.category
+      : (candidate.category as StatisticalMethod['category']),
     description,
   }
+
+  return promoteMethodToCanonical(base)
 }
 
 export function createHistoryRestorePatch(data: HistoryLoadResult): AnalysisTransitionPatch {

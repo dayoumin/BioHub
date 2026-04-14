@@ -20,7 +20,9 @@ import {
   methodHasOwnPage,
   getKoreanName,
   getKoreanDescription,
+  promoteMethodToCanonical,
 } from '@/lib/constants/statistical-methods'
+import type { StatisticalMethod } from '@/types/analysis'
 
 describe('statistical-methods.ts', () => {
   // ============================================
@@ -338,5 +340,61 @@ describe('statistical-methods.ts', () => {
         expect(method?.id).toBe(expected)
       }
     )
+  })
+
+  // ============================================
+  // 11. promoteMethodToCanonical (alias → canonical 승격 primitive)
+  // ============================================
+  describe('promoteMethodToCanonical', () => {
+    it('alias id는 canonical id/category로 승격하고 description은 유지한다', () => {
+      const input: StatisticalMethod = {
+        id: 't-test',
+        name: '독립표본 t-검정',
+        category: 't-test',
+        description: '사용자 설명',
+      }
+      const result = promoteMethodToCanonical(input)
+      expect(result.id).toBe('two-sample-t')
+      expect(result.category).toBe('t-test')
+      expect(result.name).toBe('독립표본 t-검정')
+      expect(result.description).toBe('사용자 설명')
+    })
+
+    it('alias id + 빈 description은 canonical description으로 백필한다', () => {
+      const input: StatisticalMethod = {
+        id: 'anova',
+        name: 'ANOVA',
+        category: 'anova',
+        description: '',
+      }
+      const result = promoteMethodToCanonical(input)
+      expect(result.id).toBe('one-way-anova')
+      expect(result.description.length).toBeGreaterThan(0)
+      expect(result.description).not.toBe('')
+    })
+
+    it('이미 canonical인 id + 비어있지 않은 description은 입력과 동등한 결과를 반환한다', () => {
+      const input: StatisticalMethod = {
+        id: 'two-sample-t',
+        name: '독립표본 t-검정',
+        category: 't-test',
+        description: '이미 채워진 설명',
+      }
+      const result = promoteMethodToCanonical(input)
+      expect(result.id).toBe('two-sample-t')
+      expect(result.category).toBe('t-test')
+      expect(result.description).toBe('이미 채워진 설명')
+    })
+
+    it('canonical 엔트리가 없는 id는 입력을 그대로 반환한다 (참조 동등성 보장)', () => {
+      const input: StatisticalMethod = {
+        id: 'unknown-method-xyz',
+        name: 'Custom',
+        category: 't-test',
+        description: '',
+      }
+      const result = promoteMethodToCanonical(input)
+      expect(result).toBe(input)
+    })
   })
 })
