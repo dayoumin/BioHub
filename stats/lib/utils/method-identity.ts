@@ -34,7 +34,7 @@ function resolveWelchDisplayName(
       : WELCH_ANOVA_DISPLAY_NAME
   }
 
-  if (canonicalMethodId === 'welch-t' || canonicalMethodId === 'two-sample-t' || canonicalMethodId === 't-test') {
+  if (canonicalMethodId === 'welch-t' || canonicalMethodId === 'two-sample-t') {
     return /welch\s+t-?test/i.test(currentDisplayName)
       ? currentDisplayName
       : WELCH_T_DISPLAY_NAME
@@ -53,7 +53,7 @@ function resolveVariantLabel(
     if (canonicalMethodId === 'one-way-anova') {
       return WELCH_ANOVA_DISPLAY_NAME
     }
-    if (canonicalMethodId === 'welch-t' || canonicalMethodId === 'two-sample-t' || canonicalMethodId === 't-test') {
+    if (canonicalMethodId === 'welch-t' || canonicalMethodId === 'two-sample-t') {
       return WELCH_T_VARIANT_LABEL
     }
     return 'Welch variant'

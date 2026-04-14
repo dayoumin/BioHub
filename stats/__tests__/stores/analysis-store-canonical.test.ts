@@ -72,4 +72,19 @@ describe('analysis-store canonical method id invariant', () => {
 
     expect(useAnalysisStore.getState().selectedMethod).toBeNull()
   })
+
+  it('alias 정규화 시 원본 name은 보존되고 canonical entry의 name으로 덮어쓰지 않는다', () => {
+    act(() => {
+      useAnalysisStore.getState().setSelectedMethod({
+        id: 'anova',
+        name: '사용자 지정 라벨',
+        description: '',
+        category: 'anova',
+      })
+    })
+
+    const stored = useAnalysisStore.getState().selectedMethod
+    expect(stored?.id).toBe('one-way-anova')
+    expect(stored?.name).toBe('사용자 지정 라벨')
+  })
 })

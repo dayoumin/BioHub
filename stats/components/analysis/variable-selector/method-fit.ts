@@ -64,7 +64,6 @@ export function canAssignToSlot(
 
 const EXACT_TWO_LEVEL_FACTOR_METHODS = new Set([
   'two-sample-t',
-  't-test',
   'welch-t',
   'mann-whitney',
 ])
