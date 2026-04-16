@@ -14,6 +14,7 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { BetaDiversityResult } from '@/types/bio-tools-results'
@@ -89,7 +90,7 @@ const BetaDiversityTool = memo(function BetaDiversityTool({ tool, meta, initialE
             거리행렬 ({METRIC_LABELS[results.metric as MetricOption] ?? results.metric})
           </h3>
 
-          <div className="overflow-auto border rounded-lg">
+          <div className={BIOLOGY_TABLE_SHELL}>
             <table className="text-sm">
               <thead>
                 <tr className={cn('border-b', BIO_TABLE.headerBg)}>

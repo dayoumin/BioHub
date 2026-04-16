@@ -12,6 +12,7 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables, ALPHA_INDEX_LABELS } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { AlphaDiversityResult } from '@/types/bio-tools-results'
@@ -72,7 +73,7 @@ const AlphaDiversityTool = memo(function AlphaDiversityTool({ tool, meta, initia
           >
           <div>
             <h3 className="text-sm font-semibold mb-2">지점별 다양성 지수</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -105,7 +106,7 @@ const AlphaDiversityTool = memo(function AlphaDiversityTool({ tool, meta, initia
           {results.summaryTable.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold mb-2">요약 통계</h3>
-              <div className="overflow-auto border rounded-lg">
+              <div className={BIOLOGY_TABLE_SHELL}>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className={cn('border-b', BIO_TABLE.headerBg)}>

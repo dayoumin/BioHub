@@ -152,9 +152,9 @@ export default function BarcodingContent(): React.ReactElement {
       </div>
 
       {deepLinkError && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
-          <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">분석 기록 복원 실패</h2>
-          <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
+        <div className="mb-6 rounded-[1.5rem] bg-warning-bg p-6" role="alert">
+          <h2 className="mb-2 font-semibold text-warning">분석 기록 복원 실패</h2>
+          <p className="mb-4 text-sm text-warning-muted">{deepLinkError}</p>
           <Button
             variant="outline"
             onClick={() => {
@@ -208,11 +208,11 @@ export default function BarcodingContent(): React.ReactElement {
 
       {state.step === 'error' && (
         <div className="space-y-4" role="alert">
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6">
+          <div className="rounded-[1.5rem] bg-error-bg p-6">
             <h2 className="mb-2 font-semibold text-destructive">분석 오류</h2>
             <p className="text-sm text-destructive/80">{state.message}</p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className="rounded-[1.5rem] bg-surface-container-low p-4">
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">해결 방법</h3>
             <ul className="space-y-1 text-xs text-muted-foreground/80">
               {state.code === 'network' ? (

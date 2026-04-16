@@ -20,6 +20,7 @@ import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
+import { BIOLOGY_INSET_PANEL, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -145,7 +146,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
           {/* 통합 결과 테이블 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">통합 결과</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -202,7 +203,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
           {/* Forest Plot */}
           <div>
             <h3 className="text-sm font-semibold mb-2">Forest Plot</h3>
-            <div className="border rounded-lg p-4 bg-card space-y-1">
+            <div className={cn(BIOLOGY_INSET_PANEL, 'space-y-1')}>
               {/* 헤더 */}
               <div className="flex items-center text-xs text-muted-foreground mb-2 px-1">
                 <span className="w-28 flex-shrink-0">연구</span>
@@ -298,7 +299,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
           {/* 개별 연구 상세 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">개별 연구</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>

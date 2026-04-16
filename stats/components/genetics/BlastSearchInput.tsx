@@ -8,7 +8,7 @@ import { BLAST_DB_BY_PROGRAM, BLAST_DEFAULT_DB, BLAST_PROGRAM_LABELS, BLAST_DB_L
 import { validateBlastSequence, isDnaProgram, cleanSequence, cleanProteinSequence } from '@/lib/genetics/validate-sequence'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Button } from '@/components/ui/button'
-import { focusRing } from '@/components/common/card-styles'
+import { BIOLOGY_INPUT, BIOLOGY_PANEL_SOFT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 
 const PROGRAMS: BlastProgram[] = ['blastn', 'blastp', 'blastx', 'tblastn', 'tblastx']
 
@@ -169,8 +169,8 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                 onClick={() => handleProgramChange(p)}
                 className={`${
                   program === p
-                    ? 'border-primary bg-primary/5 font-medium text-primary hover:bg-primary/5'
-                    : 'text-muted-foreground hover:border-primary/30'
+                    ? 'border-0 bg-surface-container-high font-medium text-[color:var(--section-accent-bio)] hover:bg-surface-container-high'
+                    : 'border-0 bg-surface-container-low text-muted-foreground hover:bg-surface-container hover:text-foreground'
                 }`}
               >
                 <span className="font-mono text-xs">{info.name}</span>
@@ -200,8 +200,8 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
               onClick={() => setDatabase(db)}
               className={`text-xs ${
                 database === db
-                  ? 'border-primary bg-primary/5 font-medium text-primary hover:bg-primary/5'
-                  : 'text-muted-foreground hover:border-primary/30'
+                  ? 'border-0 bg-surface-container-high font-medium text-[color:var(--section-accent-bio)] hover:bg-surface-container-high'
+                  : 'border-0 bg-surface-container-low text-muted-foreground hover:bg-surface-container hover:text-foreground'
               }`}
             >
               {db}
@@ -224,7 +224,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              className="h-7 w-7 text-muted-foreground hover:bg-surface-container-low hover:text-[color:var(--section-accent-bio)]"
               onClick={() => fileInputRef.current?.click()}
               title="FASTA 파일 업로드"
             >
@@ -235,7 +235,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                className="h-7 w-7 text-muted-foreground hover:bg-surface-container-low hover:text-destructive"
                 onClick={() => { setSequence(''); setUploadedFileName(null) }}
                 title="서열 지우기"
               >
@@ -252,7 +252,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
           />
         </div>
         {uploadedFileName && (
-          <p className="mb-1 text-xs text-green-600 dark:text-green-400">{uploadedFileName} 로드 완료</p>
+          <p className="mb-1 text-xs text-[color:var(--section-accent-bio)]">{uploadedFileName} 로드 완료</p>
         )}
         <textarea
           id="blast-sequence"
@@ -260,7 +260,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
           onChange={(e) => { setSequence(e.target.value); if (uploadedFileName) setUploadedFileName(null) }}
           placeholder={placeholder}
           rows={6}
-          className={`max-h-[300px] min-h-[120px] w-full resize-y overflow-y-auto rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm ${focusRing}`}
+          className={`${BIOLOGY_TEXTAREA} max-h-[300px] min-h-[120px] overflow-y-auto`}
         />
         {displayValidation && (
           <div className="mt-1.5 space-y-0.5">
@@ -268,7 +268,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
               <p key={i} className="text-sm text-destructive">{err}</p>
             ))}
             {displayValidation.warnings.map((w, i) => (
-              <p key={i} className="text-sm text-amber-600 dark:text-amber-400">{w}</p>
+              <p key={i} className="text-sm text-warning">{w}</p>
             ))}
             {displayValidation.valid && (
               <p className="text-sm text-muted-foreground">
@@ -293,7 +293,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                   handleProgramChange(ex.program)
                   setDatabase(ex.db)
                 }}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-primary"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-surface-container-low px-2.5 py-1.5 text-xs text-muted-foreground transition-colors duration-200 hover:bg-surface-container hover:text-[color:var(--section-accent-bio)]"
               >
                 <Play className="h-3 w-3" />
                 <span className="font-medium">{ex.label}</span>
@@ -316,7 +316,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
         </button>
 
         {showAdvanced && (
-          <div className="mt-3 grid gap-4 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-3">
+          <div className={`mt-3 grid gap-4 p-4 sm:grid-cols-3 ${BIOLOGY_PANEL_SOFT}`}>
             <div>
               <label htmlFor="expect" className="mb-1 block text-xs font-medium text-muted-foreground">
                 E-value 임계값
@@ -325,7 +325,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                 id="expect"
                 value={expect}
                 onChange={(e) => setExpect(Number(e.target.value))}
-                className={`w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm ${focusRing}`}
+                className={BIOLOGY_INPUT}
               >
                 {[0.001, 0.01, 0.1, 1, 10, 100].map(v => (
                   <option key={v} value={v}>{v}</option>
@@ -341,7 +341,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                 id="hitlist"
                 value={hitlistSize}
                 onChange={(e) => setHitlistSize(Number(e.target.value))}
-                className={`w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm ${focusRing}`}
+                className={BIOLOGY_INPUT}
               >
                 {[10, 25, 50, 100, 250, 500].map(v => (
                   <option key={v} value={v}>{v}개</option>
@@ -356,7 +356,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                   type="checkbox"
                   checked={megablast}
                   onChange={(e) => setMegablast(e.target.checked)}
-                  className="h-4 w-4 rounded border-border"
+                  className="h-4 w-4 rounded border-0 bg-surface-container-low"
                 />
                 <label htmlFor="megablast" className="text-xs font-medium text-muted-foreground">
                   Megablast (빠른 검색)

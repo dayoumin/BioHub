@@ -3,10 +3,14 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Clock } from 'lucide-react'
-import type { CSSProperties } from 'react'
 import { SortablePinnedCardGrid } from '@/components/common/SortablePinnedCardGrid'
 import { GeneticsToolCard } from '@/components/genetics/GeneticsToolCard'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
+import {
+  GENETICS_ACCENT_TEXT,
+  GENETICS_HUB_ACTIVE_CARD_STYLE,
+  GENETICS_HUB_PANEL_STYLE,
+} from '@/lib/design-tokens/genetics'
 import {
   HISTORY_CHANGE_EVENT,
   HISTORY_KEY,
@@ -164,20 +168,6 @@ const HISTORY_TOOL_TO_TOOL_ID: Record<GeneticsToolType, string> = {
   protein: 'protein',
 }
 
-const GENETICS_ACCENT_VAR = '--section-accent-hub' as const
-
-const GENETICS_ACCENT_TEXT = {
-  color: `var(${GENETICS_ACCENT_VAR})`,
-} as const satisfies CSSProperties
-
-const GENETICS_PANEL_STYLE = {
-  backgroundColor: 'var(--surface-container-low)',
-} as const satisfies CSSProperties
-
-const GENETICS_ACTIVE_CATEGORY_STYLE = {
-  backgroundColor: `color-mix(in srgb, var(${GENETICS_ACCENT_VAR}) 14%, var(--surface-container-high))`,
-} as const satisfies CSSProperties
-
 export default function GeneticsHome(): React.ReactElement {
   const [activeCategory, setActiveCategory] = useState<ToolCategoryId>('identification')
   const pinnedIds = usePinnedGeneticsToolsStore((state) => state.pinnedIds)
@@ -295,7 +285,7 @@ export default function GeneticsHome(): React.ReactElement {
         <div>
           <h2 className="text-base font-semibold text-foreground/90">분석 흐름을 고르세요</h2>
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
           {TOOL_CATEGORIES.map((category) => (
             <CategoryCard
               key={category.id}
@@ -347,31 +337,31 @@ function CategoryCard({
       type="button"
       onClick={() => onSelect(category.id)}
       className={cn(
-        'flex h-full min-h-[88px] rounded-[1.25rem] bg-surface-container-lowest px-5 py-4 text-left transition-colors duration-200 hover:bg-surface-container-low',
+        'flex h-full min-h-[72px] rounded-[1rem] bg-surface-container-lowest px-4 py-3 text-left transition-colors duration-200 hover:bg-surface-container-low',
         active ? 'shadow-none' : 'bg-surface-container-lowest',
       )}
-      style={active ? GENETICS_ACTIVE_CATEGORY_STYLE : undefined}
+      style={active ? GENETICS_HUB_ACTIVE_CARD_STYLE : undefined}
       aria-pressed={active}
       aria-current={active ? 'true' : undefined}
     >
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <span
-            className={cn(
-              'text-base font-semibold tracking-tight',
-              active ? 'text-foreground' : 'text-foreground/90',
-            )}
-          >
-            {category.label}
-          </span>
-        </div>
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
         <span
           className={cn(
-            'mt-1.5 text-xs font-medium',
-            active ? 'text-foreground/70' : 'text-muted-foreground/70',
+            'truncate text-sm font-semibold tracking-tight',
+            active ? 'text-foreground' : 'text-foreground/90',
           )}
         >
-          도구 {category.toolIds.length}개
+          {category.label}
+        </span>
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium',
+            active
+              ? 'bg-surface-container-lowest/80 text-foreground/75'
+              : 'bg-surface-container-low text-muted-foreground/75',
+          )}
+        >
+          {category.toolIds.length}개
         </span>
       </div>
     </button>
@@ -383,7 +373,7 @@ function RecentToolCard({ item }: { item: RecentToolItem }): React.ReactElement 
     <Link href={item.href} className="block h-full">
       <div
         className="group flex h-full flex-col gap-3 rounded-[1.5rem] p-5 transition-colors duration-200 hover:bg-surface-container"
-        style={GENETICS_PANEL_STYLE}
+        style={GENETICS_HUB_PANEL_STYLE}
       >
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold tracking-tight text-foreground/90">{item.title}</h3>
@@ -410,7 +400,7 @@ function SupportPanel(): React.ReactElement | null {
   return (
     <section
       className="flex flex-col gap-4 rounded-[1.75rem] p-6 lg:flex-row lg:items-start lg:justify-between"
-      style={GENETICS_PANEL_STYLE}
+      style={GENETICS_HUB_PANEL_STYLE}
     >
       <div className="max-w-2xl">
         <h2 className="text-sm font-semibold text-foreground/90">집단 유전학 도구는 Bio-Tools에서 제공합니다.</h2>

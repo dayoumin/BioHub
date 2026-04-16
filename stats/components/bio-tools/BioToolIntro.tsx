@@ -5,6 +5,13 @@ import { cn } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import type { BioToolExtendedMeta } from '@/lib/bio-tools/bio-tool-registry'
 import { BIO_ACCENT_VAR } from './bio-styles'
+import {
+  BIOLOGY_PANEL,
+  BIOLOGY_PANEL_SOFT,
+  BIOLOGY_TABLE_BODY_ROW,
+  BIOLOGY_TABLE_HEAD_ROW,
+  BIOLOGY_TABLE_SHELL,
+} from '@/lib/design-tokens/biology'
 
 interface BioToolIntroProps {
   meta: BioToolExtendedMeta
@@ -27,35 +34,40 @@ export const BioToolIntro = memo(function BioToolIntro({
   return (
     <div
       className={cn(
-        'rounded-lg border bg-card overflow-hidden',
-        'border-l-[3px]',
+        BIOLOGY_PANEL,
+        'overflow-hidden',
         className,
       )}
-      style={{ borderLeftColor: `var(${BIO_ACCENT_VAR})` }}
     >
       {/* 1줄 요약 — 항상 표시, 클릭으로 토글 */}
       <button
         type="button"
         onClick={() => setExpanded(prev => !prev)}
         aria-expanded={showDetails}
-        className="w-full flex items-start gap-2 px-4 py-2.5 text-left hover:bg-muted/20 transition-colors"
+        className="flex w-full items-start gap-2 px-4 py-3 text-left transition-colors hover:bg-surface-container-low"
       >
-        <ChevronRight
-          className={cn(
-            'w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-muted-foreground/40 transition-transform duration-200',
-            showDetails && 'rotate-90',
-          )}
+        <span
+          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ backgroundColor: `var(${BIO_ACCENT_VAR})` }}
         />
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {meta.descriptionLong}
-        </p>
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
+            {meta.descriptionLong}
+          </p>
+          <ChevronRight
+            className={cn(
+              'mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-transform duration-200',
+              showDetails && 'rotate-90',
+            )}
+          />
+        </div>
       </button>
 
       {/* 상세 가이드 — 펼침 시만 표시 */}
       {showDetails && (
-        <div className="px-4 pb-3 pt-0 space-y-3 border-t border-border/30">
+        <div className="space-y-3 px-4 pb-4 pt-1">
           {meta.outputHighlights.length > 0 && (
-            <div className="pt-2.5">
+            <div className={cn(BIOLOGY_PANEL_SOFT, 'p-4')}>
               <h4 className="text-xs font-semibold text-muted-foreground mb-1.5">
                 이런 결과를 얻을 수 있어요
               </h4>
@@ -74,14 +86,14 @@ export const BioToolIntro = memo(function BioToolIntro({
           )}
 
           {meta.columns.length > 0 && (
-            <div>
+            <div className={cn(BIOLOGY_PANEL_SOFT, 'p-4')}>
               <h4 className="text-xs font-semibold text-muted-foreground mb-1.5">
                 필요한 데이터 형식
               </h4>
-              <div className="overflow-auto rounded-md border">
+              <div className={BIOLOGY_TABLE_SHELL}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/40">
+                    <tr className={BIOLOGY_TABLE_HEAD_ROW}>
                       <th className="text-left px-3 py-1.5 text-xs font-medium text-muted-foreground">
                         컬럼
                       </th>
@@ -95,7 +107,7 @@ export const BioToolIntro = memo(function BioToolIntro({
                   </thead>
                   <tbody>
                     {meta.columns.map((col) => (
-                      <tr key={col.label} className="border-b last:border-b-0">
+                      <tr key={col.label} className={BIOLOGY_TABLE_BODY_ROW}>
                         <td className="px-3 py-1.5 text-sm font-medium">{col.label}</td>
                         <td className="text-center px-2 py-1.5">
                           <span

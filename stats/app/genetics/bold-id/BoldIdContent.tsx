@@ -17,6 +17,7 @@ import {
   loadGeneticsHistory,
   hydrateGeneticsHistoryFromCloud,
 } from '@/lib/genetics/analysis-history'
+import { BIOLOGY_CALLOUT_ERROR, BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT, BIOLOGY_PANEL_SOFT } from '@/lib/design-tokens/biology'
 import type { BoldHistoryEntry } from '@/lib/genetics/analysis-history'
 import { consumeTransferredSequence, formatTransferSource } from '@/lib/genetics/sequence-transfer'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
@@ -128,9 +129,9 @@ export default function BoldIdContent(): React.ReactElement {
       </div>
 
       {deepLinkError && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
-          <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">분석 기록 복원 실패</h2>
-          <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
+        <div className={`mb-6 ${BIOLOGY_CALLOUT_WARNING}`} role="alert">
+          <h2 className="mb-2 font-semibold text-warning">분석 기록 복원 실패</h2>
+          <p className="mb-4 text-sm text-warning-muted">{deepLinkError}</p>
           <Button variant="outline" onClick={() => { setDeepLinkError(null); setState({ step: 'input' }) }}>
             새 분석 시작
           </Button>
@@ -148,7 +149,7 @@ export default function BoldIdContent(): React.ReactElement {
               <select
                 value={db}
                 onChange={(e) => setDb(e.target.value as BoldDatabase)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className={BIOLOGY_INPUT}
               >
                 {Object.entries(BOLD_DB_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
@@ -162,7 +163,7 @@ export default function BoldIdContent(): React.ReactElement {
               <select
                 value={searchMode}
                 onChange={(e) => setSearchMode(e.target.value as BoldSearchMode)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className={BIOLOGY_INPUT}
               >
                 {Object.entries(BOLD_SEARCH_PRESETS).map(([value, preset]) => (
                   <option key={value} value={value}>
@@ -214,11 +215,11 @@ export default function BoldIdContent(): React.ReactElement {
 
       {state.step === 'error' && (
         <div className="space-y-4" role="alert">
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6">
+          <div className={BIOLOGY_CALLOUT_ERROR}>
             <h2 className="mb-2 font-semibold text-destructive">분석 오류</h2>
             <p className="text-sm text-destructive/80">{state.message}</p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className={`${BIOLOGY_PANEL_SOFT} p-4`}>
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">해결 방법</h3>
             <ul className="space-y-1 text-xs text-muted-foreground/80">
               {state.code === 'network' ? (

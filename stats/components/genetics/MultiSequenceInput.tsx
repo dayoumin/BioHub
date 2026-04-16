@@ -7,8 +7,8 @@ import { toast } from 'sonner'
 import { parseMultiFasta, type ParsedSequence } from '@/lib/genetics/multi-fasta-parser'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/genetics/CopyButton'
-import { focusRing } from '@/components/common/card-styles'
 import { useDebounce } from '@/hooks/useDebounce'
+import { BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 
 interface MultiSequenceInputProps {
   /** Raw text (multi-FASTA or plain sequences) */
@@ -89,7 +89,7 @@ export function MultiSequenceInput({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label htmlFor="multi-seq" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="multi-seq" className="block text-sm font-medium text-foreground">
             {label}
           </label>
           <div className="flex items-center gap-1">
@@ -97,7 +97,7 @@ export function MultiSequenceInput({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+              className="h-7 w-7 text-muted-foreground hover:bg-surface-container-low hover:text-[color:var(--section-accent-bio)]"
               onClick={() => fileInputRef.current?.click()}
               title="FASTA 파일 업로드"
             >
@@ -109,7 +109,7 @@ export function MultiSequenceInput({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                className="h-7 w-7 text-muted-foreground hover:bg-surface-container-low hover:text-destructive"
                 onClick={() => {
                   onChange('')
                   onUploadedFileNameChange(null)
@@ -129,7 +129,7 @@ export function MultiSequenceInput({
           />
         </div>
         {uploadedFileName && (
-          <p className="mb-1 text-xs text-green-600">{uploadedFileName} 로드 완료</p>
+          <p className="mb-1 text-xs text-[color:var(--section-accent-bio)]">{uploadedFileName} 로드 완료</p>
         )}
         <textarea
           id="multi-seq"
@@ -140,26 +140,26 @@ export function MultiSequenceInput({
           }}
           placeholder={placeholder}
           rows={10}
-          className={`max-h-[400px] min-h-[180px] w-full resize-y overflow-y-auto rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm ${focusRing}`}
+          className={`${BIOLOGY_TEXTAREA} max-h-[400px] min-h-[180px] overflow-y-auto`}
         />
 
         {/* Real-time stats */}
         {value.trim() && (
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-            <span className={`font-medium ${hasEnough ? 'text-green-600' : 'text-amber-600'}`}>
+            <span className={`font-medium ${hasEnough ? 'text-[color:var(--section-accent-bio)]' : 'text-warning'}`}>
               {displayParsed.length}개 서열
               {!hasEnough && ` (최소 ${minSequences}개 필요)`}
             </span>
             {displayParsed.length > 0 && (
               <>
-                <span className="text-gray-400">·</span>
-                <span className="text-gray-500">평균 {meanLength} bp</span>
-                <span className="text-gray-400">·</span>
-                <span className="text-gray-500">총 {totalLength.toLocaleString()} bp</span>
+                <span className="text-muted-foreground/50">·</span>
+                <span className="text-muted-foreground">평균 {meanLength} bp</span>
+                <span className="text-muted-foreground/50">·</span>
+                <span className="text-muted-foreground">총 {totalLength.toLocaleString()} bp</span>
               </>
             )}
             {isStale && (
-              <span className="text-xs text-gray-400">(분석 중...)</span>
+              <span className="text-xs text-muted-foreground/70">(분석 중...)</span>
             )}
           </div>
         )}
@@ -169,11 +169,10 @@ export function MultiSequenceInput({
         분석 시작
       </Button>
       {!value.trim() && (
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-muted-foreground/70">
           Multi-FASTA 형식으로 서열을 입력하거나 파일을 업로드하세요
         </p>
       )}
     </form>
   )
 }
-

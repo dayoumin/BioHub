@@ -13,6 +13,7 @@ import {
 import type { PhylogenyHistoryEntry } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { BIOLOGY_CALLOUT_ERROR, BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT } from '@/lib/design-tokens/biology'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -127,9 +128,9 @@ export default function PhylogenyContent(): React.ReactElement {
       </div>
 
       {deepLinkError && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
-          <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">기록 복원 실패</h2>
-          <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
+        <div className={`mb-6 ${BIOLOGY_CALLOUT_WARNING}`} role="alert">
+          <h2 className="mb-2 font-semibold text-warning">기록 복원 실패</h2>
+          <p className="mb-4 text-sm text-warning-muted">{deepLinkError}</p>
           <Button variant="outline" onClick={() => { setDeepLinkError(null) }}>새 분석 시작</Button>
         </div>
       )}
@@ -138,8 +139,8 @@ export default function PhylogenyContent(): React.ReactElement {
         <div className="space-y-4">
           <div className="flex flex-wrap gap-4">
             <div className="min-w-[200px] flex-1">
-              <label htmlFor="analysisName" className="mb-1 block text-sm font-medium text-gray-700">
-                분석명 <span className="font-normal text-gray-400">(선택)</span>
+              <label htmlFor="analysisName" className="mb-1 block text-sm font-medium text-foreground">
+                분석명 <span className="font-normal text-muted-foreground">(선택)</span>
               </label>
               <input
                 id="analysisName"
@@ -148,32 +149,32 @@ export default function PhylogenyContent(): React.ReactElement {
                 onChange={(e) => setAnalysisName(e.target.value)}
                 placeholder="예: COI 10종 계통수"
                 maxLength={100}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary"
+                className={BIOLOGY_INPUT}
               />
             </div>
             <div className="w-36">
-              <label htmlFor="method" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="method" className="mb-1 block text-sm font-medium text-foreground">
                 트리 방법
               </label>
               <select
                 id="method"
                 value={method}
                 onChange={(e) => setMethod(e.target.value as PhylogenyMethod)}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={BIOLOGY_INPUT}
               >
                 <option value="NJ">Neighbor-Joining</option>
                 <option value="UPGMA">UPGMA</option>
               </select>
             </div>
             <div className="w-48">
-              <label htmlFor="distanceModel" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="distanceModel" className="mb-1 block text-sm font-medium text-foreground">
                 거리 모델
               </label>
               <select
                 id="distanceModel"
                 value={distanceModel}
                 onChange={(e) => setDistanceModel(e.target.value as DistanceModel)}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={BIOLOGY_INPUT}
               >
                 <option value="K2P">Kimura 2-Parameter</option>
                 <option value="p-distance">p-distance</option>
@@ -201,9 +202,9 @@ export default function PhylogenyContent(): React.ReactElement {
       )}
 
       {state.step === 'error' && (
-        <div className="rounded-lg border border-red-500/30 bg-red-50/50 p-6 dark:bg-red-950/20" role="alert">
-          <h2 className="mb-2 font-semibold text-red-800 dark:text-red-300">분석 오류</h2>
-          <p className="mb-4 text-sm text-red-700 dark:text-red-400">{state.message}</p>
+        <div className={BIOLOGY_CALLOUT_ERROR} role="alert">
+          <h2 className="mb-2 font-semibold text-error">분석 오류</h2>
+          <p className="mb-4 text-sm text-error/80">{state.message}</p>
           <Button variant="outline" onClick={handleReset}>다시 시도</Button>
         </div>
       )}

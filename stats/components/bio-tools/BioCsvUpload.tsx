@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { uploadZoneClassName, UploadDropZoneContent } from '@/components/common/UploadDropZone'
 import { toast } from 'sonner'
+import { BIOLOGY_PANEL_SOFT } from '@/lib/design-tokens/biology'
 
 export interface CsvData {
   headers: string[]
@@ -137,7 +138,7 @@ export const BioCsvUpload = memo(function BioCsvUpload({
 
   if (fileName) {
     return (
-      <div className={cn('flex items-center gap-3 p-4 rounded-2xl border border-border bg-card', className)}>
+      <div className={cn(BIOLOGY_PANEL_SOFT, 'flex items-center gap-3 p-4', className)}>
         <FileSpreadsheet className="w-5 h-5 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{fileName}</p>
@@ -167,8 +168,7 @@ export const BioCsvUpload = memo(function BioCsvUpload({
 
       {/* 예제 데이터 버튼 */}
       {exampleDataPath && (
-        <div className="flex items-center gap-2 mt-2">
-          <div className="flex-1 border-t border-border/50" />
+        <div className="mt-2 flex justify-center">
           <button
             type="button"
             onClick={handleLoadExample}
@@ -186,7 +186,6 @@ export const BioCsvUpload = memo(function BioCsvUpload({
             )}
             {exampleLabel ?? '예제 데이터로 시작'}
           </button>
-          <div className="flex-1 border-t border-border/50" />
         </div>
       )}
 

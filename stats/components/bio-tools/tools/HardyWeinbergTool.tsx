@@ -17,6 +17,7 @@ import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
+import { BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
@@ -201,7 +202,7 @@ const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialE
 
           <div>
             <h3 className="text-sm font-semibold mb-2">관측 vs 기대 빈도</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -226,7 +227,7 @@ const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialE
           <p className="text-sm text-muted-foreground">{results.interpretation}</p>
 
           {results.lowExpectedWarning && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-warning">
               기대빈도 &lt; 5인 셀이 있어 chi-square 근사가 부정확할 수 있습니다. Exact test p-value를 판정 기준으로 사용합니다.
             </p>
           )}
@@ -234,7 +235,7 @@ const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialE
           {results.locusResults && results.locusResults.length > 1 && (
             <div>
               <h3 className="text-sm font-semibold mb-2">유전자좌별 결과</h3>
-              <div className="overflow-auto border rounded-lg">
+              <div className={BIOLOGY_TABLE_SHELL}>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className={cn('border-b', BIO_TABLE.headerBg)}>

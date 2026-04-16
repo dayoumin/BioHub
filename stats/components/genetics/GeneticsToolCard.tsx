@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight, Star } from 'lucide-react'
 import { memo, type CSSProperties, type ReactNode } from 'react'
-import { actionCardBase, focusRing } from '@/components/common/card-styles'
+import { actionCardBioBase, focusRingBio } from '@/components/common/card-styles'
 import { usePinnedGeneticsToolsStore } from '@/lib/genetics/pinned-tools-store'
 import { cn } from '@/lib/utils'
 
@@ -50,7 +50,7 @@ export const GeneticsToolCard = memo(function GeneticsToolCard({
       <Link
         href={tool.href}
         className={cn(
-          actionCardBase,
+          actionCardBioBase,
           'group w-full min-h-[120px] items-stretch justify-between rounded-[1.5rem] p-5 text-left !gap-0',
         )}
       >
@@ -64,7 +64,7 @@ export const GeneticsToolCard = memo(function GeneticsToolCard({
         onClick={handlePinClick}
         className={cn(
           'absolute right-3 top-3 z-20 rounded-md p-1.5 transition-colors hover:bg-muted',
-          focusRing,
+          focusRingBio,
         )}
         aria-label={isPinned ? '고정 해제' : '도구 고정'}
         aria-pressed={isPinned}

@@ -8,6 +8,12 @@ import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import type { EChartsOption } from 'echarts'
 import type { SeqStatsResult } from '@/lib/genetics/seq-stats-engine'
 import { Button } from '@/components/ui/button'
+import {
+  BIOLOGY_PANEL,
+  BIOLOGY_TABLE_BODY_ROW,
+  BIOLOGY_TABLE_HEAD_ROW,
+  BIOLOGY_TABLE_SHELL,
+} from '@/lib/design-tokens/biology'
 
 interface SeqStatsResultProps {
   result: SeqStatsResult
@@ -74,8 +80,8 @@ function BaseCompositionChart({ result }: { result: SeqStatsResult }): React.Rea
   }), [result.baseComposition, total])
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">염기 조성</h3>
+    <div className={`${BIOLOGY_PANEL} p-5`}>
+      <h3 className="mb-3 text-sm font-semibold text-foreground/90">염기 조성</h3>
       <LazyReactECharts option={option} style={{ height: 220 }} opts={{ renderer: 'svg' }} />
     </div>
   )
@@ -104,8 +110,8 @@ function LengthDistributionChart({ result }: { result: SeqStatsResult }): React.
   if (bins.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">길이 분포</h3>
+    <div className={`${BIOLOGY_PANEL} p-5`}>
+      <h3 className="mb-3 text-sm font-semibold text-foreground/90">길이 분포</h3>
       <LazyReactECharts option={option} style={{ height: 220 }} opts={{ renderer: 'svg' }} />
     </div>
   )
@@ -128,7 +134,7 @@ export function SeqStatsResultView({ result, analysisName, onReset }: SeqStatsRe
 
   return (
     <div className="space-y-4" role="region" aria-label="서열 통계 결과">
-      <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
+      <div className={`${BIOLOGY_PANEL} flex items-center justify-between p-5`}>
         <div>
           <h2 className="text-lg font-semibold">{analysisName}</h2>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -152,12 +158,12 @@ export function SeqStatsResultView({ result, analysisName, onReset }: SeqStatsRe
 
       {/* Per-sequence table */}
       {sortedPerSeq.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-sm font-semibold text-gray-700">서열별 통계</h3>
-          <div className="overflow-x-auto">
+        <div className={`${BIOLOGY_PANEL} p-5`}>
+          <h3 className="mb-3 text-sm font-semibold text-foreground/90">서열별 통계</h3>
+          <div className={BIOLOGY_TABLE_SHELL}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-xs text-gray-500">
+                <tr className={BIOLOGY_TABLE_HEAD_ROW}>
                   <th className="pb-2">#</th>
                   <th className="pb-2">라벨</th>
                   <th className="pb-2 text-right">길이 (bp)</th>
@@ -171,16 +177,16 @@ export function SeqStatsResultView({ result, analysisName, onReset }: SeqStatsRe
               </thead>
               <tbody>
                 {sortedPerSeq.map((ps, i) => (
-                  <tr key={ps.label} className="border-b border-gray-50">
-                    <td className="py-2 text-gray-400">{i + 1}</td>
+                  <tr key={ps.label} className={BIOLOGY_TABLE_BODY_ROW}>
+                    <td className="py-2 text-muted-foreground/60">{i + 1}</td>
                     <td className="py-2 font-mono text-xs">{ps.label}</td>
                     <td className="py-2 text-right font-mono">{ps.length}</td>
                     <td className="py-2 text-right font-mono">{(ps.gcContent * 100).toFixed(1)}%</td>
-                    <td className="py-2 text-right font-mono text-gray-500">{ps.baseComposition.A}</td>
-                    <td className="py-2 text-right font-mono text-gray-500">{ps.baseComposition.T}</td>
-                    <td className="py-2 text-right font-mono text-gray-500">{ps.baseComposition.G}</td>
-                    <td className="py-2 text-right font-mono text-gray-500">{ps.baseComposition.C}</td>
-                    <td className="py-2 text-right font-mono text-gray-500">{ps.baseComposition.N}</td>
+                    <td className="py-2 text-right font-mono text-muted-foreground">{ps.baseComposition.A}</td>
+                    <td className="py-2 text-right font-mono text-muted-foreground">{ps.baseComposition.T}</td>
+                    <td className="py-2 text-right font-mono text-muted-foreground">{ps.baseComposition.G}</td>
+                    <td className="py-2 text-right font-mono text-muted-foreground">{ps.baseComposition.C}</td>
+                    <td className="py-2 text-right font-mono text-muted-foreground">{ps.baseComposition.N}</td>
                   </tr>
                 ))}
               </tbody>
@@ -209,20 +215,20 @@ function DinucleotideTable({ frequency }: { frequency: Record<string, number> })
   const total = Object.values(frequency).reduce((s, v) => s + v, 0)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">디뉴클레오티드 빈도</h3>
-      <div className="overflow-x-auto">
+    <div className={`${BIOLOGY_PANEL} p-5`}>
+      <h3 className="mb-3 text-sm font-semibold text-foreground/90">디뉴클레오티드 빈도</h3>
+      <div className={BIOLOGY_TABLE_SHELL}>
         <table className="text-sm">
           <thead>
-            <tr className="text-xs text-gray-500">
+            <tr className={BIOLOGY_TABLE_HEAD_ROW}>
               <th className="pb-2 pr-3" />
               {bases.map(b => <th key={b} className="pb-2 px-2 text-center font-mono">{b}</th>)}
             </tr>
           </thead>
           <tbody>
             {bases.map(b1 => (
-              <tr key={b1}>
-                <td className="py-1 pr-3 font-mono text-xs text-gray-500">{b1}</td>
+              <tr key={b1} className={BIOLOGY_TABLE_BODY_ROW}>
+                <td className="py-1 pr-3 font-mono text-xs text-muted-foreground">{b1}</td>
                 {bases.map(b2 => {
                   const di = b1 + b2
                   const count = frequency[di] ?? 0

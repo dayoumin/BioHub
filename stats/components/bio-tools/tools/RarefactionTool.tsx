@@ -12,7 +12,9 @@ import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
+import { BIOLOGY_PANEL } from '@/lib/design-tokens/biology'
 import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
+import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRarefactionColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -103,7 +105,7 @@ const RarefactionTool = memo(function RarefactionTool({ tool, meta, initialEntry
           <BioResultSummary>
           <h3 className="text-sm font-semibold">종 희박화 곡선</h3>
 
-          <div className="border rounded-lg bg-card max-w-2xl">
+          <div className={cn(BIOLOGY_PANEL, 'max-w-2xl')}>
             <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
           </div>
 

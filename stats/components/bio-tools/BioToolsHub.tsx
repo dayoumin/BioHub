@@ -131,7 +131,7 @@ export const BioToolsHub = memo(function BioToolsHub({
         <div>
           <h2 className="text-base font-semibold text-foreground/90">분야를 고르세요</h2>
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
           {categoryCards.map((item) => (
             <button
               key={item.category}
@@ -139,31 +139,31 @@ export const BioToolsHub = memo(function BioToolsHub({
               onClick={() => setSelectedCategory(item.category)}
               data-testid={`bio-tools-category-${item.category}`}
               className={cn(
-                'flex h-full min-h-[88px] rounded-[1.25rem] bg-surface-container-lowest px-5 py-4 text-left transition-colors duration-200 hover:bg-surface-container-low',
+                'flex h-full min-h-[72px] rounded-[1rem] bg-surface-container-lowest px-4 py-3 text-left transition-colors duration-200 hover:bg-surface-container-low',
                 item.category === selectedCategory ? 'shadow-none bg-surface-container-lowest' : 'bg-surface-container-lowest',
               )}
               style={item.category === selectedCategory ? BIO_HUB_ACTIVE_CARD_STYLE : undefined}
               aria-pressed={item.category === selectedCategory}
               aria-current={item.category === selectedCategory ? 'true' : undefined}
             >
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="flex items-start justify-between gap-3">
-                  <span
-                    className={cn(
-                      'text-base font-semibold tracking-tight',
-                      item.category === selectedCategory ? 'text-foreground' : 'text-foreground/90',
-                    )}
-                  >
-                    {categoryLabel(item.category)}
-                  </span>
-                </div>
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
                 <span
                   className={cn(
-                    'mt-1.5 text-xs font-medium',
-                    item.category === selectedCategory ? 'text-foreground/70' : 'text-muted-foreground/70',
+                    'truncate text-sm font-semibold tracking-tight',
+                    item.category === selectedCategory ? 'text-foreground' : 'text-foreground/90',
                   )}
                 >
-                  도구 {item.tools.length}개
+                  {categoryLabel(item.category)}
+                </span>
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium',
+                    item.category === selectedCategory
+                      ? 'bg-surface-container-lowest/80 text-foreground/75'
+                      : 'bg-surface-container-low text-muted-foreground/75',
+                  )}
+                >
+                  {item.tools.length}개
                 </span>
               </div>
             </button>

@@ -6,9 +6,16 @@ import { downloadTextFile } from '@/lib/utils/download-file'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
 import { parseNewick } from '@/lib/genetics/newick-parser'
+import { ResultMetricsGrid, type MetricItem } from '@/components/common/results'
 import { Button } from '@/components/ui/button'
 import type { EChartsOption } from 'echarts'
 import type { PhylogenyResultData } from '@/app/genetics/phylogeny/PhylogenyContent'
+import {
+  BIOLOGY_INSET_PANEL,
+  BIOLOGY_PANEL,
+  BIOLOGY_SEGMENTED,
+  BIOLOGY_SEGMENTED_ACTIVE,
+} from '@/lib/design-tokens/biology'
 
 interface PhylogenyResultProps {
   result: PhylogenyResultData
@@ -88,6 +95,11 @@ export function PhylogenyResult({ result, analysisName, onReset }: PhylogenyResu
   }, [result])
 
   const treeHeight = Math.max(400, result.sequenceCount * 30)
+  const metrics: MetricItem[] = [
+    { label: '서열 수', value: result.sequenceCount },
+    { label: '정렬 길이', value: `${result.alignmentLength} bp` },
+    { label: '거리 모델', value: result.distanceModel },
+  ]
 
   return (
     <div className="space-y-6" role="region" aria-label="계통수 분석 결과">
@@ -110,23 +122,25 @@ export function PhylogenyResult({ result, analysisName, onReset }: PhylogenyResu
         </div>
       </div>
 
+      <ResultMetricsGrid items={metrics} columns={3} />
+
       {/* 레이아웃 토글 */}
       <div className="flex gap-2">
         <button
           onClick={() => setLayout('orthogonal')}
-          className={`rounded-md px-3 py-1.5 text-sm ${layout === 'orthogonal' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+          className={layout === 'orthogonal' ? BIOLOGY_SEGMENTED_ACTIVE : BIOLOGY_SEGMENTED}
         >
           직교 (Orthogonal)
         </button>
         <button
           onClick={() => setLayout('radial')}
-          className={`rounded-md px-3 py-1.5 text-sm ${layout === 'radial' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+          className={layout === 'radial' ? BIOLOGY_SEGMENTED_ACTIVE : BIOLOGY_SEGMENTED}
         >
           방사형 (Radial)
         </button>
       </div>
 
-      <div className="rounded-lg border bg-card p-4">
+      <div className={`${BIOLOGY_PANEL} p-4`}>
         <div className="mb-3 flex items-baseline gap-2">
           <h3 className="text-sm font-semibold">{result.method} 계통수</h3>
           <span className="text-[10px] text-muted-foreground">토폴로지 표시 — 가지 길이는 거리 비례가 아닙니다. 실제 거리는 Newick 또는 노드 클릭으로 확인하세요.</span>
@@ -139,7 +153,7 @@ export function PhylogenyResult({ result, analysisName, onReset }: PhylogenyResu
       </div>
 
       {/* Newick 문자열 */}
-      <div className="rounded-lg border bg-card p-4">
+      <div className={`${BIOLOGY_PANEL} p-4`}>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Newick 문자열</h3>
           <Button variant="ghost" size="sm" onClick={handleCopyNewick} className="gap-1.5 text-xs">
@@ -147,7 +161,7 @@ export function PhylogenyResult({ result, analysisName, onReset }: PhylogenyResu
             {copied ? '복사됨' : '복사'}
           </Button>
         </div>
-        <pre className="max-h-32 overflow-auto rounded-md bg-muted/50 p-3 font-mono text-xs leading-relaxed break-all">
+        <pre className={`${BIOLOGY_INSET_PANEL} max-h-32 overflow-auto font-mono text-xs leading-relaxed break-all`}>
           {result.newick}
         </pre>
       </div>

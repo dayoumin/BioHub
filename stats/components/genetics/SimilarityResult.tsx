@@ -5,9 +5,17 @@ import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Download, RotateCcw } from 'lucide-react'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
+import { ResultMetricsGrid, type MetricItem } from '@/components/common/results'
 import { Button } from '@/components/ui/button'
 import type { EChartsOption } from 'echarts'
 import type { SimilarityResultData } from '@/app/genetics/similarity/SimilarityContent'
+import {
+  BIOLOGY_CALLOUT_WARNING,
+  BIOLOGY_PANEL,
+  BIOLOGY_TABLE_BODY_ROW,
+  BIOLOGY_TABLE_HEAD_ROW,
+  BIOLOGY_TABLE_SHELL,
+} from '@/lib/design-tokens/biology'
 
 interface SimilarityResultProps {
   result: SimilarityResultData
@@ -50,7 +58,13 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
         orient: 'vertical',
         right: 0,
         top: 'center',
-        inRange: { color: ['#f0f9ff', '#3b82f6', '#1e3a5f'] },
+        inRange: {
+          color: [
+            'color-mix(in srgb, var(--section-accent-bio) 10%, var(--surface-container-lowest))',
+            'color-mix(in srgb, var(--section-accent-bio) 26%, var(--surface-container))',
+            'color-mix(in srgb, var(--section-accent-bio) 52%, var(--surface-container-high))',
+          ],
+        },
         textStyle: { color: ax.axisLabel, fontSize: 11 },
       },
       series: [{
@@ -144,6 +158,11 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
   }, [result])
 
   const heatmapHeight = Math.max(350, result.sequenceCount * 30 + 150)
+  const metrics: MetricItem[] = [
+    { label: '최소 거리', value: result.minDistance.toFixed(4) },
+    { label: '평균 거리', value: result.meanDistance.toFixed(4) },
+    { label: '최대 거리', value: result.maxDistance.toFixed(4) },
+  ]
 
   return (
     <div className="space-y-6" role="region" aria-label="유사도 분석 결과">
@@ -168,29 +187,16 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
       </div>
 
       {/* 통계 요약 카드 */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">최소 거리</p>
-          <p className="text-xl font-bold font-mono">{result.minDistance.toFixed(4)}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">평균 거리</p>
-          <p className="text-xl font-bold font-mono">{result.meanDistance.toFixed(4)}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">최대 거리</p>
-          <p className="text-xl font-bold font-mono">{result.maxDistance.toFixed(4)}</p>
-        </div>
-      </div>
+      <ResultMetricsGrid items={metrics} columns={3} />
 
       {result.saturatedPairCount > 0 && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
+        <div className={`${BIOLOGY_CALLOUT_WARNING} px-4 py-3 text-sm text-warning`}>
           {result.saturatedPairCount}개 쌍에서 거리 포화 (∞) — 행렬에 9.999로 표시, 요약 통계에서는 제외됨
         </div>
       )}
 
       {/* 히트맵 */}
-      <div className="rounded-lg border bg-card p-4">
+      <div className={`${BIOLOGY_PANEL} p-4`}>
         <h3 className="mb-3 text-sm font-semibold">거리 행렬 히트맵</h3>
         <LazyReactECharts
           option={heatmapOption}
@@ -201,7 +207,7 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
 
       {/* 덴드로그램 */}
       {dendrogramOption && (
-        <div className="rounded-lg border bg-card p-4">
+        <div className={`${BIOLOGY_PANEL} p-4`}>
           <div className="mb-3 flex items-baseline gap-2">
             <h3 className="text-sm font-semibold">UPGMA 덴드로그램</h3>
             <span className="text-[10px] text-muted-foreground">토폴로지만 표시 — 가지 길이는 실제 거리 비례가 아닙니다. 거리값은 노드 클릭으로 확인하세요.</span>
@@ -216,12 +222,12 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
 
       {/* 거리 행렬 테이블 */}
       {result.sequenceCount <= 20 && (
-        <div className="rounded-lg border bg-card p-4">
+        <div className={`${BIOLOGY_PANEL} p-4`}>
           <h3 className="mb-3 text-sm font-semibold">거리 행렬</h3>
-          <div className="overflow-x-auto">
+          <div className={BIOLOGY_TABLE_SHELL}>
             <table className="min-w-full text-xs font-mono">
               <thead>
-                <tr>
+                <tr className={BIOLOGY_TABLE_HEAD_ROW}>
                   <th className="pb-2 pr-3 text-left" />
                   {result.labels.map(l => (
                     <th key={l} className="pb-2 px-2 text-right font-medium">{l}</th>
@@ -230,10 +236,10 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
               </thead>
               <tbody>
                 {result.labels.map((rowLabel, i) => (
-                  <tr key={rowLabel}>
+                  <tr key={rowLabel} className={BIOLOGY_TABLE_BODY_ROW}>
                     <td className="py-1 pr-3 font-medium">{rowLabel}</td>
                     {result.distanceMatrix[i].map((d, j) => (
-                      <td key={j} className={`py-1 px-2 text-right ${i === j ? 'text-gray-300' : ''}`}>
+                      <td key={j} className={`py-1 px-2 text-right ${i === j ? 'text-muted-foreground/40' : ''}`}>
                         {d.toFixed(4)}
                       </td>
                     ))}

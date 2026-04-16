@@ -12,6 +12,7 @@ import {
   loadGeneticsHistory,
   hydrateGeneticsHistoryFromCloud,
 } from '@/lib/genetics/analysis-history'
+import { BIOLOGY_INPUT } from '@/lib/design-tokens/biology'
 import type { SeqStatsHistoryEntry } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { toast } from 'sonner'
@@ -95,9 +96,9 @@ export default function SeqStatsContent(): React.ReactElement {
       </div>
 
       {deepLinkError && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
-          <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">기록 복원 실패</h2>
-          <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
+        <div className="mb-6 rounded-[1.5rem] bg-warning-bg p-6" role="alert">
+          <h2 className="mb-2 font-semibold text-warning">기록 복원 실패</h2>
+          <p className="mb-4 text-sm text-warning-muted">{deepLinkError}</p>
           <Button variant="outline" onClick={handleDismissError}>
             새 분석 시작
           </Button>
@@ -107,8 +108,8 @@ export default function SeqStatsContent(): React.ReactElement {
       {state.step === 'input' && (
         <div className="space-y-4">
           <div>
-            <label htmlFor="analysisName" className="mb-1 block text-sm font-medium text-gray-700">
-              분석명 <span className="font-normal text-gray-400">(선택)</span>
+            <label htmlFor="analysisName" className="mb-1 block text-sm font-medium text-foreground">
+              분석명 <span className="font-normal text-muted-foreground">(선택)</span>
             </label>
             <input
               id="analysisName"
@@ -117,7 +118,7 @@ export default function SeqStatsContent(): React.ReactElement {
               onChange={(e) => setAnalysisName(e.target.value)}
               placeholder="예: COI 10종 비교, 채집 시료 배치 #1"
               maxLength={100}
-              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary"
+              className={BIOLOGY_INPUT}
             />
           </div>
 
