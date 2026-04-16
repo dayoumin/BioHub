@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { ParsedSequence } from '@/lib/genetics/multi-fasta-parser'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { MultiSequenceInput } from '@/components/genetics/MultiSequenceInput'
 import { PhylogenyResult } from '@/components/genetics/PhylogenyResult'
 import {
@@ -14,6 +15,7 @@ import type { PhylogenyHistoryEntry } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIOLOGY_CALLOUT_ERROR, BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT } from '@/lib/design-tokens/biology'
+import { MULTI_SEQUENCE_EXAMPLES } from '@/lib/genetics/example-sequences'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -34,6 +36,17 @@ type AppState =
   | { step: 'running' }
   | { step: 'result'; result: PhylogenyResultData; analysisName: string }
   | { step: 'error'; message: string }
+
+const TREE_METHOD_HELP: Record<PhylogenyMethod, string> = {
+  NJ: '거리 기반 계통수의 기본 선택지입니다. 바코딩 비교에서 가장 먼저 시도하기 좋습니다.',
+  UPGMA: '분자시계 가정을 전제로 한 간단한 군집화 방법입니다. 교육용 비교에 적합합니다.',
+}
+
+const DISTANCE_MODEL_HELP: Record<DistanceModel, string> = {
+  K2P: 'DNA 바코딩 계통 비교에서 가장 널리 쓰이는 기본 거리 모델입니다.',
+  'p-distance': '관찰된 차이 비율만 보며 빠르게 군집 구조를 확인하고 싶을 때 적합합니다.',
+  'Jukes-Cantor': '단순 보정 모델로 치환 보정 개념을 함께 설명할 때 유용합니다.',
+}
 
 export default function PhylogenyContent(): React.ReactElement {
   const searchParams = useSearchParams()
@@ -165,6 +178,9 @@ export default function PhylogenyContent(): React.ReactElement {
                 <option value="NJ">Neighbor-Joining</option>
                 <option value="UPGMA">UPGMA</option>
               </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+                {TREE_METHOD_HELP[method]}
+              </p>
             </div>
             <div className="w-48">
               <label htmlFor="distanceModel" className="mb-1 block text-sm font-medium text-foreground">
@@ -180,8 +196,26 @@ export default function PhylogenyContent(): React.ReactElement {
                 <option value="p-distance">p-distance</option>
                 <option value="Jukes-Cantor">Jukes-Cantor</option>
               </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+                {DISTANCE_MODEL_HELP[distanceModel]}
+              </p>
             </div>
           </div>
+
+          {!rawText.trim() && (
+            <GeneticsExamplePicker
+              title="예제 데이터"
+              description="정렬된 다중 FASTA 예제로 트리 방법과 거리 모델 차이를 바로 확인할 수 있습니다."
+              items={MULTI_SEQUENCE_EXAMPLES}
+              onSelect={(example) => {
+                setRawText(example.sequenceText)
+                setUploadedFileName(null)
+                if (!analysisName.trim()) {
+                  setAnalysisName(example.label)
+                }
+              }}
+            />
+          )}
 
           <MultiSequenceInput
             value={rawText}

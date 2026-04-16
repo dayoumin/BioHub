@@ -30,6 +30,23 @@ type AppState =
   | { step: 'result'; result: BoldIdResult; sequence: string; sampleName: string }
   | { step: 'error'; message: string; code: BoldErrorCode }
 
+const BOLD_DB_HELP: Record<BoldDatabase, string> = {
+  'all.tax-derep': '공개와 비공개 동물 레퍼런스를 함께 비교할 때 사용합니다.',
+  'species': '종 수준으로 정리된 동물 레퍼런스를 빠르게 확인할 때 적합합니다.',
+  'all.animal-alt': '보조 마커를 포함한 동물 데이터셋을 넓게 탐색할 때 유용합니다.',
+  'public.tax-derep': '공개 레퍼런스를 분류 기준으로 정리한 기본 선택지입니다.',
+  'public.plants': '식물 바코드 시료를 식물 공개 라이브러리 기준으로 비교합니다.',
+  'public.fungi': 'ITS 같은 진균 바코드 시료를 진균 공개 라이브러리로 비교합니다.',
+  'DS-CANREF22': '검증된 캐나다 절지동물 세트로 종 판별을 보수적으로 확인합니다.',
+  'DS-IUCNPUB': '검증된 적색목록 동물 세트로 보전 대상 분류군을 확인할 때 적합합니다.',
+}
+
+const BOLD_SEARCH_MODE_HELP: Record<BoldSearchMode, string> = {
+  rapid: '빠른 1차 동정용입니다. 일반적인 바코딩 확인은 이 모드로 충분합니다.',
+  'genus-species': '속과 종 수준 후보를 함께 비교할 때 적합합니다. 빠르기와 범위의 균형형입니다.',
+  exhaustive: '가능한 후보를 넓게 훑어야 할 때 사용합니다. 가장 오래 걸립니다.',
+}
+
 export default function BoldIdContent(): React.ReactElement {
   const searchParams = useSearchParams()
   const [sequence, setSequence] = useState('')
@@ -155,6 +172,9 @@ export default function BoldIdContent(): React.ReactElement {
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+                {BOLD_DB_HELP[db]}
+              </p>
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
@@ -171,6 +191,9 @@ export default function BoldIdContent(): React.ReactElement {
                   </option>
                 ))}
               </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+                {BOLD_SEARCH_MODE_HELP[searchMode]}
+              </p>
             </div>
           </div>
 

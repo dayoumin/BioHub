@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { downloadTextFile } from '@/lib/utils/download-file'
 import { Search, Download, Copy, Check, Loader2, HelpCircle, ChevronDown, ArrowRight } from 'lucide-react'
 import { storeSequenceForTransfer } from '@/lib/genetics/sequence-transfer'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { Button } from '@/components/ui/button'
 import {
-  BIOLOGY_ACTION_LINK,
   BIOLOGY_CALLOUT_ERROR,
   BIOLOGY_INPUT,
   BIOLOGY_INSET_PANEL,
@@ -48,6 +48,42 @@ const SEARCH_TIPS = [
   { tip: 'Accession 번호 직접 입력', example: 'KF601412', desc: '알고 있는 서열을 바로 찾을 때' },
   { tip: '분류군 + 유전자', example: 'Salmonidae 16S rRNA', desc: '과(Family) 수준 검색' },
   { tip: '환경 DNA', example: 'environmental sample fish 12S', desc: 'eDNA 참조 서열 탐색' },
+] as const
+
+const DB_HELP: Record<DbOption, string> = {
+  nuccore: 'DNA, RNA, mtDNA처럼 핵산 서열을 찾을 때 사용합니다.',
+  protein: '번역된 단백질 서열이나 단백질 accession을 찾을 때 사용합니다.',
+}
+
+const GENBANK_QUERY_EXAMPLES = [
+  {
+    id: 'thunnus-coi',
+    label: '참치 COI',
+    description: 'DNA 바코딩용 COI 참조 서열을 찾는 예제입니다.',
+    query: 'Thunnus albacares COI',
+    db: 'nuccore' as const,
+  },
+  {
+    id: 'kf601412',
+    label: 'Accession 직접 검색',
+    description: '이미 accession을 알고 있을 때 가장 빠르게 서열을 여는 방법입니다.',
+    query: 'KF601412',
+    db: 'nuccore' as const,
+  },
+  {
+    id: 'salmon-16s',
+    label: '연어 16S',
+    description: '분류군과 마커를 조합해 참조 서열을 좁혀가는 예제입니다.',
+    query: 'salmon 16S rRNA',
+    db: 'nuccore' as const,
+  },
+  {
+    id: 'human-insulin',
+    label: '인슐린 단백질',
+    description: '단백질 DB로 전환해 단백질 accession과 FASTA를 찾는 예제입니다.',
+    query: 'human insulin',
+    db: 'protein' as const,
+  },
 ] as const
 
 // ── 메인 컴포넌트 ──
@@ -225,26 +261,20 @@ export default function GenBankContent(): React.ReactElement {
             {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : '검색'}
           </Button>
         </div>
-        {!query.trim() && !hasSearched && (
+        <p className="text-xs text-muted-foreground/75">
+          {DB_HELP[db]}
+        </p>
+        {!query.trim() && (
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-muted-foreground/50">예제:</span>
-              {[
-                { q: 'Thunnus albacares COI', label: '참치 COI' },
-                { q: 'KF601412', label: 'accession' },
-                { q: 'salmon 16S rRNA', label: '연어 16S' },
-                { q: 'human insulin', label: '인슐린' },
-              ].map(({ q, label }) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => setQuery(q)}
-                  className={BIOLOGY_ACTION_LINK}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <GeneticsExamplePicker
+              title="예제 검색어"
+              description="참조 서열을 찾는 대표 검색 패턴입니다. 클릭하면 검색어와 DB가 함께 채워집니다."
+              items={GENBANK_QUERY_EXAMPLES}
+              onSelect={(example) => {
+                setQuery(example.query)
+                setDb(example.db)
+              }}
+            />
             <button
               type="button"
               onClick={() => setShowTips(prev => !prev)}

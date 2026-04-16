@@ -9,6 +9,7 @@ import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/genetics/CopyButton'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { BIOLOGY_INPUT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
@@ -59,6 +60,17 @@ export function SequenceInput({
   const validation = sequence.trim() ? debouncedValidation : null
   const isStale = sequence !== debouncedSequence
   const canSubmit = validation?.valid === true && !isStale
+  const markerExamples = useMemo(
+    () => EXAMPLE_SEQUENCES
+      .filter((example) => example.marker === marker)
+      .map((example) => ({
+        id: example.id,
+        label: example.species,
+        description: example.description,
+        sequenceText: example.sequence,
+      })),
+    [marker],
+  )
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -101,6 +113,9 @@ export function SequenceInput({
           maxLength={100}
           className={BIOLOGY_INPUT}
         />
+        <p className="mt-1.5 text-xs text-muted-foreground/75">
+          시료 코드, 종명, 채집 위치를 적어 두면 결과와 히스토리를 구분하기 쉽습니다.
+        </p>
       </div>
 
       {!hideMarkerSelector && <div>
@@ -136,30 +151,27 @@ export function SequenceInput({
         </p>
       </div>}
 
+      {!sequence.trim() && markerExamples.length > 0 && (
+        <GeneticsExamplePicker
+          title="예제 서열"
+          description={`${marker} 마커 기준으로 바로 실행해 볼 수 있는 대표 서열입니다.`}
+          items={markerExamples}
+          onSelect={(example) => {
+            onSequenceChange(example.sequenceText)
+            onUploadedFileNameChange(null)
+            if (!sampleName.trim()) {
+              onSampleNameChange(example.label)
+            }
+          }}
+        />
+      )}
+
       <div>
         <div className="mb-1 flex items-center justify-between">
           <label htmlFor="sequence" className="block text-sm font-medium text-foreground">
             DNA 서열 (FASTA)
           </label>
           <div className="flex items-center gap-1">
-            {!sequence.trim() && (() => {
-              const example = EXAMPLE_SEQUENCES.find(ex => ex.marker === marker) ?? EXAMPLE_SEQUENCES[0]
-              const latinName = example.species.split(' (')[0]
-              return (
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-xs text-[color:var(--section-accent-bio)] hover:text-[color:var(--section-accent-bio)]/80"
-                  onClick={() => {
-                    onSequenceChange(example.sequence)
-                    onUploadedFileNameChange(null)
-                  }}
-                >
-                  예제 서열 넣기 ({latinName})
-                </Button>
-              )
-            })()}
             <Button
               type="button"
               variant="ghost"
@@ -247,7 +259,7 @@ export function SequenceInput({
         )}
         {!sequence.trim() && (
           <p className="mt-1 text-center text-xs text-muted-foreground/70">
-            서열을 입력하거나 예제 서열을 넣어 시작하세요
+            서열을 입력하거나 예제 서열을 선택해 시작하세요
           </p>
         )}
       </div>

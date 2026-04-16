@@ -8,6 +8,28 @@ export interface ExampleSequence {
   sequence: string
 }
 
+export interface MultiSequenceExample {
+  id: string
+  label: string
+  description: string
+  analysisHint: string
+  sequenceText: string
+}
+
+export interface TranslationExample {
+  id: string
+  label: string
+  description: string
+  sequenceText: string
+}
+
+export interface ProteinExample {
+  id: string
+  label: string
+  description: string
+  sequenceText: string
+}
+
 export const EXAMPLE_SEQUENCES: ExampleSequence[] = [
   {
     id: 'gadus-morhua',
@@ -125,6 +147,69 @@ CCTCCCTATTTATTGATCGTCTCAACATTTAAGTTGACGTCAATCAGACACGG
 TTTATCAGTCTGGTTATTACTTTATTGATCGACT`,
   },
 ]
+
+export const MULTI_SEQUENCE_EXAMPLES: MultiSequenceExample[] = [
+  {
+    id: 'coi-demo-trio',
+    label: 'COI 3종 비교',
+    description: '서열 기본 통계, 유사도 행렬, 계통수 예제로 바로 사용할 수 있는 정렬된 짧은 COI 데모입니다.',
+    analysisHint: '처음이면 이 예제로 흐름을 익힌 뒤, 정렬된 실제 FASTA로 바꾸세요.',
+    sequenceText: `>Gadus_morhua_demo
+ATGGCCTTCTACAAATCCTAACACTATTCCTCTTCTTCATCGCCGGAGCCTG
+>Pollachius_virens_demo
+ATGGCCTTCTATAAATCCTAACACTGTTCCTCTTCTTCATCGCCGGAGCCTG
+>Merlangius_merlangus_demo
+ATGGCTTTCTACAAATCTTAACACTGTTCCTCTTCTTTATCGCCGGAGCCTG`,
+  },
+  {
+    id: 'fungal-its-trio',
+    label: 'ITS 진균 3종',
+    description: '진균 ITS 예시입니다. 길이 분포와 염기 조성 차이를 확인할 때 유용합니다.',
+    analysisHint: 'ITS는 길이 차이가 커서 통계 요약과 계통 비교 해석을 함께 보는 데 적합합니다.',
+    sequenceText: `>Saccharomyces_cerevisiae_demo
+ATCATTAATGAATAAACTTGTGGATTTTTATTGAATTATCAACTAATACGCG
+>Kluyveromyces_lactis_demo
+ATCATCAATGAATAAACTCGTGGATTTCTATTGAATTATCAACTAATACGCA
+>Candida_glabrata_demo
+ATCATTAATGAATAAACTTGTGGATCTTTATTGAATTATCAATTAGTACGCG`,
+  },
+] as const
+
+export const TRANSLATION_EXAMPLES: TranslationExample[] = [
+  {
+    id: 'cox1-fragment',
+    label: 'COX1 번역 예제',
+    description: '6-frame 번역과 ORF 탐색을 빠르게 확인할 수 있는 미토콘드리아 DNA 단편입니다.',
+    sequenceText: `>COX1_demo
+ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAGGCCATGGCCATTGTAATGGGCCGCTGAAAGG
+GTGCCCGATAGGCCATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG`,
+  },
+  {
+    id: 'orf-practice',
+    label: 'ORF 탐색 예제',
+    description: '시작 코돈과 종료 코돈이 명확해 ORF 결과를 확인하기 쉬운 교육용 예제입니다.',
+    sequenceText: `>ORF_demo
+ATGAAACTGCTGCTGCTGCTGCTGTAAATGCCCTGACTGACTGAATGAAACTGCTGCTGCTGCTGCTGTA
+AATGCCCTGACTGACTGAATGAAACTGCTGCTGCTGCTGCTGTAA`,
+  },
+] as const
+
+export const PROTEIN_EXAMPLES: ProteinExample[] = [
+  {
+    id: 'human-insulin',
+    label: '인슐린 전구체',
+    description: '짧은 분비 단백질 예제로 분자량, pI, 안정성 지표를 빠르게 확인할 수 있습니다.',
+    sequenceText: `>sp|P01308|INS_HUMAN Insulin precursor
+MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN`,
+  },
+  {
+    id: 'hemoglobin-beta',
+    label: '헤모글로빈 beta',
+    description: '대표적인 구형 단백질 예제로 소수성 프로파일과 아미노산 조성을 보기 좋습니다.',
+    sequenceText: `>sp|P68871|HBB_HUMAN Hemoglobin subunit beta
+MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH`,
+  },
+] as const
 
 export function getExampleById(id: string): ExampleSequence | undefined {
   return EXAMPLE_SEQUENCES.find(ex => ex.id === id)

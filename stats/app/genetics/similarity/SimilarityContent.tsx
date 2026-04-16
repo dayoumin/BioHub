@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { ParsedSequence } from '@/lib/genetics/multi-fasta-parser'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { MultiSequenceInput } from '@/components/genetics/MultiSequenceInput'
 import { SimilarityResult } from '@/components/genetics/SimilarityResult'
 import {
@@ -14,6 +15,7 @@ import type { SimilarityHistoryEntry } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIOLOGY_CALLOUT_ERROR, BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT } from '@/lib/design-tokens/biology'
+import { MULTI_SEQUENCE_EXAMPLES } from '@/lib/genetics/example-sequences'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -41,6 +43,12 @@ type AppState =
   | { step: 'running' }
   | { step: 'result'; result: SimilarityResultData; analysisName: string }
   | { step: 'error'; message: string }
+
+const DISTANCE_MODEL_HELP: Record<DistanceModel, string> = {
+  K2P: 'DNA 바코딩 비교에서 가장 자주 쓰는 기본 모델입니다. 전이/전환 치환을 구분합니다.',
+  'p-distance': '관찰된 차이 비율만 빠르게 보고 싶을 때 적합합니다. 가장 해석이 단순합니다.',
+  'Jukes-Cantor': '치환 보정을 단순하게 적용한 고전 모델입니다. 교육용 비교에 적합합니다.',
+}
 
 export default function SimilarityContent(): React.ReactElement {
   const searchParams = useSearchParams()
@@ -174,8 +182,26 @@ export default function SimilarityContent(): React.ReactElement {
                 <option value="p-distance">p-distance</option>
                 <option value="Jukes-Cantor">Jukes-Cantor</option>
               </select>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+                {DISTANCE_MODEL_HELP[distanceModel]}
+              </p>
             </div>
           </div>
+
+          {!rawText.trim() && (
+            <GeneticsExamplePicker
+              title="예제 데이터"
+              description="정렬된 다중 FASTA 예제로 거리 계산과 히트맵 결과를 바로 확인할 수 있습니다."
+              items={MULTI_SEQUENCE_EXAMPLES}
+              onSelect={(example) => {
+                setRawText(example.sequenceText)
+                setUploadedFileName(null)
+                if (!analysisName.trim()) {
+                  setAnalysisName(example.label)
+                }
+              }}
+            />
+          )}
 
           <MultiSequenceInput
             value={rawText}

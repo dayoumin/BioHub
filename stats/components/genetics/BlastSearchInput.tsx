@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useCallback, useRef, useState } from 'react'
-import { Upload, X, Settings2, ChevronDown, ChevronUp, Play } from 'lucide-react'
+import { Upload, X, Settings2, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BlastProgram, BlastDatabase, GenericBlastParams, SequenceValidation } from '@biohub/types'
 import { BLAST_DB_BY_PROGRAM, BLAST_DEFAULT_DB, BLAST_PROGRAM_LABELS, BLAST_DB_LABELS } from '@biohub/types'
 import { validateBlastSequence, isDnaProgram, cleanSequence, cleanProteinSequence } from '@/lib/genetics/validate-sequence'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Button } from '@/components/ui/button'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { BIOLOGY_INPUT, BIOLOGY_PANEL_SOFT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 
 const PROGRAMS: BlastProgram[] = ['blastn', 'blastp', 'blastx', 'tblastn', 'tblastx']
@@ -149,6 +150,17 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
   const placeholder = isDnaProgram(program)
     ? '>query_sequence\nATGCGTACGTACGTACG...'
     : '>query_protein\nMKTAYIAKQRQISFVKSH...'
+  const exampleItems = useMemo(
+    () => Object.entries(BLAST_EXAMPLES).map(([id, example]) => ({
+      id,
+      label: example.label,
+      description: `${example.program} · ${example.db}`,
+      program: example.program,
+      db: example.db,
+      sequenceText: example.sequence,
+    })),
+    [],
+  )
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -281,24 +293,18 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
 
         {/* 예제 서열 */}
         {!sequence.trim() && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground/50">예제로 시작:</span>
-            {Object.entries(BLAST_EXAMPLES).map(([key, ex]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setSequence(ex.sequence)
-                  setUploadedFileName(null)
-                  handleProgramChange(ex.program)
-                  setDatabase(ex.db)
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-surface-container-low px-2.5 py-1.5 text-xs text-muted-foreground transition-colors duration-200 hover:bg-surface-container hover:text-[color:var(--section-accent-bio)]"
-              >
-                <Play className="h-3 w-3" />
-                <span className="font-medium">{ex.label}</span>
-              </button>
-            ))}
+          <div className="mt-4">
+            <GeneticsExamplePicker
+              title="예제 서열"
+              description="프로그램 유형별 대표 예제를 넣고 바로 검색 흐름을 확인할 수 있습니다."
+              items={exampleItems}
+              onSelect={(example) => {
+                setSequence(example.sequenceText)
+                setUploadedFileName(null)
+                handleProgramChange(example.program)
+                setDatabase(example.db)
+              }}
+            />
           </div>
         )}
       </div>
@@ -373,7 +379,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
       </Button>
       {!sequence.trim() && (
         <p className="text-center text-xs text-muted-foreground/60">
-          {inputType} 서열을 입력하거나 파일을 업로드하세요
+          {inputType} 서열을 입력하거나 예제를 선택해 시작하세요
         </p>
       )}
     </form>

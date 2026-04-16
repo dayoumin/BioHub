@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { ParsedSequence } from '@/lib/genetics/multi-fasta-parser'
 import { computeSeqStats, type SeqStatsResult } from '@/lib/genetics/seq-stats-engine'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { MultiSequenceInput } from '@/components/genetics/MultiSequenceInput'
 import { SeqStatsResultView } from '@/components/genetics/SeqStatsResult'
 import {
@@ -14,6 +15,7 @@ import {
 } from '@/lib/genetics/analysis-history'
 import { BIOLOGY_INPUT } from '@/lib/design-tokens/biology'
 import type { SeqStatsHistoryEntry } from '@/lib/genetics/analysis-history'
+import { MULTI_SEQUENCE_EXAMPLES } from '@/lib/genetics/example-sequences'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -120,7 +122,25 @@ export default function SeqStatsContent(): React.ReactElement {
               maxLength={100}
               className={BIOLOGY_INPUT}
             />
+            <p className="mt-1.5 text-xs text-muted-foreground/75">
+              배치명이나 마커명을 적어 두면 결과와 히스토리를 구분하기 쉽습니다.
+            </p>
           </div>
+
+          {!rawText.trim() && (
+            <GeneticsExamplePicker
+              title="예제 데이터"
+              description="서열 통계 흐름을 빠르게 확인하려면 아래 예제를 넣고 바로 분석하세요."
+              items={MULTI_SEQUENCE_EXAMPLES}
+              onSelect={(example) => {
+                setRawText(example.sequenceText)
+                setUploadedFileName(null)
+                if (!analysisName.trim()) {
+                  setAnalysisName(example.label)
+                }
+              }}
+            />
+          )}
 
           <MultiSequenceInput
             value={rawText}

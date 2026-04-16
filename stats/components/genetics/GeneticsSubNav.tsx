@@ -19,9 +19,13 @@ const TOOLS = [
 
 export function GeneticsSubNav() {
   const pathname = usePathname()
-  
-  // 메인 페이지면 서브네비게이션 숨김
-  if (pathname === '/genetics') return null
+  const normalizedPath = pathname.replace(/\/+$/, '')
+  const activeTool = TOOLS.find(
+    (tool) => normalizedPath === tool.href || normalizedPath.startsWith(`${tool.href}/`),
+  )
+
+  // 홈 허브나 미등록 genetics 경로에서는 카테고리 카드만 노출
+  if (!activeTool) return null
 
   return (
     <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
@@ -35,7 +39,7 @@ export function GeneticsSubNav() {
         </Link>
         <div className="flex overflow-x-auto whitespace-nowrap gap-1 pb-1 -mb-1 scrollbar-hide">
           {TOOLS.map(tool => {
-            const isActive = pathname.startsWith(tool.href)
+            const isActive = activeTool.id === tool.id
             const Icon = tool.icon
             
             return (

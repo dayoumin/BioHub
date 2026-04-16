@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
@@ -16,11 +17,13 @@ import {
   consumeTransferredSequence,
   storeSequenceForTransfer,
   formatTransferSource,
+  TRANSLATION_EXAMPLES,
 } from '@/lib/genetics'
 import { PyodideWorker } from '@/lib/services'
 import { CopyButton } from '@/components/genetics/CopyButton'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { focusRing } from '@/lib/design-tokens'
+import { BIOLOGY_INPUT, BIOLOGY_PANEL_SOFT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -91,6 +94,12 @@ interface CodonUsageResult {
 }
 
 type AnalysisTab = 'translate' | 'orf' | 'codon'
+
+const TAB_GUIDE: Record<AnalysisTab, string> = {
+  translate: '6-frame 번역으로 어느 프레임에서 의미 있는 단백질이 나오는지 빠르게 비교합니다.',
+  orf: '시작/종결 코돈 기준으로 길이가 충분한 ORF를 추려 후속 단백질 분석으로 넘길 때 적합합니다.',
+  codon: '코돈 사용 편향과 RSCU를 확인해 발현 최적화나 계통군 특성을 점검할 때 적합합니다.',
+}
 
 // ═══════════════════════════════════════════════════════════════
 // Main Component
@@ -303,7 +312,7 @@ export default function TranslationContent(): React.ReactElement {
       </div>
 
       {/* ── Input Section ────────────────────────────────── */}
-      <div className="space-y-4 rounded-2xl bg-muted/30 p-5">
+      <div className={`${BIOLOGY_PANEL_SOFT} space-y-4 p-5`}>
         {/* Genetic code selector */}
         <div className="flex flex-wrap gap-4">
           <div className="min-w-[260px] flex-1">
@@ -314,7 +323,7 @@ export default function TranslationContent(): React.ReactElement {
               id="geneticCode"
               value={geneticCode}
               onChange={handleGeneticCodeChange}
-              className={`w-full rounded-lg bg-background px-3 py-2 text-sm ${focusRing}`}
+              className={BIOLOGY_INPUT}
             >
               {availableTables.length > 0
                 ? availableTables.map(t => (
@@ -337,8 +346,24 @@ export default function TranslationContent(): React.ReactElement {
                 )
               }
             </select>
+            <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+              미토콘드리아 서열이면 Vertebrate/Invertebrate mitochondrial 테이블을 먼저 확인하세요.
+            </p>
           </div>
         </div>
+
+        {!rawText.trim() && (
+          <GeneticsExamplePicker
+            title="예제 데이터"
+            description="번역, ORF 탐색, 코돈 사용 빈도 흐름을 바로 확인할 수 있는 DNA 예제입니다."
+            items={TRANSLATION_EXAMPLES}
+            onSelect={(example) => {
+              setRawText(example.sequenceText)
+              setUploadedFileName(null)
+              setTransferredAccession(null)
+            }}
+          />
+        )}
 
         {/* DNA input textarea */}
         <div>
@@ -392,7 +417,7 @@ export default function TranslationContent(): React.ReactElement {
             onChange={handleSequenceChange}
             placeholder={">sequence\nATGCGTACGTACGTACG..."}
             rows={6}
-            className={`max-h-[250px] min-h-[120px] w-full resize-y overflow-y-auto rounded-lg bg-background px-3 py-2 font-mono text-sm ${focusRing}`}
+            className={`${BIOLOGY_TEXTAREA} max-h-[250px] min-h-[120px] overflow-y-auto`}
           />
 
           {rawText.trim() && (
@@ -446,6 +471,10 @@ export default function TranslationContent(): React.ReactElement {
             </Button>
           </div>
         </div>
+
+        <p className="mt-3 text-sm text-muted-foreground/80">
+          {TAB_GUIDE[activeTab]}
+        </p>
 
         {/* Error display */}
         {errorMsg && (

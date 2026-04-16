@@ -25,6 +25,7 @@ import {
   buildProteinInterpretationMarkdown,
   fetchReactomePathwaysForUniProt,
   fetchReactomePathwayEnrichment,
+  PROTEIN_EXAMPLES,
   ReactomeError,
   type ProteinHistoryEntry,
   type AlphaFoldPredictionSummary,
@@ -42,6 +43,7 @@ import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors, resolveChartPalette, resolveCssVar } from '@/lib/charts/chart-color-resolver'
 import { BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 import { downloadTextFile } from '@/lib/utils/download-file'
+import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -274,6 +276,9 @@ export default function ProteinContent(): React.ReactElement {
               maxLength={100}
               className={BIOLOGY_INPUT}
             />
+            <p className="mt-1.5 text-xs text-muted-foreground/75">
+              단백질명이나 accession을 적어 두면 히스토리와 기능 주석 결과를 구분하기 쉽습니다.
+            </p>
           </div>
 
           {transferredSource && (
@@ -281,6 +286,22 @@ export default function ProteinContent(): React.ReactElement {
               {formatTransferSource(transferredSource)}에서 전달된 서열
               {transferredAccession && <span className="ml-1 font-mono text-xs">({transferredAccession})</span>}
             </div>
+          )}
+
+          {!rawText.trim() && (
+            <GeneticsExamplePicker
+              title="예제 데이터"
+              description="단백질 물성 분석 흐름을 바로 확인할 수 있는 대표 단백질 예제입니다."
+              items={PROTEIN_EXAMPLES}
+              onSelect={(example) => {
+                setRawText(example.sequenceText)
+                setTransferredAccession(null)
+                setTransferredSource(null)
+                if (!analysisName.trim()) {
+                  setAnalysisName(example.label)
+                }
+              }}
+            />
           )}
 
           <div>
@@ -318,6 +339,9 @@ export default function ProteinContent(): React.ReactElement {
                 </span>
               )}
             </div>
+            <p className="mt-1.5 text-xs leading-5 text-muted-foreground/75">
+              DNA 서열은 직접 넣지 말고 Translation 워크벤치에서 번역 후 전달하세요.
+            </p>
           </div>
 
           <Button
