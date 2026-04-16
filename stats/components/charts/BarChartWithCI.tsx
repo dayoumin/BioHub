@@ -253,23 +253,23 @@ export const BarChartWithCI = memo(function BarChartWithCI({
     const tableSem = resolveSemanticColors()
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm tabular-nums [border-collapse:separate] [border-spacing:0]">
           <thead>
-            <tr className="border-b">
-              <th className="text-left py-2 px-3">그룹</th>
-              <th className="text-right py-2 px-3">값</th>
+            <tr className="bg-surface-container-low text-muted-foreground">
+              <th className="text-left py-2 px-3 font-medium">그룹</th>
+              <th className="text-right py-2 px-3 font-medium">값</th>
               {showCI && (
                 <>
-                  <th className="text-right py-2 px-3">하한</th>
-                  <th className="text-right py-2 px-3">상한</th>
-                  <th className="text-right py-2 px-3">CI 너비</th>
+                  <th className="text-right py-2 px-3 font-medium">하한</th>
+                  <th className="text-right py-2 px-3 font-medium">상한</th>
+                  <th className="text-right py-2 px-3 font-medium">CI 너비</th>
                 </>
               )}
               {data.some(d => d.se) && (
-                <th className="text-right py-2 px-3">표준오차</th>
+                <th className="text-right py-2 px-3 font-medium">표준오차</th>
               )}
               {showBaseline && (
-                <th className="text-right py-2 px-3">기준선 대비</th>
+                <th className="text-right py-2 px-3 font-medium">기준선 대비</th>
               )}
             </tr>
           </thead>
@@ -281,8 +281,8 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                 <tr
                   key={d.name}
                   className={cn(
-                    "border-b hover:bg-muted/50 cursor-pointer transition-colors",
-                    selectedBar === i && "bg-muted"
+                    "cursor-pointer bg-surface-container-lowest transition-colors even:bg-surface-container-low hover:bg-surface-container-high",
+                    selectedBar === i && "bg-surface-container-highest even:bg-surface-container-highest"
                   )}
                   onClick={() => setSelectedBar(i === selectedBar ? null : i)}
                 >
@@ -306,8 +306,16 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                   {showBaseline && (
                     <td className="text-right py-2 px-3">
                       <div className="flex items-center justify-end gap-1">
-                        {diff > 0 ? <TrendingUp className="h-3 w-3 text-success" /> : diff < 0 ? <TrendingDown className="h-3 w-3 text-error" /> : null}
-                        <span className={cn(diff > 0 && "text-success", diff < 0 && "text-error")}>
+                        {diff > 0 ? <TrendingUp className="h-3 w-3" style={{ color: tableSem.success }} /> : diff < 0 ? <TrendingDown className="h-3 w-3" style={{ color: tableSem.error }} /> : null}
+                        <span
+                          style={{
+                            color: diff > 0
+                              ? tableSem.success
+                              : diff < 0
+                                ? tableSem.error
+                                : tableSem.neutral,
+                          }}
+                        >
                           {diff > 0 ? '+' : ''}{diff.toFixed(3)}{unit}
                         </span>
                       </div>

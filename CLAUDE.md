@@ -87,6 +87,18 @@
 - **PyodideCore** 사용: 모든 통계 계산은 검증된 라이브러리
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](stats/docs/technical/TROUBLESHOOTING_ISANALYZING_BUG.md) 참조
 
+## Graph Studio 휴리스틱 규칙
+
+- 토큰 사전/필드명 정규화의 단일 소스는 `stats/lib/graph-studio/chart-spec-heuristics.ts`.
+- `normalizeFieldName()`은 camelCase와 유니코드 헤더를 모두 분해한다. 토큰 추가/제거 전 `sampleId`, `treatmentGroup`, `샘플ID`, `처리군` 회귀를 먼저 생각할 것.
+- 사전은 5종으로 유지: `ID_LIKE`, `CATEGORY_FRIENDLY`, `TIME_LIKE`, `RESPONSE_LIKE`, `PREDICTOR_LIKE`.
+- `code`/`index` 같은 일반 토큰은 전역 `ID_LIKE_TOKENS`에 넣지 않는다. 실제 row identifier로 볼 근거가 있을 때만 `hasIdLikeName()` 예외 규칙(예: standalone `index`, `row index`)으로 다룬다.
+- X축 nominal/ordinal scorer는 CATEGORY 힌트가 있으면 `_id` 감점을 완화한다. `treatment_id`, `group_index`는 `sample_id`와 동일 취급하면 안 된다.
+- Y축 quantitative scorer는 의도적으로 비대칭이다. category-hinted numeric id라도 결과 변수처럼 뽑히지 않도록 ID 페널티를 유지한다.
+- auto-color는 `selectAutoColorField()` 기준으로만 고른다. X/Y로 이미 선택된 컬럼은 색상 후보에서 제외하고, low-cardinality ID-like 범주형은 비-ID 대안이 있을 때 버린다.
+- 기본 spec 생성은 `createAutoConfiguredChartSpec()` 경로를 공용으로 사용한다. 새 진입점을 만들 때 여기 우회 금지.
+- 휴리스틱 수정 시 최소 회귀 범위: `stats/__tests__/lib/graph-studio/chart-spec-heuristics.test.ts`, `stats/__tests__/lib/graph-studio/chart-spec-utils.test.ts`.
+
 ## 테스트
 
 **Vitest 사용** (globals: true). Mock: `vi.fn()`, `vi.mock()`, `vi.spyOn()`

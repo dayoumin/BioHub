@@ -313,7 +313,7 @@ U1 (계약 통일, 1-2일) → U2 (액션 정리, 1-2일) → U3 (Quick 확인, 
 
 | v1 항목 | v2 변경 | 이유 |
 |---------|---------|------|
-| P5 "Graph Studio 연결 없음" | **삭제** — 이미 구현 완료 | `handleOpenInGraphStudio()` + E2E TC-4B.1.3 통과 |
+| P5 "Graph Studio 연결 없음" | **삭제** — 기능 연결은 구현 완료, 브리지 E2E는 별도 안정화 필요 | `handleOpenInGraphStudio()`는 구현됐지만 `TC-4B.1.3`은 현재 Smart Flow 업스트림 타임아웃으로 `fixme` 분리 |
 | U4 "신규 3-5일" | → **브리지 강화 1일** (`analysisResultId` 추가) | 기존 구현 미확인 오류 |
 | U1-1 `setVariableMapping에서 results 삭제` | → **변경 시점 기반 무효화** (`updateVariableMappingWithInvalidation`) | 순수 setter에서 무조건 삭제하면 정상 플로우 파괴 |
 | U1-2 `canNavigateToStep만 완화` | → **계약 통일** (navigateToStep 우회 제거 + 사전 마킹) | canNavigateToStep만 고치면 계약 불일치 심화 |

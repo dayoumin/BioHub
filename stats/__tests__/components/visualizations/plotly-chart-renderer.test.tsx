@@ -10,10 +10,19 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 
-const mockNewPlot = vi.fn()
-const mockPurge = vi.fn()
-const mockDownloadImage = vi.fn()
-const mockResize = vi.fn()
+const {
+  mockDownloadTextFile,
+  mockNewPlot,
+  mockPurge,
+  mockDownloadImage,
+  mockResize,
+} = vi.hoisted(() => ({
+  mockDownloadTextFile: vi.fn(),
+  mockNewPlot: vi.fn(),
+  mockPurge: vi.fn(),
+  mockDownloadImage: vi.fn(),
+  mockResize: vi.fn(),
+}))
 
 vi.mock('plotly.js-basic-dist', () => ({
   default: {
@@ -22,6 +31,10 @@ vi.mock('plotly.js-basic-dist', () => ({
     downloadImage: mockDownloadImage,
     Plots: { resize: mockResize },
   },
+}))
+
+vi.mock('@/lib/utils/download-file', () => ({
+  downloadTextFile: mockDownloadTextFile,
 }))
 
 import { PlotlyChartRenderer } from '@/components/visualizations/plotly-chart-renderer'
@@ -34,6 +47,10 @@ const sampleChartData = {
 describe('PlotlyChartRenderer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'window.Plotly = window.Plotly || {};',
+    }))
   })
 
   it('렌더링 시 Plotly를 동적으로 import해야 함', async () => {
@@ -116,5 +133,28 @@ describe('PlotlyChartRenderer', () => {
     expect(screen.getByTitle('Download as PNG')).toBeInTheDocument()
     expect(screen.getByTitle('Download as Interactive HTML')).toBeInTheDocument()
     expect(screen.getByTitle('Fullscreen')).toBeInTheDocument()
+  })
+
+  it('HTML export는 고정된 로컬 Plotly 번들을 inline하여 self-contained 문서를 생성해야 함', async () => {
+    const user = userEvent.setup()
+    render(<PlotlyChartRenderer chartData={sampleChartData} title="Test" />)
+
+    await waitFor(() => {
+      expect(mockNewPlot).toHaveBeenCalled()
+    })
+
+    await user.click(screen.getByTitle('Download as Interactive HTML'))
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/vendor/plotly-basic-3.1.0.js')
+      expect(mockDownloadTextFile).toHaveBeenCalledTimes(1)
+    })
+
+    const [html, filename, mimeType] = mockDownloadTextFile.mock.calls[0]
+    expect(filename).toBe('interactive-chart.html')
+    expect(mimeType).toBe('text/html')
+    expect(html).toContain('Standalone HTML · Plotly 3.1.0')
+    expect(html).toContain('window.Plotly = window.Plotly || {};')
+    expect(html).not.toContain('https://cdn.plot.ly/plotly-latest.min.js')
   })
 })

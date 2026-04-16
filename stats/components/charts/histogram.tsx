@@ -237,18 +237,18 @@ export const Histogram = memo(function Histogram({
 
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm tabular-nums [border-collapse:separate] [border-spacing:0]">
           <thead>
-            <tr className="border-b">
-              <th className="text-left py-2 px-3">구간</th>
-              <th className="text-left py-2 px-3">범위</th>
-              <th className="text-right py-2 px-3">빈도</th>
-              <th className="text-right py-2 px-3">비율 (%)</th>
+            <tr className="bg-surface-container-low text-muted-foreground">
+              <th className="text-left py-2 px-3 font-medium">구간</th>
+              <th className="text-left py-2 px-3 font-medium">범위</th>
+              <th className="text-right py-2 px-3 font-medium">빈도</th>
+              <th className="text-right py-2 px-3 font-medium">비율 (%)</th>
             </tr>
           </thead>
           <tbody>
             {histogramData.map((d) => (
-              <tr key={d.bin} className="border-b hover:bg-muted/50">
+              <tr key={d.bin} className="bg-surface-container-lowest transition-colors even:bg-surface-container-low hover:bg-surface-container-high">
                 <td className="py-2 px-3">{d.bin}</td>
                 <td className="py-2 px-3">{d.range}</td>
                 <td className="text-right py-2 px-3 font-medium">{d.count}</td>
@@ -259,7 +259,7 @@ export const Histogram = memo(function Histogram({
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t font-medium">
+            <tr className="bg-surface-container-highest font-medium">
               <td className="py-2 px-3" colSpan={2}>합계</td>
               <td className="text-right py-2 px-3">{totalCount}</td>
               <td className="text-right py-2 px-3">100%</td>

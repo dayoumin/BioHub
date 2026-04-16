@@ -299,3 +299,26 @@ describe('R-5: 유의성 브래킷 다중 marks converter 안전성', () => {
     expect(spec.significance![0].groupB).toBe('C');
   });
 });
+
+// ─── R-6: unsupported chart type 명시적 fallback ─────────
+
+describe('R-6: unsupported chart type fallback', () => {
+  test('알 수 없는 chartType은 bar로 조용히 fallback하지 않고 명시적 안내를 렌더링', () => {
+    const spec = {
+      ...makeBarSpec(),
+      chartType: 'radar',
+      style: {
+        ...makeBarSpec().style,
+        background: '#f7f9fb',
+      },
+    } as unknown as ChartSpec;
+
+    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
+    const title = option.title as Record<string, unknown>;
+
+    expect(title.text).toBe('Unsupported chart type');
+    expect(title.subtext).toBe('"radar" is not registered in Graph Studio.');
+    expect(option.series).toEqual([]);
+    expect(option.backgroundColor).toBe('#f7f9fb');
+  });
+});

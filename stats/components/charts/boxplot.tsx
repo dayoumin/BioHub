@@ -336,18 +336,18 @@ export const BoxPlot = memo(function BoxPlot({
   const renderTable = () => {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-base">
+        <table className="w-full text-base tabular-nums [border-collapse:separate] [border-spacing:0]">
           <thead>
-            <tr className="border-b">
-              <th className="text-left py-2 px-3">그룹</th>
-              <th className="text-right py-2 px-3">최소값</th>
-              <th className="text-right py-2 px-3">Q1</th>
-              <th className="text-right py-2 px-3">중앙값</th>
-              <th className="text-right py-2 px-3">Q3</th>
-              <th className="text-right py-2 px-3">최대값</th>
-              <th className="text-right py-2 px-3">평균</th>
-              <th className="text-right py-2 px-3">IQR</th>
-              <th className="text-right py-2 px-3">이상치</th>
+            <tr className="bg-surface-container-low text-muted-foreground">
+              <th className="text-left py-2 px-3 font-medium">그룹</th>
+              <th className="text-right py-2 px-3 font-medium">최소값</th>
+              <th className="text-right py-2 px-3 font-medium">Q1</th>
+              <th className="text-right py-2 px-3 font-medium">중앙값</th>
+              <th className="text-right py-2 px-3 font-medium">Q3</th>
+              <th className="text-right py-2 px-3 font-medium">최대값</th>
+              <th className="text-right py-2 px-3 font-medium">평균</th>
+              <th className="text-right py-2 px-3 font-medium">IQR</th>
+              <th className="text-right py-2 px-3 font-medium">이상치</th>
             </tr>
           </thead>
           <tbody>
@@ -358,8 +358,8 @@ export const BoxPlot = memo(function BoxPlot({
                 <tr
                   key={d.name}
                   className={cn(
-                    "border-b hover:bg-muted/50 cursor-pointer transition-colors",
-                    selectedBox === i && "bg-muted"
+                    "cursor-pointer bg-surface-container-lowest transition-colors even:bg-surface-container-low hover:bg-surface-container-high",
+                    selectedBox === i && "bg-surface-container-highest even:bg-surface-container-highest"
                   )}
                   onClick={() => setSelectedBox(i === selectedBox ? null : i)}
                 >
