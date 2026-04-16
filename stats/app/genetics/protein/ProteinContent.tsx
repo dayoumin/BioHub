@@ -41,7 +41,7 @@ import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { PyodideWorker } from '@/lib/services'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors, resolveChartPalette, resolveCssVar } from '@/lib/charts/chart-color-resolver'
-import { BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
+import { BIOLOGY_CALLOUT_WARNING, BIOLOGY_CALLOUT_ERROR, BIOLOGY_INPUT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 import { downloadTextFile } from '@/lib/utils/download-file'
 import { GeneticsExamplePicker } from '@/components/genetics/GeneticsExamplePicker'
 import { Badge } from '@/components/ui/badge'
@@ -363,7 +363,7 @@ export default function ProteinContent(): React.ReactElement {
       )}
 
       {state.step === 'error' && (
-        <div className="rounded-lg bg-red-50/50 p-6 dark:bg-red-950/20" role="alert">
+        <div className={BIOLOGY_CALLOUT_ERROR} role="alert">
           <h2 className="mb-2 font-semibold text-red-800 dark:text-red-300">분석 오류</h2>
           <p className="mb-4 text-sm text-red-700 dark:text-red-400">{state.message}</p>
           <Button variant="outline" onClick={handleReset}>

@@ -28,6 +28,9 @@ const METRIC_LABELS: Record<MetricOption, string> = {
   sorensen: 'Sorensen',
 }
 
+/** Distance matrix cell background: oklch(lightness, chroma, hue) */
+const DISTANCE_MATRIX_BG_COLOR = 'oklch(0.9 0.05 145'
+
 const BetaDiversityTool = memo(function BetaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<BetaDiversityResult>({ initialResults: initialEntry?.results })
@@ -111,7 +114,7 @@ const BetaDiversityTool = memo(function BetaDiversityTool({ tool, meta, initialE
                         style={{
                           backgroundColor: i === j
                             ? 'transparent'
-                            : `oklch(0.9 0.05 145 / ${Math.min(val, 1) * 0.6})`,
+                            : `${DISTANCE_MATRIX_BG_COLOR} / ${Math.min(val, 1) * 0.6})`,
                         }}
                       >
                         {i === j ? '—' : val.toFixed(4)}

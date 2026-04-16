@@ -24,6 +24,9 @@ import { BIOLOGY_INSET_PANEL, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/bi
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
+/** Forest plot legend and item horizontal padding */
+const FOREST_PLOT_ITEM_PX = 'px-2'
+
 const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
@@ -205,7 +208,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
             <h3 className="text-sm font-semibold mb-2">Forest Plot</h3>
             <div className={cn(BIOLOGY_INSET_PANEL, 'space-y-1')}>
               {/* 헤더 */}
-              <div className="flex items-center text-xs text-muted-foreground mb-2 px-1">
+              <div className={`flex items-center text-xs text-muted-foreground mb-2 ${FOREST_PLOT_ITEM_PX}`}>
                 <span className="w-28 flex-shrink-0">연구</span>
                 <span className="flex-1 text-center">효과크기 [95% CI]</span>
                 <span className="w-20 text-right flex-shrink-0">가중치</span>
@@ -222,7 +225,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
                 const scale = 40 / range
 
                 return (
-                  <div key={name} className="flex items-center text-xs h-6 px-1">
+                  <div key={name} className={`flex items-center text-xs h-6 ${FOREST_PLOT_ITEM_PX}`}>
                     <span className="w-28 flex-shrink-0 truncate font-medium">{name}</span>
                     <div className="flex-1 relative h-full">
                       {/* 0 기준선 */}
@@ -256,7 +259,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
               })}
 
               {/* 통합 효과 (다이아몬드) */}
-              <div className="flex items-center text-xs h-8 px-1 border-t mt-2 pt-2">
+              <div className={`flex items-center text-xs h-8 ${FOREST_PLOT_ITEM_PX} border-t mt-2 pt-2`}>
                 <span className="w-28 flex-shrink-0 font-semibold">통합</span>
                 <div className="flex-1 relative h-full">
                   <div

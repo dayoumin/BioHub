@@ -187,7 +187,7 @@ const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialE
 
           <div className="flex items-center gap-3">
             {results.isMonomorphic ? (
-              <span className={`${BIO_BADGE_CLASS} bg-muted text-muted-foreground`}>
+              <span className={cn(BIO_BADGE_CLASS, 'bg-muted text-muted-foreground')}>
                 단형성 (monomorphic) — 검정 불가
               </span>
             ) : (

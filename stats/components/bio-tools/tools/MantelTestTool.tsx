@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useRef, useState } from 'react'
 import { BioCsvUpload, type CsvData } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -13,23 +13,28 @@ import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
+import { saveBioToolEntry } from '@/lib/bio-tools/bio-tool-history'
+import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { MantelResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [csvDataX, setCsvDataX] = useState<CsvData | null>(null)
   const [csvDataY, setCsvDataY] = useState<CsvData | null>(null)
   const [siteColX, setSiteColX] = useState<string>('')
   const [siteColY, setSiteColY] = useState<string>('')
   const [method, setMethod] = useState<'pearson' | 'spearman'>('pearson')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [results, setResults] = useState<MantelResult | null>(null)
+  const [results, setResults] = useState<MantelResult | null>((initialEntry?.results as MantelResult) ?? null)
   const [error, setError] = useState<string | null>(null)
+  const [isSaved, setIsSaved] = useState(!!initialEntry?.results)
   const resultsRef = useScrollToResults(results)
+  const hasSavedRef = useRef(!!initialEntry?.results)
 
   const handleDataLoadedX = useCallback((data: CsvData) => {
     setCsvDataX(data)
@@ -43,6 +48,8 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
     setSiteColX('')
     setResults(null)
     setError(null)
+    setIsSaved(false)
+    hasSavedRef.current = false
   }, [])
 
   const handleDataLoadedY = useCallback((data: CsvData) => {
@@ -50,6 +57,8 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
     setSiteColY(data.headers[0])
     setResults(null)
     setError(null)
+    setIsSaved(false)
+    hasSavedRef.current = false
   }, [])
 
   const handleClearY = useCallback(() => {
@@ -57,6 +66,8 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
     setSiteColY('')
     setResults(null)
     setError(null)
+    setIsSaved(false)
+    hasSavedRef.current = false
   }, [])
 
   const handleAnalyze = useCallback(async () => {
@@ -94,12 +105,43 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
         },
       )
       setResults(result)
+      setIsSaved(false)
+      hasSavedRef.current = false
     } catch (err) {
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     } finally {
       setIsAnalyzing(false)
     }
   }, [csvDataX, csvDataY, siteColX, siteColY, method])
+
+  const handleSave = useCallback(() => {
+    if (!results || !csvDataX || !csvDataY || hasSavedRef.current) return
+    hasSavedRef.current = true
+
+    const activeProject = selectActiveProject(useResearchProjectStore.getState())
+
+    try {
+      saveBioToolEntry({
+        toolId: tool.id,
+        toolNameEn: tool.nameEn,
+        toolNameKo: tool.nameKo,
+        csvFileName: `${csvDataX.fileName} + ${csvDataY.fileName}`,
+        columnConfig: { siteColX, siteColY, method },
+        results,
+        projectId: activeProject?.id,
+      })
+
+      setIsSaved(true)
+      toast.success(activeProject ? `${activeProject.name}에 저장됨` : '히스토리에 저장됨')
+    } catch (err) {
+      hasSavedRef.current = false
+      if (err instanceof Error && err.message === 'QUOTA_EXCEEDED') {
+        toast.error('저장 공간이 부족합니다. 오래된 히스토리를 삭제해주세요.')
+      } else {
+        toast.error('저장에 실패했습니다')
+      }
+    }
+  }, [results, csvDataX, csvDataY, siteColX, siteColY, method, tool])
 
   const significant = results ? results.pValue < 0.05 : false
 
@@ -161,7 +203,7 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
 
       {results && (
         <div ref={resultsRef} className="space-y-4">
-          <BioResultsHeader exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <BioResultSummary
             metrics={[
               { label: 'Mantel r', value: results.r, tooltip: `${results.method === 'pearson' ? 'Pearson' : 'Spearman'} 상관` },
@@ -190,7 +232,7 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
               <tbody>
                 <tr className="border-b"><td className={BIO_TABLE.bodyCell}>Mantel r</td><td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{results.r}</td></tr>
                 <tr className="border-b"><td className={BIO_TABLE.bodyCell}>p-value (양측)</td><td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{results.pValue}</td></tr>
-                <tr className="border-b"><td className={BIO_TABLE.bodyCell}>방법</td><td className="text-right px-3 py-2">{results.method === 'pearson' ? 'Pearson' : 'Spearman'}</td></tr>
+                <tr className="border-b"><td className={BIO_TABLE.bodyCell}>방법</td><td className={`text-right ${BIO_TABLE.bodyCell}`}>{results.method === 'pearson' ? 'Pearson' : 'Spearman'}</td></tr>
                 <tr><td className={BIO_TABLE.bodyCell}>순열 수</td><td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{results.permutations}</td></tr>
               </tbody>
             </table>
