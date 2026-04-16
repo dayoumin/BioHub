@@ -8,6 +8,14 @@ import type { BlastMarker, BlastResultStatus } from '@biohub/types'
 import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
 import { storeSequenceForTransfer } from '@/lib/genetics/sequence-transfer'
 import { Button } from '@/components/ui/button'
+import {
+  BIOLOGY_ACTION_LINK,
+  BIOLOGY_INSET_PANEL,
+  BIOLOGY_PANEL,
+  BIOLOGY_TABLE_BODY_ROW,
+  BIOLOGY_TABLE_HEAD_ROW,
+  BIOLOGY_TABLE_SHELL,
+} from '@/lib/design-tokens/biology'
 
 interface ResultViewProps {
   decision: DecisionResult
@@ -50,18 +58,18 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
   return (
     <div className="space-y-4" role="region" aria-label="분석 결과">
       <div className="flex items-start justify-between gap-4">
-        <div className={`flex-1 rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
+        <div className={`flex-1 rounded-[1.5rem] ${style.bg} p-6`} role="status" aria-live="polite">
           <div className="mb-2 flex items-center justify-between">
             <h2 className={`text-lg font-bold ${style.text}`}>
               {decision.title}
             </h2>
             {decision.topHits[0] && (
-              <span className="text-sm font-semibold text-gray-700">
+              <span className="text-sm font-semibold text-foreground/80">
                 {(decision.topHits[0].identity * 100).toFixed(1)}%
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-600">{decision.description}</p>
+          <p className="text-sm text-foreground/75">{decision.description}</p>
         </div>
         <div className="flex shrink-0 flex-col gap-2">
           {decision.topHits.length > 0 && (
@@ -92,14 +100,14 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
       )}
 
       {decision.taxonAlert && (
-        <div className="rounded-xl border border-warning-border bg-warning-bg p-5">
+        <div className="rounded-[1.5rem] bg-warning-bg p-5">
           <h3 className="mb-2 text-sm font-semibold text-warning">
             {decision.taxonAlert.title}
           </h3>
           <p className="mb-3 text-sm text-warning-muted">
             {decision.taxonAlert.description}
           </p>
-          <div className="rounded-lg bg-card/60 p-3">
+          <div className={BIOLOGY_INSET_PANEL}>
             <p className="text-sm font-medium text-warning">권장 조치</p>
             <p className="text-sm text-warning-muted">{decision.taxonAlert.recommendation}</p>
           </div>
@@ -107,12 +115,12 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
       )}
 
       {decision.topHits.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-sm font-semibold text-gray-700">매칭 결과</h3>
-          <div className="overflow-x-auto">
+        <div className={`${BIOLOGY_PANEL} p-5`}>
+          <h3 className="mb-3 text-sm font-semibold text-foreground/90">매칭 결과</h3>
+          <div className={BIOLOGY_TABLE_SHELL}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-xs text-gray-500">
+                <tr className={BIOLOGY_TABLE_HEAD_ROW}>
                   <th className="pb-2">#</th>
                   <th className="pb-2">종명</th>
                   <th className="pb-2 text-right">유사도</th>
@@ -126,15 +134,15 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
                   const speciesIsAccession = hit.species === hit.accession
 
                   return (
-                    <tr key={hit.accession || i} className="border-b border-gray-50">
-                      <td className="py-2 text-gray-400">{i + 1}</td>
+                    <tr key={hit.accession || i} className={BIOLOGY_TABLE_BODY_ROW}>
+                      <td className="py-2 text-muted-foreground/60">{i + 1}</td>
                       <td className="py-2">
                         {hit.taxid && !speciesIsAccession ? (
                           <a
                             href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=${hit.taxid}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="italic text-gray-900 hover:text-blue-600 hover:underline"
+                            className="italic text-foreground hover:text-[color:var(--section-accent-bio)] hover:underline"
                           >
                             {hit.species || '(미확인)'}
                           </a>
@@ -142,21 +150,21 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
                           <span className="italic">{hit.species || '(미확인)'}</span>
                         )}
                         {(hit.country || hit.isBarcode) && (
-                          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
                             {hit.country && <span title="채집 국가">{hit.country.split(':')[0]}</span>}
-                            {hit.isBarcode && <span className="rounded bg-green-50 px-1 text-green-600" title="BOLD 등록 바코드 서열">barcode</span>}
+                            {hit.isBarcode && <span className="rounded-full bg-surface-container-low px-1.5 py-0.5 text-[color:var(--section-accent-bio)]" title="BOLD 등록 바코드 서열">barcode</span>}
                           </div>
                         )}
                       </td>
                       <td className="py-2 text-right font-mono">
                         {(hit.identity * 100).toFixed(1)}%
                       </td>
-                      <td className="py-2 text-right font-mono text-gray-500">
+                      <td className="py-2 text-right font-mono text-muted-foreground">
                         {hit.alignCoverage != null
                           ? `${(hit.alignCoverage * 100).toFixed(0)}%`
                           : '-'}
                       </td>
-                      <td className="py-2 text-right font-mono text-gray-500">
+                      <td className="py-2 text-right font-mono text-muted-foreground">
                         {hit.bitScore != null
                           ? Math.round(hit.bitScore)
                           : hit.evalue != null
@@ -168,7 +176,7 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
                           href={`https://www.ncbi.nlm.nih.gov/nuccore/${hit.accession}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-[color:var(--section-accent-bio)] hover:underline"
                         >
                           {hit.accession}
                         </a>
@@ -205,9 +213,9 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
   const selectedInfo = markers.find(m => m.name === selected)
 
   return (
-    <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
-      <h3 className="mb-2 text-sm font-semibold text-blue-900">다른 마커를 시도해볼 수 있습니다</h3>
-      <p className="mb-3 text-xs text-blue-800">
+    <div className="rounded-[1.5rem] bg-info-bg p-5">
+      <h3 className="mb-2 text-sm font-semibold text-info">다른 마커를 시도해볼 수 있습니다</h3>
+      <p className="mb-3 text-xs text-info-muted">
         {marker} 마커로는 종 수준 판별이 충분하지 않을 수 있습니다. 아래 마커의 서열을 확보하면 더 나은 결과를 기대할 수 있습니다.
       </p>
 
@@ -221,40 +229,40 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
             onClick={() => setSelected(m.name)}
             className={`rounded-full ${
               selected === m.name
-                ? 'border-blue-400 bg-blue-600 text-white shadow-sm hover:bg-blue-600'
-                : 'border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50'
+                ? 'border-0 bg-[color:var(--section-accent-bio)] text-white hover:bg-[color:var(--section-accent-bio)]'
+                : 'border-0 bg-surface-container-low text-foreground/80 hover:bg-surface-container'
             }`}
           >
             {m.displayName}
             {i === 0 && selected !== m.name && (
-              <span className="ml-1 text-[10px] text-blue-400">추천</span>
+              <span className="ml-1 text-[10px] text-[color:var(--section-accent-bio)]/70">추천</span>
             )}
           </Button>
         ))}
       </div>
 
       {selectedInfo && (
-        <div className="rounded-lg border border-blue-200 bg-card p-4">
+        <div className={BIOLOGY_INSET_PANEL}>
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-sm font-bold text-blue-900">{selectedInfo.displayName}</span>
-            <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
+            <span className="text-sm font-bold text-foreground">{selectedInfo.displayName}</span>
+            <span className="rounded-full bg-surface-container px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--section-accent-bio)]">
               {selectedInfo.reason}
             </span>
           </div>
-          <p className="text-xs leading-relaxed text-blue-800/80">
+          <p className="text-xs leading-relaxed text-foreground/75">
             {selectedInfo.detail}
           </p>
         </div>
       )}
 
-      <p className="mt-3 text-[11px] text-blue-600/50">
+      <p className="mt-3 text-[11px] text-info-muted">
         같은 서열로 마커만 바꿔도 동일한 결과가 나옵니다. 해당 마커 영역을 별도로 시퀀싱해야 합니다.
       </p>
     </div>
   )
 }
 
-const ACTION_LINK = 'rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50'
+const ACTION_LINK = BIOLOGY_ACTION_LINK
 
 /** BOLD에서 지원하는 마커인지 확인 (COI 계열만 동물 바코딩 DB) */
 const BOLD_SUPPORTED_MARKERS: ReadonlySet<BlastMarker> = new Set(['COI', 'ITS'])
@@ -350,4 +358,3 @@ function NextActionButtons({
     </>
   )
 }
-

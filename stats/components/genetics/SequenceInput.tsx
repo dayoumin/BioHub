@@ -9,7 +9,7 @@ import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/genetics/CopyButton'
-import { focusRing } from '@/components/common/card-styles'
+import { BIOLOGY_INPUT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
   { value: 'COI', label: 'COI', help: '동물 표준 바코드 — 어류, 곤충 등 대부분의 동물' },
@@ -89,8 +89,8 @@ export function SequenceInput({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* 시료명 */}
       <div>
-        <label htmlFor="sampleName" className="mb-1 block text-sm font-medium text-gray-700">
-          시료명 <span className="font-normal text-gray-400">(선택)</span>
+        <label htmlFor="sampleName" className="mb-1 block text-sm font-medium text-foreground">
+          시료명 <span className="font-normal text-muted-foreground">(선택)</span>
         </label>
         <input
           id="sampleName"
@@ -99,12 +99,12 @@ export function SequenceInput({
           onChange={(e) => onSampleNameChange(e.target.value)}
           placeholder="예: 제주 채집 시료 #3, 시장 구매 참치"
           maxLength={100}
-          className={`w-full rounded-lg border border-input bg-card px-3 py-2 text-sm ${focusRing} focus-visible:border-primary`}
+          className={BIOLOGY_INPUT}
         />
       </div>
 
       {!hideMarkerSelector && <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-foreground">
           마커
         </label>
         <div className="flex flex-wrap gap-2">
@@ -118,8 +118,8 @@ export function SequenceInput({
               title={m.help}
               className={`min-w-[4.5rem] ${
                 marker === m.value
-                  ? 'border-blue-500 bg-blue-50 font-medium text-blue-700 hover:bg-blue-50'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  ? 'border-0 bg-surface-container-high font-medium text-[color:var(--section-accent-bio)] hover:bg-surface-container-high'
+                  : 'border-0 bg-surface-container-low text-muted-foreground hover:bg-surface-container hover:text-foreground'
               }`}
             >
               {m.label}
@@ -127,7 +127,7 @@ export function SequenceInput({
           ))}
         </div>
         {marker && (
-          <p className="mt-1.5 text-xs text-blue-600/80">
+          <p className="mt-1.5 text-xs text-[color:var(--section-accent-bio)]">
             {MARKERS.find(m => m.value === marker)?.help}
           </p>
         )}
@@ -138,7 +138,7 @@ export function SequenceInput({
 
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label htmlFor="sequence" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="sequence" className="block text-sm font-medium text-foreground">
             DNA 서열 (FASTA)
           </label>
           <div className="flex items-center gap-1">
@@ -150,7 +150,7 @@ export function SequenceInput({
                   type="button"
                   variant="link"
                   size="sm"
-                  className="h-auto p-0 text-xs text-green-600 hover:text-green-800"
+                  className="h-auto p-0 text-xs text-[color:var(--section-accent-bio)] hover:text-[color:var(--section-accent-bio)]/80"
                   onClick={() => {
                     onSequenceChange(example.sequence)
                     onUploadedFileNameChange(null)
@@ -164,7 +164,7 @@ export function SequenceInput({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+              className="h-7 w-7 text-muted-foreground hover:bg-surface-container-low hover:text-[color:var(--section-accent-bio)]"
               onClick={() => fileInputRef.current?.click()}
               title="FASTA 파일 업로드"
             >
@@ -178,7 +178,7 @@ export function SequenceInput({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                className="h-7 w-7 text-muted-foreground hover:bg-surface-container-low hover:text-destructive"
                 onClick={() => {
                   onSequenceChange('')
                   onUploadedFileNameChange(null)
@@ -198,7 +198,7 @@ export function SequenceInput({
           />
         </div>
         {uploadedFileName && (
-          <p className="mb-1 text-xs text-green-600">
+          <p className="mb-1 text-xs text-[color:var(--section-accent-bio)]">
             {uploadedFileName} 로드 완료
           </p>
         )}
@@ -211,19 +211,19 @@ export function SequenceInput({
           }}
           placeholder={">sample_sequence\nATGCGTACGTACGTACG..."}
           rows={8}
-          className={`max-h-[300px] min-h-[150px] w-full resize-y overflow-y-auto rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm ${focusRing}`}
+          className={`${BIOLOGY_TEXTAREA} max-h-[300px] min-h-[150px] overflow-y-auto`}
         />
 
         {validation && (
           <div className="mt-2 space-y-1">
             {validation.errors.map((err, i) => (
-              <p key={i} className="text-sm text-red-600">{err}</p>
+              <p key={i} className="text-sm text-error">{err}</p>
             ))}
             {validation.warnings.map((warn, i) => (
-              <p key={i} className="text-sm text-amber-600">{warn}</p>
+              <p key={i} className="text-sm text-warning">{warn}</p>
             ))}
             {validation.valid && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {validation.length} bp · GC {(validation.gcContent * 100).toFixed(1)}%
                 {validation.ambiguousCount > 0 && ` · N: ${validation.ambiguousCount}`}
               </p>
@@ -241,12 +241,12 @@ export function SequenceInput({
           {submitLabel ?? '분석 시작'}
         </Button>
         {validation && !validation.valid && sequence.trim() && (
-          <p className="mt-1 text-center text-xs text-red-500">
+          <p className="mt-1 text-center text-xs text-error">
             위 오류를 수정하면 분석을 시작할 수 있습니다
           </p>
         )}
         {!sequence.trim() && (
-          <p className="mt-1 text-center text-xs text-gray-400">
+          <p className="mt-1 text-center text-xs text-muted-foreground/70">
             서열을 입력하거나 예제 서열을 넣어 시작하세요
           </p>
         )}
@@ -254,4 +254,3 @@ export function SequenceInput({
     </form>
   )
 }
-

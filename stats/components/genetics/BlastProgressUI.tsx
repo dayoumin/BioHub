@@ -2,6 +2,7 @@
 
 import type { AnalysisPhase } from '@/lib/genetics/abortable-sleep'
 import { Button } from '@/components/ui/button'
+import { BIOLOGY_CALLOUT_ERROR, BIOLOGY_INSET_PANEL, BIOLOGY_PANEL } from '@/lib/design-tokens/biology'
 
 interface BlastProgressUIProps {
   phase: AnalysisPhase
@@ -30,7 +31,7 @@ export function BlastProgressUI({
     : phase === 'error' ? '오류 발생' : ''
 
   return (
-    <div className="rounded-lg border border-border bg-card p-8">
+    <div className={`${BIOLOGY_PANEL} p-8`}>
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium text-foreground">{phaseHeader}</span>
@@ -45,9 +46,9 @@ export function BlastProgressUI({
               className={`h-2 flex-1 transition-colors${
                 i === 0 ? ' rounded-l-full' : i === 3 ? ' rounded-r-full' : ''
               } ${
-                phase === 'error' ? 'bg-destructive/30'
-                : i < currentStep ? 'bg-primary'
-                : i === currentStep ? 'animate-pulse bg-primary/60'
+                phase === 'error' ? 'bg-error/30'
+                : i < currentStep ? 'bg-[color:var(--section-accent-bio)]'
+                : i === currentStep ? 'animate-pulse bg-[color:var(--section-accent-bio)] opacity-60'
                 : 'bg-muted'
               }`}
             />
@@ -62,15 +63,15 @@ export function BlastProgressUI({
       {/* 분석 과정 — 활성 단계에서 표시 */}
       {phase !== 'done' && phase !== 'error' && (
         <div className="space-y-3" role="status" aria-live="polite">
-          <div className="rounded-lg bg-muted/30 p-4">
+          <div className={BIOLOGY_INSET_PANEL}>
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">분석 과정</h4>
             <ol className="space-y-1.5 text-xs">
               {stepLabels.map((label, i) => (
                 <li
                   key={i}
                   className={
-                    i < currentStep ? 'text-green-600 dark:text-green-400'
-                    : i === currentStep ? 'font-medium text-primary'
+                    i < currentStep ? 'text-[color:var(--section-accent-bio)]'
+                    : i === currentStep ? 'font-medium text-[color:var(--section-accent-bio)]'
                     : 'text-muted-foreground/50'
                   }
                 >
@@ -96,11 +97,11 @@ export function BlastProgressUI({
             <p className="text-sm text-muted-foreground">거의 완료되었습니다...</p>
           )}
 
-          <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+          <p className="text-xs text-warning/90">
             분석이 완료될 때까지 이 페이지를 유지해주세요.
           </p>
           {elapsed > 120 && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-warning">
               평소보다 오래 걸리고 있습니다. NCBI 서버 상태에 따라 지연될 수 있습니다.
             </p>
           )}
@@ -116,8 +117,8 @@ export function BlastProgressUI({
       )}
 
       {phase === 'error' && errorMessage && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-          <p className="text-sm text-destructive">{errorMessage}</p>
+        <div className={`${BIOLOGY_CALLOUT_ERROR} p-4`}>
+          <p className="text-sm text-error">{errorMessage}</p>
         </div>
       )}
     </div>

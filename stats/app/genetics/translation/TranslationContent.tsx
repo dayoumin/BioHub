@@ -923,7 +923,7 @@ function CodonUsageView({ result }: CodonUsageViewProps): React.ReactElement {
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums">
                         <span className={
-                          cd.rscu > 1.3 ? 'font-medium text-blue-600 dark:text-blue-400' :
+                          cd.rscu > 1.3 ? 'font-medium text-[color:var(--section-accent-bio)]' :
                           cd.rscu < 0.7 && cd.rscu > 0 ? 'text-muted-foreground' :
                           ''
                         }>

@@ -17,6 +17,7 @@ import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
+import { BIOLOGY_INSET_PANEL, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
@@ -256,7 +257,7 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
               </span>
             </div>
             {results.bootstrapWarning && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">{results.bootstrapWarning}</p>
+              <p className="text-xs text-warning">{results.bootstrapWarning}</p>
             )}
           </div>
 
@@ -264,7 +265,7 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
 
           <div>
             <h3 className="text-sm font-semibold mb-2">쌍별 Fst 행렬</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -290,7 +291,7 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
             </div>
           </div>
 
-          <div className="p-3 border rounded-lg bg-muted/30 text-xs text-muted-foreground space-y-1">
+          <div className={cn(BIOLOGY_INSET_PANEL, 'space-y-1 text-xs text-muted-foreground')}>
             <p className="font-medium text-foreground text-sm">Wright (1978) Fst 해석 기준</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>0 ~ 0.05: 약한 분화 (little differentiation)</li>

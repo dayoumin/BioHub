@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { BIOLOGY_PANEL_SOFT } from '@/lib/design-tokens/biology'
 import { cn } from '@/lib/utils'
 
 export interface MetricItem {
@@ -52,12 +53,12 @@ export function ResultMetricsGrid({
     <TooltipProvider>
       <div className={cn('grid gap-3', gridCols[columns], className)}>
         {items.map((item, i) => (
-          <div key={i} className={cn('text-center p-3 bg-muted/50 rounded-lg', item.className)}>
+          <div key={i} className={cn(BIOLOGY_PANEL_SOFT, 'p-3 text-center', item.className)}>
             {item.tooltip ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="cursor-help">
-                    <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
+                    <p className="mb-1 flex items-center justify-center gap-1 text-xs text-muted-foreground">
                       {item.label}
                       <HelpCircle className="w-3 h-3" />
                     </p>
@@ -72,7 +73,7 @@ export function ResultMetricsGrid({
               </Tooltip>
             ) : (
               <>
-                <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                <p className="mb-1 text-xs text-muted-foreground">{item.label}</p>
                 <div className="text-lg font-bold font-mono tabular-nums">
                   {item.value}
                 </div>

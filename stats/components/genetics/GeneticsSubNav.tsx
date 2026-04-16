@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Dna, Search, Database, BarChart3, Grid3X3, GitFork, ChevronLeft, Fingerprint, FlaskConical, Atom } from 'lucide-react'
-import type { CSSProperties } from 'react'
+import { GENETICS_ACCENT_TEXT, GENETICS_SUBNAV_SURFACE } from '@/lib/design-tokens/genetics'
 
 const TOOLS = [
   { id: 'barcoding', title: 'DNA 바코딩 종 판별', href: '/genetics/barcoding', icon: Dna },
@@ -16,16 +16,6 @@ const TOOLS = [
   { id: 'translation', title: 'Translation 워크벤치', href: '/genetics/translation', icon: FlaskConical },
   { id: 'protein', title: '단백질 특성 분석', href: '/genetics/protein', icon: Atom },
 ]
-
-const GENETICS_ACCENT_VAR = '--section-accent-hub' as const
-
-const geneticsAccentText = {
-  color: `var(${GENETICS_ACCENT_VAR})`,
-} as const satisfies CSSProperties
-
-const geneticsAccentSurface = {
-  backgroundColor: `color-mix(in srgb, var(${GENETICS_ACCENT_VAR}) 8%, var(--surface-container-lowest))`,
-} as const satisfies CSSProperties
 
 export function GeneticsSubNav() {
   const pathname = usePathname()
@@ -57,11 +47,11 @@ export function GeneticsSubNav() {
                     ? 'text-foreground'
                     : 'text-muted-foreground hover:bg-surface-container-lowest hover:text-foreground'
                 }`}
-                style={isActive ? geneticsAccentSurface : undefined}
+                style={isActive ? GENETICS_SUBNAV_SURFACE : undefined}
               >
                 <Icon
                   className={`h-4 w-4 ${isActive ? '' : 'text-muted-foreground/70'}`}
-                  style={isActive ? geneticsAccentText : undefined}
+                  style={isActive ? GENETICS_ACCENT_TEXT : undefined}
                 />
                 {tool.title}
               </Link>

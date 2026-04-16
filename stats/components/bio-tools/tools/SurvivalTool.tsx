@@ -22,6 +22,7 @@ import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
+import { BIOLOGY_PANEL, BIOLOGY_PANEL_SOFT, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -185,7 +186,7 @@ const SurvivalTool = memo(function SurvivalTool({ tool, meta, initialEntry }: To
           >
           {/* Log-rank 결과 */}
           {results.logRankP !== null && (
-            <div className="flex items-center gap-4 p-3 rounded-lg border bg-card">
+            <div className={cn(BIOLOGY_PANEL_SOFT, 'flex items-center gap-4 p-3')}>
               <span className="text-sm text-muted-foreground">Log-rank 검정:</span>
               <span className="text-sm font-semibold">
                 p = {formatPValue(results.logRankP)}
@@ -203,7 +204,7 @@ const SurvivalTool = memo(function SurvivalTool({ tool, meta, initialEntry }: To
           {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">Kaplan-Meier 생존 곡선</h3>
-              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+              <div className={cn(BIOLOGY_PANEL, 'max-w-lg mx-auto')}>
                 <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
               </div>
             </div>
@@ -217,7 +218,7 @@ const SurvivalTool = memo(function SurvivalTool({ tool, meta, initialEntry }: To
           {/* 그룹별 요약 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">그룹별 요약</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>

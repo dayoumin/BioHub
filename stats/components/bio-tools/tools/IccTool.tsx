@@ -17,6 +17,7 @@ import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
+import { BIOLOGY_INSET_PANEL, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { IccResult, IccType } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -125,7 +126,7 @@ const IccTool = memo(function IccTool({ tool, meta, initialEntry }: ToolComponen
           {/* ICC 결과 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">ICC 분석 결과</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -190,7 +191,7 @@ const IccTool = memo(function IccTool({ tool, meta, initialEntry }: ToolComponen
           {/* ANOVA 테이블 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">ANOVA 분산분석</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -219,14 +220,26 @@ const IccTool = memo(function IccTool({ tool, meta, initialEntry }: ToolComponen
           {/* ICC 게이지 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">ICC 스케일</h3>
-            <div className="border rounded-lg p-4 bg-card">
+            <div className={BIOLOGY_INSET_PANEL}>
               <div className="relative h-8 rounded-full overflow-hidden bg-muted">
                 {/* 구간 색상 */}
                 <div className="absolute inset-0 flex">
-                  <div className="h-full bg-red-200/50" style={{ width: '40%' }} />
-                  <div className="h-full bg-yellow-200/50" style={{ width: '20%' }} />
-                  <div className="h-full bg-blue-200/50" style={{ width: '15%' }} />
-                  <div className="h-full bg-green-200/50" style={{ width: '25%' }} />
+                  <div
+                    className="h-full"
+                    style={{ width: '40%', background: 'color-mix(in srgb, var(--error) 18%, var(--error-bg))' }}
+                  />
+                  <div
+                    className="h-full"
+                    style={{ width: '20%', background: 'color-mix(in srgb, var(--warning) 18%, var(--warning-bg))' }}
+                  />
+                  <div
+                    className="h-full"
+                    style={{ width: '15%', background: 'color-mix(in srgb, var(--section-accent-bio) 20%, var(--surface-container-high))' }}
+                  />
+                  <div
+                    className="h-full"
+                    style={{ width: '25%', background: 'color-mix(in srgb, var(--section-accent-bio) 40%, var(--surface-container-high))' }}
+                  />
                 </div>
                 {/* ICC 마커 */}
                 <div

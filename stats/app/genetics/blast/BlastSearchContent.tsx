@@ -187,7 +187,7 @@ export default function BlastSearchContent(): React.ReactElement {
       {state.step === 'input' && (
         <>
           {restoredEntry && (
-            <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <div className="mb-4 rounded-[1.5rem] bg-surface-container-low p-4">
               <p className="text-sm text-foreground">
                 이전 검색: <span className="font-medium">{restoredEntry.program} · {restoredEntry.database}</span>
                 {' — '}
@@ -229,7 +229,7 @@ export default function BlastSearchContent(): React.ReactElement {
 
       {state.step === 'error' && (
         <div className="space-y-4">
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6">
+          <div className="rounded-[1.5rem] bg-error-bg p-6">
             <h2 className="mb-2 font-semibold text-destructive">검색 오류</h2>
             <p className="text-sm text-destructive/80">{state.message}</p>
           </div>

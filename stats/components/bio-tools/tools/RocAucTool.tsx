@@ -22,6 +22,7 @@ import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
+import { BIOLOGY_PANEL, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { RocAucResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -178,7 +179,7 @@ const RocAucTool = memo(function RocAucTool({ tool, meta, initialEntry }: ToolCo
           {/* 결과 요약 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">분석 결과</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -229,7 +230,7 @@ const RocAucTool = memo(function RocAucTool({ tool, meta, initialEntry }: ToolCo
           {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">ROC 곡선</h3>
-              <div className="border rounded-lg bg-card max-w-md mx-auto">
+              <div className={cn(BIOLOGY_PANEL, 'max-w-md mx-auto')}>
                 <LazyReactECharts option={chartOption} style={{ height: 320 }} opts={{ renderer: 'svg' }} />
               </div>
             </div>

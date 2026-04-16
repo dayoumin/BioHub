@@ -40,6 +40,7 @@ import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { PyodideWorker } from '@/lib/services'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { resolveAxisColors, resolveChartPalette, resolveCssVar } from '@/lib/charts/chart-color-resolver'
+import { BIOLOGY_CALLOUT_WARNING, BIOLOGY_INPUT, BIOLOGY_TEXTAREA } from '@/lib/design-tokens/biology'
 import { downloadTextFile } from '@/lib/utils/download-file'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -249,9 +250,9 @@ export default function ProteinContent(): React.ReactElement {
       </div>
 
       {deepLinkError && (
-        <div className="mb-6 rounded-lg bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
-          <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">기록 복원 실패</h2>
-          <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
+        <div className={`mb-6 ${BIOLOGY_CALLOUT_WARNING}`} role="alert">
+          <h2 className="mb-2 font-semibold text-warning">기록 복원 실패</h2>
+          <p className="mb-4 text-sm text-warning-muted">{deepLinkError}</p>
           <Button variant="outline" onClick={handleDismissError}>
             새 분석 시작
           </Button>
@@ -271,7 +272,7 @@ export default function ProteinContent(): React.ReactElement {
               onChange={(e) => setAnalysisName(e.target.value)}
               placeholder="예: Hemoglobin beta subunit, Insulin precursor"
               maxLength={100}
-              className="w-full rounded-lg bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={BIOLOGY_INPUT}
             />
           </div>
 
@@ -296,7 +297,7 @@ export default function ProteinContent(): React.ReactElement {
               }}
               placeholder={`FASTA 형식 또는 순수 아미노산 서열을 입력하세요.\n\n>sp|P68871|HBB_HUMAN Hemoglobin subunit beta\nMVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTADAVMGNPKVKAHGKKVLG\nAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVAN\nALAHKYH`}
               rows={8}
-              className="w-full rounded-lg bg-card px-3 py-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={BIOLOGY_TEXTAREA}
             />
             <div className="mt-2 flex items-center gap-3">
               <label className="cursor-pointer">

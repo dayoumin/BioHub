@@ -13,7 +13,9 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_BADGE_CLASS, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIOLOGY_PANEL } from '@/lib/design-tokens/biology'
 import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
+import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -182,7 +184,7 @@ const NmdsTool = memo(function NmdsTool({ tool, meta, initialEntry }: ToolCompon
           </div>
 
           {chartOption && (
-            <div className="border rounded-lg bg-card max-w-2xl">
+            <div className={cn(BIOLOGY_PANEL, 'max-w-2xl')}>
               <LazyReactECharts option={chartOption} style={{ height: 400 }} opts={{ renderer: 'svg' }} />
             </div>
           )}

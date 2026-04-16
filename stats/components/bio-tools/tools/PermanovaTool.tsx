@@ -12,6 +12,7 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -99,7 +100,7 @@ const PermanovaTool = memo(function PermanovaTool({ tool, meta, initialEntry }: 
             </span>
           </div>
 
-          <div className="overflow-auto border rounded-lg">
+          <div className={BIOLOGY_TABLE_SHELL}>
             <table className="w-full text-sm">
               <thead>
                 <tr className={cn('border-b', BIO_TABLE.headerBg)}>

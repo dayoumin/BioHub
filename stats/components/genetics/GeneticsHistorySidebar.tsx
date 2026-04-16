@@ -26,6 +26,7 @@ import {
   HISTORY_KEY,
   HISTORY_CHANGE_EVENT,
 } from '@/lib/genetics/analysis-history'
+import { BIOLOGY_INPUT, BIOLOGY_PANEL_SOFT } from '@/lib/design-tokens/biology'
 
 // ── 필터 ──
 
@@ -46,14 +47,14 @@ const FILTER_OPTIONS: { value: ToolFilter; label: string }[] = [
 
 const TYPE_DOT_STYLE: Record<GeneticsToolType, CSSProperties> = {
   barcoding: { backgroundColor: 'var(--section-accent-bio)' },
-  blast: { backgroundColor: 'var(--section-accent-analysis)' },
-  genbank: { backgroundColor: 'var(--section-accent-hub)' },
+  blast: { backgroundColor: 'color-mix(in srgb, var(--section-accent-bio) 72%, var(--primary) 28%)' },
+  genbank: { backgroundColor: 'color-mix(in srgb, var(--section-accent-bio) 58%, var(--surface-container-highest) 42%)' },
   'seq-stats': { backgroundColor: 'color-mix(in srgb, var(--primary) 72%, var(--surface-container-highest) 28%)' },
-  similarity: { backgroundColor: 'var(--section-accent-graph)' },
-  phylogeny: { backgroundColor: 'color-mix(in srgb, var(--section-accent-analysis) 78%, var(--section-accent-bio) 22%)' },
+  similarity: { backgroundColor: 'color-mix(in srgb, var(--section-accent-bio) 48%, var(--primary) 52%)' },
+  phylogeny: { backgroundColor: 'color-mix(in srgb, var(--section-accent-bio) 62%, var(--primary) 38%)' },
   bold: { backgroundColor: 'color-mix(in srgb, var(--section-accent-bio) 82%, var(--surface-container-highest) 18%)' },
-  translation: { backgroundColor: 'color-mix(in srgb, var(--primary) 58%, var(--section-accent-hub) 42%)' },
-  protein: { backgroundColor: 'color-mix(in srgb, var(--section-accent-graph) 68%, var(--primary) 32%)' },
+  translation: { backgroundColor: 'color-mix(in srgb, var(--primary) 58%, var(--section-accent-bio) 42%)' },
+  protein: { backgroundColor: 'color-mix(in srgb, var(--primary) 72%, var(--section-accent-bio) 28%)' },
 }
 
 // ── 텍스트 검색 ──
@@ -231,7 +232,7 @@ export function GeneticsHistorySidebar(): ReactNode {
           value={searchQuery}
           onChange={handleSearchChange}
           placeholder="종명, accession, 샘플명..."
-          className="h-6 w-full rounded-md border border-border/40 bg-muted/20 pl-6 pr-6 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:border-border focus:outline-none"
+          className={`${BIOLOGY_INPUT} h-6 rounded-md pl-6 pr-6 text-[11px] placeholder:text-muted-foreground/40`}
         />
         {searchQuery && (
           <button
@@ -246,7 +247,7 @@ export function GeneticsHistorySidebar(): ReactNode {
 
       {/* 도구 필터 */}
       {showFilter && (
-        <div className="flex gap-0.5 rounded-md bg-muted/30 p-0.5">
+        <div className={`${BIOLOGY_PANEL_SOFT} flex gap-0.5 rounded-md p-0.5`}>
           {FILTER_OPTIONS.map(({ value, label }) => (
             <button
               key={value}
@@ -254,7 +255,7 @@ export function GeneticsHistorySidebar(): ReactNode {
               onClick={() => setFilter(value)}
               className={`flex-1 rounded px-1 py-0.5 text-[10px] font-medium transition-colors duration-200 ${
                 filter === value
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'bg-surface-container-high text-[color:var(--section-accent-bio)] shadow-none'
                   : 'text-muted-foreground/60 hover:text-muted-foreground'
               }`}
             >

@@ -22,6 +22,7 @@ import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildVbgfColumns } from '@/lib/graph-studio/analysis-adapter'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statValueAxis, statTooltip, SCATTER_LARGE_THRESHOLD, selectScatterRenderer } from '@/lib/charts/echarts-stat-utils'
+import { BIOLOGY_PANEL, BIOLOGY_PANEL_SOFT, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { ToolComponentProps } from './types'
 
 import type { VbgfResult } from '@/types/bio-tools-results'
@@ -179,7 +180,7 @@ const VbgfTool = memo(function VbgfTool({ tool, meta, initialEntry }: ToolCompon
           >
           <div>
             <h3 className="text-sm font-semibold mb-2">파라미터 추정</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -210,7 +211,7 @@ const VbgfTool = memo(function VbgfTool({ tool, meta, initialEntry }: ToolCompon
           {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">성장곡선</h3>
-              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+              <div className={cn(BIOLOGY_PANEL, 'max-w-lg mx-auto')}>
                 <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: selectScatterRenderer(chartData?.points.length ?? 0) }} />
               </div>
             </div>
@@ -224,17 +225,17 @@ const VbgfTool = memo(function VbgfTool({ tool, meta, initialEntry }: ToolCompon
           <div>
             <h3 className="text-sm font-semibold mb-2">적합도</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-3 border rounded-lg">
+              <div className={cn(BIOLOGY_PANEL_SOFT, 'p-3')}>
                 <div className="text-xs text-muted-foreground">R²</div>
                 <div className="text-lg font-semibold font-mono">{results.rSquared.toFixed(4)}</div>
               </div>
-              <div className="p-3 border rounded-lg">
+              <div className={cn(BIOLOGY_PANEL_SOFT, 'p-3')}>
                 <div className="text-xs text-muted-foreground">AIC</div>
                 <div className="text-lg font-semibold font-mono">
                   {results.aic != null ? results.aic.toFixed(2) : '—'}
                 </div>
               </div>
-              <div className="p-3 border rounded-lg">
+              <div className={cn(BIOLOGY_PANEL_SOFT, 'p-3')}>
                 <div className="text-xs text-muted-foreground">N</div>
                 <div className="text-lg font-semibold font-mono">{results.nObservations}</div>
               </div>

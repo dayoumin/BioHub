@@ -6,6 +6,13 @@ import { downloadCsvFile } from '@/lib/utils/download-file'
 import { storeSequenceForTransfer } from '@/lib/genetics/sequence-transfer'
 import { Download, ArrowRight, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  BIOLOGY_INSET_PANEL,
+  BIOLOGY_PANEL,
+  BIOLOGY_TABLE_BODY_ROW,
+  BIOLOGY_TABLE_HEAD_ROW,
+  BIOLOGY_TABLE_SHELL,
+} from '@/lib/design-tokens/biology'
 import type {
   BoldHit,
   BoldClassification,
@@ -28,26 +35,26 @@ interface BoldResultViewProps {
 // ── Classification rank styles ──
 
 const RANK_STYLES: Record<BoldClassification['rank'], { bg: string; text: string; label: string }> = {
-  species: { bg: 'bg-green-50 dark:bg-green-950/30',  text: 'text-green-800 dark:text-green-300',  label: '종(Species)' },
-  genus:   { bg: 'bg-yellow-50 dark:bg-yellow-950/30', text: 'text-yellow-800 dark:text-yellow-300', label: '속(Genus)' },
-  family:  { bg: 'bg-orange-50 dark:bg-orange-950/30', text: 'text-orange-800 dark:text-orange-300', label: '과(Family)' },
-  order:   { bg: 'bg-orange-50 dark:bg-orange-950/30', text: 'text-orange-800 dark:text-orange-300', label: '목(Order)' },
-  none:    { bg: 'bg-red-50 dark:bg-red-950/30',    text: 'text-red-800 dark:text-red-300',    label: '판정 불가' },
+  species: { bg: 'bg-surface-container-high',  text: 'text-[color:var(--section-accent-bio)]',  label: '종(Species)' },
+  genus:   { bg: 'bg-warning-bg', text: 'text-warning', label: '속(Genus)' },
+  family:  { bg: 'bg-warning-bg', text: 'text-warning', label: '과(Family)' },
+  order:   { bg: 'bg-warning-bg', text: 'text-warning', label: '목(Order)' },
+  none:    { bg: 'bg-error-bg',    text: 'text-error',    label: '판정 불가' },
 }
 
 // ── Similarity color helpers ──
 
 function similarityColorClass(sim: number): string {
-  if (sim >= 0.97) return 'bg-green-500'
-  if (sim >= 0.90) return 'bg-yellow-500'
-  if (sim >= 0.75) return 'bg-orange-400'
-  return 'bg-red-400'
+  if (sim >= 0.97) return 'bg-[color:var(--section-accent-bio)]'
+  if (sim >= 0.90) return 'bg-warning'
+  if (sim >= 0.75) return 'bg-warning/80'
+  return 'bg-error/80'
 }
 
 function similarityTextClass(sim: number): string {
-  if (sim >= 0.97) return 'text-green-700 dark:text-green-400'
-  if (sim >= 0.90) return 'text-yellow-700 dark:text-yellow-400'
-  return 'text-orange-700 dark:text-orange-400'
+  if (sim >= 0.97) return 'text-[color:var(--section-accent-bio)]'
+  if (sim >= 0.90) return 'text-warning'
+  return 'text-error'
 }
 
 // ── Sort ──
@@ -134,27 +141,29 @@ export function BoldResultView({
             : <span className="italic">{classification.taxon}</span>}
         </h2>
         {classification.rank === 'none' && (
-          <p className="mt-1 text-sm text-red-600/80 dark:text-red-400/80">
-            유사도 기준을 충족하는 일치 항목이 없습니다. 서열 품질을 확인하거나 다른 DB를 시도해 보세요.
-          </p>
+          <div className={`${BIOLOGY_INSET_PANEL} mt-3`}>
+            <p className="text-sm text-error">
+              유사도 기준을 충족하는 일치 항목이 없습니다. 서열 품질을 확인하거나 다른 DB를 시도해 보세요.
+            </p>
+          </div>
         )}
       </div>
 
       {/* ── Hit table ── */}
       {sorted.length > 0 && (
-        <div className="rounded-xl bg-card p-5">
+        <div className={`${BIOLOGY_PANEL} p-5`}>
           <h3 className="mb-3 text-sm font-semibold text-foreground/80">
             매칭 결과 ({sorted.length}건)
           </h3>
-          <div className="overflow-x-auto">
+          <div className={BIOLOGY_TABLE_SHELL}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-muted-foreground">
+                <tr className={BIOLOGY_TABLE_HEAD_ROW}>
                   <th className="pb-2 pr-2">#</th>
                   <th className="pb-2 pr-3">Process ID</th>
                   <th className="pb-2 pr-3">Species</th>
                   <th
-                    className="cursor-pointer select-none pb-2 pr-3 text-right hover:text-gray-700"
+                    className="cursor-pointer select-none pb-2 pr-3 text-right hover:text-foreground"
                     onClick={toggleSort}
                     title="클릭하여 정렬"
                   >
@@ -170,14 +179,14 @@ export function BoldResultView({
                 {sorted.map((hit, i) => {
                   const pct = (hit.similarity * 100).toFixed(1)
                   return (
-                    <tr key={hit.processId || i} className="border-b border-border/30">
+                    <tr key={hit.processId || i} className={BIOLOGY_TABLE_BODY_ROW}>
                       <td className="py-2 pr-2 text-muted-foreground/60">{i + 1}</td>
                       <td className="py-2 pr-3 font-mono text-xs">
                         <a
                           href={`https://id.boldsystems.org/record?processid=${encodeURIComponent(hit.processId)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-[color:var(--section-accent-bio)] hover:underline"
                         >
                           {hit.processId}
                         </a>
@@ -189,7 +198,7 @@ export function BoldResultView({
                         <div className="flex items-center justify-end gap-2">
                           <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                             <div
-                              className={`h-full rounded-full transition-all ${similarityColorClass(hit.similarity)}`}
+                            className={`h-full rounded-full transition-all ${similarityColorClass(hit.similarity)}`}
                               style={{ width: `${Math.min(hit.similarity * 100, 100)}%` }}
                             />
                           </div>
@@ -213,7 +222,7 @@ export function BoldResultView({
                             href={`https://www.ncbi.nlm.nih.gov/nuccore/${hit.accession}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                            className="text-[color:var(--section-accent-bio)] hover:underline"
                           >
                             {hit.accession}
                           </a>

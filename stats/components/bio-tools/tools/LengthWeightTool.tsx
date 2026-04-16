@@ -24,6 +24,7 @@ import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildLengthWeightColumns } from '@/lib/graph-studio/analysis-adapter'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statValueAxis, statTooltip, SCATTER_LARGE_THRESHOLD, selectScatterRenderer } from '@/lib/charts/echarts-stat-utils'
+import { BIOLOGY_INSET_PANEL, BIOLOGY_PANEL, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { ToolComponentProps } from './types'
 import type { LengthWeightResult } from '@/types/bio-tools-results'
 
@@ -204,7 +205,7 @@ const LengthWeightTool = memo(function LengthWeightTool({ tool, meta, initialEnt
 
           <div>
             <h3 className="text-sm font-semibold mb-2">파라미터</h3>
-            <div className="overflow-auto border rounded-lg">
+            <div className={BIOLOGY_TABLE_SHELL}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -243,7 +244,7 @@ const LengthWeightTool = memo(function LengthWeightTool({ tool, meta, initialEnt
           {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">Log-Log 산점도</h3>
-              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+              <div className={cn(BIOLOGY_PANEL, 'max-w-lg mx-auto')}>
                 <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: selectScatterRenderer(chartData?.pts.length ?? 0) }} />
               </div>
             </div>
@@ -254,7 +255,7 @@ const LengthWeightTool = memo(function LengthWeightTool({ tool, meta, initialEnt
             Graph Studio에서 열기
           </Button>
 
-          <div className="p-3 border rounded-lg bg-muted/30">
+          <div className={cn(BIOLOGY_INSET_PANEL, 'space-y-1')}>
             <Link
               href="/bio-tools?tool=condition-factor"
               className="flex items-center gap-2 text-sm text-primary hover:underline"

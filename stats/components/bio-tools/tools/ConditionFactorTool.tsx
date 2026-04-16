@@ -24,6 +24,7 @@ import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import { resolveChartPalette } from '@/lib/charts/chart-color-resolver'
+import { BIOLOGY_INSET_PANEL, BIOLOGY_PANEL, BIOLOGY_PANEL_SOFT, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import type { VLineAnnotation } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
@@ -201,7 +202,7 @@ const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, init
                 { label: '최대', value: results.max.toFixed(4) },
                 { label: 'N', value: String(results.n) },
               ].map((item) => (
-                <div key={item.label} className="p-3 border rounded-lg text-center">
+                <div key={item.label} className={cn(BIOLOGY_PANEL_SOFT, 'p-3 text-center')}>
                   <div className="text-xs text-muted-foreground">{item.label}</div>
                   <div className="text-sm font-semibold font-mono mt-0.5">{item.value}</div>
                 </div>
@@ -212,7 +213,7 @@ const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, init
           {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">K 분포</h3>
-              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+              <div className={cn(BIOLOGY_PANEL, 'max-w-lg mx-auto')}>
                 <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
               </div>
             </div>
@@ -221,7 +222,7 @@ const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, init
           {groupEntries.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold mb-2">그룹별 비교</h3>
-              <div className="overflow-auto border rounded-lg">
+              <div className={BIOLOGY_TABLE_SHELL}>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className={cn('border-b', BIO_TABLE.headerBg)}>
@@ -273,7 +274,7 @@ const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, init
             Graph Studio에서 열기
           </Button>
 
-          <div className="p-3 border rounded-lg bg-muted/30 text-xs text-muted-foreground space-y-1">
+          <div className={cn(BIOLOGY_INSET_PANEL, 'space-y-1 text-xs text-muted-foreground')}>
             <p className="font-medium text-foreground text-sm">Fulton&apos;s K 주의사항</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>K는 등성장(isometric, b = 3)을 가정 — b &ne; 3이면 체장에 따라 K가 체계적으로 달라짐</li>

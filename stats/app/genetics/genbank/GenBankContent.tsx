@@ -6,7 +6,17 @@ import { downloadTextFile } from '@/lib/utils/download-file'
 import { Search, Download, Copy, Check, Loader2, HelpCircle, ChevronDown, ArrowRight } from 'lucide-react'
 import { storeSequenceForTransfer } from '@/lib/genetics/sequence-transfer'
 import { Button } from '@/components/ui/button'
-import { focusRing } from '@/components/common/card-styles'
+import {
+  BIOLOGY_ACTION_LINK,
+  BIOLOGY_CALLOUT_ERROR,
+  BIOLOGY_INPUT,
+  BIOLOGY_INSET_PANEL,
+  BIOLOGY_PANEL,
+  BIOLOGY_PANEL_SOFT,
+  BIOLOGY_SEGMENTED,
+  BIOLOGY_SEGMENTED_ACTIVE,
+  BIOLOGY_TEXTAREA,
+} from '@/lib/design-tokens/biology'
 import {
   saveGeneticsHistory,
   loadGeneticsHistory,
@@ -196,20 +206,16 @@ export default function GenBankContent(): React.ReactElement {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="종명, accession, 키워드 (예: Gadus morhua COI)"
-              className={`w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3 text-sm ${focusRing}`}
+              className={`${BIOLOGY_INPUT} py-2.5 pl-10 pr-3`}
             />
           </div>
-          <div className="flex gap-1 rounded-lg border border-border p-0.5">
+          <div className={`${BIOLOGY_PANEL_SOFT} flex gap-1 p-0.5`}>
             {(Object.keys(DB_LABELS) as DbOption[]).map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDb(d)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                  db === d
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={db === d ? BIOLOGY_SEGMENTED_ACTIVE : BIOLOGY_SEGMENTED}
               >
                 {DB_LABELS[d]}
               </button>
@@ -233,7 +239,7 @@ export default function GenBankContent(): React.ReactElement {
                   key={q}
                   type="button"
                   onClick={() => setQuery(q)}
-                  className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:text-primary"
+                  className={BIOLOGY_ACTION_LINK}
                 >
                   {label}
                 </button>
@@ -250,7 +256,7 @@ export default function GenBankContent(): React.ReactElement {
               <ChevronDown className={`h-3 w-3 transition-transform ${showTips ? 'rotate-180' : ''}`} />
             </button>
             {showTips && (
-              <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <div className={BIOLOGY_INSET_PANEL}>
                 <ul className="space-y-1.5">
                   {SEARCH_TIPS.map(({ tip, example, desc }) => (
                     <li key={tip} className="flex items-start gap-2 text-xs">
@@ -258,7 +264,7 @@ export default function GenBankContent(): React.ReactElement {
                       <button
                         type="button"
                         onClick={() => { setQuery(example); setShowTips(false) }}
-                        className="font-mono text-primary hover:underline"
+                        className="font-mono text-[color:var(--section-accent-bio)] hover:underline"
                       >
                         {example}
                       </button>
@@ -273,15 +279,15 @@ export default function GenBankContent(): React.ReactElement {
       </form>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className={`mb-4 ${BIOLOGY_CALLOUT_ERROR} p-4`}>
+          <p className="text-sm text-error">{error}</p>
         </div>
       )}
 
       {/* 결과 */}
       {hasSearched && !isSearching && results.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-border/40 bg-muted/20 px-4 py-12 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
+        <div className={`${BIOLOGY_PANEL_SOFT} flex flex-col items-center justify-center px-4 py-12 text-center`}>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-container text-muted-foreground">
             <Search className="h-6 w-6" />
           </div>
           <p className="mb-2 text-sm font-medium text-foreground">검색 결과가 없습니다</p>
@@ -297,16 +303,16 @@ export default function GenBankContent(): React.ReactElement {
             {totalCount.toLocaleString()}건 중 {results.length}건 표시
           </p>
 
-          <div className="divide-y divide-border rounded-lg border border-border bg-card">
+          <div className="space-y-2">
             {results.map((r) => (
-              <div key={r.uid} className="flex items-start gap-3 p-4 transition hover:bg-muted/20">
+              <div key={r.uid} className={`${BIOLOGY_PANEL} flex items-start gap-3 p-4 transition-colors hover:bg-surface-container`}>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center gap-2">
                     <a
                       href={`https://www.ncbi.nlm.nih.gov/${db}/${r.accession}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-xs font-medium text-primary hover:underline"
+                      className="font-mono text-xs font-medium text-[color:var(--section-accent-bio)] hover:underline"
                     >
                       {r.accession}
                     </a>
@@ -373,7 +379,7 @@ function FastaViewer({ accession, content, onClose, onTransfer }: {
   }, [accession, content])
 
   return (
-    <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+    <div className={`mt-6 ${BIOLOGY_PANEL_SOFT} p-4`}>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">
           {accession} — FASTA
@@ -392,7 +398,7 @@ function FastaViewer({ accession, content, onClose, onTransfer }: {
           </Button>
         </div>
       </div>
-      <pre className="max-h-64 overflow-auto rounded-md bg-background p-3 font-mono text-xs leading-relaxed text-foreground">
+      <pre className={`${BIOLOGY_TEXTAREA} max-h-64 overflow-auto p-3 text-xs leading-relaxed text-foreground`}>
         {content}
       </pre>
       <div className="mt-3 flex items-center gap-2">

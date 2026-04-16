@@ -5,6 +5,12 @@ import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Download, ArrowUpDown } from 'lucide-react'
 import type { BlastProgram, GenericBlastHit } from '@biohub/types'
 import { Button } from '@/components/ui/button'
+import {
+  BIOLOGY_PANEL,
+  BIOLOGY_TABLE_BODY_ROW,
+  BIOLOGY_TABLE_HEAD_ROW,
+  BIOLOGY_TABLE_SHELL,
+} from '@/lib/design-tokens/biology'
 
 interface BlastSearchResultProps {
   hits: GenericBlastHit[]
@@ -76,7 +82,7 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
   return (
     <div className="space-y-4" role="region" aria-label="BLAST 검색 결과">
       {/* 요약 */}
-      <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
+      <div className={`${BIOLOGY_PANEL} flex items-center justify-between p-4`}>
         <div>
           <h2 className="text-lg font-semibold">
             {hits.length}개 히트
@@ -95,9 +101,9 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
 
       {/* 히트 없음 */}
       {hits.length === 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-950/30">
-          <p className="text-sm text-amber-800 dark:text-amber-300">매칭 결과가 없습니다.</p>
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+        <div className="rounded-[1.5rem] bg-warning-bg p-6 text-center">
+          <p className="text-sm text-warning">매칭 결과가 없습니다.</p>
+          <p className="mt-1 text-xs text-warning-muted">
             E-value 임계값을 높이거나 다른 데이터베이스를 시도하세요.
           </p>
         </div>
@@ -105,11 +111,11 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
 
       {/* 결과 테이블 */}
       {hits.length > 0 && (
-        <div className="rounded-lg border border-border bg-card">
+        <div className={BIOLOGY_TABLE_SHELL}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
+                <tr className={BIOLOGY_TABLE_HEAD_ROW}>
                   <th className="px-3 pb-2 pt-3">#</th>
                   <th className="px-3 pb-2 pt-3">Accession</th>
                   <th className="px-3 pb-2 pt-3">종명</th>
@@ -122,7 +128,7 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
               </thead>
               <tbody>
                 {sorted.map((hit, i) => (
-                  <tr key={`${hit.accession}-${i}`} className="border-b border-border/50 transition-colors duration-200 hover:bg-muted/30">
+                  <tr key={`${hit.accession}-${i}`} className={BIOLOGY_TABLE_BODY_ROW}>
                     <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
                     <td className="px-3 py-2">
                       <a
@@ -146,8 +152,8 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
                     </td>
                     <td className="px-3 py-2 text-right font-mono">
                       <span className={
-                        hit.identity >= 0.97 ? 'text-green-600 dark:text-green-400' :
-                        hit.identity >= 0.90 ? 'text-amber-600 dark:text-amber-400' :
+                        hit.identity >= 0.97 ? 'text-[color:var(--section-accent-bio)]' :
+                        hit.identity >= 0.90 ? 'text-warning' :
                         'text-muted-foreground'
                       }>
                         {(hit.identity * 100).toFixed(1)}%
