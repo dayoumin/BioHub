@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
   "version": "1.44.6",
-  "lastUpdated": "2026-04-14",
+  "lastUpdated": "2026-04-16",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -226,6 +226,32 @@
             "normalization",
             "zustand",
             "project binding",
+            "regression"
+          ]
+        },
+        {
+          "name": "예제 데이터 플로우 회귀 테스트",
+          "purpose": "여러 예제 fixture를 실제 사용자 이벤트로 넣고 분석 결과 단계까지 공통 흐름을 검증",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { MULTI_SEQUENCE_EXAMPLES } from '@/lib/genetics/example-sequences';\nimport SimilarityContent from '@/app/genetics/similarity/SimilarityContent';\n\nit.each(MULTI_SEQUENCE_EXAMPLES)('%s 예제로 유사도 결과까지 진행된다', async (example) => {\n  const user = userEvent.setup();\n  render(<SimilarityContent />);\n\n  await user.click(screen.getByRole('button', { name: example.label }));\n  await waitFor(() => {\n    expect(screen.getByRole('button', { name: '분석 시작' })).toBeEnabled();\n  });\n  await user.click(screen.getByRole('button', { name: '분석 시작' }));\n\n  await waitFor(() => {\n    expect(screen.getByText(new RegExp(`${example.label} · 3개 · K2P`))).toBeInTheDocument();\n  });\n});",
+          "keywords": [
+            "example picker",
+            "it.each",
+            "userEvent",
+            "analysis flow",
+            "fixture",
+            "regression"
+          ]
+        },
+        {
+          "name": "경로 기반 활성 탭 회귀 테스트",
+          "purpose": "pathname prefix 매칭이 중첩 경로에서도 올바른 서브내비 활성 상태를 유지하는지 검증",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { GeneticsSubNav } from '@/components/genetics/GeneticsSubNav';\n\nlet mockPathname = '/genetics/blast/results';\nvi.mock('next/navigation', () => ({\n  usePathname: () => mockPathname,\n}));\n\nit('중첩 경로에서도 blast 탭이 활성 상태다', () => {\n  render(<GeneticsSubNav />);\n\n  const blastLink = screen.getByRole('link', { name: 'BLAST 서열 검색' });\n  const genbankLink = screen.getByRole('link', { name: 'GenBank 서열 검색' });\n\n  expect(blastLink).toHaveClass('text-foreground');\n  expect(blastLink.getAttribute('style')).toContain('background-color');\n  expect(genbankLink).toHaveClass('text-muted-foreground');\n});",
+          "keywords": [
+            "pathname",
+            "subnav",
+            "nested route",
+            "active state",
+            "navigation",
             "regression"
           ]
         }
