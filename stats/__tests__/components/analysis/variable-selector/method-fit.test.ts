@@ -9,6 +9,7 @@ import {
   type SelectorColumnInfo,
 } from '@/components/analysis/variable-selector/method-fit'
 import type { SlotConfig } from '@/components/analysis/variable-selector/slot-configs'
+import type { StatisticalMethodRequirements } from '@/lib/statistics/variable-requirements'
 
 function getGroupComparisonSlots() {
   const requirements = getMethodRequirements('two-sample-t')
@@ -49,6 +50,45 @@ describe('method-fit helpers', () => {
       mappingKey: 'covariate',
       multiple: true,
       required: true,
+    })
+  })
+
+  it('preserves optional slot semantics for representable multi-var requirements', () => {
+    const requirements: StatisticalMethodRequirements = {
+      id: 'fixture-optional-covariate',
+      name: 'Fixture Optional Control',
+      category: 'correlation',
+      description: 'Fixture for optional slot coverage',
+      minSampleSize: 10,
+      assumptions: [],
+      variables: [
+        {
+          role: 'dependent',
+          label: '분석 변수',
+          types: ['continuous'],
+          required: true,
+          multiple: true,
+          minCount: 2,
+          description: '분석 변수들',
+        },
+        {
+          role: 'covariate',
+          label: '통제 변수',
+          types: ['continuous'],
+          required: false,
+          multiple: true,
+          minCount: 1,
+          description: '선택 통제 변수',
+        },
+      ],
+    }
+
+    const slots = buildSlotsFromMethodRequirements('correlation', requirements)
+    expect(slots).toHaveLength(2)
+    expect(slots?.find(slot => slot.id === 'covariate')).toMatchObject({
+      required: false,
+      multiple: true,
+      mappingKey: 'covariate',
     })
   })
 
@@ -203,6 +243,123 @@ describe('method-fit helpers', () => {
 
     expect(candidates.find(candidate => candidate.column.name === 'sex')?.status).toBe('recommended')
     expect(candidates.find(candidate => candidate.column.name === 'age')?.status).toBe('invalid')
+  })
+
+  it('marks a 3-level categorical column as recommended for one-way-anova factor slots', () => {
+    const requirements = getMethodRequirements('one-way-anova')
+    expect(requirements).toBeDefined()
+
+    const slots = resolveMethodSlots('group-comparison', requirements)
+    const columns: SelectorColumnInfo[] = [
+      {
+        name: 'score',
+        type: 'numeric',
+        rawType: 'continuous',
+        dataType: 'number',
+        uniqueCount: 24,
+        missingCount: 0,
+        nonMissingCount: 24,
+        sampleValues: [71, 74, 80],
+      },
+      {
+        name: 'treatment',
+        type: 'categorical',
+        rawType: 'categorical',
+        dataType: 'string',
+        uniqueCount: 3,
+        missingCount: 0,
+        nonMissingCount: 24,
+        sampleValues: ['A', 'B', 'C'],
+      },
+    ]
+
+    const candidates = buildVariableCandidates({
+      columns,
+      slots,
+      assignments: { dependent: [], factor: [], covariate: [] },
+      focusSlotId: 'factor',
+      methodRequirements: requirements,
+      methodId: 'one-way-anova',
+    })
+
+    expect(candidates.find(candidate => candidate.column.name === 'treatment')).toMatchObject({
+      status: 'recommended',
+      isSelectable: true,
+    })
+  })
+
+  it('treats single-level categorical columns as invalid for factor slots', () => {
+    const requirements = getMethodRequirements('one-way-anova')
+    expect(requirements).toBeDefined()
+
+    const slots = resolveMethodSlots('group-comparison', requirements)
+    const columns: SelectorColumnInfo[] = [
+      {
+        name: 'singleGroup',
+        type: 'categorical',
+        rawType: 'categorical',
+        dataType: 'string',
+        uniqueCount: 1,
+        missingCount: 0,
+        nonMissingCount: 10,
+        sampleValues: ['A', 'A', 'A'],
+      },
+    ]
+
+    const candidates = buildVariableCandidates({
+      columns,
+      slots,
+      assignments: { dependent: [], factor: [], covariate: [] },
+      focusSlotId: 'factor',
+      methodRequirements: requirements,
+      methodId: 'one-way-anova',
+    })
+
+    expect(candidates[0]).toMatchObject({
+      status: 'invalid',
+      isSelectable: false,
+    })
+    expect(candidates[0]?.reason).toContain('최소 2개 수준')
+  })
+
+  it('recommends repeated-measures columns for within-subject slots', () => {
+    const requirements = getMethodRequirements('repeated-measures-anova')
+    expect(requirements).toBeDefined()
+
+    const slots = resolveMethodSlots('repeated-measures', requirements)
+    const columns: SelectorColumnInfo[] = [
+      {
+        name: 'pre',
+        type: 'numeric',
+        rawType: 'continuous',
+        dataType: 'number',
+        uniqueCount: 12,
+        missingCount: 0,
+        nonMissingCount: 12,
+        sampleValues: [1, 2, 3],
+      },
+      {
+        name: 'post',
+        type: 'numeric',
+        rawType: 'continuous',
+        dataType: 'number',
+        uniqueCount: 12,
+        missingCount: 0,
+        nonMissingCount: 12,
+        sampleValues: [2, 3, 4],
+      },
+    ]
+
+    const candidates = buildVariableCandidates({
+      columns,
+      slots,
+      assignments: { variables: [], group: [] },
+      focusSlotId: 'variables',
+      methodRequirements: requirements,
+      methodId: 'repeated-measures-anova',
+    })
+
+    expect(candidates.every(candidate => candidate.status === 'recommended')).toBe(true)
   })
 
   it('surfaces a mismatch hint before slot-based validation', () => {

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } fr
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useInterpretation } from '@/hooks/use-interpretation'
+import { useCanonicalSelectedMethod } from '@/hooks/use-canonical-selected-method'
 import {
   Save,
   Copy,
@@ -130,23 +131,24 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     analysisOptions,
     suggestedSettings,
   } = useAnalysisStore()
+  const canonicalSelectedMethod = useCanonicalSelectedMethod(selectedMethod)
   const analysisVisualizationColumns = useMemo(
     () => (results ? buildAnalysisVisualizationColumns(results) : null),
     [results],
   )
   const methodRequirements = useMemo(
-    () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
-    [selectedMethod?.id],
+    () => (canonicalSelectedMethod?.id ? getMethodRequirements(canonicalSelectedMethod.id) : undefined),
+    [canonicalSelectedMethod?.id],
   )
   const { executionSettingEntries } = useMemo(
     () => buildAnalysisExecutionContext({
       analysisOptions,
       methodRequirements,
-      selectedMethodId: selectedMethod?.id,
+      selectedMethodId: canonicalSelectedMethod?.id,
       suggestedSettings,
       variableMapping,
     }),
-    [analysisOptions, methodRequirements, selectedMethod?.id, suggestedSettings, variableMapping],
+    [analysisOptions, methodRequirements, canonicalSelectedMethod?.id, suggestedSettings, variableMapping],
   )
   // variableMapping → 변수 이름 배열 (statisticalResult, handleInterpretation 공유)
   const mappedVariables = useMemo(() => {
@@ -307,7 +309,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     resetPaperDraftState,
   } = useResultsPaperDraft({
     draftExportCtx,
-    selectedMethodId: selectedMethod?.id,
+    selectedMethodId: canonicalSelectedMethod?.id,
   })
 
   const {
@@ -377,7 +379,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     statisticalResult,
     interpretation,
     apaFormat,
-    selectedMethod,
+    selectedMethod: canonicalSelectedMethod,
     variableMapping,
     analysisOptions,
     uploadedFileName: uploadedFileName ?? null,
@@ -559,7 +561,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard
           statisticalResult={statisticalResult}
-          methodId={selectedMethod?.id}
+          methodId={canonicalSelectedMethod?.id}
           isSignificant={isSignificant}
           assumptionsPassed={assumptionsPassed}
           resultTimestamp={resultTimestamp}

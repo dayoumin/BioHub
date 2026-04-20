@@ -12,6 +12,23 @@ function setupTwoSampleDataset() {
   })
 }
 
+function makeDateColumn(params: {
+  name: string
+  uniqueCount: number
+  samples: unknown[]
+}) {
+  return {
+    name: params.name,
+    type: 'date',
+    dataType: 'date',
+    uniqueCount: params.uniqueCount,
+    missingCount: 0,
+    totalCount: params.samples.length,
+    samples: params.samples,
+    idDetection: { isId: false },
+  }
+}
+
 function expectCandidateStatus(columnName: string, label: string) {
   expect(screen.getByTestId(`pool-var-${columnName}-status`)).toHaveTextContent(label)
 }
@@ -375,6 +392,208 @@ describe('UnifiedVariableSelector', () => {
         dependentVar: 'outcome',
       })
     )
+  })
+
+  it('filters detected ID columns out of the pool and keeps date columns for time-series slots', () => {
+    mockAnalyzeDataset.mockReturnValue({
+      columns: [
+        {
+          ...makeColumn({
+            name: 'recordId',
+            type: 'categorical',
+            dataType: 'string',
+            uniqueCount: 8,
+            samples: ['1', '2', '3', '4'],
+          }),
+          idDetection: { isId: true },
+        },
+        makeDateColumn({
+          name: 'observedAt',
+          uniqueCount: 8,
+          samples: ['2026-01-01', '2026-01-02', '2026-01-03'],
+        }),
+        makeColumn({
+          name: 'temperature',
+          type: 'continuous',
+          dataType: 'number',
+          uniqueCount: 8,
+          samples: [18.1, 18.4, 18.8, 19.0],
+        }),
+      ],
+    })
+
+    render(
+      <UnifiedVariableSelector
+        data={[{ recordId: '1', observedAt: '2026-01-01', temperature: 18.1 }]}
+        selectorType="time-series"
+        methodId="arima"
+        methodName="ARIMA"
+        onComplete={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByTestId('pool-var-recordId')).toBeNull()
+    expect(screen.getByTestId('pool-var-observedAt')).toBeInTheDocument()
+    expect(screen.getByTestId('pool-var-temperature')).toBeInTheDocument()
+
+    const timeButton = screen.getByTestId('slot-time').querySelector('button')
+    expect(timeButton).not.toBeNull()
+    fireEvent.click(timeButton as HTMLButtonElement)
+    fireEvent.click(screen.getByTestId('pool-var-observedAt'))
+    expect(screen.getByTestId('chip-observedAt')).toBeInTheDocument()
+  })
+
+  it('allows repeated-measures completion without filling the optional group slot', () => {
+    const onComplete = vi.fn()
+
+    mockAnalyzeDataset.mockReturnValue({
+      columns: [
+        makeColumn({
+          name: 'pre',
+          type: 'continuous',
+          dataType: 'number',
+          uniqueCount: 18,
+          samples: [71, 74, 80, 77],
+        }),
+        makeColumn({
+          name: 'post',
+          type: 'continuous',
+          dataType: 'number',
+          uniqueCount: 18,
+          samples: [73, 76, 81, 79],
+        }),
+        makeColumn({
+          name: 'group',
+          type: 'categorical',
+          dataType: 'string',
+          uniqueCount: 2,
+          samples: ['A', 'B', 'A', 'B'],
+        }),
+      ],
+    })
+
+    render(
+      <UnifiedVariableSelector
+        data={[{ pre: 71, post: 73, group: 'A' }]}
+        selectorType="repeated-measures"
+        methodId="repeated-measures-anova"
+        methodName="Repeated Measures ANOVA"
+        onComplete={onComplete}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId('pool-var-pre'))
+    fireEvent.click(screen.getByTestId('pool-var-post'))
+
+    const nextButton = screen.getByTestId('variable-selection-next')
+    expect(nextButton).toBeEnabled()
+
+    fireEvent.click(nextButton)
+    expect(onComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variables: ['pre', 'post'],
+      }),
+    )
+    expect(onComplete).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupVar: expect.anything(),
+      }),
+    )
+  })
+
+  it('emits the optional repeated-measures group slot when the user assigns it', () => {
+    const onComplete = vi.fn()
+
+    mockAnalyzeDataset.mockReturnValue({
+      columns: [
+        makeColumn({
+          name: 'pre',
+          type: 'continuous',
+          dataType: 'number',
+          uniqueCount: 18,
+          samples: [71, 74, 80, 77],
+        }),
+        makeColumn({
+          name: 'post',
+          type: 'continuous',
+          dataType: 'number',
+          uniqueCount: 18,
+          samples: [73, 76, 81, 79],
+        }),
+        makeColumn({
+          name: 'group',
+          type: 'categorical',
+          dataType: 'string',
+          uniqueCount: 2,
+          samples: ['A', 'B', 'A', 'B'],
+        }),
+      ],
+    })
+
+    render(
+      <UnifiedVariableSelector
+        data={[{ pre: 71, post: 73, group: 'A' }]}
+        selectorType="repeated-measures"
+        methodId="repeated-measures-anova"
+        methodName="Repeated Measures ANOVA"
+        onComplete={onComplete}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId('pool-var-pre'))
+    fireEvent.click(screen.getByTestId('pool-var-post'))
+
+    const groupButton = screen.getByTestId('slot-group').querySelector('button')
+    expect(groupButton).not.toBeNull()
+    fireEvent.click(groupButton as HTMLButtonElement)
+    fireEvent.click(screen.getByTestId('pool-var-group'))
+
+    fireEvent.click(screen.getByTestId('variable-selection-next'))
+    expect(onComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variables: ['pre', 'post'],
+        groupVar: 'group',
+      }),
+    )
+  })
+
+  it('keeps high-cardinality categorical factors selectable for one-way-anova', () => {
+    mockAnalyzeDataset.mockReturnValue({
+      columns: [
+        makeColumn({
+          name: 'score',
+          type: 'continuous',
+          dataType: 'number',
+          uniqueCount: 60,
+          samples: [71, 74, 80, 77],
+        }),
+        makeColumn({
+          name: 'treatment',
+          type: 'categorical',
+          dataType: 'string',
+          uniqueCount: 50,
+          samples: ['G1', 'G2', 'G3', 'G4'],
+        }),
+      ],
+    })
+
+    render(
+      <UnifiedVariableSelector
+        data={[{ score: 71, treatment: 'G1' }]}
+        selectorType="group-comparison"
+        methodId="one-way-anova"
+        methodName="One-Way ANOVA"
+        onComplete={vi.fn()}
+      />
+    )
+
+    const factorButton = screen.getByTestId('slot-factor').querySelector('button')
+    expect(factorButton).not.toBeNull()
+    fireEvent.click(factorButton as HTMLButtonElement)
+
+    expectCandidateStatus('treatment', CANDIDATE_STATUS_LABELS.recommended)
+    fireEvent.click(screen.getByTestId('pool-var-treatment'))
+    expect(screen.getByTestId('chip-treatment')).toBeInTheDocument()
   })
 })
 

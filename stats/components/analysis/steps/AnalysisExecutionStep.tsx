@@ -26,12 +26,12 @@ import {
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import { normalizeSelectedMethod } from '@/lib/stores/analysis-transitions'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/analysis/common'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/analysis-navigation'
+import { useCanonicalSelectedMethod } from '@/hooks/use-canonical-selected-method'
 import { useTerminology } from '@/hooks/use-terminology'
 
 // Stage IDs (순서 고정)
@@ -92,10 +92,7 @@ export function AnalysisExecutionStep({
   const setAssumptionResults = useAnalysisStore(state => state.setAssumptionResults)
   const suggestedSettings = useAnalysisStore(state => state.suggestedSettings)
   const analysisOptions = useAnalysisStore(state => state.analysisOptions)
-  const normalizedSelectedMethod = useMemo(
-    () => normalizeSelectedMethod(selectedMethod),
-    [selectedMethod]
-  )
+  const normalizedSelectedMethod = useCanonicalSelectedMethod(selectedMethod)
   const methodRequirements = useMemo(
     () => (normalizedSelectedMethod?.id ? getMethodRequirements(normalizedSelectedMethod.id) : undefined),
     [normalizedSelectedMethod?.id]

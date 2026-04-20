@@ -146,10 +146,12 @@ bootSelectorTypes([
   ['binomial-test', 'one-sample'],
   ['runs-test', 'one-sample'],
   ['mann-kendall', 'one-sample'],
+  ['mann-kendall-test', 'one-sample'],
   ['normality-test', 'one-sample'],
   ['homogeneity-test', 'one-sample'],
 
   ['paired-t', 'paired'],
+  ['wilcoxon-signed-rank', 'paired'],
   ['wilcoxon', 'paired'],
   ['sign-test', 'paired'],
   ['cochran-q', 'paired'],
@@ -160,6 +162,7 @@ bootSelectorTypes([
   ['ancova', 'group-comparison'],
   ['mann-whitney', 'group-comparison'],
   ['kruskal-wallis', 'group-comparison'],
+  ['kolmogorov-smirnov', 'group-comparison'],
   ['ks-test', 'group-comparison'],
   ['mood-median', 'group-comparison'],
   ['non-parametric', 'group-comparison'],
@@ -168,6 +171,7 @@ bootSelectorTypes([
 
   ['two-way-anova', 'two-way-anova'],
 
+  ['pearson-correlation', 'correlation'],
   ['correlation', 'correlation'],
   ['partial-correlation', 'correlation'],
   ['descriptive-stats', 'correlation'],

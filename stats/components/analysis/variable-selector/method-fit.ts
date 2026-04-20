@@ -563,6 +563,14 @@ function getAssignmentFailureReason(
     return `${slot.label}에는 ${slot.accepts.includes('numeric') ? '연속형' : '범주형'} 변수가 필요합니다.`
   }
 
+  if (
+    requirement
+    && (requirement.role === 'factor' || requirement.role === 'between')
+    && column.uniqueCount < 2
+  ) {
+    return `${slot.label}는 최소 2개 수준이 필요합니다. 현재 ${column.uniqueCount}개 수준입니다.`
+  }
+
   if (requiresExactTwoLevels(methodId, requirement) && column.uniqueCount !== 2) {
     return `이 방법의 그룹 변수는 정확히 2개 수준이어야 합니다. 현재 ${column.uniqueCount}개 수준입니다.`
   }
@@ -582,6 +590,14 @@ function getRecommendedReason(
   }
 
   if (
+    (requirement.role === 'factor' || requirement.role === 'between')
+    && column.uniqueCount >= 2
+    && !requiresExactTwoLevels(methodId, requirement)
+  ) {
+    return `범주형이며 ${column.uniqueCount}개 수준을 가져 요인 변수로 적합합니다.`
+  }
+
+  if (
     requirement.role === 'dependent' &&
     requirement.types.includes('continuous') &&
     column.rawType === 'continuous'
@@ -595,6 +611,16 @@ function getRecommendedReason(
 
   if (requirement.role === 'time' && column.rawType === 'date') {
     return '시간 순서를 가진 날짜형 변수라 시간 축으로 적합합니다.'
+  }
+
+  if (
+    requirement.role === 'within'
+    && requirement.types.includes('continuous')
+    && column.rawType === 'continuous'
+  ) {
+    return PRE_POST_NAME_PATTERN.test(column.name)
+      ? '전후 비교처럼 보이는 이름이라 반복 측정 변수로 적합합니다.'
+      : '반복 측정 변수로 사용하기 적합한 연속형 변수입니다.'
   }
 
   if ((methodId === 'paired-t' || methodId === 'wilcoxon') && PRE_POST_NAME_PATTERN.test(column.name)) {

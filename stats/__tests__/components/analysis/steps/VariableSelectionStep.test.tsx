@@ -1,11 +1,14 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
+import { getMethodByAlias } from '@/lib/constants/statistical-methods'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
-import type { AnalysisOptions } from '@/types/analysis'
+import type { AnalysisOptions, StatisticalMethod } from '@/types/analysis'
 
 let capturedSelectorType: string | null = null
 let capturedAnalysisOptionsProps: Record<string, unknown> | null = null
+let capturedUnifiedMethodId: string | undefined
+let capturedUnifiedMethodName: string | undefined
 
 vi.mock('@/components/common/variable-selectors', () => ({
   AutoConfirmSelector: ({ onComplete }: { onComplete: (mapping: unknown) => void }) => (
@@ -20,14 +23,20 @@ vi.mock('@/components/common/variable-selectors', () => ({
 vi.mock('@/components/analysis/variable-selector/UnifiedVariableSelector', () => ({
   UnifiedVariableSelector: ({
     selectorType,
+    methodId,
+    methodName,
     onComplete,
     onMappingChange,
   }: {
     selectorType: string
+    methodId?: string
+    methodName?: string
     onComplete: (mapping: unknown) => void
     onMappingChange?: (mapping: unknown) => void
   }) => {
     capturedSelectorType = selectorType
+    capturedUnifiedMethodId = methodId
+    capturedUnifiedMethodName = methodName
     return (
       <div data-testid="unified-variable-selector" data-selector-type={selectorType}>
         <button onClick={() => onMappingChange?.({ variables: ['x1', 'x2'] })}>Preview update</button>
@@ -72,7 +81,7 @@ type TestAnalysisOptions = AnalysisOptions & {
 
 const defaultStoreState = {
   uploadedData: [{ x: 1 }] as unknown[],
-  selectedMethod: null as { id: string; name: string } | null,
+  selectedMethod: null as StatisticalMethod | null,
   detectedVariables: null as Record<string, unknown> | null,
   variableMapping: null as Record<string, unknown> | null,
   validationResults: null as unknown,
@@ -91,6 +100,25 @@ const defaultStoreState = {
 }
 
 let storeState = { ...defaultStoreState }
+
+function makeSelectedMethod(methodId: string, methodName = methodId): StatisticalMethod {
+  const resolved = getMethodByAlias(methodId)
+  if (resolved) {
+    return {
+      id: methodId,
+      name: methodName,
+      category: resolved.category,
+      description: '',
+    }
+  }
+
+  return {
+    id: methodId,
+    name: methodName,
+    category: 'descriptive',
+    description: '',
+  }
+}
 
 vi.mock('@/lib/stores/analysis-store', () => ({
   useAnalysisStore: () => storeState,
@@ -125,7 +153,7 @@ function renderWithMethod(
 ) {
   storeState = {
     ...defaultStoreState,
-    selectedMethod: { id: methodId, name: methodName },
+    selectedMethod: makeSelectedMethod(methodId, methodName),
     detectedVariables,
   }
 
@@ -136,6 +164,8 @@ beforeEach(() => {
   storeState = { ...defaultStoreState }
   capturedSelectorType = null
   capturedAnalysisOptionsProps = null
+  capturedUnifiedMethodId = undefined
+  capturedUnifiedMethodName = undefined
   vi.clearAllMocks()
 })
 
@@ -201,7 +231,7 @@ describe('VariableSelectionStep', () => {
       for (const id of autoMethodIds) {
         storeState = {
           ...defaultStoreState,
-          selectedMethod: { id, name: id },
+          selectedMethod: makeSelectedMethod(id),
         }
 
         const { unmount } = render(<VariableSelectionStep />)
@@ -215,7 +245,7 @@ describe('VariableSelectionStep', () => {
       for (const id of unifiedMethodIds) {
         storeState = {
           ...defaultStoreState,
-          selectedMethod: { id, name: id },
+          selectedMethod: makeSelectedMethod(id),
         }
 
         const { unmount } = render(<VariableSelectionStep />)
@@ -230,11 +260,20 @@ describe('VariableSelectionStep', () => {
     it('maps t-test to group-comparison', () => {
       renderWithMethod('t-test')
       expect(capturedSelectorType).toBe('group-comparison')
+      expect(capturedUnifiedMethodId).toBe('two-sample-t')
+      expect(screen.getByTestId('variable-selection-step')).toHaveAttribute('data-method-id', 'two-sample-t')
     })
 
     it('maps correlation to correlation', () => {
       renderWithMethod('correlation')
       expect(capturedSelectorType).toBe('correlation')
+    })
+
+    it('maps mann-kendall alias to one-sample via canonical method id', () => {
+      renderWithMethod('mann-kendall')
+      expect(capturedSelectorType).toBe('one-sample')
+      expect(capturedUnifiedMethodId).toBe('mann-kendall-test')
+      expect(screen.getByTestId('variable-selection-step')).toHaveAttribute('data-method-id', 'mann-kendall-test')
     })
 
     it('maps regression to multiple-regression', () => {
@@ -294,6 +333,22 @@ describe('VariableSelectionStep', () => {
           }),
         })
       )
+    })
+
+    it('canonicalizes legacy alias ids before building method requirements and selector props', () => {
+      renderWithMethod('anova', 'ANOVA')
+
+      expect(capturedSelectorType).toBe('group-comparison')
+      expect(capturedUnifiedMethodId).toBe('one-way-anova')
+      expect(capturedUnifiedMethodName).toBe('ANOVA')
+      expect(capturedAnalysisOptionsProps).toEqual(
+        expect.objectContaining({
+          methodRequirements: expect.objectContaining({
+            id: 'one-way-anova',
+          }),
+        })
+      )
+      expect(screen.getByTestId('variable-selection-step')).toHaveAttribute('data-method-id', 'one-way-anova')
     })
 
     it('passes testValue settings to analysis options for one-sample-t', () => {
@@ -368,7 +423,7 @@ describe('VariableSelectionStep', () => {
     it('shows Step 3 execution preview using the same merged settings source as Step 4', () => {
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 'one-sample-t', name: 'One Sample T-Test' },
+        selectedMethod: makeSelectedMethod('one-sample-t', 'One Sample T-Test'),
         suggestedSettings: { alternative: 'greater' },
         analysisOptions: {
           alpha: 0.05,
@@ -396,7 +451,7 @@ describe('VariableSelectionStep', () => {
     it('shows missing required slots when execution is not ready yet', () => {
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 't-test', name: 't-test' },
+        selectedMethod: makeSelectedMethod('t-test'),
         detectedVariables: null,
       }
 
@@ -411,7 +466,7 @@ describe('VariableSelectionStep', () => {
     it('uses resolved method slots for the guide panel as well as the preview', () => {
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 't-test', name: 't-test' },
+        selectedMethod: makeSelectedMethod('t-test'),
         detectedVariables: null,
       }
 
@@ -425,7 +480,7 @@ describe('VariableSelectionStep', () => {
     it('shows minimum count guidance for multi-variable selectors', () => {
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 'correlation', name: 'correlation' },
+        selectedMethod: makeSelectedMethod('correlation'),
         detectedVariables: {
           numericVars: ['x1'],
         },
@@ -439,7 +494,7 @@ describe('VariableSelectionStep', () => {
     it('uses method requirements instead of generic chi-square slots for one-sample-proportion', () => {
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 'one-sample-proportion', name: 'one-sample-proportion' },
+        selectedMethod: makeSelectedMethod('one-sample-proportion'),
         detectedVariables: null,
       }
 
@@ -452,7 +507,7 @@ describe('VariableSelectionStep', () => {
     it('updates the preview from the selector live mapping before submit', () => {
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 'correlation', name: 'correlation' },
+        selectedMethod: makeSelectedMethod('correlation'),
         detectedVariables: {
           numericVars: ['x1'],
         },
@@ -474,7 +529,7 @@ describe('VariableSelectionStep', () => {
 
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 'ancova', name: 'ANCOVA' },
+        selectedMethod: makeSelectedMethod('ancova', 'ANCOVA'),
         validationResults: {
           isValid: true,
           errors: [],
@@ -498,7 +553,7 @@ describe('VariableSelectionStep', () => {
 
       storeState = {
         ...defaultStoreState,
-        selectedMethod: { id: 't-test', name: 't-test' },
+        selectedMethod: makeSelectedMethod('t-test'),
         validationResults: null,
       }
 

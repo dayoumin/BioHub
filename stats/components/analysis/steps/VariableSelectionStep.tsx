@@ -27,6 +27,7 @@ import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { startPreemptiveAssumptions } from '@/lib/services'
+import { useCanonicalSelectedMethod } from '@/hooks/use-canonical-selected-method'
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection, StepHeader } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
@@ -90,16 +91,17 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [previewDraftMapping, setPreviewDraftMapping] = useState<VariableMapping | null>(null)
+  const canonicalSelectedMethod = useCanonicalSelectedMethod(selectedMethod)
 
   const methodRequirements = useMemo(
-    () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
-    [selectedMethod?.id]
+    () => (canonicalSelectedMethod?.id ? getMethodRequirements(canonicalSelectedMethod.id) : undefined),
+    [canonicalSelectedMethod?.id]
   )
 
   // Determine selector type
   // Special case: one-way-anova/anova + AI detected 2+ factors → two-way-anova
   const selectorType = useMemo((): SelectorType => {
-    const id = selectedMethod?.id ?? ''
+    const id = canonicalSelectedMethod?.id ?? ''
     const base = getSelectorType(id)
     if (
       id === 'one-way-anova' &&
@@ -109,7 +111,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       return 'two-way-anova'
     }
     return base
-  }, [selectedMethod?.id, detectedVariables?.factors])
+  }, [canonicalSelectedMethod?.id, detectedVariables?.factors])
 
   // Get column info for validation
   const columnInfo = useMemo(() => {
@@ -128,15 +130,15 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const handleComplete = useCallback((mapping: VariableMapping) => {
     setValidationAlert(null)
 
-    if (selectedMethod && columnInfo.length > 0) {
-      const mappingForValidation = selectedMethod.id === 'one-sample-proportion'
+    if (canonicalSelectedMethod && columnInfo.length > 0) {
+      const mappingForValidation = canonicalSelectedMethod.id === 'one-sample-proportion'
         ? {
             ...mapping,
             nullProportion: String(analysisOptions.nullProportion ?? 0.5),
           }
         : mapping
 
-      const validation = validateVariableMapping(selectedMethod, mappingForValidation, columnInfo)
+      const validation = validateVariableMapping(canonicalSelectedMethod, mappingForValidation, columnInfo)
       if (!validation.isValid) {
         logger.warn('[VariableSelection] Validation errors', { errors: validation.errors })
         setValidationAlert(validation.errors.join(' / '))
@@ -164,7 +166,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     } else {
       goToNextStep()
     }
-  }, [selectedMethod, columnInfo, existingMapping, uploadedData, analysisOptions.nullProportion, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
+  }, [canonicalSelectedMethod, columnInfo, existingMapping, uploadedData, analysisOptions.nullProportion, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
 
   const handleBack = useCallback(() => {
     if (onBack) {
@@ -334,7 +336,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   useEffect(() => {
     setPreviewDraftMapping(null)
-  }, [selectedMethod?.id, selectorType, existingMapping, initialSelection])
+  }, [canonicalSelectedMethod?.id, selectorType, existingMapping, initialSelection])
 
   const previewSlots = useMemo(
     () => resolveMethodSlots(selectorType, methodRequirements),
@@ -349,13 +351,13 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const { executionSettingEntries } = useMemo(() => buildAnalysisExecutionContext({
     analysisOptions,
     methodRequirements,
-    selectedMethodId: selectedMethod?.id,
+    selectedMethodId: canonicalSelectedMethod?.id,
     suggestedSettings,
     variableMapping: previewVariableMapping,
   }), [
     analysisOptions,
     methodRequirements,
-    selectedMethod?.id,
+    canonicalSelectedMethod?.id,
     suggestedSettings,
     previewVariableMapping,
   ])
@@ -395,18 +397,18 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   // F1: 필수 슬롯이 프리필되지 않았을 때 메서드별 가이드 표시
   const needsVariableGuide = useMemo(() => {
-    if (!selectedMethod || selectorType === 'auto') return false
+    if (!canonicalSelectedMethod || selectorType === 'auto') return false
     const requiredSlots = previewSlots.filter(s => s.required)
     return requiredSlots.some(slot => {
       const v = previewVariableMapping[slot.mappingKey]
       return v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
     })
-  }, [selectedMethod, selectorType, previewSlots, previewVariableMapping])
+  }, [canonicalSelectedMethod, selectorType, previewSlots, previewVariableMapping])
 
   const mismatchHint = useMemo(() => {
-    if (!selectedMethod || selectorType !== 'group-comparison' || !detectedVariables) return undefined
+    if (!canonicalSelectedMethod || selectorType !== 'group-comparison' || !detectedVariables) return undefined
 
-    const isIndependentComparisonMethod = ['two-sample-t', 'welch-t', 'mann-whitney'].includes(selectedMethod.id)
+    const isIndependentComparisonMethod = ['two-sample-t', 'welch-t', 'mann-whitney'].includes(canonicalSelectedMethod.id)
     if (!isIndependentComparisonMethod) return undefined
 
     if (detectedVariables.pairedVars?.length === 2 && !detectedVariables.groupVariable) {
@@ -419,7 +421,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     }
 
     return undefined
-  }, [selectedMethod, selectorType, detectedVariables])
+  }, [canonicalSelectedMethod, selectorType, detectedVariables])
 
   const handleMethodChange = useCallback(() => {
     prepareManualMethodBrowsing()
@@ -454,7 +456,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           backLabel={backLabel}
           initialSelection={initialSelection}
           methodRequirements={methodRequirements}
-          methodName={selectedMethod?.name}
+          methodName={canonicalSelectedMethod?.name}
           className="mt-4"
           onComplete={handleComplete}
         />
@@ -471,8 +473,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         backLabel={backLabel}
         initialSelection={initialSelection}
         className="mt-4"
-        methodId={selectedMethod?.id}
-        methodName={selectedMethod?.name}
+        methodId={canonicalSelectedMethod?.id}
+        methodName={canonicalSelectedMethod?.name}
         mismatchHint={mismatchHint}
         onFitAction={mismatchHint ? handleMethodChange : undefined}
         onMappingChange={setPreviewDraftMapping}
@@ -481,11 +483,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }
 
   return (
-    <div className="space-y-8" data-testid="variable-selection-step" data-method-id={selectedMethod?.id ?? ''} data-selector-type={selectorType}>
+    <div className="space-y-8" data-testid="variable-selection-step" data-method-id={canonicalSelectedMethod?.id ?? ''} data-selector-type={selectorType}>
       <StepHeader
         icon={Settings2}
         title={t.analysis.stepTitles.variableSelection}
-        badge={selectedMethod ? { label: selectedMethod.name } : undefined}
+        badge={canonicalSelectedMethod ? { label: canonicalSelectedMethod.name } : undefined}
       />
 
       {/* Validation Alert (from variable mapping validation) */}

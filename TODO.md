@@ -156,14 +156,14 @@
 
 
 ### Section 7 후속 playbook (별도 세션)
-- [ ] Optional slot 테스트 추가 (ANCOVA covariate `required:false`) — multi-var 메서드 경로 가드
-- [ ] Multi-slot 메서드 테스트 (one-way ANOVA 3-level factor, repeated-measures) — ANOVA 계열 regression 방지
-- [ ] 엣지 픽스처 상태 검증 (ID 컬럼, uniqueCount=1/50+, 날짜 컬럼) — 실데이터 크래시 방지
+- [x] Optional slot 테스트 추가 (ANCOVA covariate `required:false`) — multi-var 메서드 경로 가드 (`method-fit.test.ts`, `UnifiedVariableSelector.test.tsx`, 2026-04-20)
+- [x] Multi-slot 메서드 테스트 (one-way ANOVA 3-level factor, repeated-measures) — ANOVA 계열 regression 방지 (`method-fit.test.ts`, `UnifiedVariableSelector.test.tsx`, 2026-04-20)
+- [x] 엣지 픽스처 상태 검증 (ID 컬럼, uniqueCount=1/50+, 날짜 컬럼) — 실데이터 크래시 방지 (`method-fit.test.ts`, `UnifiedVariableSelector.test.tsx`, 2026-04-20)
 - [ ] `CANDIDATE_STATUS_LABELS` → `lib/terminology/selector-labels.ts` 이관 — 드리프트 방지 (드리프트 증거 나온 후)
 - [ ] `caution` 상태 재도입 (제품 요구 발생 시) — type union + labels + CSS + terminology 4포인트 동시 개방
 
 ### 사전 존재 이슈 (본 세션 스코프 외)
-- [ ] Method-ID canonicalization drift — AES만 정규화, VSS/ResultsActionStep은 raw id. `useCanonicalSelectedMethod` 공유 hook 추출
+- [x] Method-ID canonicalization drift — AES만 정규화, VSS/ResultsActionStep은 raw id. `useCanonicalSelectedMethod` 공유 hook 추출 (`use-canonical-selected-method.ts`, `VariableSelectionStep.tsx`, `ResultsActionStep.tsx`, `AnalysisExecutionStep.tsx`, `method-registry.ts`, 2026-04-20)
 - [ ] `variable-requirements` 라벨 워딩 재검토 — "등분산 가정 등분산 가정", "Welch ANOVA 표준 ANOVA" 중복/모순, option vs setting 라벨 분리 UX 결정 필요
 ## 8. Statistics UI Polish Follow-up (2026-04-10)
 
