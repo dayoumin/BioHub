@@ -269,6 +269,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <Button
           type="button"
           size="sm"
+          data-testid="data-exploration-next"
           className="h-9"
           onClick={onNext}
           disabled={!canProceedNext}
@@ -772,5 +773,4 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 })
 
 export default DataExplorationStep
-
 

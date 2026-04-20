@@ -23,6 +23,8 @@ import {
   clickAnalysisRun,
   waitForResults,
   verifyStatisticalResults,
+  runHubQuickAnalysisToResults,
+  openGraphStudioFromResults,
 } from './helpers/flow-helpers'
 
 // baseURL은 playwright.config.ts에서 설정 (3000 포트)
@@ -320,6 +322,23 @@ test.describe('@phase1 @critical @slow Step 4: 실행 & 결과', () => {
       await expect(hubCard.or(fileInput).first()).toBeVisible({ timeout: 10000 })
     }
   })
+
+  test('TC-1.5.5: Hub quick analysis → Step 1 upload → Graph Studio', async ({ page }) => {
+    await runHubQuickAnalysisToResults(
+      page,
+      'TC-1.5.5',
+      't-test.csv',
+      'two-sample-t',
+      'group',
+      'value',
+    )
+
+    await openGraphStudioFromResults(page)
+
+    await expect(page.locator(S.graphStudioPage)).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator(S.graphStudioChart)).toBeVisible({ timeout: 20_000 })
+  })
+
 })
 
 // ========================================

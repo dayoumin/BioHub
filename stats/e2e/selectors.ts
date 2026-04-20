@@ -18,6 +18,8 @@ export const S = {
   hubUploadCard: '[data-testid="hub-upload-card"]',
   /** TrackSuggestions 내 "데이터 업로드" 클릭 가능 버튼 */
   hubUploadBtn: '[data-testid="hub-upload-btn"]',
+  /** Hub 인라인 업로드 후 표시되는 데이터 컨텍스트 배지 */
+  hubDataContextBadge: '[data-testid="hub-data-context-badge"]',
 
   // ===== Stepper =====
   stepperStep: (n: number) => `[data-testid="stepper-step-${n}"]`,
@@ -50,6 +52,7 @@ export const S = {
   // ===== Step Wrappers =====
   dataExplorationStep: '[data-testid="data-exploration-step"]',
   dataExplorationEmpty: '[data-testid="data-exploration-empty"]',
+  dataExplorationNext: '[data-testid="data-exploration-next"]',
   variableSelectionStep: '[data-testid="variable-selection-step"]',
   analysisExecutionStep: '[data-testid="analysis-execution-step"]',
 

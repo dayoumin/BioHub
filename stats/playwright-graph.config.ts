@@ -27,7 +27,7 @@ export default defineConfig({
 	},
 
 	webServer: {
-		command: 'npx --yes serve out -p 3001',
+		command: 'node scripts/test-automation/serve-static-out.mjs 3001',
 		url: 'http://localhost:3001',
 		reuseExistingServer: !process.env.CI,
 		timeout: 30000,

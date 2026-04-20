@@ -151,7 +151,7 @@ describe('PackageBuilder refresh preservation', () => {
     vi.clearAllMocks()
   })
 
-  it('refreshes regenerated figure summaries while preserving user ordering and labels', async () => {
+  it('shows figure pattern summaries as readonly generated fields and refreshes them while preserving user ordering and labels', async () => {
     mockLoadPackage.mockResolvedValue(createPackage({
       items: [
         {
@@ -192,6 +192,8 @@ describe('PackageBuilder refresh preservation', () => {
     await screen.findByDisplayValue('Custom Table Label')
     expect(screen.getByDisplayValue('Custom Figure Label')).toBeInTheDocument()
     expect(screen.getByDisplayValue('custom handwritten summary')).toBeInTheDocument()
+    expect(screen.getByText('📊 분석 결과 기반 자동 생성')).toBeInTheDocument()
+    expect(screen.getByLabelText('그래프 패턴 요약 (자동 생성)')).toHaveAttribute('readonly')
     expect(screen.getAllByRole('checkbox')[0]).not.toBeChecked()
 
     act(() => {

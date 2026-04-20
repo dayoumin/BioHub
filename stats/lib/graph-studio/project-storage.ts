@@ -163,7 +163,12 @@ export function deleteProject(projectId: string): void {
  * 스냅샷 삭제는 best-effort — IndexedDB 오류가 발생해도 localStorage 삭제는 완료된다.
  */
 export async function deleteProjectCascade(projectId: string): Promise<void> {
-  deleteProject(projectId);
+  try {
+    deleteProject(projectId);
+  } catch (error) {
+    console.error('[project-storage] Failed to delete project before cascade cleanup:', error);
+    throw error;
+  }
   try {
     removeProjectEntityRefsByEntityIds('figure', [projectId]);
   } catch (err) {

@@ -158,6 +158,26 @@ describe('deleteProjectCascade', () => {
 
     deleteSnapshotSpy.mockRestore();
   });
+
+  it('aborts cascade cleanup when local project deletion fails', async () => {
+    saveProject(makeProject('p3'));
+    const removeSpy = vi.spyOn(researchProjectStorage, 'removeProjectEntityRefsByEntityIds').mockImplementation(() => {});
+    const deleteSnapshotSpy = vi.spyOn(snapshotStorage, 'deleteSnapshot').mockResolvedValue(undefined);
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(deleteProjectCascade('p3')).rejects.toThrow('[project-storage]');
+    expect(loadProject('p3')).not.toBeNull();
+    expect(removeSpy).not.toHaveBeenCalled();
+    expect(deleteSnapshotSpy).not.toHaveBeenCalled();
+
+    removeSpy.mockRestore();
+    deleteSnapshotSpy.mockRestore();
+    setItemSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 // ─── generateProjectId ────────────────────────────────────────

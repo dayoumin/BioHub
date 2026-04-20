@@ -5,7 +5,7 @@
  * analysis-e2e.spec.ts에서 검증 완료된 로직을 추출.
  */
 
-import { Page } from '@playwright/test'
+import { expect, Page } from '@playwright/test'
 import path from 'path'
 import { S } from '../selectors'
 
@@ -476,6 +476,176 @@ export async function waitForResults(page: Page, timeout = 90000): Promise<boole
     log('waitResults', `timeout after ${((Date.now() - start) / 1000).toFixed(1)}s`)
     return false
   }
+}
+
+export async function runHubQuickAnalysisToResults(
+  page: Page,
+  tag: string,
+  filename: string,
+  quickMethodId: string,
+  independentVar: string,
+  dependentVar: string,
+): Promise<void> {
+  await page.evaluate(() => sessionStorage.clear()).catch(() => {})
+  await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 })
+
+  await expect(page.locator(S.hubUploadCard)).toBeVisible({ timeout: 20_000 })
+
+  const quickPill = page.locator(S.quickPill(quickMethodId))
+  await expect(quickPill).toBeVisible({ timeout: 10_000 })
+  await quickPill.click()
+  log(tag, `quick analysis selected: ${quickMethodId}`)
+
+  const emptyStep = page.locator(S.dataExplorationEmpty)
+  await expect(emptyStep.or(page.locator('input[type="file"]').first()).first()).toBeVisible({ timeout: 20_000 })
+
+  const variableStep = page.locator(S.unifiedVariableSelector).or(page.locator(S.variableSelectionStep)).first()
+  const explorationStep = page.locator(S.dataExplorationStep)
+  const filePath = path.resolve(__dirname, `../../test-data/e2e/${filename}`)
+  const stepFileInput = page.locator('input[type="file"]').first()
+  await stepFileInput.setInputFiles(filePath)
+  log(tag, `step1 upload complete: ${filename}`)
+
+  await expect(variableStep.or(explorationStep).first()).toBeVisible({ timeout: 20_000 })
+
+  if (await explorationStep.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    const continueBtn = page.locator(S.dataExplorationNext)
+    await expect(continueBtn).toBeVisible({ timeout: 10_000 })
+    await expect(continueBtn).toBeEnabled({ timeout: 10_000 })
+    await continueBtn.click()
+    log(tag, 'data exploration continue')
+  } else {
+    log(tag, 'quick mode auto-advanced to variable selection')
+  }
+
+  await expect(variableStep).toBeVisible({ timeout: 20_000 })
+
+  await ensureVariablesOrSkip(page, tag, independentVar, dependentVar)
+  await clickAnalysisRun(page)
+
+  expect(await waitForResults(page, 120_000)).toBe(true)
+  await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator(S.actionButtons)).toBeVisible({ timeout: 10_000 })
+  log(tag, 'real hub quick-analysis results ready')
+}
+
+// Graph Studio/export bridge spec용 최소 결과 화면 seed.
+// 의도: static E2E에서 upstream Smart Flow 업로드/검증 flaky 구간을 분리하고,
+// 결과 화면 이후의 연계만 독립적으로 검증한다.
+// 실제 사용자 경로 커버리지는 phase1 `TC-1.5.5`와 phase4 `TC-4B.1.3` real-path smoke가 담당한다.
+const SEEDED_T_TEST_ANALYSIS_STATE = {
+  currentStep: 4,
+  completedSteps: [1, 2, 3, 4],
+  uploadedData: [
+    { group: 'Control', value: 12 },
+    { group: 'Control', value: 13 },
+    { group: 'Control', value: 11 },
+    { group: 'Control', value: 14 },
+    { group: 'Control', value: 12 },
+    { group: 'Control', value: 15 },
+    { group: 'Control', value: 13 },
+    { group: 'Control', value: 14 },
+    { group: 'Control', value: 16 },
+    { group: 'Control', value: 12 },
+    { group: 'Treatment', value: 17 },
+    { group: 'Treatment', value: 18 },
+    { group: 'Treatment', value: 16 },
+    { group: 'Treatment', value: 19 },
+    { group: 'Treatment', value: 20 },
+    { group: 'Treatment', value: 18 },
+    { group: 'Treatment', value: 17 },
+    { group: 'Treatment', value: 21 },
+    { group: 'Treatment', value: 19 },
+    { group: 'Treatment', value: 18 },
+  ],
+  uploadedFileName: 't-test.csv',
+  selectedMethod: {
+    id: 'two-sample-t',
+    pageId: 't-test',
+    name: 'Independent Samples t-Test',
+    description: 'Two independent groups mean comparison',
+    category: 't-test',
+    koreanName: '독립표본 t-검정',
+    koreanDescription: '두 독립 그룹의 평균 차이 검정',
+    aliases: ['t-test', 'independent-t-test'],
+    searchTerms: ['t-test', 'independent', 'two-sample', 'student', '독립표본'],
+    isDataTool: false,
+  },
+  variableMapping: {
+    dependentVar: 'value',
+    groupVar: 'group',
+  },
+  results: {
+    method: 'Independent Samples t-Test',
+    canonicalMethodId: 'two-sample-t',
+    displayMethodName: '독립표본 t-검정',
+    statistic: 6.85,
+    statisticName: 't',
+    pValue: 0.000003,
+    df: 18,
+    effectSize: 2.8,
+    confidence: {
+      lower: 3.31,
+      upper: 5.69,
+      estimate: 4.5,
+      level: 0.95,
+    },
+    interpretation: '두 그룹 간 유의한 차이가 있습니다.',
+    groupStats: [
+      { name: 'Control', mean: 13.2, std: 1.55, n: 10 },
+      { name: 'Treatment', mean: 17.7, std: 1.49, n: 10 },
+    ],
+    visualizationData: {
+      type: 'boxplot',
+      data: {
+        group1: { values: [12, 13, 11, 14, 12, 15, 13, 14, 16, 12], label: 'Control' },
+        group2: { values: [17, 18, 16, 19, 20, 18, 17, 21, 19, 18], label: 'Treatment' },
+      },
+    },
+  },
+}
+
+async function seedResultsSession(page: Page): Promise<void> {
+  await page.addInitScript((state) => {
+    window.sessionStorage.removeItem('analysis-storage')
+    window.sessionStorage.setItem(
+      'analysis-storage',
+      JSON.stringify({
+        state,
+        version: 5,
+      }),
+    )
+  }, SEEDED_T_TEST_ANALYSIS_STATE)
+}
+
+export async function runSeededIndependentSamplesTTestToResults(
+  page: Page,
+  tag: string,
+): Promise<void> {
+  await seedResultsSession(page)
+  await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator(S.actionButtons)).toBeVisible({ timeout: 10_000 })
+  log(tag, 'seeded independent samples t-test results view')
+}
+
+export async function openGraphStudioFromResults(page: Page): Promise<void> {
+  const moreBtn = page.locator(S.moreActionsBtn)
+  await expect(moreBtn).toBeVisible({ timeout: 10_000 })
+  await moreBtn.click()
+
+  const graphStudioBtn = page.locator(S.openGraphStudioBtn)
+  await expect(graphStudioBtn).toBeVisible({ timeout: 5_000 })
+  await graphStudioBtn.scrollIntoViewIfNeeded()
+  try {
+    await graphStudioBtn.click({ timeout: 5_000 })
+  } catch {
+    // DOM-level click fallback은 브리지 상호작용 회귀를 가릴 수 있으므로 사용하지 않는다.
+    // 정적 서빙 환경에서 pointer hit-test가 어긋나면 같은 메뉴 항목에 keyboard activation을 사용한다.
+    await graphStudioBtn.focus()
+    await graphStudioBtn.press('Enter')
+  }
+  await page.waitForURL(/graph-studio/, { timeout: 15_000 })
 }
 
 // ========================================

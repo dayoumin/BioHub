@@ -26,10 +26,9 @@ export default defineConfig({
 	},
 
 	webServer: {
-		// output:'export' → out/ 폴더를 npx serve로 서빙 (next start 불가)
+		// output:'export' → out/ 폴더를 로컬 Node 정적 서버로 서빙 (next start 불가)
 		// 빌드는 E2E 실행 전 별도 수행: pnpm run build
-		// -s 금지: static export는 라우트별 HTML이 있으므로 SPA fallback 불필요
-		command: 'npx --yes serve out -p 3200',
+		command: 'node scripts/test-automation/serve-static-out.mjs',
 		url: 'http://localhost:3200',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120000,

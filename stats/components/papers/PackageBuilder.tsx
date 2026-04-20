@@ -171,10 +171,6 @@ function Step2({ items, onChange }: Step2Props): React.ReactElement {
     onChange(items.map(item => item.id === id ? { ...item, label } : item))
   }, [items, onChange])
 
-  const updatePatternSummary = useCallback((id: string, patternSummary: string) => {
-    onChange(items.map(item => item.id === id ? { ...item, patternSummary } : item))
-  }, [items, onChange])
-
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm">
@@ -235,13 +231,18 @@ function Step2({ items, onChange }: Step2Props): React.ReactElement {
               />
             </div>
             {item.type === 'figure' && (
-              <Textarea
-                rows={2}
-                value={item.patternSummary ?? ''}
-                onChange={e => updatePatternSummary(item.id, e.target.value)}
-                placeholder="그래프 패턴 요약 (예: A그룹 평균이 B그룹보다 높음)"
-                className="text-xs"
-              />
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
+                  📊 분석 결과 기반 자동 생성
+                </label>
+                <Textarea
+                  rows={2}
+                  value={item.patternSummary ?? ''}
+                  readOnly
+                  aria-label="그래프 패턴 요약 (자동 생성)"
+                  className="text-xs"
+                />
+              </div>
             )}
           </div>
         </div>

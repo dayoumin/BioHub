@@ -11,14 +11,8 @@ import { test, expect } from '@playwright/test'
 import { S } from '../selectors'
 import {
   log,
-  navigateToUploadStep,
-  uploadCSV,
-  goToMethodSelection,
-  selectMethodDirect,
-  goToVariableSelection,
-  ensureVariablesOrSkip,
-  clickAnalysisRun,
-  waitForResults,
+  openGraphStudioFromResults,
+  runHubQuickAnalysisToResults,
 } from '../helpers/flow-helpers'
 import path from 'path'
 
@@ -130,24 +124,15 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
   })
 
   test('TC-4B.1.3: Smart Flow 결과에서 Graph Studio로 이동', async ({ page }) => {
-    test.fixme(true, 'Smart Flow upload/validation path is upstream of Graph Studio and flaky in static E2E mode.')
     test.setTimeout(300_000) // Pyodide 로딩 + 분석 포함 5분
-    // t-test 분석 완료
-    await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
-    const hasSummary = await page.locator(S.dataProfileSummary).isVisible({ timeout: 15_000 }).catch(() => false)
-    if (!hasSummary) {
-      log('TC-4B.1.3', 'SKIPPED: Smart Flow 업로드/검증 단계가 Graph Studio 범위 밖에서 타임아웃')
-      test.skip()
-      return
-    }
-
-    await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
-    await goToVariableSelection(page)
-    await ensureVariablesOrSkip(page, 'TC-4B.1.3', 'group', 'value')
-    await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBe(true)
+    await runHubQuickAnalysisToResults(
+      page,
+      'TC-4B.1.3',
+      't-test.csv',
+      'two-sample-t',
+      'group',
+      'value',
+    )
 
     // 더보기 드롭다운 열기 → Graph Studio 클릭
     const moreBtn = page.locator(S.moreActionsBtn)
@@ -156,10 +141,7 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
       test.skip()
       return
     }
-    await moreBtn.click()
-    const gsBtn = page.locator(S.openGraphStudioBtn)
-
-    await gsBtn.click()
+    await openGraphStudioFromResults(page)
     await page.waitForTimeout(5000)
 
     // Graph Studio 페이지 확인 — data-testid 또는 URL로 검증

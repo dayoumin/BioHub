@@ -5,7 +5,7 @@ import { resolveGraphProjectName } from '@/lib/graph-studio/session-coordinator'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import * as projectStorage from '@/lib/graph-studio/project-storage';
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys';
-import type { ChartSpec, GraphProject } from '@/types/graph-studio';
+import type { ChartSpec, DataPackage, GraphProject } from '@/types/graph-studio';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => window.location.pathname,
@@ -73,9 +73,22 @@ function makeProject(id = 'proj-1'): GraphProject {
   };
 }
 
+function makeDataPackage(projectId?: string): DataPackage {
+  return {
+    id: 'pkg-1',
+    source: 'upload',
+    label: 'test.csv',
+    columns: [],
+    data: {},
+    projectId,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 describe('GraphStudioContent route sync', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
     act(() => {
       useGraphStudioStore.getState().resetAll();
     });
@@ -83,10 +96,13 @@ describe('GraphStudioContent route sync', () => {
   });
 
   it('writes the current project id into the route when the session attaches to a project', async () => {
+    const project = makeProject();
+    projectStorage.saveProject(project);
+
     render(<GraphStudioContent />);
 
     act(() => {
-      useGraphStudioStore.getState().setProject(makeProject());
+      useGraphStudioStore.getState().setProject(project);
     });
 
     await waitFor(() => {
@@ -110,6 +126,41 @@ describe('GraphStudioContent route sync', () => {
 
     await waitFor(() => {
       expect(window.location.search).toBe('');
+    });
+  });
+
+  it('disconnects a stale in-memory project on mount instead of writing it back into the route', async () => {
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject('proj-stale'),
+        makeDataPackage('research-project-stale'),
+      );
+    });
+
+    render(<GraphStudioContent />);
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().currentProject).toBeNull();
+      expect(useGraphStudioStore.getState().linkedResearchProjectId).toBeNull();
+      expect(useGraphStudioStore.getState().dataPackage?.projectId).toBeUndefined();
+      expect(window.location.search).toBe('');
+    });
+  });
+
+  it('prefers a valid route project over disconnecting a stale in-memory project on mount', async () => {
+    const routeProject = makeProject('proj-route');
+    projectStorage.saveProject(routeProject);
+    window.history.replaceState({}, '', '/graph-studio?project=proj-route');
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject('proj-stale'));
+    });
+
+    render(<GraphStudioContent />);
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-route');
+      expect(window.location.search).toBe('?project=proj-route');
     });
   });
 

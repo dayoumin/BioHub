@@ -198,6 +198,24 @@ describe('review regression fixes', () => {
     expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 'research-project-1' }))
   })
 
+  it('detachMissingProject clears the linked research project binding before the next save', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject({ id: 'missing-project', projectId: 'research-project-stale' }),
+        makePkg({ id: 'pkg-1', projectId: 'research-project-stale' })
+      )
+      useGraphStudioStore.getState().detachMissingProject()
+      useGraphStudioStore.getState().setChartSpec(makeSpec('Detached Missing Session'))
+      useGraphStudioStore.getState().saveCurrentProject('Detached Missing Save')
+    })
+
+    expect(useGraphStudioStore.getState().linkedResearchProjectId).toBeNull()
+    expect(useGraphStudioStore.getState().currentProject?.projectId).toBeUndefined()
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.not.objectContaining({ projectId: 'research-project-stale' }))
+  })
+
   it('restorePreviousChartSpec returns from setup mode to the previous chart session', () => {
     const spec = makeSpec('Before Reset')
 
@@ -960,6 +978,7 @@ describe('saveCurrentProject', () => {
       projectId: 'res-proj-999',
       chartSpec: makeSpec('Chart Spec'),
     })
+    projectStorage.saveProject(initialProject)
     act(() => {
       useGraphStudioStore.getState().setProject(initialProject)
     })
@@ -984,9 +1003,50 @@ describe('saveCurrentProject', () => {
     expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ label: 'New Name' }))
     // 에러 발생으로 롤백 시 Old Name 복구 호출
     expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ label: 'Old Name' }))
+    expect(useGraphStudioStore.getState().currentProject?.name).toBe('Old Name')
+    expect(localStorage.getItem('graph_studio_projects')).toContain('"name":"Old Name"')
+    expect(localStorage.getItem('graph_studio_projects')).not.toContain('"name":"New Name"')
 
     refSpy.mockRestore()
     saveSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('rollback save during failure also cleans up projects evicted by the rollback write', () => {
+    const initialProject = makeProject({
+      id: 'proj-rollback-evict',
+      name: 'Old Name',
+      projectId: 'res-proj-rollback',
+      chartSpec: makeSpec('Chart Spec'),
+    })
+    act(() => {
+      useGraphStudioStore.getState().setProject(initialProject)
+    })
+
+    const refSpy = vi.spyOn(researchProjectStorage, 'upsertProjectEntityRef').mockReturnValue({} as unknown as ReturnType<typeof researchProjectStorage.upsertProjectEntityRef>)
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject').mockImplementation((project) => {
+      if (project.name === 'New Name') {
+        throw new Error('IDB full')
+      }
+      return ['evicted-during-rollback']
+    })
+    const deleteSnapshotsSpy = vi.spyOn(snapshotStorage, 'deleteSnapshots').mockResolvedValue(undefined)
+    const removeRefSpy = vi.spyOn(researchProjectStorage, 'removeProjectEntityRefsByEntityIds').mockImplementation(() => {})
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    let result: string | null = null
+    act(() => {
+      result = useGraphStudioStore.getState().saveCurrentProject('New Name')
+    })
+
+    expect(result).toBeNull()
+    expect(deleteSnapshotsSpy).toHaveBeenCalledWith(['evicted-during-rollback'])
+    expect(removeRefSpy).toHaveBeenCalledWith('figure', ['evicted-during-rollback'])
+
+    refSpy.mockRestore()
+    saveSpy.mockRestore()
+    deleteSnapshotsSpy.mockRestore()
+    removeRefSpy.mockRestore()
     consoleErrorSpy.mockRestore()
   })
 })

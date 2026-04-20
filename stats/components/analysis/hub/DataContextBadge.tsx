@@ -27,7 +27,7 @@ export function DataContextBadge({ onClear }: DataContextBadgeProps) {
   if (!dataContext) return null
 
   return (
-    <div className="w-full max-w-[680px] mx-auto mb-2">
+    <div className="w-full max-w-[680px] mx-auto mb-2" data-testid="hub-data-context-badge">
       <div
         className={cn(
           'flex items-center gap-2 px-3 py-1.5 rounded-lg',

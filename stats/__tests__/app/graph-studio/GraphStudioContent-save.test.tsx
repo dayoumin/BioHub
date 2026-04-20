@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -90,9 +91,15 @@ vi.mock('@/components/graph-studio/ChartPreview', () => ({
   }: {
     echartsRef: { current: unknown };
   }) => {
-    echartsRef.current = {
-      getEchartsInstance: () => fakeEchartsInstance,
-    };
+    useEffect(() => {
+      echartsRef.current = {
+        getEchartsInstance: () => fakeEchartsInstance,
+      };
+      return () => {
+        echartsRef.current = null;
+      };
+    }, [echartsRef]);
+
     return <div data-testid="graph-studio-preview" />;
   },
 }));

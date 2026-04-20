@@ -55,7 +55,7 @@ export default function GraphStudioContent(): React.ReactElement {
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
   // primitive 셀렉터: React Compiler 스냅샷 비교에 안전
   const currentProjectId = useGraphStudioStore(state => state.currentProject?.id ?? null);
-  const disconnectProject = useGraphStudioStore(state => state.disconnectProject);
+  const detachMissingProject = useGraphStudioStore(state => state.detachMissingProject);
   const setProject = useGraphStudioStore(state => state.setProject);
   const aiPanelOpen = useGraphStudioStore(state => state.aiPanelOpen);
   const router = useRouter();
@@ -99,6 +99,22 @@ export default function GraphStudioContent(): React.ReactElement {
 
   useEffect(() => {
     const routeProjectExists = routeProjectId !== null && loadProject(routeProjectId) !== null;
+    const shouldRestoreFromRoute =
+      routeProjectId !== null &&
+      routeProjectId !== currentProjectId &&
+      detachedProjectIdRef.current !== routeProjectId &&
+      routeProjectExists;
+
+    if (shouldRestoreFromRoute) {
+      return;
+    }
+
+    if (currentProjectId !== null && loadProject(currentProjectId) === null) {
+      detachedProjectIdRef.current = currentProjectId;
+      detachMissingProject();
+      return;
+    }
+
     const nextHref = resolveGraphStudioProjectRouteSyncHref({
       pathname,
       searchParams: new URLSearchParams(searchParams.toString()),
@@ -110,7 +126,7 @@ export default function GraphStudioContent(): React.ReactElement {
     if (nextHref === null) return;
     router.replace(nextHref, { scroll: false });
     detachedProjectIdRef.current = null;
-  }, [currentProjectId, pathname, routeProjectId, router, searchParams]);
+  }, [currentProjectId, detachMissingProject, pathname, routeProjectId, router, searchParams]);
 
   const syncStaleProjectRoute = useCallback(() => {
     const liveCurrentProjectId = useGraphStudioStore.getState().currentProject?.id ?? null;
@@ -118,7 +134,7 @@ export default function GraphStudioContent(): React.ReactElement {
 
     if (liveCurrentProjectId !== null && loadProject(liveCurrentProjectId) === null) {
       detachedProjectIdRef.current = liveCurrentProjectId;
-      disconnectProject();
+      detachMissingProject();
       nextCurrentProjectId = null;
     }
 
@@ -134,7 +150,7 @@ export default function GraphStudioContent(): React.ReactElement {
     if (nextHref === null) return;
     router.replace(nextHref, { scroll: false });
     detachedProjectIdRef.current = null;
-  }, [disconnectProject, pathname, routeProjectId, router, searchParams]);
+  }, [detachMissingProject, pathname, routeProjectId, router, searchParams]);
 
   useEffect(() => {
     const handleProjectsChanged = (): void => {

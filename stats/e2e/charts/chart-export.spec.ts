@@ -1,33 +1,17 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { S } from '../selectors'
 import {
-  navigateToUploadStep,
-  uploadCSV,
-  goToMethodSelection,
-  selectMethodDirect,
-  goToVariableSelection,
-  ensureVariablesOrSkip,
-  clickAnalysisRun,
-  waitForResults,
+  openGraphStudioFromResults,
+  runSeededIndependentSamplesTTestToResults,
 } from '../helpers/flow-helpers'
 
 test.setTimeout(180_000)
 
-async function runTTestAnalysis(page: Page): Promise<void> {
-  await navigateToUploadStep(page)
-  expect(await uploadCSV(page, 't-test.csv')).toBe(true)
-  await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15_000 })
-  await goToMethodSelection(page)
-  expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
-  await goToVariableSelection(page)
-  await ensureVariablesOrSkip(page, 'export', 'group', 'value')
-  await clickAnalysisRun(page)
-  expect(await waitForResults(page, 120_000)).toBe(true)
-}
-
 test.describe('Phase 3.5: Chart Export', () => {
+  // Export suite는 결과 화면 이후의 contract만 검증한다.
+  // 실제 Smart Flow → Graph Studio 사용자 경로는 graph-ux.spec.ts의 TC-4B.1.3이 담당한다.
   test('TC-3.5.13: HTML 내보내기 @critical', async ({ page }) => {
-    await runTTestAnalysis(page)
+    await runSeededIndependentSamplesTTestToResults(page, 'export')
     const exportBtn = page.locator(S.exportDropdown)
     if (!await exportBtn.isVisible({ timeout: 5000 }).catch(() => false)) { test.skip(); return }
     await exportBtn.click()
@@ -43,13 +27,10 @@ test.describe('Phase 3.5: Chart Export', () => {
   })
 
   test('TC-3.5.14: Graph Studio 이동 @important', async ({ page }) => {
-    await runTTestAnalysis(page)
+    await runSeededIndependentSamplesTTestToResults(page, 'export')
     const moreBtn = page.locator(S.moreActionsBtn)
     if (!await moreBtn.isVisible({ timeout: 5000 }).catch(() => false)) { test.skip(); return }
-    await moreBtn.click()
-    const gsBtn = page.locator(S.openGraphStudioBtn)
-    await gsBtn.click()
-    await page.waitForURL(/graph-studio/, { timeout: 15_000 })
+    await openGraphStudioFromResults(page)
     await expect(page.locator(S.graphStudioPage)).toBeVisible({ timeout: 15_000 })
   })
 })

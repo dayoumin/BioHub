@@ -64,6 +64,20 @@ interface ProjectRelinkCompatibility {
   semanticMismatchFields: string[];
 }
 
+function cleanupEvictedProjects(evictedIds: readonly string[]): void {
+  if (evictedIds.length === 0) {
+    return;
+  }
+
+  const ids = [...evictedIds];
+  deleteSnapshots(ids).catch(console.error);
+  try {
+    removeProjectEntityRefsByEntityIds('figure', ids);
+  } catch (err) {
+    console.error('[GraphStudioStore] Failed to remove evicted entity refs:', err);
+  }
+}
+
 function collectReferencedFields(spec: ChartSpec): string[] {
   const fields: Array<string | undefined> = [
     spec.encoding.x?.field,
@@ -204,6 +218,8 @@ interface GraphStudioActions {
   saveCurrentProject: (name: string) => string | null;
   /** 현재 프로젝트 연결 해제 — 데이터 교체 후 기존 프로젝트 덮어쓰기 방지 */
   disconnectProject: () => void;
+  /** 삭제/유실된 프로젝트와의 세션 바인딩을 완전히 제거 */
+  detachMissingProject: () => void;
   resetAll: () => void;
 }
 
@@ -507,16 +523,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         }
 
         const evictedIds = saveProject(project);
-
-        if (evictedIds.length > 0) {
-          // fire-and-forget: evict된 프로젝트의 스냅샷 및 엔티티참조 정리 (best-effort)
-          deleteSnapshots(evictedIds).catch(console.error);
-          try {
-            removeProjectEntityRefsByEntityIds('figure', evictedIds);
-          } catch (err) {
-            console.error('[GraphStudioStore] Failed to remove evicted entity refs:', err);
-          }
-        }
+        cleanupEvictedProjects(evictedIds);
       } catch (error) {
         console.error('[GraphStudioStore] Failed to save linked project:', error);
         if (project.projectId) {
@@ -538,7 +545,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         }
         try {
           if (currentProject) {
-            saveProject(currentProject);
+            const rollbackEvictedIds = saveProject(currentProject);
+            cleanupEvictedProjects(rollbackEvictedIds);
           } else {
             deleteProjectCascade(project.id).catch(console.error);
           }
@@ -555,6 +563,17 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     disconnectProject: () => set({ currentProject: null }),
+
+    detachMissingProject: () => set((state) => ({
+      currentProject: null,
+      linkedResearchProjectId: null,
+      dataPackage: state.dataPackage
+        ? {
+            ...state.dataPackage,
+            projectId: undefined,
+          }
+        : null,
+    })),
 
     resetAll: () => set(initialState),
   }),
