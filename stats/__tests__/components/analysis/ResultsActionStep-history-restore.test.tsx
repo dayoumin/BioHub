@@ -14,6 +14,7 @@ import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from 'vite
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import type { AnalysisResult } from '@/types/analysis'
+import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
 
 // ─── Mocks ───────────────────────────────────────────────
 
@@ -176,6 +177,10 @@ vi.mock('@/hooks/use-terminology', () => ({
   }),
 }))
 
+vi.mock('@/lib/hooks/useReducedMotion', () => ({
+  useReducedMotion: () => true,
+}))
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }))
@@ -289,6 +294,13 @@ function setupStore(results: AnalysisResult, historyId: string | null = null): v
   store.setUploadedFileName('test.csv')
   store.setResults(results)
   store.setCurrentStep(4)
+  useHistoryStore.setState({
+    analysisHistory: [],
+    currentHistoryId: null,
+    loadedAiInterpretation: null,
+    loadedInterpretationChat: null,
+    loadedPaperDraft: null,
+  })
   if (historyId) {
     // loadFromHistory 시뮬레이션: currentHistoryId + loadedAiInterpretation 설정
     useHistoryStore.setState({ currentHistoryId: historyId })
@@ -536,5 +548,89 @@ describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', 
     // requestInterpretation이 stale 경로에서 호출되지 않아야 함
     // (new-id 전환에서 cached 있으므로 호출 없음)
     expect(requestInterpretationMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('ResultsActionStep 복원 회귀 방지', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getHistoryMock.mockResolvedValue(null)
+    requestInterpretationMock.mockResolvedValue({ model: 'test-model', provider: 'openrouter' as const })
+  })
+
+  afterEach(() => {
+    useAnalysisStore.getState().reset()
+    useHistoryStore.setState({
+      analysisHistory: [],
+      currentHistoryId: null,
+      loadedAiInterpretation: null,
+      loadedInterpretationChat: null,
+      loadedPaperDraft: null,
+    })
+  })
+
+  it('히스토리 전환 시 loadedInterpretationChat 복원이 reset 이후에도 유지된다', async () => {
+    setupStore(resultsA)
+    const { rerender } = render(<ResultsActionStep results={resultsA} />)
+
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 50))
+    })
+
+    useHistoryStore.setState({
+      currentHistoryId: 'history-chat',
+      loadedAiInterpretation: '캐시된 해석',
+      loadedInterpretationChat: [
+        { id: 'user-1', role: 'user', content: '질문', timestamp: Date.now() - 1 },
+        { id: 'assistant-1', role: 'assistant', content: '복원된 답변', timestamp: Date.now() },
+      ],
+    })
+
+    await act(async () => {
+      rerender(<ResultsActionStep results={resultsA} />)
+      await new Promise(r => setTimeout(r, 50))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('복원된 답변')).toBeInTheDocument()
+    })
+  })
+
+  it('히스토리 전환 시 loadedPaperDraft 복원이 reset 이후에도 유지된다', async () => {
+    setupStore(resultsA)
+    const { rerender } = render(<ResultsActionStep results={resultsA} />)
+
+    const restoredDraft: PaperDraft = {
+      methods: '복원된 Methods',
+      results: '복원된 Results',
+      captions: null,
+      discussion: null,
+      language: 'ko',
+      postHocDisplay: 'significant-only',
+      generatedAt: new Date().toISOString(),
+      model: null,
+      context: {
+        variableLabels: {},
+        variableUnits: {},
+        groupLabels: {},
+      },
+    }
+
+    useHistoryStore.setState({
+      currentHistoryId: 'history-draft',
+      loadedAiInterpretation: '캐시된 해석',
+      loadedPaperDraft: restoredDraft,
+    })
+
+    await act(async () => {
+      rerender(<ResultsActionStep results={resultsA} />)
+      await new Promise(r => setTimeout(r, 50))
+    })
+
+    fireEvent.click(screen.getByTestId('paper-draft-btn'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('paper-draft-panel')).toBeInTheDocument()
+    })
   })
 })
