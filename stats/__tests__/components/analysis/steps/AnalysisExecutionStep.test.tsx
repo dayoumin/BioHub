@@ -478,9 +478,32 @@ describe('AnalysisExecutionStep', () => {
 
       expect(screen.getByTestId('execution-setting-alpha')).toHaveTextContent('alpha 0.05')
       expect(screen.getByTestId('execution-setting-postHoc')).toHaveTextContent('사후검정 방법 Games-Howell')
-      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('Welch ANOVA')
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('실행 방식 Welch ANOVA')
       expect(screen.getByTestId('execution-setting-showAssumptions')).toHaveTextContent('가정 검정 사용')
       expect(screen.getByTestId('execution-setting-showEffectSize')).toHaveTextContent('효과크기 표시')
+    })
+
+    it('Step 4 카드에 welch=false 기본 실행 방식도 표시한다', () => {
+      storeState = {
+        ...makeStoreState(),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          methodSettings: {
+            welch: false,
+          },
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'one-way-anova', name: 'One-way ANOVA', description: '', category: 'anova' }}
+          variableMapping={{ dependentVar: 'score', groupVar: 'gender' }}
+        />
+      )
+
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('실행 방식 일반 ANOVA')
     })
 
     it('event/timeVar AutoConfirm 스타일 → 분석 실행', async () => {

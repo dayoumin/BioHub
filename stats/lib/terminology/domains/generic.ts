@@ -7,9 +7,9 @@
 
 import type { TerminologyDictionary } from '../terminology-types'
 
-export const generic: TerminologyDictionary = {
+export const generic: TerminologyDictionary<'generic'> = {
   domain: 'generic',
-  displayName: '범용 통계',
+  displayName: 'General Statistics',
 
   variables: {
     group: {
@@ -130,6 +130,44 @@ export const generic: TerminologyDictionary = {
       testValue: 'Test Value (μ₀)',
       assumptionTest: 'Assumption Tests',
       effectSize: 'Effect Size'
+    },
+    methodGuidance: {
+      title: 'Method Guide',
+      dataFormat: 'Data format',
+      minSample: 'Min sample',
+      variableRoles: 'Variable roles',
+      requiredRoles: 'Required roles',
+      assumptions: 'Assumptions',
+      notes: 'Notes',
+      expectedColumns: 'Expected columns',
+      defaultSettings: 'Default execution settings',
+      required: 'Required',
+      optional: 'Optional',
+      noneRequiredRoles: 'This method can run without explicit variable role assignment.',
+      noAssumptions: 'No major assumptions are registered for this method.',
+      noExampleSchema: 'No example schema is attached to this method yet.',
+      noDefaultSettings: 'No default execution settings are registered for this method.',
+      translationPending: 'Localized guidance is not available for this section yet.',
+      defaultValue: 'Default',
+      typeFormatSuffix: 'format',
+      singleVariableCount: '1 variable',
+      multipleVariableCount: (min: number, max?: number) =>
+        max ? `${min}-${max} variables` : `${min}+ variables`,
+      yes: 'Yes',
+      no: 'No',
+      variableTypeLabels: {
+        continuous: 'Continuous',
+        categorical: 'Categorical',
+        binary: 'Binary',
+        ordinal: 'Ordinal',
+        date: 'Date/Time',
+        count: 'Count',
+      },
+      formatTypeLabels: {
+        wide: 'Wide',
+        long: 'Long',
+        both: 'Wide/Long',
+      }
     }
   },
 

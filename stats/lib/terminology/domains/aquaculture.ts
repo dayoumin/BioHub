@@ -5,10 +5,10 @@
  * - 양식, 수산 생물, 실험 설계에 특화된 용어
  */
 
-import type { TerminologyDictionary } from '../terminology-types'
+import type { AnalysisPurposeId, TerminologyDictionary } from '../terminology-types'
 import type { GuidedQuestion, CategoryDefinition } from '@/types/analysis'
 
-export const aquaculture: TerminologyDictionary = {
+export const aquaculture: TerminologyDictionary<'aquaculture'> = {
   domain: 'aquaculture',
   displayName: '수산과학',
 
@@ -122,15 +122,53 @@ export const aquaculture: TerminologyDictionary = {
       across: '실험구별',
       model: '모델:',
       levels: '수준',
-      groups: 'groups',
-      numeric: 'numeric',
-      range: 'Range',
-      mean: 'Mean',
+      groups: '그룹',
+      numeric: '수치형',
+      range: '범위',
+      mean: '평균',
       analysisOptions: '분석 옵션',
       alpha: '유의수준 (α)',
       testValue: '기준값 (μ₀)',
       assumptionTest: '가정검정',
       effectSize: '효과크기'
+    },
+    methodGuidance: {
+      title: '방법 안내',
+      dataFormat: '데이터 형식',
+      minSample: '최소 표본',
+      variableRoles: '변수 역할',
+      requiredRoles: '필요한 역할',
+      assumptions: '가정',
+      notes: '참고',
+      expectedColumns: '예상 열 구성',
+      defaultSettings: '기본 실행 설정',
+      required: '필수',
+      optional: '선택',
+      noneRequiredRoles: '이 방법은 명시적인 변수 역할 지정 없이도 실행할 수 있습니다.',
+      noAssumptions: '이 방법에 대해 등록된 주요 가정이 없습니다.',
+      noExampleSchema: '이 방법에는 아직 예시 스키마가 연결되어 있지 않습니다.',
+      noDefaultSettings: '등록된 기본 실행 설정이 없습니다.',
+      translationPending: '선택한 언어용 안내는 아직 준비되지 않았습니다.',
+      defaultValue: '기본값',
+      typeFormatSuffix: '형식',
+      singleVariableCount: '1개 변수',
+      multipleVariableCount: (min: number, max?: number) =>
+        `${min}${max ? `-${max}` : '+'}개 변수`,
+      yes: '예',
+      no: '아니오',
+      variableTypeLabels: {
+        continuous: '연속형',
+        categorical: '범주형',
+        binary: '이진형',
+        ordinal: '서열형',
+        date: '날짜/시간',
+        count: '카운트',
+      },
+      formatTypeLabels: {
+        wide: '와이드',
+        long: '롱',
+        both: '와이드/롱',
+      }
     }
   },
 
@@ -372,8 +410,8 @@ export const aquaculture: TerminologyDictionary = {
       dependent: '종속변수',
       independent: '독립변수',
       group: '그룹변수',
-      factor: 'Factor 변수',
-      paired: 'Paired 변수',
+      factor: '요인변수',
+      paired: '대응변수',
     },
     dataQuality: {
       missingValues: (count: number, percent: string) => `결측값 ${count}개 (${percent}%)`,
@@ -1942,7 +1980,7 @@ export const aquaculture: TerminologyDictionary = {
     },
   },
 
-  guidedQuestionData: {
+  guidedQuestionData: ({
     compare: [
       {
         id: 'comparison_target',
@@ -2211,7 +2249,7 @@ export const aquaculture: TerminologyDictionary = {
         ],
       },
     ] as GuidedQuestion[],
-  } as Record<string, GuidedQuestion[]>,
+  } satisfies Record<AnalysisPurposeId, GuidedQuestion[]>),
 
   progressiveCategoryData: [
     {

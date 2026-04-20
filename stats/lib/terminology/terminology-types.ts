@@ -8,6 +8,8 @@
 
 import type { GuidedQuestion, CategoryDefinition } from '@/types/analysis'
 
+export type BuiltinTerminologyDomain = 'aquaculture' | 'generic' | 'medical'
+
 /**
  * 변수 타입별 용어
  */
@@ -119,6 +121,33 @@ export interface SelectorUIText {
     testValue: string
     assumptionTest: string
     effectSize: string
+  }
+  /** Method guidance panel 텍스트 */
+  methodGuidance: {
+    title: string
+    dataFormat: string
+    minSample: string
+    variableRoles: string
+    requiredRoles: string
+    assumptions: string
+    notes: string
+    expectedColumns: string
+    defaultSettings: string
+    required: string
+    optional: string
+    noneRequiredRoles: string
+    noAssumptions: string
+    noExampleSchema: string
+    noDefaultSettings: string
+    translationPending: string
+    defaultValue: string
+    typeFormatSuffix: string
+    singleVariableCount: string
+    multipleVariableCount: (min: number, max?: number) => string
+    yes: string
+    no: string
+    variableTypeLabels: Record<'continuous' | 'categorical' | 'binary' | 'ordinal' | 'date' | 'count', string>
+    formatTypeLabels: Record<'wide' | 'long' | 'both', string>
   }
 }
 
@@ -365,6 +394,8 @@ export interface PurposeInputText {
     recommendTitle: string
   }
 }
+
+export type AnalysisPurposeId = keyof PurposeInputText['purposes']
 
 /**
  * 적합도 점수 텍스트
@@ -2250,9 +2281,9 @@ export interface FlowStateMachineText {
 /**
  * 전체 용어 사전 인터페이스
  */
-export interface TerminologyDictionary {
+export interface TerminologyDictionary<Domain extends string = string> {
   /** 도메인 식별자 */
-  domain: 'aquaculture' | 'generic' | 'medical' | string
+  domain: Domain
   /** 도메인 표시명 */
   displayName: string
   /** 변수 용어 */
@@ -2316,7 +2347,7 @@ export interface TerminologyDictionary {
   /** 결정 트리 텍스트 */
   decisionTree: DecisionTreeText
   /** 가이드 질문 데이터 (목적별 전체 질문 배열) */
-  guidedQuestionData: Record<string, GuidedQuestion[]>
+  guidedQuestionData: Record<AnalysisPurposeId, GuidedQuestion[]>
   /** 점진적 질문 카테고리 데이터 */
   progressiveCategoryData: CategoryDefinition[]
   /** 자동 응답 근거 텍스트 */
@@ -2334,7 +2365,7 @@ export interface TerminologyDictionary {
  */
 export interface TerminologyContextValue {
   /** 현재 용어 사전 */
-  dictionary: TerminologyDictionary
+  dictionary: TerminologyDictionary<string>
   /** 도메인 변경 함수 */
   setDomain: (domain: string) => void
   /** 현재 도메인 */

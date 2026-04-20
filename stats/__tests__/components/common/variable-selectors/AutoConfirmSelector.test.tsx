@@ -3,6 +3,64 @@ import { describe, expect, it, vi } from 'vitest'
 import { AutoConfirmSelector } from '@/components/common/variable-selectors'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => ({
+    domain: 'generic',
+    variables: {
+      group: { title: 'Group Variable', description: 'Categorical grouping variable' },
+      dependent: { title: 'Dependent Variable (Y)', description: 'Numeric outcome variable' },
+      independent: { title: 'Independent Variable (X)', description: 'Predictor variable' },
+      factor: { title: 'Factor', description: 'Categorical factor variable' },
+      covariate: { title: 'Covariate', description: 'Continuous control variable' },
+      time: { title: 'Time Variable', description: 'Time or sequence variable' },
+      event: { title: 'Event Variable', description: 'Binary event variable' },
+      pairedFirst: { title: 'Time 1 / Before', description: 'First measurement' },
+      pairedSecond: { title: 'Time 2 / After', description: 'Second measurement' },
+      correlation: { title: 'Numeric Variables', description: 'Select numeric variables to analyze' },
+    },
+    selectorUI: {
+      methodGuidance: {
+        title: 'Method Guide',
+        dataFormat: 'Data format',
+        minSample: 'Min sample',
+        variableRoles: 'Variable roles',
+        requiredRoles: 'Required roles',
+        assumptions: 'Assumptions',
+        notes: 'Notes',
+        expectedColumns: 'Expected columns',
+        defaultSettings: 'Default settings',
+        required: 'Required',
+        optional: 'Optional',
+        noneRequiredRoles: 'This method can run without explicit variable role assignment.',
+        noAssumptions: 'No major assumptions are registered for this method.',
+        noExampleSchema: 'No example schema is attached to this method yet.',
+        noDefaultSettings: 'No default execution settings are registered for this method.',
+        translationPending: 'Localized guidance is not available for this section yet.',
+        defaultValue: 'Default',
+        typeFormatSuffix: 'format',
+        singleVariableCount: '1 variable',
+        multipleVariableCount: (min: number, max?: number) =>
+          max ? `${min}-${max} variables` : `${min}+ variables`,
+        yes: 'Yes',
+        no: 'No',
+        variableTypeLabels: {
+          continuous: 'Continuous',
+          categorical: 'Categorical',
+          binary: 'Binary',
+          ordinal: 'Ordinal',
+          date: 'Date/Time',
+          count: 'Count',
+        },
+        formatTypeLabels: {
+          wide: 'Wide',
+          long: 'Long',
+          both: 'Wide/Long',
+        },
+      },
+    },
+  }),
+}))
+
 describe('AutoConfirmSelector', () => {
   it('shows method guidance and allows execution for methods without variable roles', () => {
     const onComplete = vi.fn()

@@ -196,11 +196,24 @@ describe('AnalysisOptionsSection', () => {
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('two-sample-t')} />
     )
 
+    expect(screen.getByText('실행 방식')).toBeInTheDocument()
+    expect(screen.getByText('Student t-검정')).toBeInTheDocument()
+    expect(screen.getByText('Welch t-검정')).toBeInTheDocument()
     expect(mockSetAnalysisOptions).toHaveBeenCalledWith({
       methodSettings: {
         equalVar: 'true',
       },
     })
+  })
+
+  it('uses the same execution-mode wording for one-way-anova Welch selection', () => {
+    render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-way-anova')} />
+    )
+
+    expect(screen.getAllByText('실행 방식').length).toBeGreaterThan(0)
+    expect(screen.getByText('일반 ANOVA')).toBeInTheDocument()
+    expect(screen.getByText('Welch ANOVA')).toBeInTheDocument()
   })
 
   it('updates generic numeric settings through methodSettings', () => {

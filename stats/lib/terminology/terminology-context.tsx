@@ -17,7 +17,7 @@ import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 /**
  * 도메인별 용어 사전 레지스트리
  */
-const TERMINOLOGY_REGISTRY: Record<string, TerminologyDictionary> = {
+const TERMINOLOGY_REGISTRY: Record<string, TerminologyDictionary<string>> = {
   aquaculture,
   generic
 }

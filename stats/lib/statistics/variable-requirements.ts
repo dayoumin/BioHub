@@ -629,11 +629,11 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         default: 'two-sided'
       },
       equalVar: {
-        label: '분산 가정 선택',
-        description: '두 집단의 분산이 같다고 가정할지 선택합니다. Levene 검정 결과가 유의하면 등분산 가정을 사용하지 않는 것이 좋습니다.',
+        label: '실행 방식',
+        description: '등분산 가정 여부에 따라 Student t-검정 또는 Welch t-검정을 선택합니다. Levene 검정이 유의하면 Welch t-검정을 권장합니다.',
         options: [
-          { value: 'true', label: 'Student t-검정', description: '등분산 가정 사용 (두 집단의 분산이 같다고 가정)' },
-          { value: 'false', label: 'Welch t-검정', description: '등분산 가정 미사용 (분산이 다를 수 있음, 더 안전한 선택)' }
+          { value: 'true', label: 'Student t-검정', description: '등분산 가정을 사용해 Student t-검정으로 실행합니다.' },
+          { value: 'false', label: 'Welch t-검정', description: '등분산 가정 없이 Welch t-검정으로 실행합니다.' }
         ],
         default: 'true'
       }
@@ -1040,11 +1040,11 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         default: 'tukey'
       },
       welch: {
-        label: '분산 동질성 처리',
-        description: '등분산 가정을 하지 않는 ANOVA입니다. Levene 검정이 유의하면 사용을 권장합니다.',
+        label: '실행 방식',
+        description: '등분산 가정 여부에 따라 일반 ANOVA 또는 Welch ANOVA를 선택합니다. Levene 검정이 유의하면 Welch ANOVA를 권장합니다.',
         options: [
-          { value: 'false', label: '표준 ANOVA', description: '등분산 가정 사용' },
-          { value: 'true', label: 'Welch ANOVA', description: '등분산 가정 미사용' }
+          { value: 'false', label: '일반 ANOVA', description: '등분산 가정을 사용해 일반 ANOVA로 실행합니다.' },
+          { value: 'true', label: 'Welch ANOVA', description: '등분산 가정 없이 Welch ANOVA로 실행합니다.' }
         ],
         default: 'false'
       }

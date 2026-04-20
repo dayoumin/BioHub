@@ -30,7 +30,7 @@ import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
  * @returns 현재 도메인의 용어 사전
  * @throws Error if used outside TerminologyProvider
  */
-export function useTerminology(): TerminologyDictionary {
+export function useTerminology(): TerminologyDictionary<string> {
   const context = useContext(TerminologyContext)
 
   if (!context) {
