@@ -19,6 +19,10 @@ const {
   createAutoConfiguredChartSpecMock,
   applyAnalysisContextMock,
   toAnalysisContextMock,
+  inferColumnMetaMock,
+  suggestChartTypeMock,
+  analysisVizTypeToChartTypeMock,
+  selectXYFieldsMock,
 } = vi.hoisted(() => ({
   pushMock: vi.fn(),
   infoMock: vi.fn(),
@@ -31,6 +35,10 @@ const {
   createAutoConfiguredChartSpecMock: vi.fn(),
   applyAnalysisContextMock: vi.fn(),
   toAnalysisContextMock: vi.fn(),
+  inferColumnMetaMock: vi.fn(),
+  suggestChartTypeMock: vi.fn(),
+  analysisVizTypeToChartTypeMock: vi.fn(),
+  selectXYFieldsMock: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -80,10 +88,10 @@ vi.mock('@/lib/graph-studio', () => ({
   toAnalysisContext: (...args: unknown[]) => toAnalysisContextMock(...args),
   buildKmCurveColumns: vi.fn(),
   buildRocCurveColumns: vi.fn(),
-  inferColumnMeta: vi.fn(),
-  suggestChartType: vi.fn(),
-  analysisVizTypeToChartType: vi.fn(),
-  selectXYFields: vi.fn(),
+  inferColumnMeta: (...args: unknown[]) => inferColumnMetaMock(...args),
+  suggestChartType: (...args: unknown[]) => suggestChartTypeMock(...args),
+  analysisVizTypeToChartType: (...args: unknown[]) => analysisVizTypeToChartTypeMock(...args),
+  selectXYFields: (...args: unknown[]) => selectXYFieldsMock(...args),
   applyAnalysisContext: (...args: unknown[]) => applyAnalysisContextMock(...args),
   createAutoConfiguredChartSpec: (...args: unknown[]) => createAutoConfiguredChartSpecMock(...args),
   CHART_TYPE_HINTS: {},
@@ -199,6 +207,13 @@ describe('useResultsNavigation', () => {
       analysisContext: ctx,
     }))
     startNewAnalysisMock.mockResolvedValue(undefined)
+    inferColumnMetaMock.mockReturnValue([
+      { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['A', 'B'], hasNull: false },
+      { name: 'mean', type: 'quantitative', uniqueCount: 2, sampleValues: ['10', '14'], hasNull: false },
+    ])
+    suggestChartTypeMock.mockReturnValue('bar')
+    analysisVizTypeToChartTypeMock.mockReturnValue(null)
+    selectXYFieldsMock.mockReturnValue({ xField: 'group', yField: 'mean' })
   })
 
   it('reanalyze resets analysis/history state and moves to step 1', () => {
@@ -308,5 +323,65 @@ describe('useResultsNavigation', () => {
     )
     expect(disconnectProjectMock).toHaveBeenCalledTimes(1)
     expect(pushMock).toHaveBeenCalledWith('/graph-studio')
+  })
+
+  it('openInGraphStudio falls back to uploaded rows when no adapter columns are available', () => {
+    const { result } = renderNavigationHook({
+      analysisVisualizationColumns: null,
+      uploadedData: [
+        { group: 'A', mean: 10 },
+        { group: 'B', mean: 14 },
+      ],
+      results: {
+        ...RESULTS,
+        visualizationData: {
+          type: 'dendrogram',
+          data: {},
+        },
+      },
+    })
+
+    act(() => {
+      result.current.handleOpenInGraphStudio()
+    })
+
+    expect(inferColumnMetaMock).toHaveBeenCalledTimes(1)
+    expect(suggestChartTypeMock).toHaveBeenCalledTimes(1)
+    expect(selectXYFieldsMock).toHaveBeenCalledTimes(1)
+    expect(createAutoConfiguredChartSpecMock).toHaveBeenCalledWith(
+      expect.any(String),
+      'bar',
+      'group',
+      'mean',
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'group' }),
+        expect.objectContaining({ name: 'mean' }),
+      ]),
+    )
+    expect(loadDataPackageWithSpecMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          group: ['A', 'B'],
+          mean: [10, 14],
+        },
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('openInGraphStudio shows a history-specific error when no raw data survives in history view', () => {
+    const { result } = renderNavigationHook({
+      analysisVisualizationColumns: null,
+      uploadedData: null,
+      historyResultView: true,
+    })
+
+    act(() => {
+      result.current.handleOpenInGraphStudio()
+    })
+
+    expect(errorMock).toHaveBeenCalledWith('이 기록에는 그래프 작성을 위한 원본 데이터가 없어 바로 열 수 없습니다.')
+    expect(loadDataPackageWithSpecMock).not.toHaveBeenCalled()
+    expect(pushMock).not.toHaveBeenCalled()
   })
 })

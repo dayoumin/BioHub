@@ -57,7 +57,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useResultsHistory } from '@/hooks/use-results-history'
 import { useResultsNavigation } from '@/hooks/use-results-navigation'
 import { useResultsPaperDraft } from '@/hooks/use-results-paper-draft'
-import { logger } from '@/lib/utils/logger'
+import { useResultsCopyExport } from '@/hooks/use-results-copy-export'
 import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import {
   buildAnalysisVisualizationColumns,
@@ -84,7 +84,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [phase, setPhase] = useState(0)
   const phaseTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
   const activeProject = useResearchProjectStore(selectActiveProject)
@@ -149,15 +148,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }),
     [analysisOptions, methodRequirements, selectedMethod?.id, suggestedSettings, variableMapping],
   )
-  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
-    }
-  }, [])
-
   // variableMapping → 변수 이름 배열 (statisticalResult, handleInterpretation 공유)
   const mappedVariables = useMemo(() => {
     const vars: string[] = []
@@ -376,6 +366,29 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     t,
   })
 
+  const {
+    isCopied,
+    codeExportAvailable,
+    handleCopyResults,
+    handleCodeExport,
+    resetCopyState,
+  } = useResultsCopyExport({
+    results,
+    statisticalResult,
+    interpretation,
+    apaFormat,
+    selectedMethod,
+    variableMapping,
+    analysisOptions,
+    uploadedFileName: uploadedFileName ?? null,
+    uploadedData,
+    t,
+  })
+
+  useEffect(() => {
+    resetCopyState()
+  }, [resetCopyState, results, statisticalResult, currentHistoryId])
+
   // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
   const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
   useLayoutEffect(() => {
@@ -401,28 +414,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     if (!interpretation) return null
     return splitInterpretation(interpretation)
   }, [interpretation])
-
-  // 재현 가능 코드 내보내기 (R/Python)
-  const codeExportAvailable = isCodeExportAvailable(selectedMethod?.id)
-
-  const handleCodeExport = useCallback((language: CodeLanguage) => {
-    const exportResult = exportCodeFromAnalysis({
-      method: selectedMethod,
-      variableMapping,
-      analysisOptions,
-      dataFileName: uploadedFileName ?? null,
-      dataRowCount: uploadedData?.length ?? 0,
-      results: results ?? null,
-    }, language)
-
-    if (exportResult.success) {
-      toast.success(TOAST.codeExport.success(language), {
-        description: exportResult.fileName,
-      })
-    } else {
-      toast.error(exportResult.error ?? TOAST.codeExport.error)
-    }
-  }, [selectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
 
   // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
@@ -450,85 +441,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     resetFollowUp,
     resetInterpretRecovery,
   ])
-
-  const handleCopyResults = useCallback(async () => {
-    if (!results || !statisticalResult) return
-
-    try {
-      // ---- plain text 버전 ----
-      const plainText = generateSummaryText(results)
-      const aiPlain = interpretation
-        ? `\n\n${t.results.clipboard.aiSeparator}\n${interpretation}`
-        : ''
-
-      // ---- HTML 버전 ----
-      const pVal = results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(4)
-      const esValue = results.effectSize !== undefined
-        ? (typeof results.effectSize === 'number'
-          ? results.effectSize.toFixed(4)
-          : results.effectSize.value.toFixed(4))
-        : '-'
-
-      let html = `<h3>${statisticalResult.testName}</h3>`
-      html += `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px">`
-      html += `<thead><tr style="background:#f3f4f6"><th>${t.results.clipboard.itemHeader}</th><th>${t.results.clipboard.valueHeader}</th></tr></thead><tbody>`
-      html += `<tr><td>${t.results.clipboard.statistic(statisticalResult.statisticName || 't')}</td><td><b>${(statisticalResult.statistic ?? 0).toFixed(4)}</b></td></tr>`
-      if (statisticalResult.df !== undefined) {
-        const dfStr = Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : String(statisticalResult.df)
-        html += `<tr><td>${t.results.clipboard.df}</td><td>${dfStr}</td></tr>`
-      }
-      html += `<tr><td>p-value</td><td><b>${pVal}</b></td></tr>`
-      html += `<tr><td>${t.results.clipboard.effectSize}</td><td>${esValue}</td></tr>`
-      if (results.confidence) {
-        html += `<tr><td>${t.results.clipboard.confidenceInterval}</td><td>[${results.confidence.lower.toFixed(4)}, ${results.confidence.upper.toFixed(4)}]</td></tr>`
-      }
-      html += `</tbody></table>`
-
-      if (statisticalResult.interpretation) {
-        html += `<p><b>${t.results.clipboard.interpretation}</b> ${statisticalResult.interpretation}</p>`
-      }
-      if (apaFormat) {
-        html += `<p><b>APA:</b> <i>${apaFormat}</i></p>`
-      }
-
-      // AI 해석 (있을 때만) — 마크다운 원문을 pre로 감싸서 서식 유지
-      if (interpretation) {
-        const { summary, detail } = splitInterpretation(interpretation)
-        html += `<hr/><h4>${t.results.clipboard.aiInterpretation}</h4>`
-        html += `<pre style="white-space:pre-wrap;font-family:inherit;margin:0">${summary}</pre>`
-        if (detail) {
-          html += `<pre style="white-space:pre-wrap;font-family:inherit;margin:8px 0 0">${detail}</pre>`
-        }
-      }
-
-      // ClipboardItem API (HTML + plain text 동시 제공)
-      if (typeof ClipboardItem !== 'undefined') {
-        const htmlBlob = new Blob([html], { type: 'text/html' })
-        const textBlob = new Blob([plainText + aiPlain], { type: 'text/plain' })
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'text/html': htmlBlob,
-            'text/plain': textBlob,
-          }),
-        ])
-      } else {
-        // 폴백: plain text only
-        await navigator.clipboard.writeText(plainText + aiPlain)
-      }
-
-      setIsCopied(true)
-      toast.success(interpretation ? t.results.toast.copyWithAi : t.results.toast.copySuccess)
-
-      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
-      copiedTimeoutRef.current = setTimeout(() => {
-        setIsCopied(false)
-        copiedTimeoutRef.current = null
-      }, 2000)
-    } catch (err) {
-      logger.error('Copy failed', { error: err })
-      toast.error(t.results.toast.copyError)
-    }
-  }, [results, statisticalResult, interpretation, apaFormat, t])
 
   // count-up: 컴포넌트 레벨 호출 (Rules of Hooks — early return 전)
   const statisticDisplay = useCountUp(statisticalResult?.statistic, { started: phase >= 1 })
