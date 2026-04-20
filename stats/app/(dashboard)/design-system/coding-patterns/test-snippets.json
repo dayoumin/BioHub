@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.44.6",
-  "lastUpdated": "2026-04-16",
+  "version": "1.44.7",
+  "lastUpdated": "2026-04-20",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -188,6 +188,19 @@
             "CTA",
             "visualization bridge",
             "regression"
+          ]
+        },
+        {
+          "name": "ResultsActionStep action wiring 테스트",
+          "purpose": "복사 버튼과 export dropdown이 실제 사용자 액션 기준으로 추출된 훅 핸들러에 연결되고, 결과 컨텍스트 전환 시 copied 상태가 즉시 초기화되는지 검증",
+          "code": "import { act, fireEvent, render, screen } from '@testing-library/react';\nimport { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep';\n\nit('copy/export wiring과 copied reset을 함께 고정한다', async () => {\n  const { rerender } = render(<ResultsActionStep results={results} />);\n\n  await act(async () => {\n    fireEvent.click(screen.getByRole('button', { name: '복사' }));\n  });\n  expect(screen.getByRole('button', { name: '복사됨' })).toBeInTheDocument();\n\n  await act(async () => {\n    fireEvent.click(screen.getByTestId('export-dropdown'));\n  });\n  fireEvent.click(await screen.findByTestId('export-r'));\n\n  rerender(<ResultsActionStep results={{ ...results, method: 'Paired Samples t-Test', pValue: 0.01 }} />);\n  expect(screen.getByRole('button', { name: '복사' })).toBeInTheDocument();\n});",
+          "keywords": [
+            "ResultsActionStep",
+            "copy",
+            "dropdown",
+            "export",
+            "hook wiring",
+            "copied reset"
           ]
         },
         {
