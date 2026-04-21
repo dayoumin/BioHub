@@ -12,6 +12,16 @@ import type { GraphProject } from '@/types/graph-studio'
 
 export type DocumentPreset = 'paper' | 'report' | 'custom'
 
+export type DocumentSourceKind = 'analysis' | 'figure' | 'unknown'
+
+export interface DocumentSourceRef {
+  kind: DocumentSourceKind
+  sourceId: string
+  label?: string
+}
+
+export type LegacyDocumentSourceRef = string | DocumentSourceRef
+
 // ── 표 ──
 
 /** 정규화된 문서 표 — PaperTable과 ReportTable 양쪽 수용 */
@@ -22,6 +32,8 @@ export interface DocumentTable {
   rows: string[][]
   /** PaperTable 원본 HTML (내보내기 품질 유지) */
   htmlContent?: string
+  sourceAnalysisId?: string
+  sourceAnalysisLabel?: string
 }
 
 // ── Figure ──
@@ -30,6 +42,10 @@ export interface FigureRef {
   entityId: string
   label: string
   caption: string
+  chartType?: string
+  relatedAnalysisId?: string
+  relatedAnalysisLabel?: string
+  patternSummary?: string
 }
 
 // ── 섹션 ──
@@ -40,7 +56,7 @@ export interface DocumentSection {
   content: string
   /** Plate 에디터 Slate JSON (WYSIWYG 편집 시 생성, 없으면 content에서 역직렬화) */
   plateValue?: unknown
-  sourceRefs: string[]
+  sourceRefs: DocumentSourceRef[]
   tables?: DocumentTable[]
   figures?: FigureRef[]
   editable: boolean
@@ -77,6 +93,45 @@ export interface DocumentBlueprint {
   updatedAt: string
 }
 
+export function createDocumentSourceRef(
+  kind: DocumentSourceKind,
+  sourceId: string,
+  options?: { label?: string },
+): DocumentSourceRef {
+  return {
+    kind,
+    sourceId,
+    label: options?.label,
+  }
+}
+
+export function normalizeDocumentSourceRef(
+  ref: LegacyDocumentSourceRef,
+): DocumentSourceRef {
+  if (typeof ref === 'string') {
+    return createDocumentSourceRef('unknown', ref)
+  }
+  return {
+    kind: ref.kind ?? 'unknown',
+    sourceId: ref.sourceId,
+    label: ref.label,
+  }
+}
+
+export function getDocumentSourceId(ref: LegacyDocumentSourceRef): string {
+  return typeof ref === 'string' ? ref : ref.sourceId
+}
+
+export function normalizeDocumentBlueprint(document: DocumentBlueprint): DocumentBlueprint {
+  return {
+    ...document,
+    sections: document.sections.map((section) => ({
+      ...section,
+      sourceRefs: (section.sourceRefs ?? []).map((ref) => normalizeDocumentSourceRef(ref as LegacyDocumentSourceRef)),
+    })),
+  }
+}
+
 // ── 변환 유틸 ──
 
 /**
@@ -85,7 +140,13 @@ export interface DocumentBlueprint {
  * paper-tables.ts의 plainText는 \t + \n 형식으로 생성됨을 전제.
  * 컬럼 수 불일치 시 빈 셀로 채움.
  */
-export function convertPaperTable(pt: PaperTable): DocumentTable {
+export function convertPaperTable(
+  pt: PaperTable,
+  options?: {
+    sourceAnalysisId?: string
+    sourceAnalysisLabel?: string
+  },
+): DocumentTable {
   const lines = pt.plainText.split('\n').filter(Boolean)
   const headers = lines.length > 0 ? lines[0].split('\t') : []
   const rows = lines.slice(1).map(line => {
@@ -99,20 +160,35 @@ export function convertPaperTable(pt: PaperTable): DocumentTable {
     headers,
     rows,
     htmlContent: pt.htmlContent,
+    sourceAnalysisId: options?.sourceAnalysisId,
+    sourceAnalysisLabel: options?.sourceAnalysisLabel,
   }
 }
 
 /**
  * GraphProject → FigureRef 변환
  *
- * GraphProject에 caption 필드가 없으므로 name + chartType으로 생성.
+ * GraphProject에 caption 필드가 없으므로 name + chartType으로 생성한다.
+ * 논문/문서 round-trip UX를 위해 관련 분석 메타데이터를 함께 보존한다.
  */
-export function buildFigureRef(gp: GraphProject, index: number): FigureRef {
+export function buildFigureRef(
+  gp: GraphProject,
+  index: number,
+  options?: {
+    relatedAnalysisId?: string
+    relatedAnalysisLabel?: string
+    patternSummary?: string
+  },
+): FigureRef {
   const chartType = gp.chartSpec?.chartType ?? ''
   return {
     entityId: gp.id,
     label: `Figure ${index + 1}`,
     caption: chartType ? `${gp.name} (${chartType})` : gp.name,
+    chartType: chartType || undefined,
+    relatedAnalysisId: options?.relatedAnalysisId,
+    relatedAnalysisLabel: options?.relatedAnalysisLabel,
+    patternSummary: options?.patternSummary,
   }
 }
 

@@ -112,6 +112,7 @@ describe('assemblePaperPackage', () => {
       type: 'analysis',
       sourceId: 'h1',
       analysisIds: ['ANAL-01'],
+      analysisLinks: [{ sourceId: 'h1', label: 'ANAL-01' }],
       label: 'Table 1',
       section: 'results',
       order: 0,
@@ -130,6 +131,9 @@ describe('assemblePaperPackage', () => {
     const result = assemblePaperPackage(pkg, sources)
     expect(result.markdown).toContain('One-way ANOVA')
     expect(result.markdown).toContain('ANAL-01')
+    expect(result.markdown).toContain('"id": "h1"')
+    expect(result.markdown).toContain('"analysisLabel": "ANAL-01"')
+    expect(result.markdown).toContain('"sourceAnalysisIds": [')
   })
 
   it('included=true ref에 summaryStatus missing이면 경고 생성', () => {
@@ -227,6 +231,10 @@ describe('assemblePaperPackage', () => {
       type: 'figure',
       sourceId: 'g1',
       analysisIds: ['ANAL-01', 'ANAL-02'],
+      analysisLinks: [
+        { sourceId: 'analysis-1', label: 'ANAL-01' },
+        { sourceId: 'analysis-2', label: 'ANAL-02' },
+      ],
       label: 'Figure 1',
       section: 'results',
       order: 0,
@@ -240,5 +248,6 @@ describe('assemblePaperPackage', () => {
     const result = assemblePaperPackage(pkg, sources)
     expect(result.markdown).toContain('해역 B의 평균(2.8)이 A(2.1)보다 높음')
     expect(result.markdown).toContain('ANAL-01, ANAL-02')
+    expect(result.markdown).toContain('analysis-1, analysis-2')
   })
 })

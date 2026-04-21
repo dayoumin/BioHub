@@ -10,6 +10,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { SettingsModal } from '@/components/layout/settings-modal'
 
+let mockLanguage: 'ko' | 'en' = 'ko'
+
 // next-themes 모킹
 vi.mock('next-themes', () => ({
   useTheme: () => ({
@@ -18,10 +20,33 @@ vi.mock('next-themes', () => ({
   }),
 }))
 
+vi.mock('@/hooks/use-app-preferences', () => ({
+  useAppPreferences: () => ({
+    currentLanguage: mockLanguage,
+    setLanguage: vi.fn(),
+  }),
+}))
+
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminologyContext: () => ({
+    currentDomain: 'generic',
+    currentLanguage: mockLanguage,
+    setDomain: vi.fn(),
+    dictionary: {
+      displayName: mockLanguage === 'en' ? 'General Statistics' : '범용 통계',
+    },
+  }),
+}))
+
+vi.mock('@/lib/terminology', () => ({
+  getAvailableDomains: () => ['aquaculture', 'generic'],
+}))
+
 describe('SettingsModal', () => {
   let localStorageMock: { [key: string]: string }
 
   beforeEach(() => {
+    mockLanguage = 'ko'
     localStorageMock = {}
     Object.defineProperty(window, 'localStorage', {
       value: {
@@ -55,9 +80,26 @@ describe('SettingsModal', () => {
 
       expect(screen.getByText('설정')).toBeInTheDocument()
       expect(screen.getByText('테마')).toBeInTheDocument()
+      expect(screen.getByText('언어 및 용어')).toBeInTheDocument()
+      expect(screen.getByText('UI 언어')).toBeInTheDocument()
+      expect(screen.getByText('용어 도메인')).toBeInTheDocument()
       expect(screen.queryByText('플로팅 챗봇 버튼')).not.toBeInTheDocument()
       expect(screen.getByText('알림')).toBeInTheDocument()
       expect(screen.getByText('상세 설정 보기')).toBeInTheDocument()
+    })
+
+    it('영어 UI 언어에서는 설정 문구가 영어로 표시되어야 함', () => {
+      mockLanguage = 'en'
+
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
+
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Theme')).toBeInTheDocument()
+      expect(screen.getByText('Language & Terminology')).toBeInTheDocument()
+      expect(screen.getByText('UI Language')).toBeInTheDocument()
+      expect(screen.getByText('Terminology Domain')).toBeInTheDocument()
+      expect(screen.getByText('Notifications')).toBeInTheDocument()
+      expect(screen.getByText('Open advanced settings')).toBeInTheDocument()
     })
 
     it('모달이 닫히면 표시되지 않아야 함', () => {
@@ -115,6 +157,5 @@ describe('SettingsModal', () => {
 
       expect(onOpenChange).toHaveBeenCalledWith(false)
     })
-
-})
+  })
 })

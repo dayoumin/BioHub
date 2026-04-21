@@ -5,13 +5,28 @@
 
 // ── PackageItem ──────────────────────────────────────────
 
+export interface PackageAnalysisLink {
+  /** 분석 히스토리의 canonical source id */
+  sourceId: string
+  /** 패키지/프롬프트에서 보여줄 교차참조 레이블 (예: ANAL-01) */
+  label: string
+}
+
 export interface PackageItem {
   id: string
   type: 'analysis' | 'figure' | 'table'
   /** analysisHistoryId 또는 graphProjectId */
   sourceId: string
-  /** 분석 간 cross-reference용 레이블 배열 ("ANAL-01"). 그림/표는 여러 분석 참조 가능. */
+  /** UI에서 보여줄 원본 제목 */
+  sourceTitle?: string
+  /** 원본 설명 또는 보조 정보 */
+  sourceSubtitle?: string
+  /** 원본으로 되돌아가는 deep-link */
+  sourceNavigateTo?: string
+  /** 분석 간 cross-reference용 레이블 배열 ("ANAL-01"). 레거시 호환용 display label 필드. */
   analysisIds: string[]
+  /** canonical source id + display label 쌍. 새 lineage 소비자는 이 필드를 우선 사용. */
+  analysisLinks?: PackageAnalysisLink[]
   label: string             // "Table 1", "Figure 2"
   section: 'results' | 'methods' | 'discussion'
   order: number

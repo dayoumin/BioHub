@@ -16,6 +16,7 @@
 import type { ProjectEntityRef, ProjectEntityKind } from '@/lib/types/research'
 import { getTabEntry } from '.'
 import { formatTimeAgo } from '@/lib/utils/format-time'
+import { buildAnalysisHistoryUrl, buildGraphStudioProjectUrl } from './source-navigation'
 
 // ── 공통 타입 ──
 
@@ -186,7 +187,7 @@ function resolveAnalysis(
         : undefined,
       date: fmtDate(ts),
       timestamp: ts,
-      navigateTo: '/',
+      navigateTo: buildAnalysisHistoryUrl(ref.entityId),
       ...kindMeta(ref.entityKind),
     },
     rawData: {
@@ -216,7 +217,7 @@ function resolveFigure(
       subtitle: project.chartSpec?.chartType ?? undefined,
       date: fmtDate(ts),
       timestamp: ts,
-      navigateTo: `/graph-studio?project=${encodeURIComponent(ref.entityId)}`,
+      navigateTo: buildGraphStudioProjectUrl(ref.entityId),
       ...kindMeta(ref.entityKind),
     },
   }

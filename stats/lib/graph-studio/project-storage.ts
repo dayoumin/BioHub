@@ -18,11 +18,16 @@ import type { GraphProject } from '@/types/graph-studio';
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 import { deleteSnapshot } from './chart-snapshot-storage';
 import { removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
+import {
+  emitCrossTabCustomEvent,
+  registerCrossTabCustomEventBridge,
+} from '@/lib/utils/cross-tab-custom-events';
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 const STORAGE_KEY = STORAGE_KEYS.graphStudio.projects;
 const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
 export const GRAPH_PROJECTS_CHANGED_EVENT = 'graph-studio-projects-changed';
+const GRAPH_PROJECTS_CHANGED_CHANNEL = 'graph-studio-projects';
 export interface GraphProjectsChangedDetail {
   projectIds: string[];
 }
@@ -34,12 +39,17 @@ export const MAX_GRAPH_PROJECTS = 50;
 const MAX_EVICTION_RETRIES = 5;
 
 function notifyGraphProjectsChanged(projectIds: string[]): void {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent<GraphProjectsChangedDetail>(
+  emitCrossTabCustomEvent<GraphProjectsChangedDetail>(
+    GRAPH_PROJECTS_CHANGED_CHANNEL,
     GRAPH_PROJECTS_CHANGED_EVENT,
-    { detail: { projectIds: [...new Set(projectIds)] } },
-  ));
+    { projectIds: [...new Set(projectIds)] },
+  );
 }
+
+registerCrossTabCustomEventBridge<GraphProjectsChangedDetail>(
+  GRAPH_PROJECTS_CHANGED_CHANNEL,
+  GRAPH_PROJECTS_CHANGED_EVENT,
+);
 
 // ─── 읽기 ───────────────────────────────────────────────────
 

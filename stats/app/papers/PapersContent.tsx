@@ -27,6 +27,7 @@ type PapersTab = 'docs' | 'literature'
  */
 export default function PapersContent(): React.ReactElement {
   const [docId, setDocId] = useState<string | null>(null)
+  const [docSectionId, setDocSectionId] = useState<string | undefined>(undefined)
   const [pkgId, setPkgId] = useState<string | null>(null)
   const [pkgProjectId, setPkgProjectId] = useState<string | undefined>(undefined)
   const [tab, setTab] = useState<PapersTab>('docs')
@@ -35,6 +36,7 @@ export default function PapersContent(): React.ReactElement {
   const syncFromSearch = useCallback(() => {
     const params = new URLSearchParams(window.location.search)
     setDocId(params.get('doc'))
+    setDocSectionId(params.get('section') ?? undefined)
     const pkg = params.get('pkg')
     setPkgId(pkg)
     setPkgProjectId(params.get('projectId') ?? undefined)
@@ -57,6 +59,7 @@ export default function PapersContent(): React.ReactElement {
   const handleOpenDocument = useCallback((id: string) => {
     window.history.pushState({}, '', `/papers?doc=${id}`)
     setDocId(id)
+    setDocSectionId(undefined)
     setPkgId(null)
   }, [])
 
@@ -68,6 +71,7 @@ export default function PapersContent(): React.ReactElement {
     setPkgId(id)
     setPkgProjectId(projectId)
     setDocId(null)
+    setDocSectionId(undefined)
   }, [])
 
   const switchTab = useCallback((newTab: PapersTab) => {
@@ -82,6 +86,7 @@ export default function PapersContent(): React.ReactElement {
     window.history.replaceState({}, '', `/papers${qs ? `?${qs}` : ''}`)
     setTab(newTab)
     setDocId(null)
+    setDocSectionId(undefined)
     setPkgId(null)
   }, [])
 
@@ -90,7 +95,7 @@ export default function PapersContent(): React.ReactElement {
   }, [])
 
   if (docId) {
-    return <DocumentEditor documentId={docId} onBack={handleBack} />
+    return <DocumentEditor documentId={docId} initialSectionId={docSectionId} onBack={handleBack} />
   }
 
   if (pkgId) {

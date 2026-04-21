@@ -2,7 +2,10 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import DocumentExportBar from '@/components/papers/DocumentExportBar'
-import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
+import {
+  createDocumentSourceRef,
+  type DocumentBlueprint,
+} from '@/lib/research/document-blueprint-types'
 
 const mockDownloadBlob = vi.fn()
 const mockDocumentToDocx = vi.fn(async (_doc: DocumentBlueprint) => undefined)
@@ -86,5 +89,58 @@ describe('DocumentExportBar', () => {
 
     expect(mockDocumentToDocx).toHaveBeenCalledWith(preparedDoc)
     expect(mockDocumentToDocx).not.toHaveBeenCalledWith(initialDoc)
+  })
+
+  it('downloads HTML for documents with structured provenance sidecars', async () => {
+    const user = userEvent.setup()
+    const now = new Date().toISOString()
+    const doc: DocumentBlueprint = {
+      id: 'doc-1',
+      projectId: 'project-1',
+      preset: 'paper',
+      title: '근거 문서',
+      language: 'ko',
+      metadata: {},
+      createdAt: now,
+      updatedAt: now,
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '본문',
+          sourceRefs: [
+            createDocumentSourceRef('analysis', 'analysis-1'),
+            createDocumentSourceRef('figure', 'figure-1'),
+          ],
+          editable: true,
+          generatedBy: 'user',
+          tables: [
+            {
+              caption: 'Table 1',
+              headers: ['A'],
+              rows: [['1']],
+              sourceAnalysisId: 'analysis-1',
+              sourceAnalysisLabel: 'T-Test',
+            },
+          ],
+          figures: [
+            {
+              entityId: 'figure-1',
+              label: 'Figure 1',
+              caption: 'Graph Caption',
+              relatedAnalysisId: 'analysis-1',
+              relatedAnalysisLabel: 'T-Test',
+              patternSummary: 'B가 A보다 높음',
+            },
+          ],
+        },
+      ],
+    }
+
+    render(<DocumentExportBar document={doc} />)
+
+    await user.click(screen.getByRole('button', { name: 'HTML 다운로드' }))
+    expect(mockDownloadBlob).toHaveBeenCalledTimes(1)
+    expect(mockDownloadBlob.mock.calls[0]?.[1]).toBe('근거 문서.html')
   })
 })

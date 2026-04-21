@@ -875,6 +875,61 @@ describe('saveCurrentProject', () => {
     expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 'research-project-2' }))
   })
 
+  it('relinked dataPackage가 있으면 기존 analysisId 대신 새 canonical lineage를 저장한다', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+    const currentProject = makeProject({
+      id: 'proj-relinked',
+      analysisId: 'analysis-old',
+      dataPackageId: 'pkg-old',
+    })
+    const relinkedPkg = makePkg({
+      id: 'pkg-new',
+      source: 'analysis',
+      analysisResultId: 'analysis-new',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(currentProject, makePkg({ id: 'pkg-old' }))
+      useGraphStudioStore.getState().loadDataPackageWithSpec(relinkedPkg, makeSpec('Relinked Graph'), {
+        preserveCurrentProject: true,
+      })
+      useGraphStudioStore.getState().saveCurrentProject('Relinked Graph')
+    })
+
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ analysisId: 'analysis-new' }))
+  })
+
+  it('relinked dataPackage에 analysisResultId가 없으면 기존 analysisId를 stale lineage로 저장하지 않는다', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+    const currentProject = makeProject({
+      id: 'proj-cleared',
+      analysisId: 'analysis-old',
+      dataPackageId: 'pkg-old',
+    })
+    const relinkedPkg = makePkg({
+      id: 'pkg-upload',
+      source: 'upload',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(currentProject, makePkg({ id: 'pkg-old' }))
+      useGraphStudioStore.getState().loadDataPackageWithSpec(relinkedPkg, makeSpec('Upload Relink'), {
+        preserveCurrentProject: true,
+      })
+      useGraphStudioStore.getState().saveCurrentProject('Upload Relink')
+    })
+
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ analysisId: undefined }))
+  })
+
   it('재저장 시 동일 ID 재사용 (새 ID 발급 안 함)', () => {
     act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec()) })
 

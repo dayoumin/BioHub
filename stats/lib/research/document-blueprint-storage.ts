@@ -8,15 +8,58 @@
  * EntityRef 동기화: 저장/삭제 시 upsertProjectEntityRef/removeProjectEntityRef 호출
  */
 
-import type { DocumentBlueprint } from './document-blueprint-types'
+import {
+  normalizeDocumentBlueprint,
+  type DocumentBlueprint,
+} from './document-blueprint-types'
 import {
   upsertProjectEntityRef,
   removeProjectEntityRef,
 } from './project-storage'
 import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
+import {
+  emitCrossTabCustomEvent,
+  registerCrossTabCustomEventBridge,
+} from '@/lib/utils/cross-tab-custom-events'
 import { txGet, txGetAll, txGetByIndex, txPut, txDelete } from '@/lib/utils/indexeddb-helpers'
 
 const STORE_NAME = 'document-blueprints'
+export const DOCUMENT_BLUEPRINTS_CHANGED_EVENT = 'document-blueprints-changed'
+const DOCUMENT_BLUEPRINTS_CHANGED_CHANNEL = 'document-blueprints'
+
+export interface DocumentBlueprintsChangedDetail {
+  projectId: string
+  documentId: string
+  action: 'saved' | 'deleted'
+  updatedAt?: string
+}
+
+export interface SaveDocumentBlueprintOptions {
+  expectedUpdatedAt?: string
+}
+
+export class DocumentBlueprintConflictError extends Error {
+  latestDocument: DocumentBlueprint
+
+  constructor(latestDocument: DocumentBlueprint) {
+    super('문서가 다른 탭에서 먼저 변경되었습니다.')
+    this.name = 'DocumentBlueprintConflictError'
+    this.latestDocument = latestDocument
+  }
+}
+
+function notifyDocumentBlueprintsChanged(detail: DocumentBlueprintsChangedDetail): void {
+  emitCrossTabCustomEvent<DocumentBlueprintsChangedDetail>(
+    DOCUMENT_BLUEPRINTS_CHANGED_CHANNEL,
+    DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+    detail,
+  )
+}
+
+registerCrossTabCustomEventBridge<DocumentBlueprintsChangedDetail>(
+  DOCUMENT_BLUEPRINTS_CHANGED_CHANNEL,
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+)
 
 // ── 공개 API ──
 
@@ -27,12 +70,23 @@ const STORE_NAME = 'document-blueprints'
  */
 export async function saveDocumentBlueprint(
   blueprint: DocumentBlueprint,
-): Promise<void> {
+  options?: SaveDocumentBlueprintOptions,
+): Promise<DocumentBlueprint> {
   const db = await openDB()
   // updatedAt는 호출자가 설정하되, 누락 시 현재 시각으로 fallback
   const toSave = blueprint.updatedAt
     ? blueprint
     : { ...blueprint, updatedAt: new Date().toISOString() }
+
+  const existing = await txGet<DocumentBlueprint>(db, STORE_NAME, blueprint.id)
+  if (
+    existing &&
+    options?.expectedUpdatedAt &&
+    existing.updatedAt !== options.expectedUpdatedAt
+  ) {
+    throw new DocumentBlueprintConflictError(normalizeDocumentBlueprint(existing))
+  }
+
   await txPut(db, STORE_NAME, toSave)
 
   upsertProjectEntityRef({
@@ -41,6 +95,13 @@ export async function saveDocumentBlueprint(
     entityId: blueprint.id,
     label: blueprint.title,
   })
+  notifyDocumentBlueprintsChanged({
+    projectId: blueprint.projectId,
+    documentId: blueprint.id,
+    action: 'saved',
+    updatedAt: toSave.updatedAt,
+  })
+  return normalizeDocumentBlueprint(toSave)
 }
 
 /**
@@ -54,6 +115,11 @@ export async function deleteDocumentBlueprint(
   await txDelete(db, STORE_NAME, id)
 
   removeProjectEntityRef(projectId, 'draft', id)
+  notifyDocumentBlueprintsChanged({
+    projectId,
+    documentId: id,
+    action: 'deleted',
+  })
 }
 
 /**
@@ -64,7 +130,9 @@ export async function loadDocumentBlueprints(
 ): Promise<DocumentBlueprint[]> {
   const db = await openDB()
   const docs = await txGetByIndex<DocumentBlueprint>(db, STORE_NAME, 'projectId', projectId)
-  return docs.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
+  return docs
+    .map((doc) => normalizeDocumentBlueprint(doc))
+    .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
 }
 
 /**
@@ -74,7 +142,8 @@ export async function loadDocumentBlueprint(
   id: string,
 ): Promise<DocumentBlueprint | undefined> {
   const db = await openDB()
-  return txGet<DocumentBlueprint>(db, STORE_NAME, id)
+  const document = await txGet<DocumentBlueprint>(db, STORE_NAME, id)
+  return document ? normalizeDocumentBlueprint(document) : undefined
 }
 
 /**
@@ -82,7 +151,8 @@ export async function loadDocumentBlueprint(
  */
 export async function loadAllDocumentBlueprints(): Promise<DocumentBlueprint[]> {
   const db = await openDB()
-  return txGetAll<DocumentBlueprint>(db, STORE_NAME)
+  const documents = await txGetAll<DocumentBlueprint>(db, STORE_NAME)
+  return documents.map((document) => normalizeDocumentBlueprint(document))
 }
 
 /**

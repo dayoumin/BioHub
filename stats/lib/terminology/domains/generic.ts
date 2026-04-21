@@ -9,6 +9,7 @@ import type { TerminologyDictionary } from '../terminology-types'
 
 export const generic: TerminologyDictionary<'generic'> = {
   domain: 'generic',
+  language: 'en',
   displayName: 'General Statistics',
 
   variables: {

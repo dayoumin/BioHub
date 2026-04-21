@@ -2,6 +2,63 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UnifiedVariableSelector, CANDIDATE_STATUS_LABELS } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
 
+const mockTerminology = {
+  domain: 'generic',
+  language: 'en',
+  variables: {
+    group: { title: 'Group Variable', description: 'Categorical grouping variable' },
+    dependent: { title: 'Dependent Variable (Y)', description: 'Numeric outcome variable' },
+    independent: { title: 'Independent Variable (X)', description: 'Predictor variable' },
+    factor: { title: 'Factor', description: 'Categorical factor variable' },
+    covariate: { title: 'Covariate', description: 'Continuous control variable' },
+    time: { title: 'Time Variable', description: 'Time or sequence variable' },
+    event: { title: 'Event Variable', description: 'Binary event variable' },
+    pairedFirst: { title: 'Time 1 / Before', description: 'First measurement' },
+    pairedSecond: { title: 'Time 2 / After', description: 'Second measurement' },
+    correlation: { title: 'Numeric Variables', description: 'Select numeric variables to analyze' },
+  },
+  selectorUI: {
+    methodGuidance: {
+      title: 'Method Guide',
+      dataFormat: 'Data format',
+      minSample: 'Min sample',
+      variableRoles: 'Variable roles',
+      requiredRoles: 'Required roles',
+      assumptions: 'Assumptions',
+      notes: 'Notes',
+      expectedColumns: 'Expected columns',
+      defaultSettings: 'Default settings',
+      required: 'Required',
+      optional: 'Optional',
+      noneRequiredRoles: 'This method can run without explicit variable role assignment.',
+      noAssumptions: 'No major assumptions are registered for this method.',
+      noExampleSchema: 'No example schema is attached to this method yet.',
+      noDefaultSettings: 'No default execution settings are registered for this method.',
+      translationPending: 'Localized guidance is not available for this section yet.',
+      defaultValue: 'Default',
+      typeFormatSuffix: 'format',
+      singleVariableCount: '1 variable',
+      multipleVariableCount: (min: number, max?: number) =>
+        max ? `${min}-${max} variables` : `${min}+ variables`,
+      yes: 'Yes',
+      no: 'No',
+      variableTypeLabels: {
+        continuous: 'Continuous',
+        categorical: 'Categorical',
+        binary: 'Binary',
+        ordinal: 'Ordinal',
+        date: 'Date/Time',
+        count: 'Count',
+      },
+      formatTypeLabels: {
+        wide: 'Wide',
+        long: 'Long',
+        both: 'Wide/Long',
+      },
+    },
+  },
+}
+
 function setupTwoSampleDataset() {
   mockAnalyzeDataset.mockReturnValue({
     columns: [
@@ -40,61 +97,7 @@ vi.mock('@/lib/services', () => ({
 }))
 
 vi.mock('@/hooks/use-terminology', () => ({
-  useTerminology: () => ({
-    domain: 'generic',
-    variables: {
-      group: { title: 'Group Variable', description: 'Categorical grouping variable' },
-      dependent: { title: 'Dependent Variable (Y)', description: 'Numeric outcome variable' },
-      independent: { title: 'Independent Variable (X)', description: 'Predictor variable' },
-      factor: { title: 'Factor', description: 'Categorical factor variable' },
-      covariate: { title: 'Covariate', description: 'Continuous control variable' },
-      time: { title: 'Time Variable', description: 'Time or sequence variable' },
-      event: { title: 'Event Variable', description: 'Binary event variable' },
-      pairedFirst: { title: 'Time 1 / Before', description: 'First measurement' },
-      pairedSecond: { title: 'Time 2 / After', description: 'Second measurement' },
-      correlation: { title: 'Numeric Variables', description: 'Select numeric variables to analyze' },
-    },
-    selectorUI: {
-      methodGuidance: {
-        title: 'Method Guide',
-        dataFormat: 'Data format',
-        minSample: 'Min sample',
-        variableRoles: 'Variable roles',
-        requiredRoles: 'Required roles',
-        assumptions: 'Assumptions',
-        notes: 'Notes',
-        expectedColumns: 'Expected columns',
-        defaultSettings: 'Default settings',
-        required: 'Required',
-        optional: 'Optional',
-        noneRequiredRoles: 'This method can run without explicit variable role assignment.',
-        noAssumptions: 'No major assumptions are registered for this method.',
-        noExampleSchema: 'No example schema is attached to this method yet.',
-        noDefaultSettings: 'No default execution settings are registered for this method.',
-        translationPending: 'Localized guidance is not available for this section yet.',
-        defaultValue: 'Default',
-        typeFormatSuffix: 'format',
-        singleVariableCount: '1 variable',
-        multipleVariableCount: (min: number, max?: number) =>
-          max ? `${min}-${max} variables` : `${min}+ variables`,
-        yes: 'Yes',
-        no: 'No',
-        variableTypeLabels: {
-          continuous: 'Continuous',
-          categorical: 'Categorical',
-          binary: 'Binary',
-          ordinal: 'Ordinal',
-          date: 'Date/Time',
-          count: 'Count',
-        },
-        formatTypeLabels: {
-          wide: 'Wide',
-          long: 'Long',
-          both: 'Wide/Long',
-        },
-      },
-    },
-  }),
+  useTerminology: () => mockTerminology,
 }))
 
 vi.mock('@/components/analysis/variable-selector/LiveDataSummary', () => ({
@@ -238,6 +241,27 @@ describe('UnifiedVariableSelector', () => {
         groupVar: 'sex',
       })
     )
+  })
+
+  it('localizes slot chrome and validation copy for the generic domain', () => {
+    setupTwoSampleDataset()
+
+    render(
+      <UnifiedVariableSelector
+        data={[{ score: 71, sex: 'M', age: 21 }]}
+        selectorType="group-comparison"
+        methodId="two-sample-t"
+        methodName="Independent Samples t-Test"
+        onComplete={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('Fill the role slots first')).toBeInTheDocument()
+    expect(screen.getAllByText('Factor').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Dependent Variable (Y)').length).toBeGreaterThan(0)
+    expect(screen.getByText('Required slots 0/2')).toBeInTheDocument()
+    expect(screen.getByText('Selected variables 0')).toBeInTheDocument()
+    expect(screen.getByText('Available variables')).toBeInTheDocument()
   })
 
   it('lets users unassign a variable by clicking it again in the pool', () => {
@@ -649,7 +673,7 @@ describe('UnifiedVariableSelector', () => {
     expect(factorButton).not.toBeNull()
     fireEvent.click(factorButton as HTMLButtonElement)
 
-    expectCandidateStatus('treatment', CANDIDATE_STATUS_LABELS.recommended)
+    expectCandidateStatus('treatment', CANDIDATE_STATUS_LABELS.generic.recommended)
     fireEvent.click(screen.getByTestId('pool-var-treatment'))
     expect(screen.getByTestId('chip-treatment')).toBeInTheDocument()
   })
@@ -677,24 +701,24 @@ describe('UnifiedVariableSelector — role-based candidate filtering', () => {
     renderGroupComparison()
 
     // 기본 focus는 dependent → 범주형 sex는 부적합("불가").
-    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.invalid)
-    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.recommended)
+    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.generic.invalid)
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.generic.recommended)
 
     // factor 슬롯으로 focus 이동하면 sex가 2-level binary라 "추천"으로 전환.
     const factorButton = screen.getByTestId('slot-factor').querySelector('button')
     fireEvent.click(factorButton as HTMLButtonElement)
 
-    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.recommended)
-    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.invalid)
+    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.generic.recommended)
+    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.generic.invalid)
   })
 
   it('shows 추천 on numeric columns by default when dependent slot is the first required focus', () => {
     setupTwoSampleDataset()
     renderGroupComparison()
 
-    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.recommended)
-    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.recommended)
-    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.invalid)
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.generic.recommended)
+    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.generic.recommended)
+    expectCandidateStatus('sex', CANDIDATE_STATUS_LABELS.generic.invalid)
   })
 
   it('marks assigned variable as 배정됨 and re-clicking unassigns it (toggle UX)', () => {
@@ -703,19 +727,19 @@ describe('UnifiedVariableSelector — role-based candidate filtering', () => {
 
     fireEvent.click(screen.getByTestId('pool-var-score'))
     expect(screen.getByTestId('chip-score')).toBeInTheDocument()
-    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.assigned)
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.generic.assigned)
 
     // 배정된 상태에서 재클릭 → 언어사인 (disabled 아닌 toggle 동작).
     fireEvent.click(screen.getByTestId('pool-var-score'))
     expect(screen.queryByTestId('chip-score')).not.toBeInTheDocument()
-    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.recommended)
+    expectCandidateStatus('score', CANDIDATE_STATUS_LABELS.generic.recommended)
   })
 
   it('shows "추천 후보 2개" when two numeric columns qualify for the focused dependent slot', () => {
     setupTwoSampleDataset()
     renderGroupComparison()
 
-    expect(screen.getByText(/추천 후보\s+2개/)).toBeInTheDocument()
+    expect(screen.getByText(/Recommended candidates\s+2/)).toBeInTheDocument()
   })
 
   it('blocks progression when user force-clicks a numeric into factor slot (role mismatch guard)', () => {
@@ -730,6 +754,6 @@ describe('UnifiedVariableSelector — role-based candidate filtering', () => {
     expect(screen.getByTestId('variable-selection-next')).toBeDisabled()
     expect(screen.getByRole('alert')).toBeInTheDocument()
     // 상태 뱃지는 여전히 "불가" — 클릭으로 바뀌지 않았음을 재확인.
-    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.invalid)
+    expectCandidateStatus('age', CANDIDATE_STATUS_LABELS.generic.invalid)
   })
 })

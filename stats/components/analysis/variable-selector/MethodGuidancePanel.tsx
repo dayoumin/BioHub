@@ -9,64 +9,13 @@ import type {
   VariableRequirement,
 } from '@/lib/statistics/variable-requirements'
 import { useTerminology } from '@/hooks/use-terminology'
-import { getSettingOptionLabel } from '@/lib/utils/analysis-execution'
-
-const KOREAN_TEXT_PATTERN = /[가-힣]/
-
-const GENERIC_SETTING_LABELS: Record<string, string> = {
-  alpha: 'Significance level',
-  testValue: 'Reference value',
-  testProportion: 'Reference proportion',
-  alternative: 'Alternative hypothesis',
-  ciMethod: 'Confidence interval method',
-  missingPolicy: 'Missing-data handling',
-  equalVar: 'Execution mode',
-  welch: 'Execution mode',
-  postHoc: 'Post-hoc method',
-}
-
-const GENERIC_SETTING_DESCRIPTIONS: Record<string, string> = {
-  alpha: 'Controls the threshold for statistical significance.',
-  testValue: 'Defines the benchmark value to compare the sample against.',
-  testProportion: 'Defines the reference proportion for the test.',
-  alternative: 'Chooses the direction of the statistical test.',
-  ciMethod: 'Chooses the confidence-interval estimation method.',
-  missingPolicy: 'Chooses how rows with missing values are handled.',
-  equalVar: 'Chooses between Student and Welch execution modes.',
-  welch: 'Chooses between standard ANOVA and Welch ANOVA.',
-  postHoc: 'Chooses the multiple-comparison procedure applied after the omnibus test.',
-}
-
-const GENERIC_SETTING_OPTION_LABELS: Record<string, Record<string, string>> = {
-  alternative: {
-    'two-sided': 'Two-sided',
-    greater: 'Greater',
-    less: 'Less',
-  },
-  ciMethod: {
-    wilson: 'Wilson score',
-    normal: 'Normal approximation',
-    exact: 'Exact',
-  },
-  missingPolicy: {
-    listwise: 'Listwise deletion',
-    pairwise: 'Pairwise deletion',
-  },
-  equalVar: {
-    true: 'Student t-test',
-    false: 'Welch t-test',
-  },
-  welch: {
-    false: 'One-way ANOVA',
-    true: 'Welch ANOVA',
-  },
-  postHoc: {
-    tukey: 'Tukey HSD',
-    bonferroni: 'Bonferroni',
-    'games-howell': 'Games-Howell',
-    dunn: 'Dunn',
-  },
-}
+import {
+  containsKoreanText,
+  getLocalizedSettingDefaultLabel,
+  getLocalizedSettingDescription,
+  getLocalizedSettingLabel,
+  humanizeSettingKey,
+} from '@/lib/statistics/localized-setting-metadata'
 
 const GENERIC_ROLE_FALLBACKS: Record<string, { title: string; description: string }> = {
   within: {
@@ -89,21 +38,6 @@ const GENERIC_ROLE_FALLBACKS: Record<string, { title: string; description: strin
     title: 'Weight Variable',
     description: 'Observation weights applied during model fitting.',
   },
-}
-
-function containsKoreanText(value: string): boolean {
-  return KOREAN_TEXT_PATTERN.test(value)
-}
-
-function humanizeSettingKey(key: string): string {
-  return key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function humanizeOptionValue(value: string): string {
-  return humanizeSettingKey(value)
 }
 
 function getRequirementFallback(
@@ -132,12 +66,12 @@ function getRequirementFallback(
 
 function getMethodDescription(
   methodRequirements: StatisticalMethodRequirements,
-  domain: ReturnType<typeof useTerminology>['domain']
+  language: ReturnType<typeof useTerminology>['language']
 ): string {
   const matchedEntry = getMethodByIdOrAlias(methodRequirements.id)
   const exactEntry = matchedEntry?.id === methodRequirements.id ? matchedEntry : null
 
-  if (domain !== 'generic') {
+  if (language !== 'en') {
     return exactEntry?.koreanDescription ?? methodRequirements.description
   }
 
@@ -168,35 +102,6 @@ function getRequirementTypeSummary(
   return `${variableCount} · ${localizedTypes}`
 }
 
-function formatSettingDefault(
-  value: unknown,
-  methodGuidance: ReturnType<typeof useTerminology>['selectorUI']['methodGuidance']
-): string {
-  if (typeof value === 'boolean') return value ? methodGuidance.yes : methodGuidance.no
-  if (Array.isArray(value)) return value.join(', ')
-  return String(value)
-}
-
-function getSettingDefaultLabel(
-  key: string,
-  setting: SettingDescription,
-  domain: ReturnType<typeof useTerminology>['domain'],
-  methodGuidance: ReturnType<typeof useTerminology>['selectorUI']['methodGuidance']
-): string | undefined {
-  if (setting.default === undefined || setting.default === null) return undefined
-  if (setting.options && setting.options.length > 0) {
-    const defaultLabel = getSettingOptionLabel(setting.options, setting.default)
-    if (domain === 'generic') {
-      return GENERIC_SETTING_OPTION_LABELS[key]?.[String(setting.default)]
-        ?? (containsKoreanText(defaultLabel)
-          ? humanizeOptionValue(String(setting.default))
-          : defaultLabel)
-    }
-    return defaultLabel
-  }
-  return formatSettingDefault(setting.default, methodGuidance)
-}
-
 interface MethodGuidancePanelProps {
   methodRequirements?: StatisticalMethodRequirements
 }
@@ -206,9 +111,9 @@ export function MethodGuidancePanel({
 }: MethodGuidancePanelProps) {
   const t = useTerminology()
   if (!methodRequirements) return null
-  const isGenericDomain = t.domain === 'generic'
+  const isGenericDomain = t.language === 'en'
   const mg = t.selectorUI.methodGuidance
-  const methodDescription = getMethodDescription(methodRequirements, t.domain)
+  const methodDescription = getMethodDescription(methodRequirements, t.language)
 
   const localizedVariables = methodRequirements.variables.map(requirement => {
     const fallback = getRequirementFallback(requirement, t)
@@ -254,17 +159,9 @@ export function MethodGuidancePanel({
     .slice(0, 4)
     .map(([key, setting]) => ({
       key,
-      label: isGenericDomain && containsKoreanText(setting.label)
-        ? GENERIC_SETTING_LABELS[key] ?? humanizeSettingKey(key)
-        : setting.label,
-      defaultLabel: getSettingDefaultLabel(key, setting, t.domain, mg),
-      description: isGenericDomain && containsKoreanText(setting.description)
-        ? GENERIC_SETTING_DESCRIPTIONS[key]
-          ?? `Configures ${(
-            GENERIC_SETTING_LABELS[key]
-            ?? humanizeSettingKey(key)
-          ).toLowerCase()}.`
-        : setting.description,
+      label: getLocalizedSettingLabel(key, setting.label, t.language),
+      defaultLabel: getLocalizedSettingDefaultLabel(key, setting, t.language, mg),
+      description: getLocalizedSettingDescription(key, setting.description, t.language),
     }))
 
   return (

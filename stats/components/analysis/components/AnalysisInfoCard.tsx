@@ -7,6 +7,7 @@ import { StatisticalMethod, ValidationResults, StatisticalAssumptions } from '@/
 import { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 // p-value 포맷팅 (매우 작은 값 처리)
 function formatPValue(p: number): string {
@@ -36,6 +37,8 @@ export function AnalysisInfoCard({
     assumptionResults
 }: AnalysisInfoCardProps) {
     const t = useTerminology()
+    const { locale, currentLanguage } = useAppPreferences()
+    const undecidableLabel = currentLanguage === 'en' ? 'Undetermined' : '판정 불가'
 
     // 변수 정보 추출
     const getVariablesInfo = () => {
@@ -196,7 +199,7 @@ export function AnalysisInfoCard({
                             <div>
                                 <p className="text-xs text-muted-foreground">{t.analysisInfo.labels.dataSize}</p>
                                 <p className="text-sm font-medium">
-                                    {dataRows !== undefined && `${dataRows.toLocaleString()} ${t.analysisInfo.units.rows}`}
+                                    {dataRows !== undefined && `${dataRows.toLocaleString(locale)} ${t.analysisInfo.units.rows}`}
                                     {dataRows !== undefined && dataColumns !== undefined && ' × '}
                                     {dataColumns !== undefined && t.analysisInfo.units.nVariables(dataColumns)}
                                 </p>
@@ -220,7 +223,7 @@ export function AnalysisInfoCard({
                             <div>
                                 <p className="text-xs text-muted-foreground">{t.analysisInfo.labels.analysisTime}</p>
                                 <p className="text-sm font-medium">
-                                    {timestamp.toLocaleString('ko-KR', {
+                                    {timestamp.toLocaleString(locale, {
                                         year: 'numeric',
                                         month: '2-digit',
                                         day: '2-digit',
@@ -284,7 +287,7 @@ export function AnalysisInfoCard({
                                 )}
                             >
                                 {assumptionSummary.testError
-                                    ? '판정 불가'
+                                    ? undecidableLabel
                                     : assumptionSummary.meetsAssumptions
                                         ? t.analysisInfo.assumptions.met
                                         : t.analysisInfo.assumptions.partialViolation}

@@ -102,6 +102,8 @@ vi.mock('@/components/analysis/common', () => ({
 //   → useEffect([..., runAnalysis]) 재실행 → runAnalysis 재호출 → 무한 루프
 vi.mock('@/hooks/use-terminology', () => {
   const terminology = {
+    domain: 'aquaculture',
+    language: 'ko' as 'ko' | 'en',
     analysis: {
       stepTitles: { analysisExecution: '분석 실행' },
       statusMessages: { analysisComplete: '분석 완료' },
@@ -191,6 +193,7 @@ vi.mock('@/lib/stores/analysis-store', () => ({
 // ─── Import under test ─────────────────────────────────────────────────────────
 import { AnalysisExecutionStep } from '@/components/analysis/steps/AnalysisExecutionStep'
 import type { VariableMapping } from '@/types/analysis-navigation'
+import { useTerminology } from '@/hooks/use-terminology'
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────────
 const mockMethod = { id: 't-test', name: 't-test (독립표본)', description: '', category: 't-test' } as const
@@ -210,6 +213,9 @@ beforeEach(() => {
   vi.useFakeTimers()
   storeState = makeStoreState()
   vi.clearAllMocks()
+  const terminology = useTerminology() as { domain: string; language: 'ko' | 'en' }
+  terminology.domain = 'aquaculture'
+  terminology.language = 'ko'
   // Re-establish defaults after clearAllMocks
   mockIsInitialized.mockReturnValue(true)
   mockInitialize.mockResolvedValue(undefined)
@@ -506,6 +512,41 @@ describe('AnalysisExecutionStep', () => {
       expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('실행 방식 일반 ANOVA')
     })
 
+  it('generic domain에서는 Step 4 카드 요약도 영어 fallback copy를 사용한다', () => {
+      const terminology = useTerminology() as { domain: string; language: 'ko' | 'en' }
+      terminology.domain = 'generic'
+      terminology.language = 'en'
+
+      storeState = {
+        ...makeStoreState(),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: false,
+          showEffectSize: false,
+          methodSettings: {
+            postHoc: 'games-howell',
+            welch: true,
+          },
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'one-way-anova', name: 'One-way ANOVA', description: '', category: 'anova' }}
+          variableMapping={{ dependentVar: 'score', groupVar: 'gender' }}
+        />
+      )
+
+      expect(screen.getByTestId('execution-setting-postHoc')).toHaveTextContent('Post-hoc method Games-Howell')
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('Execution mode Welch ANOVA')
+      expect(screen.getByTestId('execution-setting-showAssumptions')).toHaveTextContent('Assumption checks Skipped')
+      expect(screen.getByTestId('execution-setting-showEffectSize')).toHaveTextContent('Effect size Hidden')
+      expect(screen.getByText('Reviewing settings and running the analysis')).toBeDefined()
+      expect(screen.getByText('The selected method and variable mapping are being used to compute results.')).toBeDefined()
+      expect(screen.getByText('Samples 3')).toBeDefined()
+      expect(screen.getByText('Variables 2')).toBeDefined()
+    })
+
     it('event/timeVar AutoConfirm 스타일 → 분석 실행', async () => {
       render(
         <AnalysisExecutionStep
@@ -673,6 +714,23 @@ describe('AnalysisExecutionStep', () => {
       await runAllTimers()
 
       expect(screen.getByText('Pyodide 계산 오류')).toBeDefined()
+    })
+
+    it('English UI localizes Korean execution errors before rendering', async () => {
+      const terminology = useTerminology() as { domain: string; language: 'ko' | 'en' }
+      terminology.language = 'en'
+      mockExecuteMethod.mockRejectedValueOnce(new Error('Pyodide 계산 오류'))
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={mockMethod}
+          variableMapping={{ dependentVar: 'score', groupVar: 'gender' }}
+        />
+      )
+      await runAllTimers()
+
+      expect(screen.getByText('Analysis failed. Check your data and selected method, then try again.')).toBeDefined()
+      expect(screen.queryByText('Pyodide 계산 오류')).toBeNull()
     })
 
     it('오류 후 StatusIndicator success 미렌더', async () => {

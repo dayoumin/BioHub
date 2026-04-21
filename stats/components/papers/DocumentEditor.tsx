@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
 import { ArrowLeft, Eye, PenLine, RefreshCw } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { usePlateEditor } from 'platejs/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  type DocumentBlueprintsChangedDetail,
+  DocumentBlueprintConflictError,
   loadDocumentBlueprint,
   saveDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
@@ -23,10 +27,19 @@ import {
   listProjects as listGraphProjects,
 } from '@/lib/graph-studio/project-storage'
 import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
-import { convertPaperTable, buildFigureRef } from '@/lib/research/document-blueprint-types'
+import {
+  convertPaperTable,
+  buildFigureRef,
+  createDocumentSourceRef,
+  getDocumentSourceId,
+} from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
+import {
+  buildAnalysisHistoryUrl,
+  buildGraphStudioProjectUrl,
+} from '@/lib/research/source-navigation'
 import type { CitationRecord } from '@/lib/research/citation-types'
 import {
   deleteCitation,
@@ -42,6 +55,7 @@ import DocumentSectionList from './DocumentSectionList'
 import MaterialPalette from './MaterialPalette'
 import DocumentExportBar from './DocumentExportBar'
 import { cn } from '@/lib/utils'
+import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -49,6 +63,7 @@ const ReactMarkdown = lazy(() => import('react-markdown'))
 
 interface DocumentEditorProps {
   documentId: string
+  initialSectionId?: string
   onBack: () => void
 }
 
@@ -56,18 +71,29 @@ interface DocumentEditorProps {
 
 const AUTOSAVE_DELAY = 1500
 
-export default function DocumentEditor({ documentId, onBack }: DocumentEditorProps): React.ReactElement {
+export default function DocumentEditor({
+  documentId,
+  initialSectionId,
+  onBack,
+}: DocumentEditorProps): React.ReactElement {
+  const router = useRouter()
   const [doc, setDoc] = useState<DocumentBlueprint | null>(null)
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'conflict'>('saved')
   const [loading, setLoading] = useState(true)
   const [citations, setCitations] = useState<CitationRecord[]>([])
   const [needsReassemble, setNeedsReassemble] = useState(false)
+  const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
   const latestCitationsRef = useRef<CitationRecord[]>([])
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const latestScheduledSaveRevisionRef = useRef(0)
+  const pendingSaveRevisionRef = useRef<number | null>(null)
+  const lastSavedUpdatedAtRef = useRef<string | null>(null)
+  const hasLocalChangesRef = useRef(false)
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
 
@@ -85,6 +111,90 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
   const pendingDocRef = useRef<DocumentBlueprint | null>(null)
   const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isDocumentConflictError = useCallback((error: unknown): error is DocumentBlueprintConflictError => (
+    error instanceof DocumentBlueprintConflictError
+    || (
+      error instanceof Error
+      && error.name === 'DocumentBlueprintConflictError'
+      && 'latestDocument' in error
+    )
+  ), [])
+
+  const applyLoadedDocument = useCallback((loaded: DocumentBlueprint): void => {
+    setDoc(loaded)
+    docRef.current = loaded
+    lastSavedUpdatedAtRef.current = loaded.updatedAt
+    hasLocalChangesRef.current = false
+    pendingDocRef.current = null
+    pendingSaveRevisionRef.current = null
+    latestScheduledSaveRevisionRef.current = 0
+    setDocumentConflict(null)
+    setSaveStatus('saved')
+
+    if (loaded.sections.length === 0) {
+      setActiveSectionId(null)
+      return
+    }
+
+    setActiveSectionId((currentSectionId) => {
+      if (currentSectionId && loaded.sections.some((section) => section.id === currentSectionId)) {
+        return currentSectionId
+      }
+      if (initialSectionId && loaded.sections.some((section) => section.id === initialSectionId)) {
+        return initialSectionId
+      }
+      return loaded.sections[0]?.id ?? null
+    })
+  }, [initialSectionId])
+
+  const markDocumentConflict = useCallback((latestDocument: DocumentBlueprint): void => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    pendingSaveRevisionRef.current = null
+    setDocumentConflict(latestDocument)
+    setSaveStatus('conflict')
+  }, [])
+
+  const queueDocumentSave = useCallback((updated: DocumentBlueprint, revision: number): Promise<void> => {
+    const saveTask = async (): Promise<void> => {
+      if (latestScheduledSaveRevisionRef.current === revision) {
+        setSaveStatus('saving')
+      }
+
+      try {
+        const saved = await saveDocumentBlueprint(updated, {
+          expectedUpdatedAt: lastSavedUpdatedAtRef.current ?? undefined,
+        })
+        lastSavedUpdatedAtRef.current = saved.updatedAt
+
+        if (pendingSaveRevisionRef.current === revision) {
+          pendingDocRef.current = null
+          pendingSaveRevisionRef.current = null
+          hasLocalChangesRef.current = false
+        }
+
+        if (latestScheduledSaveRevisionRef.current === revision) {
+          setSaveStatus('saved')
+        }
+      } catch (error) {
+        if (isDocumentConflictError(error)) {
+          markDocumentConflict(error.latestDocument)
+          return
+        }
+        throw error
+      }
+    }
+
+    saveQueueRef.current = saveQueueRef.current
+      .catch(() => undefined)
+      .then(saveTask)
+
+    return saveQueueRef.current
+  }, [isDocumentConflictError, markDocumentConflict])
+
   useEffect(() => {
     return () => {
       if (serializeTimerRef.current) {
@@ -94,12 +204,15 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       }
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current)
-        if (pendingDocRef.current) {
-          saveDocumentBlueprint(pendingDocRef.current)
-        }
+      }
+
+      const pendingDoc = pendingDocRef.current
+      const pendingRevision = pendingSaveRevisionRef.current
+      if (pendingDoc && pendingRevision !== null) {
+        void queueDocumentSave(pendingDoc, pendingRevision)
       }
     }
-  }, [])
+  }, [queueDocumentSave])
 
   useEffect(() => {
     let cancelled = false
@@ -107,18 +220,18 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     setLoading(true)
     setDoc(null)
     docRef.current = null
+    lastSavedUpdatedAtRef.current = null
+    hasLocalChangesRef.current = false
     setActiveSectionId(null)
     setCitations([])
     setNeedsReassemble(false)
+    setDocumentConflict(null)
+    setSaveStatus('saved')
 
     loadDocumentBlueprint(documentId).then(loaded => {
       if (cancelled) return
       if (loaded) {
-        setDoc(loaded)
-        docRef.current = loaded
-        if (loaded.sections.length > 0) {
-          setActiveSectionId(loaded.sections[0].id)
-        }
+        applyLoadedDocument(loaded)
       }
       setLoading(false)
     })
@@ -126,11 +239,48 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     return () => {
       cancelled = true
     }
-  }, [documentId])
+  }, [applyLoadedDocument, documentId, initialSectionId])
 
   useEffect(() => {
     latestCitationsRef.current = citations
   }, [citations])
+
+  useEffect((): (() => void) => {
+    const handleDocumentChange = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+
+      const detail = event.detail as DocumentBlueprintsChangedDetail | undefined
+      if (!detail || detail.documentId !== documentId || detail.action !== 'saved') {
+        return
+      }
+      if (detail.updatedAt && detail.updatedAt === lastSavedUpdatedAtRef.current) {
+        return
+      }
+
+      void loadDocumentBlueprint(documentId).then((latestDocument) => {
+        if (!latestDocument) {
+          return
+        }
+        if (latestDocument.updatedAt === lastSavedUpdatedAtRef.current) {
+          return
+        }
+
+        if (hasLocalChangesRef.current || pendingSaveRevisionRef.current !== null) {
+          markDocumentConflict(latestDocument)
+          return
+        }
+
+        applyLoadedDocument(latestDocument)
+      })
+    }
+
+    window.addEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentChange)
+    return (): void => {
+      window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentChange)
+    }
+  }, [applyLoadedDocument, documentId, markDocumentConflict])
 
   const reloadCitations = useCallback(async (projectId: string, requestSeq?: number): Promise<void> => {
     const seq = requestSeq ?? ++citationRequestSeqRef.current
@@ -240,15 +390,17 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const scheduleSave = useCallback((updated: DocumentBlueprint) => {
     docRef.current = updated
     pendingDocRef.current = updated
+    hasLocalChangesRef.current = true
+    setDocumentConflict(null)
+    const revision = latestScheduledSaveRevisionRef.current + 1
+    latestScheduledSaveRevisionRef.current = revision
+    pendingSaveRevisionRef.current = revision
     setSaveStatus('unsaved')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(async () => {
-      setSaveStatus('saving')
-      await saveDocumentBlueprint(updated)
-      pendingDocRef.current = null
-      setSaveStatus('saved')
+    saveTimerRef.current = setTimeout(() => {
+      void queueDocumentSave(updated, revision)
     }, AUTOSAVE_DELAY)
-  }, [])
+  }, [queueDocumentSave])
 
   const updateSection = useCallback((sectionId: string, updates: Partial<DocumentSection>) => {
     setDoc(prev => {
@@ -483,12 +635,20 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
         if (s.id !== activeSectionId) return s
         const newTables = [
           ...(s.tables ?? []),
-          ...(draft.tables?.map(t => convertPaperTable(t)) ?? []),
+          ...(draft.tables?.map(t => convertPaperTable(t, {
+            sourceAnalysisId: record.id,
+            sourceAnalysisLabel: methodName,
+          })) ?? []),
         ]
         return {
           ...s,
           tables: newTables.length > 0 ? newTables : undefined,
-          sourceRefs: [...s.sourceRefs, record.id],
+          sourceRefs: [
+            ...s.sourceRefs,
+            createDocumentSourceRef('analysis', record.id, {
+              label: methodName,
+            }),
+          ],
           generatedBy: 'user' as const,
         }
       })
@@ -505,7 +665,16 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     const existingFigureCount = doc.sections.reduce(
       (acc, s) => acc + (s.figures?.length ?? 0), 0,
     )
-    const figRef = buildFigureRef(graph, existingFigureCount)
+    const linkedAnalysis = graph.analysisId
+      ? analysisHistory.find((record) => record.id === graph.analysisId)
+      : undefined
+    const figRef = buildFigureRef(graph, existingFigureCount, {
+      relatedAnalysisId: graph.analysisId,
+      relatedAnalysisLabel: linkedAnalysis?.method?.name ?? linkedAnalysis?.name,
+      patternSummary: linkedAnalysis
+        ? generateFigurePatternSummary(graph, linkedAnalysis as unknown as HistoryRecord)
+        : undefined,
+    })
 
     // Plate 에디터에 Figure 참조 삽입
     editor.tf.insertNodes([
@@ -520,7 +689,12 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
         return {
           ...s,
           figures: [...(s.figures ?? []), figRef],
-          sourceRefs: [...s.sourceRefs, graph.id],
+          sourceRefs: [
+            ...s.sourceRefs,
+            createDocumentSourceRef('figure', graph.id, {
+              label: graph.name,
+            }),
+          ],
           generatedBy: 'user' as const,
         }
       })
@@ -528,11 +702,49 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       scheduleSave(updated)
       return updated
     })
-  }, [activeSectionId, doc, scheduleSave])
+  }, [activeSectionId, analysisHistory, doc, scheduleSave])
 
   const handleDeleteCitation = useCallback(async (id: string) => {
     await deleteCitation(id)
   }, [])
+
+  const activeSection = doc?.sections.find((section) => section.id === activeSectionId) ?? null
+  const activeSectionSourceLinks = useMemo(() => {
+    if (!doc || !activeSection) return []
+
+    const projectRefs = listProjectEntityRefs(doc.projectId)
+    const refKindByEntityId = new Map(projectRefs.map((ref) => [ref.entityId, ref.entityKind]))
+    const historyById = new Map(analysisHistory.map((record) => [record.id, record]))
+    const graphById = new Map(listGraphProjects().map((graph) => [graph.id, graph]))
+    const links = new Map<string, { key: string; label: string; href: string; kind: 'analysis' | 'figure' }>()
+
+    for (const sourceRef of activeSection.sourceRefs) {
+      const sourceId = getDocumentSourceId(sourceRef)
+      const entityKind = refKindByEntityId.get(sourceId)
+      if (entityKind === 'analysis' || historyById.has(sourceId)) {
+        const record = historyById.get(sourceId)
+        links.set(`analysis:${sourceId}`, {
+          key: `analysis:${sourceId}`,
+          label: record?.method?.name ?? record?.name ?? '원본 분석',
+          href: buildAnalysisHistoryUrl(sourceId),
+          kind: 'analysis',
+        })
+        continue
+      }
+
+      if (entityKind === 'figure' || graphById.has(sourceId)) {
+        const graph = graphById.get(sourceId)
+        links.set(`figure:${sourceId}`, {
+          key: `figure:${sourceId}`,
+          label: graph?.name ?? 'Graph Studio',
+          href: buildGraphStudioProjectUrl(sourceId),
+          kind: 'figure',
+        })
+      }
+    }
+
+    return Array.from(links.values())
+  }, [activeSection, analysisHistory, doc, needsReassemble])
 
   // ── 렌더링 ──
 
@@ -553,8 +765,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     )
   }
 
-  const activeSection = doc.sections.find(s => s.id === activeSectionId)
-
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* 상단 바 */}
@@ -569,6 +779,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           {saveStatus === 'saved' && '저장됨'}
           {saveStatus === 'saving' && '저장 중...'}
           {saveStatus === 'unsaved' && '변경됨'}
+          {saveStatus === 'conflict' && '충돌'}
         </Badge>
         <Button
           variant={needsReassemble ? 'secondary' : 'outline'}
@@ -618,6 +829,29 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
         </div>
       )}
 
+      {documentConflict && (
+        <div className="shrink-0 px-4 py-3 bg-amber-50">
+          <div className="flex items-start gap-3 rounded-xl bg-amber-100 px-4 py-3 text-amber-950">
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-sm font-medium">
+                다른 탭에서 이 문서가 먼저 저장되었습니다.
+              </p>
+              <p className="text-xs leading-5 text-amber-900">
+                현재 화면의 변경 내용은 로컬에 남아 있지만 자동 저장은 중단되었습니다. 최신 버전을 불러와 비교한 뒤 다시 반영해야 합니다.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => applyLoadedDocument(documentConflict)}
+            >
+              최신 버전 불러오기
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 메인 영역 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 좌측: 섹션 목록 */}
@@ -639,6 +873,30 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
             <div className="max-w-3xl mx-auto space-y-4">
               <h2 className="text-xl font-bold">{activeSection.title}</h2>
 
+              {activeSectionSourceLinks.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/30 px-3 py-2">
+                  <span className="text-xs font-medium text-muted-foreground">원본</span>
+                  {activeSectionSourceLinks.map((link) => (
+                    <Button
+                      key={link.key}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => router.push(link.href)}
+                    >
+                      <span>{link.kind === 'analysis' ? '통계' : '그래프'}</span>
+                      <span className="max-w-40 truncate">{link.label}</span>
+                    </Button>
+                  ))}
+                  {needsReassemble && (
+                    <Badge variant="secondary" className="ml-auto text-[10px]">
+                      소스 변경 감지
+                    </Badge>
+                  )}
+                </div>
+              )}
+
               {previewMode ? (
                 <div className="prose dark:prose-invert max-w-none">
                   <Suspense fallback={<p className="text-muted-foreground">로딩 중...</p>}>
@@ -658,9 +916,30 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
               {activeSection.tables && activeSection.tables.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-muted-foreground">표</h3>
-                  {activeSection.tables.map((table, i) => (
+                  {activeSection.tables.map((table, i) => {
+                    const sourceAnalysisId = table.sourceAnalysisId
+
+                    return (
                     <div key={table.id ?? i} className="border rounded-lg overflow-hidden">
-                      <p className="text-xs font-medium p-2 bg-muted/50">{table.caption}</p>
+                      <div className="flex items-center gap-2 bg-muted/50 p-2">
+                        <p className="min-w-0 flex-1 text-xs font-medium">{table.caption}</p>
+                        {sourceAnalysisId && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => router.push(buildAnalysisHistoryUrl(sourceAnalysisId))}
+                          >
+                            통계 열기
+                          </Button>
+                        )}
+                      </div>
+                      {table.sourceAnalysisLabel && (
+                        <div className="px-2 pb-2 text-xs text-muted-foreground">
+                          관련 분석: {table.sourceAnalysisLabel}
+                        </div>
+                      )}
                       {table.htmlContent ? (
                         <div
                           className="p-2 text-sm overflow-x-auto"
@@ -689,7 +968,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
 
@@ -697,12 +976,49 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
               {activeSection.figures && activeSection.figures.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-muted-foreground">그림</h3>
-                  {activeSection.figures.map(fig => (
-                    <div key={fig.entityId} className="flex items-center gap-2 p-2 rounded border bg-muted/20 text-sm">
-                      <span className="font-medium">{fig.label}</span>
-                      <span className="text-muted-foreground">{fig.caption}</span>
+                  {activeSection.figures.map(fig => {
+                    const relatedAnalysisId = fig.relatedAnalysisId
+
+                    return (
+                    <div key={fig.entityId} className="rounded border bg-muted/20 p-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{fig.label}</span>
+                        <span className="text-muted-foreground">{fig.caption}</span>
+                        <div className="ml-auto flex items-center gap-2">
+                          {relatedAnalysisId && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => router.push(buildAnalysisHistoryUrl(relatedAnalysisId))}
+                            >
+                              통계 열기
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => router.push(buildGraphStudioProjectUrl(fig.entityId))}
+                          >
+                            Graph Studio
+                          </Button>
+                        </div>
+                      </div>
+                      {(fig.relatedAnalysisLabel || fig.patternSummary) && (
+                        <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                          {fig.relatedAnalysisLabel && (
+                            <p>관련 분석: {fig.relatedAnalysisLabel}</p>
+                          )}
+                          {fig.patternSummary && (
+                            <p>패턴 요약: {fig.patternSummary}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>

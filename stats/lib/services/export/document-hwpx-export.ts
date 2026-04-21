@@ -15,6 +15,10 @@ import type {
 } from '@/lib/research/document-blueprint-types'
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
 import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
+import {
+  getFigureProvenanceLines,
+  getTableProvenanceLines,
+} from './document-provenance'
 import { hasVisibleContent } from './document-docx-export'
 import { downloadBlob } from './export-data-builder'
 
@@ -241,6 +245,10 @@ class HwpxDocumentBuilder {
       `</hp:run></hp:p>`
 
     this.paragraphs.push(tblXml)
+
+    for (const line of getTableProvenanceLines(table)) {
+      this.addParagraph(line)
+    }
     return this
   }
 
@@ -565,6 +573,10 @@ export async function buildHwpxDocument(
         } else {
           // 스냅샷 없으면 캡션 텍스트만
           builder.addParagraph(`${fig.label}: ${fig.caption}`)
+        }
+
+        for (const line of getFigureProvenanceLines(fig)) {
+          builder.addParagraph(line)
         }
       }
     }

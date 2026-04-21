@@ -63,8 +63,16 @@ import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/resea
 import {
   buildAnalysisVisualizationColumns,
 } from '@/lib/graph-studio'
+import type { DocumentSourceUsage } from '@/lib/research/document-source-usage'
+import { loadDocumentSourceUsages } from '@/lib/research/document-source-usage'
+import { buildDocumentEditorUrl } from '@/lib/research/source-navigation'
+import {
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  type DocumentBlueprintsChangedDetail,
+} from '@/lib/research/document-blueprint-storage'
 import { DraftContextEditor } from './DraftContextEditor'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 
 const PaperDraftPanel = dynamic(() => import('./PaperDraftPanel').then(m => ({ default: m.PaperDraftPanel })), {
   ssr: false,
@@ -75,6 +83,7 @@ interface ResultsActionStepProps {
 }
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
+  const router = useRouter()
   // Terminology System
   const t = useTerminology()
 
@@ -89,6 +98,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
   const activeProject = useResearchProjectStore(selectActiveProject)
   const [resultTimestamp] = useState(() => new Date())
+  const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([])
 
   // AI 해석 (커스텀 훅으로 캡슐화)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
@@ -147,8 +157,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       selectedMethodId: canonicalSelectedMethod?.id,
       suggestedSettings,
       variableMapping,
+      presentationLanguage: t.language,
     }),
-    [analysisOptions, methodRequirements, canonicalSelectedMethod?.id, suggestedSettings, variableMapping],
+    [analysisOptions, methodRequirements, canonicalSelectedMethod?.id, suggestedSettings, t.language, variableMapping],
   )
   // variableMapping → 변수 이름 배열 (statisticalResult, handleInterpretation 공유)
   const mappedVariables = useMemo(() => {
@@ -351,6 +362,55 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setFollowUpMessages,
     t,
   })
+  const documentUsageRequestSeqRef = useRef(0)
+
+  const reloadDocumentUsages = useCallback(() => {
+    const requestSeq = documentUsageRequestSeqRef.current + 1
+    documentUsageRequestSeqRef.current = requestSeq
+
+    if (!currentHistoryId) {
+      setDocumentUsages([])
+      return
+    }
+
+    void loadDocumentSourceUsages(
+      currentHistoryId,
+      activeProject?.id ? { projectId: activeProject.id } : undefined,
+    )
+      .then((usages) => {
+        if (documentUsageRequestSeqRef.current === requestSeq) {
+          setDocumentUsages(usages)
+        }
+      })
+      .catch(() => {
+        if (documentUsageRequestSeqRef.current === requestSeq) {
+          setDocumentUsages([])
+        }
+      })
+  }, [activeProject?.id, currentHistoryId])
+
+  useEffect(() => {
+    reloadDocumentUsages()
+  }, [reloadDocumentUsages])
+
+  useEffect((): (() => void) => {
+    const handleDocumentsChanged = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        void reloadDocumentUsages()
+        return
+      }
+      const detail = event.detail as DocumentBlueprintsChangedDetail | undefined
+      if (activeProject?.id && detail && detail.projectId !== activeProject.id) {
+        return
+      }
+      void reloadDocumentUsages()
+    }
+
+    window.addEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged)
+    return () => {
+      window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged)
+    }
+  }, [activeProject?.id, reloadDocumentUsages])
 
   const {
     handleReanalyze,
@@ -558,6 +618,41 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </Card>
         )}
 
+        {currentHistoryId && documentUsages.length > 0 && (
+          <Card className="border-0 bg-surface-container-low shadow-none">
+            <CardContent className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold tracking-tight text-foreground">이 결과를 사용하는 문서</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  자동 생성한 문서나 보고서를 수정한 뒤에도 원본 통계와 사용처를 바로 왕복할 수 있습니다.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {documentUsages.slice(0, 3).map((usage) => (
+                  <Button
+                    key={`${usage.documentId}:${usage.kind}:${usage.label}`}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3"
+                    onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {
+                      sectionId: usage.sectionId,
+                    }))}
+                    title={`${usage.documentTitle} · ${usage.sectionTitle}`}
+                  >
+                    {usage.documentTitle} · {usage.label}
+                  </Button>
+                ))}
+                {documentUsages.length > 3 && (
+                  <span className="text-xs text-muted-foreground">
+                    +{documentUsages.length - 3}개 더 있음
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard
           statisticalResult={statisticalResult}
@@ -570,6 +665,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           uploadedData={uploadedData}
           executionSettingEntries={executionSettingEntries}
           methodRequirements={methodRequirements}
+          presentationLanguage={t.language}
           prefersReducedMotion={prefersReducedMotion}
           t={t}
         />

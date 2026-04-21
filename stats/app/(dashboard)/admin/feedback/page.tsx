@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 interface AdminStats {
   total_votes: number
@@ -68,8 +69,8 @@ function getFeedbackMethodName(id: string): { title: string; titleKr: string } {
   return FEEDBACK_METHOD_FALLBACKS[id] ?? { title: id, titleKr: id }
 }
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('ko-KR', {
+function formatDate(timestamp: number, locale: string): string {
+  return new Date(timestamp).toLocaleString(locale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -77,12 +78,13 @@ function formatDate(timestamp: number): string {
   })
 }
 
-function formatShortDate(dateStr: string): string {
+function formatShortDate(dateStr: string, locale: string): string {
   const date = new Date(dateStr)
-  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }
 
 export default function AdminFeedbackPage() {
+  const { locale } = useAppPreferences()
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -231,7 +233,7 @@ export default function AdminFeedbackPage() {
                   </div>
                   <span className="text-xs font-medium">{day.count}</span>
                   <span className="text-[10px] text-muted-foreground">
-                    {formatShortDate(day.date)}
+                    {formatShortDate(day.date, locale)}
                   </span>
                 </div>
               )
@@ -306,7 +308,7 @@ export default function AdminFeedbackPage() {
                     </Badge>
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatDate(comment.timestamp)}
+                      {formatDate(comment.timestamp, locale)}
                     </span>
                   </div>
                   <p className="text-sm">{comment.content}</p>

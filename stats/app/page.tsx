@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
@@ -23,6 +23,7 @@ export default function HomePage() {
   const t = useTerminology()
   const [showHelp, setShowHelp] = useState(false)
   const [systemMemory, setSystemMemory] = useState<number | null>(null)
+  const lastRouteHistoryIdRef = useRef<string | null>(null)
 
   const {
     showHub,
@@ -48,6 +49,43 @@ export default function HomePage() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncHistoryFromRoute = async (): Promise<void> => {
+      if (typeof window === 'undefined') return
+
+      const historyId = new URLSearchParams(window.location.search).get('history')
+      if (!historyId) {
+        lastRouteHistoryIdRef.current = null
+        return
+      }
+      if (lastRouteHistoryIdRef.current === historyId) return
+
+      lastRouteHistoryIdRef.current = historyId
+
+      try {
+        const restored = await loadAndRestoreHistory(historyId)
+        if (!cancelled && restored) {
+          setShowHub(false)
+        }
+      } catch (error) {
+        console.error('[HomePage] Failed to restore history from route', error)
+      }
+    }
+
+    const handlePopState = (): void => {
+      void syncHistoryFromRoute()
+    }
+
+    void syncHistoryFromRoute()
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      cancelled = true
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [setShowHub])
 
   // === Hub-specific handlers ===
 

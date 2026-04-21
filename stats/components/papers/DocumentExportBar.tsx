@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button'
 import { downloadBlob } from '@/lib/services/export/export-data-builder'
 import { documentToDocx, hasVisibleContent } from '@/lib/services/export/document-docx-export'
 import { documentToHwpx } from '@/lib/services/export/document-hwpx-export'
+import {
+  getFigureProvenanceLines,
+  getTableProvenanceLines,
+  renderHtmlProvenance,
+  renderMarkdownProvenanceLines,
+} from '@/lib/services/export/document-provenance'
 import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
 
 interface DocumentExportBarProps {
@@ -33,6 +39,7 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
       for (const table of section.tables) {
         lines.push('')
         lines.push(`**${table.caption}**`)
+        lines.push(...renderMarkdownProvenanceLines(getTableProvenanceLines(table)))
         lines.push('')
         if (table.headers.length > 0) {
           lines.push(`| ${table.headers.join(' | ')} |`)
@@ -47,6 +54,7 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
       lines.push('')
       for (const fig of section.figures) {
         lines.push(`*${fig.label}: ${fig.caption}*`)
+        lines.push(...renderMarkdownProvenanceLines(getFigureProvenanceLines(fig)))
       }
     }
     lines.push('')
@@ -56,11 +64,12 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
 }
 
 function renderTableHtml(table: DocumentTable): string {
-  if (table.htmlContent) return `<p><strong>${table.caption}</strong></p>${table.htmlContent}`
+  const provenanceHtml = renderHtmlProvenance(getTableProvenanceLines(table))
+  if (table.htmlContent) return `<p><strong>${table.caption}</strong></p>${provenanceHtml}${table.htmlContent}`
   if (table.headers.length === 0) return ''
   const thead = `<thead><tr>${table.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
   const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`
-  return `<p><strong>${table.caption}</strong></p><table>${thead}${tbody}</table>`
+  return `<p><strong>${table.caption}</strong></p>${provenanceHtml}<table>${thead}${tbody}</table>`
 }
 
 function documentToHtml(doc: DocumentBlueprint): string {
@@ -88,7 +97,7 @@ function documentToHtml(doc: DocumentBlueprint): string {
     }
     if (section.figures?.length) {
       for (const fig of section.figures) {
-        parts.push(`<p><em>${fig.label}: ${fig.caption}</em></p>`)
+        parts.push(`<p><em>${fig.label}: ${fig.caption}</em></p>${renderHtmlProvenance(getFigureProvenanceLines(fig))}`)
       }
     }
   }

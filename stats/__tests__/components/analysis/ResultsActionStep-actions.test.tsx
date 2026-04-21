@@ -1,17 +1,38 @@
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import type { AnalysisResult } from '@/types/analysis'
+
+function createDeferred<T>(): {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (reason?: unknown) => void
+} {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
 
 const {
   generateSummaryTextMock,
   exportCodeFromAnalysisMock,
   isCodeExportAvailableMock,
+  loadDocumentSourceUsagesMock,
+  routerPushMock,
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
   generateSummaryTextMock: vi.fn(),
   exportCodeFromAnalysisMock: vi.fn(),
   isCodeExportAvailableMock: vi.fn(),
+  loadDocumentSourceUsagesMock: vi.fn(),
+  routerPushMock: vi.fn(),
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
 }))
 
 vi.mock('@/lib/hooks/useReducedMotion', () => ({
@@ -230,12 +251,14 @@ vi.mock('@/lib/graph-studio', () => ({
 }))
 
 vi.mock('@/lib/stores/research-project-store', () => ({
-  selectActiveProject: (state: { activeProject: null }) => state.activeProject,
-  useResearchProjectStore: (selector: (state: { activeProject: null }) => unknown) => selector({ activeProject: null }),
+  selectActiveProject: (state: { activeProject: { id: string } | null }) => state.activeProject,
+  useResearchProjectStore: (
+    selector: (state: { activeProject: { id: string } | null }) => unknown,
+  ) => selector({ activeProject: { id: 'project-1' } }),
 }))
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPushMock, replace: vi.fn() }),
 }))
 
 vi.mock('sonner', () => ({
@@ -249,6 +272,14 @@ vi.mock('sonner', () => ({
 vi.mock('@/lib/stores/graph-studio-store', () => ({
   useGraphStudioStore: (selector: (state: { loadDataPackageWithSpec: ReturnType<typeof vi.fn>; disconnectProject: ReturnType<typeof vi.fn> }) => unknown) =>
     selector({ loadDataPackageWithSpec: vi.fn(), disconnectProject: vi.fn() }),
+}))
+
+vi.mock('@/lib/research/document-source-usage', () => ({
+  loadDocumentSourceUsages: (...args: unknown[]) => loadDocumentSourceUsagesMock(...args),
+}))
+
+vi.mock('@/lib/research/document-blueprint-storage', () => ({
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 }))
 
 const RESULTS: AnalysisResult = {
@@ -265,6 +296,9 @@ describe('ResultsActionStep action wiring', () => {
     generateSummaryTextMock.mockReturnValue('Summary')
     exportCodeFromAnalysisMock.mockReturnValue({ success: true, fileName: 'analysis.R' })
     isCodeExportAvailableMock.mockReturnValue(true)
+    loadDocumentSourceUsagesMock.mockReset()
+    loadDocumentSourceUsagesMock.mockResolvedValue([])
+    routerPushMock.mockReset()
 
     Object.defineProperty(globalThis, 'ClipboardItem', {
       value: undefined,
@@ -279,6 +313,13 @@ describe('ResultsActionStep action wiring', () => {
     })
 
     useAnalysisStore.getState().reset()
+    useHistoryStore.setState({
+      analysisHistory: [],
+      currentHistoryId: null,
+      loadedAiInterpretation: null,
+      loadedInterpretationChat: null,
+      loadedPaperDraft: null,
+    })
     act(() => {
       useAnalysisStore.getState().setSelectedMethod({
         id: 'two-sample-t',
@@ -293,6 +334,7 @@ describe('ResultsActionStep action wiring', () => {
         groupVar: 'group',
       })
       useAnalysisStore.getState().setResults(RESULTS)
+      useHistoryStore.getState().setCurrentHistoryId('history-1')
     })
   })
 
@@ -337,5 +379,127 @@ describe('ResultsActionStep action wiring', () => {
       }),
       'R',
     )
+  })
+
+  it('shows document round-trip actions for saved analysis results', async () => {
+    loadDocumentSourceUsagesMock.mockResolvedValue([
+      {
+        documentId: 'doc-1',
+        documentTitle: '결과 보고서',
+        sectionId: 'results',
+        sectionTitle: '결과',
+        kind: 'table',
+        label: 'Table 1',
+      },
+    ])
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    const usageButton = await screen.findByRole('button', { name: '결과 보고서 · Table 1' })
+    expect(usageButton).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(usageButton)
+    })
+
+    expect(loadDocumentSourceUsagesMock).toHaveBeenCalledWith('history-1', { projectId: 'project-1' })
+    expect(routerPushMock).toHaveBeenCalledWith('/papers?doc=doc-1&section=results')
+  })
+
+  it('reloads document usages when papers change while the result view stays open', async () => {
+    loadDocumentSourceUsagesMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          documentId: 'doc-2',
+          documentTitle: '새 문서',
+          sectionId: 'methods',
+          sectionTitle: '방법',
+          kind: 'section',
+          label: '방법',
+        },
+      ])
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    expect(screen.queryByRole('button', { name: '새 문서 · 방법' })).not.toBeInTheDocument()
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
+        detail: { projectId: 'project-1', documentId: 'doc-2', action: 'saved' },
+      }))
+    })
+
+    expect(await screen.findByRole('button', { name: '새 문서 · 방법' })).toBeInTheDocument()
+    expect(loadDocumentSourceUsagesMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the newest document usage reload when an older request resolves later', async () => {
+    const firstRequest = createDeferred<Array<{
+      documentId: string
+      documentTitle: string
+      sectionId: string
+      sectionTitle: string
+      kind: 'section' | 'table' | 'figure'
+      label: string
+    }>>()
+    const secondRequest = createDeferred<Array<{
+      documentId: string
+      documentTitle: string
+      sectionId: string
+      sectionTitle: string
+      kind: 'section' | 'table' | 'figure'
+      label: string
+    }>>()
+
+    loadDocumentSourceUsagesMock
+      .mockImplementationOnce(() => firstRequest.promise)
+      .mockImplementationOnce(() => secondRequest.promise)
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
+        detail: { projectId: 'project-1', documentId: 'doc-2', action: 'saved' },
+      }))
+    })
+
+    await act(async () => {
+      secondRequest.resolve([
+        {
+          documentId: 'doc-2',
+          documentTitle: '최신 문서',
+          sectionId: 'results',
+          sectionTitle: '결과',
+          kind: 'table',
+          label: 'Table 2',
+        },
+      ])
+      await secondRequest.promise
+    })
+
+    expect(await screen.findByRole('button', { name: '최신 문서 · Table 2' })).toBeInTheDocument()
+
+    await act(async () => {
+      firstRequest.resolve([
+        {
+          documentId: 'doc-1',
+          documentTitle: '오래된 문서',
+          sectionId: 'results',
+          sectionTitle: '결과',
+          kind: 'table',
+          label: 'Table 1',
+        },
+      ])
+      await firstRequest.promise
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: '오래된 문서 · Table 1' })).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: '최신 문서 · Table 2' })).toBeInTheDocument()
   })
 })

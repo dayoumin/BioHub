@@ -20,16 +20,38 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Globe } from 'lucide-react'
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+import type { AppTerminologyDomain } from '@/lib/preferences'
 
 /**
  * 도메인 표시명 매핑
  */
-const DOMAIN_DISPLAY_NAMES: Record<string, { label: string; badge?: string }> = {
-  aquaculture: { label: '수산과학', badge: '현재' },
-  generic: { label: '범용 통계' },
-  medical: { label: '의학 연구' },
-  agriculture: { label: '농업 과학' }
+const DOMAIN_DISPLAY_NAMES: Record<'ko' | 'en', Record<string, { label: string; badge?: string }>> = {
+  ko: {
+    aquaculture: { label: '수산과학', badge: '현재' },
+    generic: { label: '범용 통계' },
+  },
+  en: {
+    aquaculture: { label: 'Aquaculture', badge: 'Current' },
+    generic: { label: 'General Statistics' },
+  },
 }
+
+const UI_TEXT = {
+  ko: {
+    label: '용어 도메인',
+    defaultBadge: '기본값',
+    compactTitle: '용어 도메인 전환',
+    currentPrefix: '현재',
+    help: '전문 용어와 예시 문맥만 바꾸며, UI 언어는 별도로 유지됩니다.',
+  },
+  en: {
+    label: 'Terminology Domain',
+    defaultBadge: 'Default',
+    compactTitle: 'Switch terminology domain',
+    currentPrefix: 'Current',
+    help: 'Changes domain-specific terminology and examples while keeping the UI language separate.',
+  },
+} as const
 
 interface DomainSwitcherProps {
   /** 컴팩트 모드 (아이콘만 표시) */
@@ -51,27 +73,25 @@ interface DomainSwitcherProps {
  * ```
  */
 export function DomainSwitcher({ compact = false, className }: DomainSwitcherProps) {
-  const { currentDomain, setDomain, dictionary } = useTerminologyContext()
+  const { currentDomain, currentLanguage, setDomain, dictionary } = useTerminologyContext()
   const availableDomains = getAvailableDomains()
+  const domainLabels = DOMAIN_DISPLAY_NAMES[currentLanguage]
+  const text = UI_TEXT[currentLanguage]
 
   const handleChange = (value: string) => {
-    setDomain(value)
-    // 선택적: localStorage에 저장하여 다음 방문 시에도 유지
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEYS.ui.terminologyDomain, value)
-    }
+    setDomain(value as AppTerminologyDomain)
   }
 
   if (compact) {
     return (
       <Select value={currentDomain} onValueChange={handleChange}>
-        <SelectTrigger className={`w-[50px] ${className || ''}`} title="도메인 전환">
+        <SelectTrigger className={`w-[50px] ${className || ''}`} title={text.compactTitle}>
           <Globe className="h-4 w-4" />
         </SelectTrigger>
         <SelectContent>
           {availableDomains.map((domain) => (
             <SelectItem key={domain} value={domain}>
-              {DOMAIN_DISPLAY_NAMES[domain]?.label || domain}
+              {domainLabels[domain]?.label || domain}
             </SelectItem>
           ))}
         </SelectContent>
@@ -83,9 +103,9 @@ export function DomainSwitcher({ compact = false, className }: DomainSwitcherPro
     <div className={`space-y-2 ${className || ''}`}>
       <div className="flex items-center gap-2">
         <Globe className="h-4 w-4 text-muted-foreground" />
-        <label className="text-sm font-medium">용어 도메인</label>
+        <label className="text-sm font-medium">{text.label}</label>
         {currentDomain === 'aquaculture' && (
-          <Badge variant="secondary" className="text-xs">기본값</Badge>
+          <Badge variant="secondary" className="text-xs">{text.defaultBadge}</Badge>
         )}
       </div>
       <Select value={currentDomain} onValueChange={handleChange}>
@@ -94,7 +114,7 @@ export function DomainSwitcher({ compact = false, className }: DomainSwitcherPro
         </SelectTrigger>
         <SelectContent>
           {availableDomains.map((domain) => {
-            const info = DOMAIN_DISPLAY_NAMES[domain]
+            const info = domainLabels[domain]
             return (
               <SelectItem key={domain} value={domain}>
                 <div className="flex items-center justify-between w-full gap-2">
@@ -111,9 +131,9 @@ export function DomainSwitcher({ compact = false, className }: DomainSwitcherPro
         </SelectContent>
       </Select>
       <p className="text-xs text-muted-foreground">
-        현재: <strong>{dictionary.displayName}</strong>
+        {text.currentPrefix}: <strong>{dictionary.displayName}</strong>
         <br />
-        모든 UI 텍스트가 선택한 도메인에 맞게 자동으로 변경됩니다.
+        {text.help}
       </p>
     </div>
   )

@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useUI } from '@/contexts/ui-context'
 import { toast } from 'sonner'
-import { TOAST } from '@/lib/constants/toast-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import {
@@ -38,6 +37,7 @@ import {
 } from '@/lib/stores/research-project-store'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 /** 사이드바 접힐 때 텍스트가 즉시 사라지도록 (width 애니메이션 도중 잔상 방지) */
 const textClass = (expanded: boolean) =>
@@ -47,33 +47,106 @@ const STORAGE_KEY = STORAGE_KEYS.ui.sidebar
 
 type NavItem = {
   href: string
-  label: string
+  label: Record<'ko' | 'en', string>
   icon: React.ElementType
   prefix?: string
   disabled?: boolean
-  badge?: string
+  badge?: Record<'ko' | 'en', string>
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/', label: '통계분석', icon: BarChart3 },
-  { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
-  { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
-  { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
-  { href: '/papers', label: '자료 작성', icon: BookOpen, prefix: '/papers' },
+  {
+    href: '/',
+    label: { ko: '통계분석', en: 'Statistical Analysis' },
+    icon: BarChart3,
+  },
+  {
+    href: '/bio-tools',
+    label: { ko: 'Bio-Tools', en: 'Bio-Tools' },
+    icon: Dna,
+    prefix: '/bio-tools',
+  },
+  {
+    href: '/genetics',
+    label: { ko: '유전적 분석', en: 'Genetic Analysis' },
+    icon: FlaskConical,
+    prefix: '/genetics',
+  },
+  {
+    href: '/graph-studio',
+    label: { ko: 'Graph Studio', en: 'Graph Studio' },
+    icon: AreaChart,
+    prefix: '/graph-studio',
+  },
+  {
+    href: '/papers',
+    label: { ko: '자료 작성', en: 'Writing Tools' },
+    icon: BookOpen,
+    prefix: '/papers',
+  },
   {
     href: '/species-validation',
-    label: '학명 유효성 검증',
+    label: { ko: '학명 유효성 검증', en: 'Scientific Name Validation' },
     icon: Microscope,
     disabled: true,
-    badge: '준비 중',
+    badge: { ko: '준비 중', en: 'Soon' },
   },
 ]
 
 const APP_TITLE = process.env.NEXT_PUBLIC_APP_TITLE ?? 'BioHub'
 
+const UI_TEXT = {
+  ko: {
+    collapseSidebar: '사이드바 접기',
+    expandSidebar: '사이드바 펼치기',
+    researchProjects: '연구과제',
+    soloWorkspace: '개별 작업 중',
+    activeProjectPrefix: '연구과제',
+    emptyProjectsMessage: '연구과제를 만들면 분석·그래프·BLAST 결과를 한곳에 모아 관리할 수 있어요',
+    createFirstProject: '첫 연구과제 만들기',
+    switchProject: '연구과제 전환',
+    countSuffix: '개',
+    switchToSolo: '개별 작업으로 전환',
+    manageProjects: '연구과제 관리',
+    myMenu: 'My Menu',
+    planned: '예정',
+    myMenuTooltip: 'My Menu (준비 중)',
+    settings: '설정',
+    toasts: {
+      autoSavedTitle: '분석이 자동 저장되었습니다',
+      autoSavedDescription: '홈으로 돌아가면 이어서 진행할 수 있습니다.',
+      projectActivatedShort: (name: string) => `'${name}' 활성화`,
+    },
+  },
+  en: {
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
+    researchProjects: 'Projects',
+    soloWorkspace: 'Working Solo',
+    activeProjectPrefix: 'Project',
+    emptyProjectsMessage: 'Create a project to keep analysis, graph, and BLAST results together in one workspace.',
+    createFirstProject: 'Create first project',
+    switchProject: 'Switch project',
+    countSuffix: 'items',
+    switchToSolo: 'Switch to solo workspace',
+    manageProjects: 'Manage projects',
+    myMenu: 'My Menu',
+    planned: 'Planned',
+    myMenuTooltip: 'My Menu (planned)',
+    settings: 'Settings',
+    toasts: {
+      autoSavedTitle: 'Analysis auto-saved',
+      autoSavedDescription: 'You can continue it when you return home.',
+      projectActivatedShort: (name: string) => `'${name}' activated`,
+    },
+  },
+} as const
+
 export function AppSidebar() {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState(true)
+  const { currentLanguage } = useAppPreferences()
+  const text = UI_TEXT[currentLanguage]
   const { openSettings } = useUI()
   const currentStep = useAnalysisStore(s => s.currentStep)
   const selectedMethod = useAnalysisStore(s => s.selectedMethod)
@@ -118,8 +191,8 @@ export function AppSidebar() {
       const isHome = pathname === '/'
       const isLeavingHome = isHome && item.href !== '/'
       if (isLeavingHome && currentStep >= 2 && selectedMethod && !results) {
-        toast.info(TOAST.navigation.autoSaved, {
-          description: TOAST.navigation.autoSavedDescription,
+        toast.info(text.toasts.autoSavedTitle, {
+          description: text.toasts.autoSavedDescription,
           duration: 3000,
         })
       }
@@ -168,7 +241,7 @@ export function AppSidebar() {
       <div className="flex items-center h-12 border-b border-sidebar-border/50 px-2 flex-shrink-0">
         <button
           onClick={toggle}
-          aria-label={expanded ? '사이드바 접기' : '사이드바 펼치기'}
+          aria-label={expanded ? text.collapseSidebar : text.expandSidebar}
           className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground flex-shrink-0"
         >
           <PanelLeft className="w-4 h-4" />
@@ -186,7 +259,7 @@ export function AppSidebar() {
       <div className="flex-shrink-0 px-1.5 pt-1.5 pb-2 border-b border-sidebar-border/50 bg-sidebar-accent/30">
         {expanded && (
           <span className="block text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">
-            연구과제
+            {text.researchProjects}
           </span>
         )}
         <DropdownMenu>
@@ -208,7 +281,7 @@ export function AppSidebar() {
                     <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
                   )}
                   <span className={cn('flex-1 truncate text-left', activeProject && 'font-medium', textClass(expanded))}>
-                    {activeProject?.name ?? '개별 작업 중'}
+                    {activeProject?.name ?? text.soloWorkspace}
                   </span>
                   <ChevronDown className={cn('h-3 w-3 flex-shrink-0', textClass(expanded))} />
                 </button>
@@ -216,7 +289,7 @@ export function AppSidebar() {
             </TooltipTrigger>
             {!expanded && (
               <TooltipContent side="right">
-                {activeProject ? `연구과제: ${activeProject.name}` : '개별 작업 중'}
+                {activeProject ? `${text.activeProjectPrefix}: ${activeProject.name}` : text.soloWorkspace}
               </TooltipContent>
             )}
           </Tooltip>
@@ -224,21 +297,21 @@ export function AppSidebar() {
             {availableProjects.length === 0 ? (
               <div className="px-3 py-4 text-center">
                 <p className="text-xs text-muted-foreground mb-2">
-                  연구과제를 만들면 분석·그래프·BLAST 결과를 한곳에 모아 관리할 수 있어요
+                  {text.emptyProjectsMessage}
                 </p>
                 <Link
                   href="/projects"
                   className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                 >
                   <Plus className="h-3 w-3" />
-                  첫 연구과제 만들기
+                  {text.createFirstProject}
                 </Link>
               </div>
             ) : (
               <>
                 <div className="px-2 pt-1.5 pb-1">
                   <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
-                    연구과제 전환
+                    {text.switchProject}
                   </span>
                 </div>
                 {availableProjects.map(p => {
@@ -248,7 +321,7 @@ export function AppSidebar() {
                       key={p.id}
                       onClick={() => {
                         setActiveProject(p.id)
-                        toast.success(TOAST.project.activatedShort(p.name))
+                        toast.success(text.toasts.projectActivatedShort(p.name))
                       }}
                       className={cn(
                         'text-xs',
@@ -262,7 +335,7 @@ export function AppSidebar() {
                       )}
                       <span className="flex-1 truncate">{p.name}</span>
                       {refCount > 0 && (
-                        <span className="ml-auto text-[10px] text-muted-foreground/50">{refCount}개</span>
+                        <span className="ml-auto text-[10px] text-muted-foreground/50">{refCount} {text.countSuffix}</span>
                       )}
                       {activeProject?.id === p.id && (
                         <Check className="ml-1 h-3.5 w-3.5 text-primary" />
@@ -278,13 +351,13 @@ export function AppSidebar() {
                 onClick={() => clearActiveProject()}
                 className="text-xs text-muted-foreground"
               >
-                개별 작업으로 전환
+                {text.switchToSolo}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem asChild className="text-xs">
               <Link href="/projects">
                 <Settings className="mr-1.5 h-3 w-3" />
-                연구과제 관리
+                {text.manageProjects}
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -308,22 +381,24 @@ export function AppSidebar() {
               : '',
             item.disabled ? 'text-sidebar-foreground/30 cursor-not-allowed' : '',
           )
+          const localizedLabel = item.label[currentLanguage]
+          const localizedBadge = item.badge?.[currentLanguage]
 
           const inner = (
             <>
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
-                {item.label}
+                {localizedLabel}
               </span>
-              {item.badge && (
+              {localizedBadge && (
                 <span className={cn("ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0", textClass(expanded))}>
-                  {item.badge}
+                  {localizedBadge}
                 </span>
               )}
             </>
           )
 
-          const tooltipLabel = item.badge ? `${item.label} (${item.badge})` : item.label
+          const tooltipText = localizedBadge ? `${localizedLabel} (${localizedBadge})` : localizedLabel
 
           if (item.disabled) {
             return (
@@ -331,7 +406,7 @@ export function AppSidebar() {
                 <TooltipTrigger asChild>
                   <div className={itemClass}>{inner}</div>
                 </TooltipTrigger>
-                {!expanded && <TooltipContent side="right">{tooltipLabel}</TooltipContent>}
+                {!expanded && <TooltipContent side="right">{tooltipText}</TooltipContent>}
               </Tooltip>
             )
           }
@@ -343,7 +418,7 @@ export function AppSidebar() {
                   {inner}
                 </Link>
               </TooltipTrigger>
-              {!expanded && <TooltipContent side="right">{item.label}</TooltipContent>}
+              {!expanded && <TooltipContent side="right">{localizedLabel}</TooltipContent>}
             </Tooltip>
           )
         })}
@@ -361,12 +436,12 @@ export function AppSidebar() {
             >
               <Star className="w-4 h-4 flex-shrink-0" />
               <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
-                My Menu
+                {text.myMenu}
               </span>
-              <span className={cn("ml-auto text-[10px] flex-shrink-0", expanded ? 'opacity-40' : 'opacity-0 invisible')}>예정</span>
+              <span className={cn("ml-auto text-[10px] flex-shrink-0", expanded ? 'opacity-40' : 'opacity-0 invisible')}>{text.planned}</span>
             </div>
           </TooltipTrigger>
-          {!expanded && <TooltipContent side="right">My Menu (준비 중)</TooltipContent>}
+          {!expanded && <TooltipContent side="right">{text.myMenuTooltip}</TooltipContent>}
         </Tooltip>
       </div>
 
@@ -381,14 +456,14 @@ export function AppSidebar() {
                 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
                 'transition-colors',
               )}
-            >
+              >
               <Settings className="w-4 h-4 flex-shrink-0" />
               <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
-                설정
+                {text.settings}
               </span>
             </button>
           </TooltipTrigger>
-          {!expanded && <TooltipContent side="right">설정</TooltipContent>}
+          {!expanded && <TooltipContent side="right">{text.settings}</TooltipContent>}
         </Tooltip>
       </div>
       </TooltipProvider>

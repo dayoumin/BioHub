@@ -377,7 +377,7 @@ export interface GraphProject {
   name: string;
   /** 상위 연구 프로젝트 연결용. 미연결 상태 허용. */
   projectId?: string;
-  /** 이 차트가 어떤 분석에서 파생되었는지 추적용. */
+  /** 이 차트가 어떤 분석에서 파생되었는지 추적하는 canonical analysis history id. */
   analysisId?: string;
   chartSpec: ChartSpec;
   dataPackageId: string;

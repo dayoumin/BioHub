@@ -10,6 +10,57 @@ let capturedAnalysisOptionsProps: Record<string, unknown> | null = null
 let capturedUnifiedMethodId: string | undefined
 let capturedUnifiedMethodName: string | undefined
 
+function createTerminology(domain: 'aquaculture' | 'generic') {
+  return {
+    domain,
+    language: domain === 'generic' ? 'en' : 'ko',
+    variables: domain === 'generic'
+      ? {
+          group: { title: 'Group Variable', description: 'Categorical grouping variable' },
+          dependent: { title: 'Dependent Variable', description: 'Numeric outcome variable' },
+          independent: { title: 'Independent Variable', description: 'Predictor variable' },
+          factor: { title: 'Group Variable', description: 'Categorical grouping factor' },
+          covariate: { title: 'Covariate', description: 'Continuous control variable' },
+          time: { title: 'Time Variable', description: 'Time or sequence variable' },
+          event: { title: 'Event Variable', description: 'Binary event indicator' },
+          pairedFirst: { title: 'Time 1 / Before', description: 'First paired measure' },
+          pairedSecond: { title: 'Time 2 / After', description: 'Second paired measure' },
+          correlation: { title: 'Analysis Variables', description: 'Variables analyzed together' },
+        }
+      : {
+          group: { title: '그룹 변수', description: '범주형 그룹 변수' },
+          dependent: { title: '종속 변수', description: '수치형 결과 변수' },
+          independent: { title: '독립 변수', description: '예측 변수' },
+          factor: { title: '그룹 변수', description: '범주형 요인 변수' },
+          covariate: { title: '공변량', description: '통제 변수' },
+          time: { title: '시간 변수', description: '시간 또는 순서 변수' },
+          event: { title: '사건 변수', description: '이진 사건 지표' },
+          pairedFirst: { title: '사전', description: '첫 번째 측정값' },
+          pairedSecond: { title: '사후', description: '두 번째 측정값' },
+          correlation: { title: '분석 변수', description: '함께 분석할 변수' },
+        },
+    analysis: {
+      stepTitles: { variableSelection: domain === 'generic' ? 'Variable Selection' : '변수 선택' },
+      layout: { prevStep: domain === 'generic' ? 'Previous step' : '이전 단계' },
+      emptyStates: {
+        dataRequired: domain === 'generic' ? 'Data required' : '데이터 필요',
+        dataRequiredDescription: domain === 'generic' ? 'Upload data first' : '데이터를 업로드해 주세요',
+      },
+      aiVariables: {
+        title: domain === 'generic' ? 'AI detected variables' : 'AI 감지 변수',
+        roles: { dependent: 'Y:', group: 'G:', factors: 'F:', independent: 'X:', covariate: 'C:' },
+      },
+    },
+    selectorUI: {
+      labels: {
+        analysisOptions: domain === 'generic' ? 'Analysis options' : '분석 옵션',
+      },
+    },
+  }
+}
+
+let mockTerminology = createTerminology('aquaculture')
+
 vi.mock('@/components/common/variable-selectors', () => ({
   AutoConfirmSelector: ({ onComplete }: { onComplete: (mapping: unknown) => void }) => (
     <div data-testid="auto-confirm-selector">
@@ -66,9 +117,13 @@ vi.mock('@/components/common/EmptyState', () => ({
   EmptyState: ({ title }: { title: string }) => <div>{title}</div>,
 }))
 
-vi.mock('@/lib/statistics/variable-mapping', () => ({
-  validateVariableMapping: vi.fn(() => ({ isValid: true, errors: [] })),
-}))
+vi.mock('@/lib/statistics/variable-mapping', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/statistics/variable-mapping')>()
+  return {
+    ...actual,
+    validateVariableMapping: vi.fn(() => ({ isValid: true, errors: [] })),
+  }
+})
 
 const mockSetVariableMapping = vi.fn()
 const mockUpdateVariableMappingWithInvalidation = vi.fn()
@@ -125,25 +180,7 @@ vi.mock('@/lib/stores/analysis-store', () => ({
 }))
 
 vi.mock('@/hooks/use-terminology', () => ({
-  useTerminology: () => ({
-    analysis: {
-      stepTitles: { variableSelection: '변수 선택' },
-      layout: { prevStep: '이전 단계' },
-      emptyStates: {
-        dataRequired: '데이터 필요',
-        dataRequiredDescription: '데이터를 업로드해 주세요',
-      },
-      aiVariables: {
-        title: 'AI 감지 변수',
-        roles: { dependent: 'Y:', group: 'G:', factors: 'F:', independent: 'X:', covariate: 'C:' },
-      },
-    },
-    selectorUI: {
-      labels: {
-        analysisOptions: '분석 옵션',
-      },
-    },
-  }),
+  useTerminology: () => mockTerminology,
 }))
 
 function renderWithMethod(
@@ -161,6 +198,7 @@ function renderWithMethod(
 }
 
 beforeEach(() => {
+  mockTerminology = createTerminology('aquaculture')
   storeState = { ...defaultStoreState }
   capturedSelectorType = null
   capturedAnalysisOptionsProps = null
@@ -463,6 +501,49 @@ describe('VariableSelectionStep', () => {
       expect(screen.getByTestId('execution-preview-missing-factor')).toHaveTextContent('그룹 변수을(를) 선택해야 합니다')
     })
 
+    it('localizes preview slot copy for the generic domain', () => {
+      mockTerminology = createTerminology('generic')
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: makeSelectedMethod('t-test'),
+        detectedVariables: null,
+      }
+
+      render(<VariableSelectionStep />)
+
+      expect(screen.getByText('Execution settings for the next step')).toBeDefined()
+      expect(screen.getByText('Variables 0')).toBeDefined()
+      expect(screen.getByText('Required before running')).toBeDefined()
+      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('Dependent Variable must be selected.')
+      expect(screen.getByTestId('execution-preview-missing-factor')).toHaveTextContent('Group Variable must be selected.')
+      expect(screen.getByText('Dependent Variable')).toBeDefined()
+      expect(screen.getByText('Group Variable')).toBeDefined()
+    })
+
+    it('keeps method-specific preview slot copy for binary and contingency-table methods in the generic domain', () => {
+      mockTerminology = createTerminology('generic')
+
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: makeSelectedMethod('one-sample-proportion'),
+        detectedVariables: null,
+      }
+
+      const { unmount } = render(<VariableSelectionStep />)
+      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('Binary Variable must be selected.')
+      unmount()
+
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: makeSelectedMethod('chi-square-independence'),
+        detectedVariables: null,
+      }
+
+      render(<VariableSelectionStep />)
+      expect(screen.getByTestId('execution-preview-missing-independent')).toHaveTextContent('Row Variable must be selected.')
+      expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('Column Variable must be selected.')
+    })
+
     it('uses resolved method slots for the guide panel as well as the preview', () => {
       storeState = {
         ...defaultStoreState,
@@ -525,7 +606,7 @@ describe('VariableSelectionStep', () => {
   describe('validation alert', () => {
     it('shows an alert and blocks progression when validateVariableMapping returns errors', () => {
       const mockValidate = vi.mocked(validateVariableMapping)
-      mockValidate.mockReturnValueOnce({ isValid: false, errors: ['그룹 변수를 선택해 주세요'] })
+      mockValidate.mockReturnValue({ isValid: false, errors: ['그룹 변수(범주형)를 선택해주세요'] })
 
       storeState = {
         ...defaultStoreState,
@@ -541,10 +622,58 @@ describe('VariableSelectionStep', () => {
       render(<VariableSelectionStep />)
       fireEvent.click(screen.getByText('Complete'))
 
-      expect(screen.getByText('그룹 변수를 선택해 주세요')).toBeDefined()
+      expect(screen.getByText('그룹 변수(범주형)를 선택해주세요')).toBeDefined()
       expect(mockGoToNextStep).not.toHaveBeenCalled()
       expect(mockSetVariableMapping).not.toHaveBeenCalled()
       expect(mockUpdateVariableMappingWithInvalidation).not.toHaveBeenCalled()
+    })
+
+    it('localizes submit-time validation errors in the generic domain', () => {
+      mockTerminology = createTerminology('generic')
+      const mockValidate = vi.mocked(validateVariableMapping)
+      mockValidate.mockReturnValue({ isValid: false, errors: ['그룹 변수(범주형)를 선택해주세요'] })
+
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: makeSelectedMethod('ancova', 'ANCOVA'),
+        validationResults: {
+          isValid: true,
+          errors: [],
+          warnings: [],
+          columnStats: [{ name: 'score', type: 'numeric', uniqueValues: 30, missingCount: 0, completenessRate: 1 }],
+        },
+      }
+
+      render(<VariableSelectionStep />)
+      fireEvent.click(screen.getByText('Complete'))
+
+      expect(screen.getByText('Select a categorical group variable.')).toBeDefined()
+      expect(screen.queryByText('그룹 변수(범주형)를 선택해주세요')).toBeNull()
+      expect(mockGoToNextStep).not.toHaveBeenCalled()
+    })
+
+    it('keeps one-sample submit-time validation aligned with Test Variable copy in the generic domain', () => {
+      mockTerminology = createTerminology('generic')
+      const mockValidate = vi.mocked(validateVariableMapping)
+      mockValidate.mockReturnValue({ isValid: false, errors: ['종속변수(수치형)를 선택해주세요'] })
+
+      storeState = {
+        ...defaultStoreState,
+        selectedMethod: makeSelectedMethod('one-sample-t', 'One Sample T-Test'),
+        validationResults: {
+          isValid: true,
+          errors: [],
+          warnings: [],
+          columnStats: [{ name: 'score', type: 'numeric', uniqueValues: 30, missingCount: 0, completenessRate: 1 }],
+        },
+      }
+
+      render(<VariableSelectionStep />)
+      fireEvent.click(screen.getByText('Complete'))
+
+      expect(screen.getByText('Select a numeric test variable.')).toBeDefined()
+      expect(screen.queryByText('Select a numeric dependent variable.')).toBeNull()
+      expect(mockGoToNextStep).not.toHaveBeenCalled()
     })
 
     it('does not show an alert for valid mappings', () => {

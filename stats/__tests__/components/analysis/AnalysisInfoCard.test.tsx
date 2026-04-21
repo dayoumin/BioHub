@@ -15,51 +15,73 @@ import { AnalysisInfoCard } from '@/components/analysis/components/AnalysisInfoC
 import { StatisticalMethod, ValidationResults, StatisticalAssumptions } from '@/types/analysis'
 import { VariableMapping } from '@/lib/statistics/variable-mapping'
 
+let mockLanguage: 'ko' | 'en' = 'ko'
+let mockLocale = 'ko-KR'
+
 // Mock useTerminology (AnalysisInfoCard uses useTerminology())
 vi.mock('@/hooks/use-terminology', () => ({
     useTerminology: () => ({
+        language: mockLanguage,
         analysisInfo: {
-            cardTitle: '분석 정보',
+            cardTitle: mockLanguage === 'en' ? 'Analysis Info' : '분석 정보',
             labels: {
-                fileName: '파일명',
-                dataSize: '데이터 크기',
-                method: '분석 방법',
-                analysisTime: '분석 시간',
-                dataQuality: '데이터 품질',
-                assumptions: '가정 검정',
-                variables: '변수 구성',
+                fileName: mockLanguage === 'en' ? 'File Name' : '파일명',
+                dataSize: mockLanguage === 'en' ? 'Data Size' : '데이터 크기',
+                method: mockLanguage === 'en' ? 'Method' : '분석 방법',
+                analysisTime: mockLanguage === 'en' ? 'Analysis Time' : '분석 시간',
+                dataQuality: mockLanguage === 'en' ? 'Data Quality' : '데이터 품질',
+                assumptions: mockLanguage === 'en' ? 'Assumptions' : '가정 검정',
+                variables: mockLanguage === 'en' ? 'Variables' : '변수 구성',
             },
             variableRoles: {
-                dependent: '종속변수',
-                independent: '독립변수',
-                group: '그룹변수',
+                dependent: mockLanguage === 'en' ? 'Dependent Variable' : '종속변수',
+                independent: mockLanguage === 'en' ? 'Independent Variable' : '독립변수',
+                group: mockLanguage === 'en' ? 'Group Variable' : '그룹변수',
                 factor: 'Factor 변수',
                 paired: 'Paired 변수',
             },
             dataQuality: {
-                missingValues: (count: number, percent: string) => `결측값 ${count}개 (${percent}%)`,
-                duplicateRows: (count: number) => `중복 행 ${count}개`,
-                warnings: (count: number) => `${count}개 경고`,
+                missingValues: (count: number, percent: string) => mockLanguage === 'en'
+                  ? `${count} missing values (${percent}%)`
+                  : `결측값 ${count}개 (${percent}%)`,
+                duplicateRows: (count: number) => mockLanguage === 'en'
+                  ? `${count} duplicate rows`
+                  : `중복 행 ${count}개`,
+                warnings: (count: number) => mockLanguage === 'en'
+                  ? `${count} warnings`
+                  : `${count}개 경고`,
             },
             assumptions: {
-                normality: '정규성',
-                homogeneity: '등분산성',
-                independence: '독립성',
-                met: '충족',
-                partialViolation: '일부 위반',
-                allGroupsNormal: '모든 그룹 정규',
-                someGroupsNonNormal: '일부 그룹 비정규',
+                normality: mockLanguage === 'en' ? 'Normality' : '정규성',
+                homogeneity: mockLanguage === 'en' ? 'Homogeneity' : '등분산성',
+                independence: mockLanguage === 'en' ? 'Independence' : '독립성',
+                met: mockLanguage === 'en' ? 'Met' : '충족',
+                partialViolation: mockLanguage === 'en' ? 'Partially violated' : '일부 위반',
+                allGroupsNormal: mockLanguage === 'en' ? 'All groups normal' : '모든 그룹 정규',
+                someGroupsNonNormal: mockLanguage === 'en' ? 'Some groups non-normal' : '일부 그룹 비정규',
             },
             units: {
-                rows: '행',
-                nVariables: (count: number) => `${count}개 변수`,
+                rows: mockLanguage === 'en' ? 'rows' : '행',
+                nVariables: (count: number) => mockLanguage === 'en' ? `${count} variables` : `${count}개 변수`,
             },
         },
     }),
     useTerminologyContext: () => ({ dictionary: { domain: 'generic' }, setDomain: vi.fn(), currentDomain: 'generic' }),
 }))
 
+vi.mock('@/hooks/use-app-preferences', () => ({
+  useAppPreferences: () => ({
+    locale: mockLocale,
+    currentLanguage: mockLanguage,
+  }),
+}))
+
 describe('AnalysisInfoCard', () => {
+  beforeEach(() => {
+    mockLanguage = 'ko'
+    mockLocale = 'ko-KR'
+  })
+
   // Test fixtures
   const mockMethod: StatisticalMethod = {
     id: 'independent-t-test',
@@ -145,6 +167,15 @@ describe('AnalysisInfoCard', () => {
       expect(screen.getByText('분석 시간')).toBeInTheDocument()
       // Date format depends on locale, just check it's present
       expect(screen.getByText(/2025/)).toBeInTheDocument()
+    })
+
+    it('uses app locale for row formatting in English UI', () => {
+      mockLanguage = 'en'
+      mockLocale = 'en-US'
+
+      render(<AnalysisInfoCard dataRows={10000} />)
+
+      expect(screen.getByText(/10,000\s*rows/)).toBeInTheDocument()
     })
   })
 
@@ -307,6 +338,29 @@ describe('AnalysisInfoCard', () => {
       // 개별 체크: 정규성만 표시 (등분산성은 levene 없음 → 체크 없음)
       expect(screen.getByText('정규성')).toBeInTheDocument()
       expect(screen.queryByText('등분산성')).not.toBeInTheDocument() // false positive 방지
+    })
+
+    it('shows localized undecidable badge in English UI', () => {
+      mockLanguage = 'en'
+      mockLocale = 'en-US'
+
+      const partialError: StatisticalAssumptions = {
+        normality: {
+          shapiroWilk: { statistic: 0.97, pValue: 0.12, isNormal: true }
+        },
+        homogeneity: {},
+        summary: {
+          canUseParametric: true,
+          reasons: ['Homogeneity test failed'],
+          recommendations: ['Expert review recommended'],
+          testError: true,
+          meetsAssumptions: undefined,
+        },
+      }
+
+      render(<AnalysisInfoCard assumptionResults={partialError} />)
+
+      expect(screen.getByText('Undetermined')).toBeInTheDocument()
     })
 
     it('[시뮬레이션] testError + 두 검정 모두 실패: false positive 체크 없음', () => {

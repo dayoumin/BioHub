@@ -17,14 +17,52 @@ import { Button } from '@/components/ui/button'
 import { Moon, Sun, Monitor, Settings2 } from 'lucide-react'
 import { StorageService } from '@/lib/services/storage-service'
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+import { LanguageSwitcher } from '@/components/terminology/LanguageSwitcher'
+import { DomainSwitcher } from '@/components/terminology/DomainSwitcher'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
+const UI_TEXT = {
+  ko: {
+    title: '설정',
+    description: '플랫폼 설정을 변경할 수 있습니다',
+    theme: '테마',
+    light: '라이트',
+    dark: '다크',
+    system: '시스템',
+    languageAndTerminology: '언어 및 용어',
+    languageAndTerminologyHelp: 'UI 언어와 도메인별 전문 용어를 각각 분리해서 설정합니다.',
+    notifications: '알림',
+    notifyAnalysisComplete: '분석 완료 시 알림',
+    notifyError: '에러 발생 시 알림',
+    advancedSettings: '상세 설정 보기',
+    advancedSettingsHelp: '상세 설정에서 고급 기능을 설정할 수 있습니다.',
+  },
+  en: {
+    title: 'Settings',
+    description: 'Change platform preferences and behavior.',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    languageAndTerminology: 'Language & Terminology',
+    languageAndTerminologyHelp: 'Configure UI language and domain-specific terminology independently.',
+    notifications: 'Notifications',
+    notifyAnalysisComplete: 'Notify when analysis completes',
+    notifyError: 'Notify on errors',
+    advancedSettings: 'Open advanced settings',
+    advancedSettingsHelp: 'Use advanced settings to configure more detailed options.',
+  },
+} as const
+
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { theme, setTheme } = useTheme()
+  const { currentLanguage } = useAppPreferences()
+  const text = UI_TEXT[currentLanguage]
 
   // 알림 설정
   const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
@@ -59,16 +97,16 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>설정</DialogTitle>
+          <DialogTitle>{text.title}</DialogTitle>
           <DialogDescription>
-            플랫폼 설정을 변경할 수 있습니다
+            {text.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* 테마 설정 */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">테마</Label>
+            <Label className="text-base font-semibold">{text.theme}</Label>
             <RadioGroup value={theme} onValueChange={setTheme} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <RadioGroupItem
@@ -81,7 +119,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                 >
                   <Sun className="mb-3 h-6 w-6" />
-                  <span className="text-sm font-medium">라이트</span>
+                  <span className="text-sm font-medium">{text.light}</span>
                 </Label>
               </div>
               <div>
@@ -95,7 +133,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                 >
                   <Moon className="mb-3 h-6 w-6" />
-                  <span className="text-sm font-medium">다크</span>
+                  <span className="text-sm font-medium">{text.dark}</span>
                 </Label>
               </div>
               <div>
@@ -109,7 +147,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                 >
                   <Monitor className="mb-3 h-6 w-6" />
-                  <span className="text-sm font-medium">시스템</span>
+                  <span className="text-sm font-medium">{text.system}</span>
                 </Label>
               </div>
             </RadioGroup>
@@ -117,13 +155,33 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
           <Separator />
 
+          {/* 언어 및 용어 설정 */}
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-base font-semibold">{text.languageAndTerminology}</Label>
+              <p className="text-xs text-muted-foreground">
+                {text.languageAndTerminologyHelp}
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg bg-muted/30 p-4">
+                <LanguageSwitcher />
+              </div>
+              <div className="rounded-lg bg-muted/30 p-4">
+                <DomainSwitcher />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* 알림 설정 */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">알림</Label>
+            <Label className="text-base font-semibold">{text.notifications}</Label>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="analysis-complete" className="text-sm font-normal cursor-pointer">
-                  분석 완료 시 알림
+                  {text.notifyAnalysisComplete}
                 </Label>
                 <Switch
                   id="analysis-complete"
@@ -133,7 +191,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="error-notification" className="text-sm font-normal cursor-pointer">
-                  에러 발생 시 알림
+                  {text.notifyError}
                 </Label>
                 <Switch
                   id="error-notification"
@@ -157,10 +215,10 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               }}
             >
               <Settings2 className="mr-2 h-4 w-4" />
-              상세 설정 보기
+              {text.advancedSettings}
             </Button>
             <p className="text-xs text-muted-foreground">
-              상세 설정에서 고급 기능을 설정할 수 있습니다.
+              {text.advancedSettingsHelp}
             </p>
           </div>
         </div>

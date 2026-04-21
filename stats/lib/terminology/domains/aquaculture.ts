@@ -10,6 +10,7 @@ import type { GuidedQuestion, CategoryDefinition } from '@/types/analysis'
 
 export const aquaculture: TerminologyDictionary<'aquaculture'> = {
   domain: 'aquaculture',
+  language: 'ko',
   displayName: '수산과학',
 
   variables: {

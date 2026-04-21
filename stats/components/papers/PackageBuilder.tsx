@@ -1,13 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { loadPackage, savePackage } from '@/lib/research/paper-package-storage'
+import {
+  loadPackage,
+  savePackage,
+  PAPER_PACKAGES_CHANGED_EVENT,
+  type PaperPackagesChangedDetail,
+  PaperPackageConflictError,
+} from '@/lib/research/paper-package-storage'
 import { assemblePaperPackage, generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import {
   JOURNAL_PRESETS,
@@ -18,6 +24,7 @@ import {
 import type {
   PaperPackage,
   PackageItem,
+  PackageAnalysisLink,
   PackageReference,
   JournalPreset,
   AssemblyResult,
@@ -28,13 +35,20 @@ import {
   listProjectEntityRefs,
   loadResearchProject,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+  type ResearchProjectEntityRefsChangedDetail,
 } from '@/lib/research/project-storage'
+import {
+  buildAnalysisHistoryUrl,
+  buildGraphStudioProjectUrl,
+} from '@/lib/research/source-navigation'
 import {
   GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects,
+  type GraphProjectsChangedDetail,
 } from '@/lib/graph-studio/project-storage'
 import { getAllHistory } from '@/lib/utils/storage'
 import PackagePreview from './PackagePreview'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 // ── Types ────────────────────────────────────────────────
 
@@ -66,6 +80,10 @@ const ITEM_TYPE_LABELS: Record<PackageItem['type'], string> = {
   analysis: '분석',
   figure: '그림',
   table: '표',
+}
+
+function createAnalysisLink(sourceId: string, label: string): PackageAnalysisLink {
+  return { sourceId, label }
 }
 
 // ── 초기 패키지 팩토리 ──────────────────────────────────
@@ -230,6 +248,22 @@ function Step2({ items, onChange }: Step2Props): React.ReactElement {
                 placeholder="레이블 (예: Table 1)"
               />
             </div>
+            {(item.sourceTitle || item.sourceNavigateTo || item.sourceSubtitle) && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="truncate">
+                  {item.sourceTitle ?? '원본 자료'}
+                  {item.sourceSubtitle ? ` · ${item.sourceSubtitle}` : ''}
+                </span>
+                {item.sourceNavigateTo && (
+                  <a
+                    href={item.sourceNavigateTo}
+                    className="shrink-0 text-primary hover:underline"
+                  >
+                    원본 열기
+                  </a>
+                )}
+              </div>
+            )}
             {item.type === 'figure' && (
               <div className="space-y-1">
                 <label className="text-[11px] font-medium text-muted-foreground">
@@ -449,7 +483,7 @@ function mergeCollectedPackageItems(
       section: existing.section,
       order: existing.order,
       included: existing.included,
-      patternSummary: item.patternSummary ?? existing.patternSummary,
+      patternSummary: item.type === 'figure' ? item.patternSummary : existing.patternSummary,
     }
   })
 
@@ -464,6 +498,15 @@ function mergeCollectedPackageItems(
   return merged
     .sort((left, right) => left.order - right.order)
     .map((item, index) => ({ ...item, order: index }))
+}
+
+function getGraphProjectChartType(
+  graph: ReturnType<typeof listProjects>[number],
+): string | undefined {
+  const graphWithLegacySpec = graph as ReturnType<typeof listProjects>[number] & {
+    spec?: { chartType?: string }
+  }
+  return graph.chartSpec?.chartType ?? graphWithLegacySpec.spec?.chartType
 }
 
 // ── Step 4: 저널 설정 + 추가 맥락 ───────────────────────
@@ -574,11 +617,17 @@ function Step5({ pkg, result, onAssemble }: Step5Props): React.ReactElement {
 const STEPS: Step[] = [1, 2, 3, 4, 5]
 
 export default function PackageBuilder({ packageId, projectId, onBack }: PackageBuilderProps): React.ReactElement {
+  const { locale } = useAppPreferences()
   const [step, setStep] = useState<Step>(1)
   const [pkg, setPkg] = useState<PaperPackage | null>(null)
   const [assemblyResult, setAssemblyResult] = useState<AssemblyResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [itemCollectionRefreshKey, setItemCollectionRefreshKey] = useState(0)
+  const [packageConflict, setPackageConflict] = useState<PaperPackage | null>(null)
+  const lastCollectedScopeRef = useRef<string | null>(null)
+  const collectionRequestIdRef = useRef(0)
+  const lastSavedUpdatedAtRef = useRef<string | null>(null)
+  const hasLocalChangesRef = useRef(false)
 
   // 초기 로드
   useEffect(() => {
@@ -589,6 +638,9 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           const loaded = await loadPackage(packageId)
           if (loaded) {
             setPkg(loaded)
+            lastSavedUpdatedAtRef.current = loaded.updatedAt
+            hasLocalChangesRef.current = false
+            setPackageConflict(null)
             setIsLoading(false)
             return
           }
@@ -607,6 +659,9 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
         }
 
         setPkg(newPkg)
+        lastSavedUpdatedAtRef.current = newPkg.updatedAt
+        hasLocalChangesRef.current = false
+        setPackageConflict(null)
       } finally {
         setIsLoading(false)
       }
@@ -618,24 +673,56 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   // Step 2 진입 시 항목 자동 수집
   const currentProjectId = pkg?.projectId
   const hasItems = (pkg?.items.length ?? 0) > 0
+  const collectionScopeKey = pkg ? `${pkg.id}:${currentProjectId ?? 'none'}` : null
 
   useEffect((): (() => void) => {
-    const handleRefresh = (): void => {
+    const handleProjectRefsRefresh = (event: Event): void => {
+      if (!currentProjectId) return
+      if (event instanceof CustomEvent) {
+        const detail = event.detail as ResearchProjectEntityRefsChangedDetail | undefined
+        if (detail && !detail.projectIds.includes(currentProjectId)) {
+          return
+        }
+      }
       setItemCollectionRefreshKey(prev => prev + 1)
     }
 
-    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleRefresh)
-    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleRefresh)
+    const handleGraphProjectsRefresh = (event: Event): void => {
+      if (!currentProjectId) return
+      if (event instanceof CustomEvent) {
+        const detail = event.detail as GraphProjectsChangedDetail | undefined
+        if (detail) {
+          const currentFigureIds = new Set(
+            listProjectEntityRefs(currentProjectId)
+              .filter((ref) => ref.entityKind === 'figure')
+              .map((ref) => ref.entityId),
+          )
+          if (!detail.projectIds.some((graphId: string) => currentFigureIds.has(graphId))) {
+            return
+          }
+        }
+      }
+      setItemCollectionRefreshKey(prev => prev + 1)
+    }
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsRefresh)
+    window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectsRefresh)
 
     return (): void => {
-      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleRefresh)
-      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleRefresh)
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsRefresh)
+      window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectsRefresh)
     }
-  }, [])
+  }, [currentProjectId])
 
   useEffect(() => {
+    const needsInitialReconciliation = collectionScopeKey !== null && lastCollectedScopeRef.current !== collectionScopeKey
     const shouldRefreshExistingItems = itemCollectionRefreshKey > 0
-    if (step !== 2 || !currentProjectId || (!shouldRefreshExistingItems && hasItems)) return
+    const shouldCollect = needsInitialReconciliation || shouldRefreshExistingItems || !hasItems
+    if (!currentProjectId || !collectionScopeKey || !shouldCollect) return
+
+    const requestId = collectionRequestIdRef.current + 1
+    collectionRequestIdRef.current = requestId
+    let cancelled = false
 
     const collectItems = async (): Promise<void> => {
       try {
@@ -647,21 +734,38 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
         const historyById = new Map(historyRecords.map(h => [h.id, h]))
         const graphById = new Map(graphProjects.map(g => [g.id, g]))
         const newItems: PackageItem[] = []
+        const analysisMetaByHistoryId = new Map<string, { analysisLabel: string; tableLabel: string }>()
         let tableCount = 0
         let figureCount = 0
+
+        for (const ref of entityRefs) {
+          if (ref.entityKind !== 'analysis' || !historyById.has(ref.entityId)) {
+            continue
+          }
+          tableCount++
+          analysisMetaByHistoryId.set(ref.entityId, {
+            analysisLabel: `ANAL-${String(tableCount).padStart(2, '0')}`,
+            tableLabel: `Table ${tableCount}`,
+          })
+        }
 
         for (const ref of entityRefs) {
           if (ref.entityKind === 'analysis') {
             referencedSourceKeys.add(`analysis:${ref.entityId}`)
             const record = historyById.get(ref.entityId)
-            if (record) {
-              tableCount++
+            const analysisMeta = analysisMetaByHistoryId.get(ref.entityId)
+            if (record && analysisMeta) {
+              const analysisLink = createAnalysisLink(record.id, analysisMeta.analysisLabel)
               newItems.push({
                 id: generatePackageItemId(),
                 type: 'analysis',
                 sourceId: record.id,
-                analysisIds: [`ANAL-${String(tableCount).padStart(2, '0')}`],
-                label: `Table ${tableCount}`,
+                sourceTitle: record.method?.name ?? ref.label ?? '통계 분석',
+                sourceSubtitle: record.dataFileName || undefined,
+                sourceNavigateTo: buildAnalysisHistoryUrl(record.id),
+                analysisIds: [analysisLink.label],
+                analysisLinks: [analysisLink],
+                label: analysisMeta.tableLabel,
                 section: 'results',
                 order: newItems.length,
                 included: true,
@@ -673,12 +777,25 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
             if (graph) {
               figureCount++
               const linkedRecord = graph.analysisId ? historyById.get(graph.analysisId) : undefined
+              const linkedAnalysisMeta = graph.analysisId
+                ? analysisMetaByHistoryId.get(graph.analysisId)
+                : undefined
               const patternSummary = generateFigurePatternSummary(graph, linkedRecord)
+              const analysisLinks = graph.analysisId
+                ? [createAnalysisLink(
+                    graph.analysisId,
+                    linkedAnalysisMeta?.analysisLabel ?? linkedRecord?.method?.name ?? linkedRecord?.name ?? graph.analysisId,
+                  )]
+                : []
               newItems.push({
                 id: generatePackageItemId(),
                 type: 'figure',
                 sourceId: graph.id,
-                analysisIds: graph.analysisId ? [graph.analysisId] : [],
+                sourceTitle: graph.name || ref.label || '그래프',
+                sourceSubtitle: getGraphProjectChartType(graph),
+                sourceNavigateTo: buildGraphStudioProjectUrl(graph.id),
+                analysisIds: analysisLinks.map((link) => link.label),
+                analysisLinks: analysisLinks.length > 0 ? analysisLinks : undefined,
                 label: `Figure ${figureCount}`,
                 section: 'results',
                 order: newItems.length,
@@ -689,54 +806,137 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           }
         }
 
+        if (cancelled || collectionRequestIdRef.current !== requestId) {
+          return
+        }
+
         setPkg(prev => {
-          if (!prev) return prev
+          if (!prev || `${prev.id}:${prev.projectId ?? 'none'}` !== collectionScopeKey) {
+            return prev
+          }
           return {
             ...prev,
             items: mergeCollectedPackageItems(prev.items, newItems, referencedSourceKeys),
           }
         })
+        lastCollectedScopeRef.current = collectionScopeKey
       } catch {
         // 수집 실패 시 빈 상태 유지
       }
     }
 
     void collectItems()
-  }, [step, currentProjectId, hasItems, itemCollectionRefreshKey])
+
+    return (): void => {
+      cancelled = true
+    }
+  }, [collectionScopeKey, currentProjectId, hasItems, itemCollectionRefreshKey])
+
+  const markPackageDirty = useCallback(() => {
+    hasLocalChangesRef.current = true
+    setPackageConflict(null)
+  }, [])
+
+  const loadLatestPackageSnapshot = useCallback((latestPackage: PaperPackage) => {
+    setPkg(latestPackage)
+    lastSavedUpdatedAtRef.current = latestPackage.updatedAt
+    hasLocalChangesRef.current = false
+    setPackageConflict(null)
+    setAssemblyResult(null)
+  }, [])
+
+  useEffect((): (() => void) | void => {
+    if (!pkg) {
+      return
+    }
+
+    const handlePackageChange = async (event: Event): Promise<void> => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+
+      const detail = event.detail as PaperPackagesChangedDetail | undefined
+      if (!detail || !detail.packageIds.includes(pkg.id)) {
+        return
+      }
+
+      const latestPackage = await loadPackage(pkg.id)
+      if (!latestPackage || latestPackage.updatedAt === lastSavedUpdatedAtRef.current) {
+        return
+      }
+
+      if (hasLocalChangesRef.current) {
+        setPackageConflict(latestPackage)
+        return
+      }
+
+      loadLatestPackageSnapshot(latestPackage)
+    }
+
+    const listener = (event: Event): void => {
+      void handlePackageChange(event)
+    }
+
+    window.addEventListener(PAPER_PACKAGES_CHANGED_EVENT, listener)
+    return (): void => {
+      window.removeEventListener(PAPER_PACKAGES_CHANGED_EVENT, listener)
+    }
+  }, [loadLatestPackageSnapshot, pkg])
 
   const updateOverview = useCallback((updated: Partial<PaperPackage['overview']>) => {
     setPkg(prev => prev ? { ...prev, overview: { ...prev.overview, ...updated } } : prev)
+    markPackageDirty()
     setAssemblyResult(null)
-  }, [])
+  }, [markPackageDirty])
 
   const updateItems = useCallback((items: PackageItem[]) => {
     setPkg(prev => prev ? { ...prev, items } : prev)
+    markPackageDirty()
     setAssemblyResult(null)
-  }, [])
+  }, [markPackageDirty])
 
   const updateReferences = useCallback((references: PackageReference[]) => {
     setPkg(prev => prev ? { ...prev, references } : prev)
+    markPackageDirty()
     setAssemblyResult(null)
-  }, [])
+  }, [markPackageDirty])
 
   const updateJournal = useCallback((journal: JournalPreset) => {
     setPkg(prev => prev ? { ...prev, journal } : prev)
+    markPackageDirty()
     setAssemblyResult(null)
-  }, [])
+  }, [markPackageDirty])
 
   const updateContext = useCallback((ctx: Partial<PaperPackage['context']>) => {
     setPkg(prev => prev ? { ...prev, context: { ...prev.context, ...ctx } } : prev)
+    markPackageDirty()
     setAssemblyResult(null)
-  }, [])
+  }, [markPackageDirty])
 
-  const handleSave = useCallback(async (current: PaperPackage): Promise<void> => {
+  const handleSave = useCallback(async (current: PaperPackage): Promise<boolean> => {
     const updated = { ...current, updatedAt: new Date().toISOString() }
-    await savePackage(updated)
+    try {
+      const saved = await savePackage(updated, { expectedUpdatedAt: lastSavedUpdatedAtRef.current ?? undefined })
+      setPkg(saved)
+      lastSavedUpdatedAtRef.current = saved.updatedAt
+      hasLocalChangesRef.current = false
+      setPackageConflict(null)
+      return true
+    } catch (error) {
+      if (error instanceof PaperPackageConflictError) {
+        setPackageConflict(error.latestPackage)
+        return false
+      }
+      throw error
+    }
   }, [])
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (!pkg) return
-    void handleSave(pkg)
+    const saved = await handleSave(pkg)
+    if (!saved) {
+      return
+    }
     setStep(prev => Math.min(prev + 1, 5) as Step)
   }, [pkg, handleSave])
 
@@ -803,6 +1003,28 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
         <p className="text-xs text-muted-foreground">Step {step} / 5</p>
         <h2 className="text-lg font-semibold">{STEP_LABELS[step]}</h2>
       </div>
+
+      {packageConflict && (
+        <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-medium">다른 탭에서 이 패키지가 먼저 변경되었습니다.</p>
+          <p className="mt-1 text-amber-800">
+            현재 편집 내용은 화면에 남아 있지만 저장은 보류되었습니다. 최신 버전을 불러온 뒤 다시 반영해야 합니다.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => loadLatestPackageSnapshot(packageConflict)}
+            >
+              최신 버전 불러오기
+            </Button>
+            <span className="text-xs text-amber-700">
+              최신 저장 시각: {new Date(packageConflict.updatedAt).toLocaleString(locale)}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 콘텐츠 */}
       <div className="min-h-[300px]">

@@ -3,6 +3,7 @@
  */
 
 import type { StatisticalMethod } from '@/types/analysis'
+import { isEnglishLanguage } from '@/lib/preferences'
 
 export interface VariableMapping {
   // 기본 변수
@@ -32,6 +33,140 @@ export interface ColumnInfo {
   missing?: number
   min?: number
   max?: number
+}
+
+export type VariableMappingValidationErrorCode =
+  | 'missingPairedBinaryVariables'
+  | 'missingProportionBinaryVariable'
+  | 'invalidNullProportion'
+  | 'missingNumericDependentVariable'
+  | 'missingCategoricalGroupVariable'
+  | 'missingComparisonVariables'
+  | 'missingDependentVariable'
+  | 'missingIndependentVariable'
+  | 'missingCorrelationVariables'
+  | 'missingCategoricalTestVariable'
+  | 'missingRowVariable'
+  | 'missingColumnVariable'
+
+type VariableMappingValidationMessage = {
+  ko: string
+  en: string | ((methodId?: string) => string)
+  previewKey?: string
+}
+
+const VARIABLE_MAPPING_VALIDATION_MESSAGES: Record<VariableMappingValidationErrorCode, VariableMappingValidationMessage> = {
+  missingPairedBinaryVariables: {
+    ko: 'McNemar 검정을 위해 대응되는 이진 변수 2개를 선택해 주세요',
+    en: 'Select two paired binary variables for the McNemar test.',
+    previewKey: 'variables',
+  },
+  missingProportionBinaryVariable: {
+    ko: '비율 검정을 위해 이진 변수 1개를 선택해 주세요',
+    en: 'Select one binary variable for the proportion test.',
+    previewKey: 'dependent',
+  },
+  invalidNullProportion: {
+    ko: '귀무가설 비율은 0보다 크고 1보다 작은 값이어야 합니다',
+    en: 'The null proportion must be greater than 0 and less than 1.',
+  },
+  missingNumericDependentVariable: {
+    ko: '종속변수(수치형)를 선택해주세요',
+    en: (methodId?: string) => methodId === 'one-sample-t'
+      ? 'Select a numeric test variable.'
+      : 'Select a numeric dependent variable.',
+    previewKey: 'dependent',
+  },
+  missingCategoricalGroupVariable: {
+    ko: '그룹 변수(범주형)를 선택해주세요',
+    en: 'Select a categorical group variable.',
+    previewKey: 'factor',
+  },
+  missingComparisonVariables: {
+    ko: '비교할 두 변수를 선택해주세요',
+    en: 'Select the two variables to compare.',
+    previewKey: 'variables',
+  },
+  missingDependentVariable: {
+    ko: '종속변수를 선택해주세요',
+    en: 'Select a dependent variable.',
+    previewKey: 'dependent',
+  },
+  missingIndependentVariable: {
+    ko: '독립변수를 선택해주세요',
+    en: 'Select an independent variable.',
+    previewKey: 'independent',
+  },
+  missingCorrelationVariables: {
+    ko: '상관분석을 위해 최소 2개의 수치형 변수가 필요합니다',
+    en: 'At least two numeric variables are required for correlation analysis.',
+    previewKey: 'variables',
+  },
+  missingCategoricalTestVariable: {
+    ko: '검정할 범주형 변수를 선택해주세요',
+    en: 'Select the categorical variable to test.',
+    previewKey: 'dependent',
+  },
+  missingRowVariable: {
+    ko: '독립 변수(행)를 선택해주세요',
+    en: 'Select the row variable.',
+    previewKey: 'independent',
+  },
+  missingColumnVariable: {
+    ko: '종속 변수(열)를 선택해주세요',
+    en: 'Select the column variable.',
+    previewKey: 'dependent',
+  },
+}
+
+const VARIABLE_MAPPING_ERROR_CODE_BY_MESSAGE = new Map<string, VariableMappingValidationErrorCode>(
+  Object.entries(VARIABLE_MAPPING_VALIDATION_MESSAGES).map(([code, message]) => [message.ko, code as VariableMappingValidationErrorCode])
+)
+
+function getVariableMappingValidationMessage(
+  code: VariableMappingValidationErrorCode,
+  language: string,
+  methodId?: string
+): string {
+  const message = VARIABLE_MAPPING_VALIDATION_MESSAGES[code]
+  if (!isEnglishLanguage(language)) {
+    return message.ko
+  }
+
+  return typeof message.en === 'function'
+    ? message.en(methodId)
+    : message.en
+}
+
+function pushVariableMappingValidationError(
+  errors: string[],
+  code: VariableMappingValidationErrorCode,
+  methodId?: string
+): void {
+  errors.push(getVariableMappingValidationMessage(code, 'aquaculture', methodId))
+}
+
+export function describeVariableMappingValidationError(
+  error: string,
+  language: string,
+  methodId?: string
+): { code: VariableMappingValidationErrorCode; message: string; previewKey?: string } | null {
+  const code = VARIABLE_MAPPING_ERROR_CODE_BY_MESSAGE.get(error)
+  if (!code) return null
+
+  return {
+    code,
+    message: getVariableMappingValidationMessage(code, language, methodId),
+    previewKey: VARIABLE_MAPPING_VALIDATION_MESSAGES[code].previewKey,
+  }
+}
+
+export function localizeVariableMappingValidationErrors(
+  errors: string[],
+  language: string,
+  methodId?: string
+): string[] {
+  return errors.map((error) => describeVariableMappingValidationError(error, language, methodId)?.message ?? error)
 }
 
 /**
@@ -524,7 +659,7 @@ export function validateVariableMapping(
     const hasExplicitPair = !!mapping.independentVar && !!mapping.dependentVar
 
     if (!hasPairedVariables && !hasExplicitPair) {
-      errors.push('McNemar 검정을 위해 대응되는 이진 변수 2개를 선택해 주세요')
+      pushVariableMappingValidationError(errors, 'missingPairedBinaryVariables', method.id)
     }
 
     return {
@@ -535,13 +670,13 @@ export function validateVariableMapping(
 
   if (method.id === 'proportion-test' || method.id === 'one-sample-proportion') {
     if (!mapping.dependentVar) {
-      errors.push('비율 검정을 위해 이진 변수 1개를 선택해 주세요')
+      pushVariableMappingValidationError(errors, 'missingProportionBinaryVariable', method.id)
     }
 
     if (mapping.nullProportion !== undefined) {
       const parsed = Number(mapping.nullProportion)
       if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
-        errors.push('귀무가설 비율은 0보다 크고 1보다 작은 값이어야 합니다')
+        pushVariableMappingValidationError(errors, 'invalidNullProportion', method.id)
       }
     }
 
@@ -555,37 +690,37 @@ export function validateVariableMapping(
   switch (method.category) {
     case 't-test':
       if (!mapping.dependentVar && method.id !== 'paired-t') {
-        errors.push('종속변수(수치형)를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingNumericDependentVariable', method.id)
       }
       if (method.id === 'two-sample-t' && !mapping.groupVar) {
-        errors.push('그룹 변수(범주형)를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingCategoricalGroupVariable', method.id)
       }
       if (method.id === 'paired-t' && (!mapping.variables || mapping.variables.length < 2)) {
-        errors.push('비교할 두 변수를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingComparisonVariables', method.id)
       }
       break
 
     case 'anova':
       if (!mapping.dependentVar) {
-        errors.push('종속변수(수치형)를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingNumericDependentVariable', method.id)
       }
       if (!mapping.groupVar) {
-        errors.push('그룹 변수(범주형)를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingCategoricalGroupVariable', method.id)
       }
       break
 
     case 'regression':
       if (!mapping.dependentVar) {
-        errors.push('종속변수를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingDependentVariable', method.id)
       }
       if (!mapping.independentVar) {
-        errors.push('독립변수를 선택해주세요')
+        pushVariableMappingValidationError(errors, 'missingIndependentVariable', method.id)
       }
       break
 
     case 'correlation':
       if (!mapping.variables || mapping.variables.length < 2) {
-        errors.push('상관분석을 위해 최소 2개의 수치형 변수가 필요합니다')
+        pushVariableMappingValidationError(errors, 'missingCorrelationVariables', method.id)
       }
       break
 
@@ -594,15 +729,15 @@ export function validateVariableMapping(
       const isGoodness = method.id === 'chi-square-goodness' || method.id === 'proportion-test'
       if (isGoodness) {
         if (!mapping.dependentVar) {
-          errors.push('검정할 범주형 변수를 선택해주세요')
+          pushVariableMappingValidationError(errors, 'missingCategoricalTestVariable', method.id)
         }
       } else {
         // Independence modes (2 variables): chi-square, chi-square-independence, mcnemar
         if (!mapping.independentVar) {
-          errors.push('독립 변수(행)를 선택해주세요')
+          pushVariableMappingValidationError(errors, 'missingRowVariable', method.id)
         }
         if (!mapping.dependentVar) {
-          errors.push('종속 변수(열)를 선택해주세요')
+          pushVariableMappingValidationError(errors, 'missingColumnVariable', method.id)
         }
       }
       break

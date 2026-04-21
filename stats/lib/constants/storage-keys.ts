@@ -74,6 +74,7 @@ export const STORAGE_KEYS = {
     theme: 'stats-theme',
     sidebar: 'biohub-sidebar',
     pyodideLoaded: 'pyodide-loaded',
+    language: 'app-language',
     terminologyDomain: 'terminology-domain',
     environmentCache: 'environment-info-cache',
   },

@@ -12,6 +12,10 @@ import type {
 } from '@/lib/research/document-blueprint-types'
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
 import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
+import {
+  getFigureProvenanceLines,
+  getTableProvenanceLines,
+} from './document-provenance'
 import { downloadBlob } from './export-data-builder'
 
 // ─── 스타일 상수 ───
@@ -227,6 +231,13 @@ function buildAcademicTable(
     rows: [headerRow, ...dataRows],
   }))
 
+  for (const line of getTableProvenanceLines(table)) {
+    elements.push(new Paragraph({
+      children: [new TextRun({ text: line, font: FONT, size: SIZE_BODY, color: COLOR_MUTED })],
+      spacing: { before: 80, after: 0, line: LINE_SPACING },
+    }))
+  }
+
   return elements
 }
 
@@ -348,6 +359,18 @@ export async function buildDocxDocument(
           })],
           spacing: { before: snapshot ? 80 : 240, after: 120, line: LINE_SPACING },
         }))
+
+        for (const line of getFigureProvenanceLines(fig)) {
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: line,
+              font: FONT,
+              size: SIZE_BODY,
+              color: COLOR_MUTED,
+            })],
+            spacing: { before: 0, after: 80, line: LINE_SPACING },
+          }))
+        }
       }
     }
   }

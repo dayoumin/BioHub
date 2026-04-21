@@ -3,6 +3,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { UnifiedHistorySidebar } from '../UnifiedHistorySidebar'
 import type { HistoryItem } from '@/types/history'
 
+vi.mock('@/hooks/use-app-preferences', () => ({
+  useAppPreferences: () => ({
+    locale: 'ko-KR',
+    currentLanguage: 'ko',
+  }),
+}))
+
 interface TestHistoryData {
   note: string
 }

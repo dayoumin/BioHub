@@ -6,10 +6,17 @@
  * 차트 유형 선택, undo/redo, export, 사이드 패널 토글
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
+import type { DocumentSourceUsage } from '@/lib/research/document-source-usage';
+import { loadDocumentSourceUsages } from '@/lib/research/document-source-usage';
+import { buildDocumentEditorUrl } from '@/lib/research/source-navigation';
+import {
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+} from '@/lib/research/document-blueprint-storage';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,11 +47,57 @@ export function GraphStudioHeader({
   onSave,
   isSaving = false,
 }: GraphStudioHeaderProps): React.ReactElement {
+  const router = useRouter();
   const { chartSpec, currentProject, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel, clearData, goToSetup } = useGraphStudioStore();
   const [showNewChartDialog, setShowNewChartDialog] = useState(false);
+  const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([]);
+  const documentUsageRequestSeqRef = useRef(0);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
+  const currentProjectId = currentProject?.id ?? null;
+  const visibleUsages = documentUsages.slice(0, 2);
+
+  const reloadDocumentUsages = useCallback(() => {
+    const requestSeq = documentUsageRequestSeqRef.current + 1;
+    documentUsageRequestSeqRef.current = requestSeq;
+
+    if (currentProjectId === null) {
+      setDocumentUsages([]);
+      return;
+    }
+
+    void loadDocumentSourceUsages(currentProjectId)
+      .then((usages) => {
+        if (documentUsageRequestSeqRef.current === requestSeq) {
+          setDocumentUsages(usages);
+        }
+      })
+      .catch(() => {
+        if (documentUsageRequestSeqRef.current === requestSeq) {
+          setDocumentUsages([]);
+        }
+      });
+  }, [currentProjectId]);
+
+  useEffect(() => {
+    reloadDocumentUsages();
+  }, [reloadDocumentUsages]);
+
+  useEffect((): (() => void) => {
+    const handleDocumentsChanged = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        void reloadDocumentUsages();
+        return;
+      }
+      void reloadDocumentUsages();
+    };
+
+    window.addEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged);
+    return () => {
+      window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged);
+    };
+  }, [reloadDocumentUsages]);
 
   const handleNewChart = useCallback(() => {
     const hasUnsavedSession = chartSpec !== null && (currentProject === null || historyIndex > 0);
@@ -154,6 +207,28 @@ export function GraphStudioHeader({
             <Sparkles className="h-4 w-4 mr-1" />
             AI
           </Button>
+        )}
+        {visibleUsages.map((usage) => (
+          <Button
+            key={`${usage.documentId}:${usage.sectionId}`}
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {
+              sectionId: usage.sectionId,
+            }))}
+            className="text-xs text-muted-foreground hover:text-foreground"
+            title={`${usage.documentTitle} · ${usage.sectionTitle}`}
+          >
+            {usage.documentTitle}
+          </Button>
+        ))}
+        {documentUsages.length > visibleUsages.length && (
+          <span
+            className="text-xs text-muted-foreground"
+            title={documentUsages.map((usage) => `${usage.documentTitle} · ${usage.sectionTitle}`).join('\n')}
+          >
+            +{documentUsages.length - visibleUsages.length}
+          </span>
         )}
         {chartSpec && (
           <Button

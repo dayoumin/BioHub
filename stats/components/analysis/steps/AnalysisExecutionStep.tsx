@@ -48,6 +48,76 @@ const STAGE_RANGES: Record<StageId, [number, number]> = {
   finalize: [90, 100]
 }
 
+const EXECUTION_UI_TEXT = {
+  ko: {
+    stageStep: 'Step 4',
+    reviewTitle: '분석 설정을 확인하고 실행 중입니다',
+    reviewDescription: '선택한 방법과 변수 구성을 기준으로 결과를 계산하고 있습니다.',
+    sampleCount: '표본',
+    variableCount: '변수',
+    retry: '다시 시도',
+    editVariables: '변수 수정',
+    viewResults: '결과 보기',
+    currentStatus: '현재 상태',
+    logHint: '진행 로그는 아래에서 확인할 수 있습니다.',
+    completedStages: '완료 단계',
+    estimatedSeconds: '예상',
+    countSuffix: '개',
+  },
+  en: {
+    stageStep: 'Step 4',
+    reviewTitle: 'Reviewing settings and running the analysis',
+    reviewDescription: 'The selected method and variable mapping are being used to compute results.',
+    sampleCount: 'Samples',
+    variableCount: 'Variables',
+    retry: 'Retry',
+    editVariables: 'Edit variables',
+    viewResults: 'View results',
+    currentStatus: 'Current status',
+    logHint: 'You can review the execution log below.',
+    completedStages: 'Completed stages',
+    estimatedSeconds: 'Estimated',
+    countSuffix: '',
+  },
+} as const
+
+function containsHangul(value: string): boolean {
+  return /[가-힣]/.test(value)
+}
+
+function localizeExecutionErrorMessage(
+  error: unknown,
+  language: 'ko' | 'en',
+  unknownFallback: string,
+): string {
+  if (!(error instanceof Error)) {
+    return unknownFallback
+  }
+
+  const rawMessage = error.message?.trim()
+  if (!rawMessage) {
+    return unknownFallback
+  }
+
+  if (language !== 'en' || !containsHangul(rawMessage)) {
+    return rawMessage
+  }
+
+  if (rawMessage.includes('정규성')) {
+    return 'The normality check could not be completed. Review the data and try again.'
+  }
+
+  if (rawMessage.includes('등분산')) {
+    return 'The homogeneity check could not be completed. Review the group data and try again.'
+  }
+
+  if (rawMessage.includes('Pyodide') || rawMessage.includes('계산') || rawMessage.includes('분석')) {
+    return 'Analysis failed. Check your data and selected method, then try again.'
+  }
+
+  return 'An analysis error occurred. Review the data and try again.'
+}
+
 export function AnalysisExecutionStep({
   selectedMethod,
   variableMapping,
@@ -59,6 +129,7 @@ export function AnalysisExecutionStep({
 }: AnalysisExecutionStepProps) {
   // Terminology System
   const t = useTerminology()
+  const text = EXECUTION_UI_TEXT[t.language === 'en' ? 'en' : 'ko']
 
   // 실행 단계 (terminology 기반)
   const executionStages = useMemo(() =>
@@ -107,11 +178,13 @@ export function AnalysisExecutionStep({
     selectedMethodId: normalizedSelectedMethod?.id,
     suggestedSettings,
     variableMapping,
+    presentationLanguage: t.language,
   }), [
     analysisOptions,
     methodRequirements,
     normalizedSelectedMethod?.id,
     suggestedSettings,
+    t.language,
     variableMapping,
   ])
 
@@ -298,7 +371,11 @@ export function AnalysisExecutionStep({
     } catch (err) {
       logger.error('분석 실행 오류', err)
       const friendlyMsg = err instanceof Error
-        ? (err.message || getUserFriendlyErrorMessage(err))
+        ? localizeExecutionErrorMessage(
+            err,
+            t.language === 'en' ? 'en' : 'ko',
+            getUserFriendlyErrorMessage(err),
+          )
         : t.analysis.execution.unknownError
       setError(friendlyMsg)
       addLog(logs.errorPrefix(friendlyMsg))
@@ -394,19 +471,19 @@ export function AnalysisExecutionStep({
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-                  Step 4
+                  {text.stageStep}
                 </p>
-                <p className="mt-1 text-sm font-medium text-foreground">분석 설정을 확인하고 실행 중입니다</p>
+                <p className="mt-1 text-sm font-medium text-foreground">{text.reviewTitle}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  선택한 방법과 변수 구성을 기준으로 결과를 계산하고 있습니다.
+                  {text.reviewDescription}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  표본 {uploadedData?.length ?? 0}
+                  {text.sampleCount} {uploadedData?.length ?? 0}
                 </div>
                 <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  변수 {mappedVariableCount}개
+                  {text.variableCount} {mappedVariableCount}{text.countSuffix}
                 </div>
                 {executionSettingEntries.map(entry => (
                   <div
@@ -446,11 +523,11 @@ export function AnalysisExecutionStep({
             <div>{error}</div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={runAnalysis} className="shrink-0">
-                다시 시도
+                {text.retry}
               </Button>
               {onPrevious && (
                 <Button variant="ghost" size="sm" onClick={onPrevious} className="shrink-0">
-                  변수 수정
+                  {text.editVariables}
                 </Button>
               )}
             </div>
@@ -477,7 +554,7 @@ export function AnalysisExecutionStep({
             {onNext && (
               <Button size="lg" className="h-11 gap-2 px-5" onClick={onNext}>
                 <CheckCircle2 className="w-4 h-4" />
-                결과 보기
+                {text.viewResults}
               </Button>
             )}
           </CardContent>
@@ -551,18 +628,18 @@ export function AnalysisExecutionStep({
                 </div>
                 <div className="rounded-2xl border border-border/40 bg-muted/20 px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    현재 상태
+                    {text.currentStatus}
                   </p>
                   <p className="mt-2 text-sm text-foreground">{currentStage.label}</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    진행 로그는 아래에서 확인할 수 있습니다.
+                    {text.logHint}
                   </p>
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <div className="rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      완료 단계 {completedStages.length}/{executionStages.length}
+                      {text.completedStages} {completedStages.length}/{executionStages.length}
                     </div>
                     <div className="rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      예상 {estimatedTime}s
+                      {text.estimatedSeconds} {estimatedTime}s
                     </div>
                   </div>
                 </div>

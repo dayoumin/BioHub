@@ -5,6 +5,10 @@
 import { describe, it, expect } from 'vitest'
 import { assembleDocument, reassembleDocument } from '../document-assembler'
 import type { AssemblerDataSources, AssembleOptions } from '../document-assembler'
+import {
+  createDocumentSourceRef,
+  getDocumentSourceId,
+} from '../document-blueprint-types'
 import type { BlastEntryLike } from '../entity-resolver'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { ProjectEntityRef } from '@biohub/types'
@@ -119,7 +123,7 @@ describe('assembleDocument', () => {
     expect(methods?.content).toContain('독립표본 t-검정')
     expect(methods?.content).toContain('Student\'s t-test')
     expect(methods?.generatedBy).toBe('template')
-    expect(methods?.sourceRefs).toContain('hist_1')
+    expect(methods?.sourceRefs.map(getDocumentSourceId)).toContain('hist_1')
   })
 
   it('should merge results with tables from project analyses', () => {
@@ -149,8 +153,15 @@ describe('assembleDocument', () => {
         makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
         makeEntityRef({ id: 'pref_2', entityId: 'gp_1', entityKind: 'figure' }),
       ],
-      allHistory: [makeHistoryRecord()],
-      allGraphProjects: [makeGraphProject()],
+      allHistory: [makeHistoryRecord({
+        results: {
+          groupStats: [
+            { group: 'A', mean: 2.1, n: 10 },
+            { group: 'B', mean: 2.8, n: 10 },
+          ],
+        },
+      })],
+      allGraphProjects: [makeGraphProject({ analysisId: 'hist_1' })],
     }
 
     const doc = assembleDocument(BASE_OPTIONS, sources)
@@ -159,7 +170,36 @@ describe('assembleDocument', () => {
     expect(results?.figures).toHaveLength(1)
     expect(results?.figures?.[0].label).toBe('Figure 1')
     expect(results?.figures?.[0].caption).toBe('Box Plot (box)')
+    expect(results?.figures?.[0].relatedAnalysisId).toBe('hist_1')
+    expect(results?.figures?.[0].relatedAnalysisLabel).toBe('독립표본 t-검정')
+    expect(results?.figures?.[0].patternSummary).toContain('B')
     expect(results?.content).toContain('Figure 1')
+    expect(results?.content).toContain('관련 분석')
+    expect(results?.content).toContain('패턴 요약')
+  })
+
+  it('should preserve figure provenance from allHistory even when the linked analysis is not a project entity', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ id: 'pref_2', entityId: 'gp_1', entityKind: 'figure' }),
+      ],
+      allHistory: [makeHistoryRecord({
+        results: {
+          groupStats: [
+            { group: 'A', mean: 2.1, n: 10 },
+            { group: 'B', mean: 2.8, n: 10 },
+          ],
+        },
+      })],
+      allGraphProjects: [makeGraphProject({ analysisId: 'hist_1' })],
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find(s => s.id === 'results')
+
+    expect(results?.figures?.[0]?.relatedAnalysisId).toBe('hist_1')
+    expect(results?.figures?.[0]?.relatedAnalysisLabel).toBe('독립표본 t-검정')
+    expect(results?.figures?.[0]?.patternSummary).toBeTruthy()
   })
 
   it('should filter out non-project analyses', () => {
@@ -554,7 +594,7 @@ describe('reassembleDocument', () => {
               ...s,
               content: '사용자가 정리한 결과 요약입니다.',
               generatedBy: 'user' as const,
-              sourceRefs: ['stale-ref'],
+              sourceRefs: [createDocumentSourceRef('unknown', 'stale-ref')],
               tables: undefined,
               figures: [{
                 entityId: 'gp_1',
@@ -596,9 +636,68 @@ describe('reassembleDocument', () => {
 
     expect(results?.content).toBe('사용자가 정리한 결과 요약입니다.')
     expect(results?.generatedBy).toBe('user')
-    expect(results?.sourceRefs).toEqual(['hist_1', 'gp_1'])
+    expect(results?.sourceRefs.map(getDocumentSourceId)).toEqual(['hist_1', 'gp_1'])
     expect(results?.tables?.[0]?.caption).toBe('Table 9. 갱신된 표')
     expect(results?.figures?.[0]?.caption).toBe('Updated Box Plot (box)')
+  })
+
+  it('preserves user-inserted sidecars while refreshing template-derived structured content', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
+      ],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [],
+    }
+
+    const original = assembleDocument(BASE_OPTIONS, sources)
+    const edited = {
+      ...original,
+      sections: original.sections.map((section) => (
+        section.id === 'results'
+          ? {
+              ...section,
+              generatedBy: 'user' as const,
+              tables: [
+                ...(section.tables ?? []),
+                {
+                  id: 'manual-table',
+                  caption: 'Manual Table',
+                  headers: ['A'],
+                  rows: [['1']],
+                  sourceAnalysisId: 'manual-analysis',
+                  sourceAnalysisLabel: 'Manual Analysis',
+                },
+              ],
+              figures: [
+                ...(section.figures ?? []),
+                {
+                  entityId: 'manual-figure',
+                  label: 'Figure 9',
+                  caption: 'Manual Figure',
+                },
+              ],
+              sourceRefs: [
+                ...section.sourceRefs,
+                createDocumentSourceRef('analysis', 'manual-analysis', {
+                  label: 'Manual Analysis',
+                }),
+                createDocumentSourceRef('figure', 'manual-figure', {
+                  label: 'Figure 9',
+                }),
+              ],
+            }
+          : section
+      )),
+    }
+
+    const reassembled = reassembleDocument(edited, sources)
+    const results = reassembled.sections.find((section) => section.id === 'results')
+
+    expect(results?.tables?.some((table) => table.id === 'manual-table')).toBe(true)
+    expect(results?.figures?.some((figure) => figure.entityId === 'manual-figure')).toBe(true)
+    expect(results?.sourceRefs.map(getDocumentSourceId)).toContain('manual-analysis')
+    expect(results?.sourceRefs.map(getDocumentSourceId)).toContain('manual-figure')
   })
 })
 

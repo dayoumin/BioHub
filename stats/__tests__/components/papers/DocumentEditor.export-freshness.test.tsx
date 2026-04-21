@@ -2,7 +2,10 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DocumentEditor from '@/components/papers/DocumentEditor'
-import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
+import {
+  createDocumentSourceRef,
+  type DocumentBlueprint,
+} from '@/lib/research/document-blueprint-types'
 import type { AssemblerDataSources } from '@/lib/research/document-assembler'
 import type { CitationRecord } from '@/lib/research/citation-types'
 
@@ -12,20 +15,28 @@ const {
   mockLoadDocumentBlueprint,
   mockReassembleDocument,
   mockListCitationsByProject,
+  mockListProjectEntityRefs,
+  mockListGraphProjects,
+  mockRouterPush,
   mockSerialize,
   mockDeserialize,
   mockSetValue,
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
   mockDocumentToDocx: vi.fn(async (_doc: DocumentBlueprint) => undefined),
-  mockSaveDocumentBlueprint: vi.fn(async (_doc: DocumentBlueprint) => undefined),
+  mockSaveDocumentBlueprint: vi.fn(async (doc: DocumentBlueprint) => doc),
   mockLoadDocumentBlueprint: vi.fn<() => Promise<DocumentBlueprint | null>>(),
   mockReassembleDocument: vi.fn<(doc: DocumentBlueprint) => DocumentBlueprint>(),
   mockListCitationsByProject: vi.fn<(projectId: string) => Promise<CitationRecord[]>>(),
+  mockListProjectEntityRefs: vi.fn(),
+  mockListGraphProjects: vi.fn(),
+  mockRouterPush: vi.fn(),
   mockSerialize: vi.fn(() => 'serialized editor content'),
   mockDeserialize: vi.fn(() => [{ type: 'p', children: [{ text: 'loaded nodes' }] }]),
   mockSetValue: vi.fn(),
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT: 'research-project-citations-changed',
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
 }))
@@ -87,6 +98,15 @@ vi.mock('@/components/papers/MaterialPalette', () => ({
 }))
 
 vi.mock('@/lib/research/document-blueprint-storage', () => ({
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  DocumentBlueprintConflictError: class DocumentBlueprintConflictError extends Error {
+    latestDocument: DocumentBlueprint
+
+    constructor(latestDocument: DocumentBlueprint) {
+      super('문서가 다른 탭에서 먼저 변경되었습니다.')
+      this.latestDocument = latestDocument
+    }
+  },
   loadDocumentBlueprint: (_documentId: string) => mockLoadDocumentBlueprint(),
   saveDocumentBlueprint: (document: DocumentBlueprint) => mockSaveDocumentBlueprint(document),
 }))
@@ -98,7 +118,7 @@ vi.mock('@/lib/research/document-assembler', () => ({
 
 vi.mock('@/lib/research/project-storage', () => ({
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
-  listProjectEntityRefs: () => [],
+  listProjectEntityRefs: () => mockListProjectEntityRefs(),
 }))
 
 vi.mock('@/lib/stores/history-store', () => ({
@@ -109,7 +129,13 @@ vi.mock('@/lib/stores/history-store', () => ({
 
 vi.mock('@/lib/graph-studio/project-storage', () => ({
   GRAPH_PROJECTS_CHANGED_EVENT: 'graph-studio-projects-changed',
-  listProjects: () => [],
+  listProjects: () => mockListGraphProjects(),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockRouterPush,
+  }),
 }))
 
 vi.mock('@/lib/genetics/analysis-history', () => ({
@@ -135,7 +161,10 @@ vi.mock('@/lib/services/export/export-data-builder', () => ({
   downloadBlob: vi.fn(),
 }))
 
-function makeDocument(content: string): DocumentBlueprint {
+function makeDocument(
+  content: string,
+  overrides: Partial<DocumentBlueprint> = {},
+): DocumentBlueprint {
   const now = new Date().toISOString()
   return {
     id: 'doc-1',
@@ -151,11 +180,12 @@ function makeDocument(content: string): DocumentBlueprint {
         id: 'results',
         title: '결과',
         content,
-        sourceRefs: ['analysis-1'],
+        sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
         editable: true,
         generatedBy: 'user',
       },
     ],
+    ...overrides,
   }
 }
 
@@ -174,12 +204,17 @@ describe('DocumentEditor export freshness', () => {
     mockLoadDocumentBlueprint.mockReset()
     mockReassembleDocument.mockReset()
     mockListCitationsByProject.mockReset()
+    mockListProjectEntityRefs.mockReset()
+    mockListGraphProjects.mockReset()
+    mockRouterPush.mockReset()
     mockSerialize.mockClear()
     mockDeserialize.mockClear()
     mockSetValue.mockClear()
 
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('이전 내용'))
     mockListCitationsByProject.mockResolvedValue([])
+    mockListProjectEntityRefs.mockReturnValue([])
+    mockListGraphProjects.mockReturnValue([])
     mockReassembleDocument.mockImplementation((doc: DocumentBlueprint) => ({
       ...doc,
       updatedAt: '2026-04-13T00:00:00.000Z',
@@ -352,5 +387,234 @@ describe('DocumentEditor export freshness', () => {
       expect(mockDocumentToDocx).toHaveBeenCalledTimes(1)
     })
     expect(mockListCitationsByProject).toHaveBeenCalledTimes(3)
+  })
+
+  it('exposes round-trip source actions for linked analyses and figures', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('원본 링크 확인', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '원본 링크 확인',
+          sourceRefs: [
+            createDocumentSourceRef('analysis', 'analysis-1'),
+            createDocumentSourceRef('figure', 'figure-1'),
+          ],
+          editable: true,
+          generatedBy: 'user',
+          tables: [
+            {
+              id: 'table-1',
+              caption: 'Table 1',
+              headers: ['A'],
+              rows: [['1']],
+              sourceAnalysisId: 'analysis-1',
+              sourceAnalysisLabel: 'T-Test',
+            },
+          ],
+          figures: [
+            {
+              entityId: 'figure-1',
+              label: 'Figure 1',
+              caption: 'Graph Caption',
+              relatedAnalysisId: 'analysis-1',
+              relatedAnalysisLabel: 'T-Test',
+              patternSummary: 'B가 A보다 높음',
+            },
+          ],
+        },
+      ],
+    }))
+    mockListProjectEntityRefs.mockReturnValue([
+      { entityKind: 'analysis', entityId: 'analysis-1' },
+      { entityKind: 'figure', entityId: 'figure-1' },
+    ])
+    mockListGraphProjects.mockReturnValue([
+      { id: 'figure-1', name: 'Figure Project' },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getByRole('button', { name: /통계.*원본 분석/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /그래프.*figure project/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: '통계 열기' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Graph Studio' })).toBeInTheDocument()
+    expect(screen.getAllByText('관련 분석: T-Test')).toHaveLength(2)
+    expect(screen.getByText('패턴 요약: B가 A보다 높음')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole('button', { name: '통계 열기' })[0]!)
+    expect(mockRouterPush).toHaveBeenCalledWith('/?history=analysis-1')
+  })
+
+  it('opens the section requested from the document route', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('섹션 이동', {
+      sections: [
+        {
+          id: 'intro',
+          title: '서론',
+          content: '서론 본문',
+          sourceRefs: [],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '결과 본문',
+          sourceRefs: [],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" initialSectionId="results" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    const sectionList = screen.getByTestId('document-section-list')
+    const activeEntry = sectionList.querySelector('[data-active="true"]')
+    expect(activeEntry).toHaveTextContent('결과')
+  })
+
+  it('serializes autosave writes so an older save cannot overtake newer content', async () => {
+    const firstSave = createDeferred<void>()
+    const secondSave = createDeferred<void>()
+
+    mockSerialize
+      .mockReturnValueOnce('첫 번째 저장 내용')
+      .mockReturnValueOnce('두 번째 저장 내용')
+
+    let saveCallCount = 0
+    mockSaveDocumentBlueprint.mockImplementation(async (doc: DocumentBlueprint) => {
+      saveCallCount += 1
+      if (saveCallCount === 1) {
+        await firstSave.promise
+        return doc
+      }
+      await secondSave.promise
+      return doc
+    })
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    vi.useFakeTimers()
+    try {
+      act(() => {
+        screen.getByTestId('paper-plate-editor').click()
+      })
+      await act(async () => {
+        vi.advanceTimersByTime(2_000)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(1)
+
+      act(() => {
+        screen.getByTestId('paper-plate-editor').click()
+      })
+      await act(async () => {
+        vi.advanceTimersByTime(2_000)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(1)
+
+      await act(async () => {
+        firstSave.resolve(undefined)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(2)
+
+      expect(mockSerialize).toHaveBeenCalledTimes(2)
+
+      await act(async () => {
+        secondSave.resolve(undefined)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reloads the latest saved document when the same document changes externally and there are no local edits', async () => {
+    const latestDocument = makeDocument('외부 최신 내용', {
+      updatedAt: '2026-04-21T00:00:01.000Z',
+    })
+    mockLoadDocumentBlueprint
+      .mockResolvedValueOnce(makeDocument('기존 내용'))
+      .mockResolvedValueOnce(latestDocument)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
+        detail: {
+          projectId: 'project-1',
+          documentId: 'doc-1',
+          action: 'saved',
+          updatedAt: latestDocument.updatedAt,
+        },
+      }))
+    })
+
+    await waitFor(() => {
+      expect(mockLoadDocumentBlueprint).toHaveBeenCalledTimes(2)
+    })
+
+    expect(screen.queryByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')).not.toBeInTheDocument()
+  })
+
+  it('surfaces a conflict banner and stops autosave when a newer external document arrives during local edits', async () => {
+    const latestDocument = makeDocument('외부 최신 내용', {
+      updatedAt: '2026-04-21T00:00:02.000Z',
+    })
+    mockLoadDocumentBlueprint
+      .mockResolvedValueOnce(makeDocument('기존 내용'))
+      .mockResolvedValueOnce(latestDocument)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      screen.getByTestId('paper-plate-editor').click()
+    })
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
+        detail: {
+          projectId: 'project-1',
+          documentId: 'doc-1',
+          action: 'saved',
+          updatedAt: latestDocument.updatedAt,
+        },
+      }))
+    })
+
+    await screen.findByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')
+    expect(screen.getByText('충돌')).toBeInTheDocument()
+
+    vi.useFakeTimers()
+    try {
+      await act(async () => {
+        vi.advanceTimersByTime(2_000)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(mockSaveDocumentBlueprint).not.toHaveBeenCalled()
   })
 })

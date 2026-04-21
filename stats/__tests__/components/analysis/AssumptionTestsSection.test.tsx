@@ -9,37 +9,43 @@ import { vi } from 'vitest'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
 import type { StatisticalAssumptions } from '@/types/analysis'
 
+let mockLanguage: 'ko' | 'en' = 'ko'
+
 vi.mock('@/hooks/use-terminology', () => ({
   useTerminology: () => ({
+    language: mockLanguage,
     dataExploration: {
       assumptions: {
-        title: '가정 검정',
-        description: '통계적 가정 검정 결과입니다.',
-        loading: '가정 검정 중...',
-        loadingDescription: '로딩 중',
-        badge: '참고용',
+        title: mockLanguage === 'en' ? 'Assumption Checks' : '가정 검정',
+        description: mockLanguage === 'en' ? 'Results of assumption checks.' : '통계적 가정 검정 결과입니다.',
+        loading: mockLanguage === 'en' ? 'Checking assumptions...' : '가정 검정 중...',
+        loadingDescription: mockLanguage === 'en' ? 'Loading' : '로딩 중',
+        badge: mockLanguage === 'en' ? 'Reference' : '참고용',
       },
       normality: {
-        title: '정규성 검정',
-        normal: '정규 분포',
-        nonNormal: '비정규 분포',
+        title: mockLanguage === 'en' ? 'Normality Test' : '정규성 검정',
+        normal: mockLanguage === 'en' ? 'Normal' : '정규 분포',
+        nonNormal: mockLanguage === 'en' ? 'Non-normal' : '비정규 분포',
         statLabel: 'W 통계량',
-        normalInterpretation: '정규성 가정 충족',
-        nonNormalInterpretation: '정규성 가정 위반',
+        normalInterpretation: mockLanguage === 'en' ? 'Normality assumption satisfied' : '정규성 가정 충족',
+        nonNormalInterpretation: mockLanguage === 'en' ? 'Normality assumption violated' : '정규성 가정 위반',
       },
       homogeneity: {
-        title: '등분산성 검정',
-        equal: '등분산',
-        unequal: '이분산',
+        title: mockLanguage === 'en' ? 'Homogeneity Test' : '등분산성 검정',
+        equal: mockLanguage === 'en' ? 'Equal variance' : '등분산',
+        unequal: mockLanguage === 'en' ? 'Unequal variance' : '이분산',
         statLabel: 'F 통계량',
-        equalInterpretation: '등분산성 가정 충족',
-        unequalInterpretation: '등분산성 가정 위반',
+        equalInterpretation: mockLanguage === 'en' ? 'Homogeneity assumption satisfied' : '등분산성 가정 충족',
+        unequalInterpretation: mockLanguage === 'en' ? 'Homogeneity assumption violated' : '등분산성 가정 위반',
       },
     },
   }),
 }))
 
 describe('AssumptionTestsSection — testError 시뮬레이션', () => {
+  beforeEach(() => {
+    mockLanguage = 'ko'
+  })
 
   it('[시뮬레이션] testError + 단일 실패: 실패 메시지 표시', () => {
     const singleError: StatisticalAssumptions = {
@@ -154,6 +160,59 @@ describe('AssumptionTestsSection — testError 시뮬레이션', () => {
       />
     )
     expect(screen.getByText(/변수: score/)).toBeInTheDocument()
+  })
+
+  it('[simulation] English UI shows localized fallback and variable label', () => {
+    mockLanguage = 'en'
+
+    const errorNoReason: StatisticalAssumptions = {
+      normality: {},
+      summary: {
+        canUseParametric: true,
+        reasons: [],
+        recommendations: [],
+        testError: true,
+        meetsAssumptions: undefined,
+      },
+    }
+
+    render(
+      <AssumptionTestsSection
+        assumptionResults={errorNoReason}
+        isLoading={false}
+        visibility="primary"
+        testedVariable="score"
+      />
+    )
+
+    expect(screen.getByText('Some assumption checks failed. Expert review is recommended.')).toBeInTheDocument()
+    expect(screen.getByText(/Variable: score/)).toBeInTheDocument()
+  })
+
+  it('[simulation] English UI localizes Korean failure reasons from the pipeline', () => {
+    mockLanguage = 'en'
+
+    const errorWithKoreanReason: StatisticalAssumptions = {
+      normality: {},
+      summary: {
+        canUseParametric: true,
+        reasons: ['정규성 검정 실패 — 결과 신뢰 불가'],
+        recommendations: [],
+        testError: true,
+        meetsAssumptions: undefined,
+      },
+    }
+
+    render(
+      <AssumptionTestsSection
+        assumptionResults={errorWithKoreanReason}
+        isLoading={false}
+        visibility="primary"
+      />
+    )
+
+    expect(screen.getByText('The normality check failed. Expert review is recommended.')).toBeInTheDocument()
+    expect(screen.queryByText(/정규성 검정 실패/)).not.toBeInTheDocument()
   })
 
   it('[시뮬레이션] visibility="hidden"이면 렌더링 안 됨', () => {

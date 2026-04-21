@@ -23,6 +23,7 @@
 import { useContext } from 'react'
 import { TerminologyContext } from '@/lib/terminology/terminology-context'
 import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
+import type { TerminologyContextValue } from '@/lib/terminology/terminology-types'
 
 /**
  * useTerminology Hook
@@ -73,3 +74,5 @@ export function useTerminologyContext() {
 
   return context
 }
+
+export type { TerminologyContextValue }

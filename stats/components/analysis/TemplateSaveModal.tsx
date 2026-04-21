@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
+import { memo, useState, useCallback, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Save, Loader2, FileText } from 'lucide-react'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import type { StatisticalMethod } from '@/types/analysis'
@@ -40,6 +41,7 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
   onSaved
 }: TemplateSaveModalProps) {
   const t = useTerminology()
+  const { locale } = useAppPreferences()
   const { createTemplate } = useTemplateStore()
   const {
     selectedMethod,
@@ -53,26 +55,38 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
   const [description, setDescription] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const wasOpenRef = useRef(false)
 
   // 기본 이름 생성
   const getDefaultName = useCallback(() => {
     if (!selectedMethod) return ''
-    const date = new Date().toLocaleDateString('ko-KR', {
+    const date = new Date().toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric'
     })
     return `${selectedMethod.name} (${date})`
-  }, [selectedMethod])
+  }, [locale, selectedMethod])
+
+  const resetForm = useCallback(() => {
+    setName(getDefaultName())
+    setDescription('')
+    setError(null)
+  }, [getDefaultName])
+
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      resetForm()
+    }
+    wasOpenRef.current = open
+  }, [open, resetForm])
 
   // 모달 열릴 때 기본값 설정
   const handleOpenChange = useCallback((isOpen: boolean) => {
     if (isOpen) {
-      setName(getDefaultName())
-      setDescription('')
-      setError(null)
+      resetForm()
     }
     onOpenChange(isOpen)
-  }, [onOpenChange, getDefaultName])
+  }, [onOpenChange, resetForm])
 
   // 저장 처리
   const handleSave = useCallback(async () => {

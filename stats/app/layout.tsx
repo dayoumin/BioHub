@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
 import { TerminologyProvider } from "@/lib/terminology"
+import { AppPreferencesProvider } from "@/lib/preferences"
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
@@ -46,36 +47,38 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={`${jetbrainsMono.variable} font-sans`}>
         <ClientProviders>
-          <TerminologyProvider initialDomain="aquaculture">
-            <UIProvider>
-              <div className="flex h-screen overflow-hidden">
-                {/* 전체 플랫폼 공유 사이드바 */}
-                <AppSidebar />
+          <AppPreferencesProvider initialLanguage="ko" initialDomain="aquaculture">
+            <TerminologyProvider initialDomain="aquaculture">
+              <UIProvider>
+                <div className="flex h-screen overflow-hidden">
+                  {/* 전체 플랫폼 공유 사이드바 */}
+                  <AppSidebar />
 
-                {/* 메인 영역 */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="relative flex-1 overflow-hidden">
-                    <main className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
-                      {children}
-                    </main>
-                    {/* 스크롤 가능한 콘텐츠 힌트 — 스크롤바 숨김 보완 */}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background/50 to-transparent" />
+                  {/* 메인 영역 */}
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="relative flex-1 overflow-hidden">
+                      <main className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
+                        {children}
+                      </main>
+                      {/* 스크롤 가능한 콘텐츠 힌트 — 스크롤바 숨김 보완 */}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background/50 to-transparent" />
+                    </div>
                   </div>
+
                 </div>
 
-              </div>
-
-              <Toaster
-                position="top-center"
-                richColors
-                closeButton
-                duration={4000}
-                toastOptions={{
-                  className: 'font-medium',
-                }}
-              />
-            </UIProvider>
-          </TerminologyProvider>
+                <Toaster
+                  position="top-center"
+                  richColors
+                  closeButton
+                  duration={4000}
+                  toastOptions={{
+                    className: 'font-medium',
+                  }}
+                />
+              </UIProvider>
+            </TerminologyProvider>
+          </AppPreferencesProvider>
         </ClientProviders>
       </body>
     </html>

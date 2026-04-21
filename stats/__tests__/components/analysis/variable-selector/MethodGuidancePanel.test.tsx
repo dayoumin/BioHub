@@ -6,6 +6,7 @@ import type { StatisticalMethodRequirements } from '@/lib/statistics/variable-re
 
 type MockTerminology = {
   domain: string
+  language: 'ko' | 'en'
   variables: {
     group: { title: string; description: string }
     dependent: { title: string; description: string }
@@ -52,6 +53,7 @@ function createTerminology(domain: 'aquaculture' | 'generic'): MockTerminology {
   if (domain === 'generic') {
     return {
       domain: 'generic',
+      language: 'en',
       variables: {
         group: { title: 'Group Variable', description: 'Categorical grouping variable' },
         dependent: { title: 'Dependent Variable (Y)', description: 'Numeric outcome variable' },
@@ -109,6 +111,7 @@ function createTerminology(domain: 'aquaculture' | 'generic'): MockTerminology {
 
   return {
     domain: 'aquaculture',
+    language: 'ko',
     variables: {
       group: { title: '실험구 변수', description: '실험구 설명' },
       dependent: { title: '측정값 (Y)', description: '측정값 설명' },

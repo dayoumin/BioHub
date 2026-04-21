@@ -23,7 +23,11 @@ import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
-import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
+import {
+  describeVariableMappingValidationError,
+  localizeVariableMappingValidationErrors,
+  validateVariableMapping,
+} from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { startPreemptiveAssumptions } from '@/lib/services'
@@ -31,6 +35,7 @@ import { useCanonicalSelectedMethod } from '@/hooks/use-canonical-selected-metho
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection, StepHeader } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
+import { getLocalizedSlotConfigs } from '@/components/analysis/variable-selector/localized-slot-metadata'
 import { prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 
 /** U1-3: 비교용 정규화 — 키 정렬 + 배열 정렬 + null/undefined 제거 */
@@ -69,6 +74,7 @@ interface VariableSelectionStepProps {
 
 export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionStepProps) {
   const t = useTerminology()
+  const isGeneric = t.language === 'en'
 
   const {
     uploadedData,
@@ -86,7 +92,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   } = useAnalysisStore()
 
   const stepTrack = useModeStore(state => state.stepTrack)
-  const backLabel = (stepTrack === 'quick' || stepTrack === 'diagnostic') ? '데이터로 돌아가기' : t.analysis.layout.prevStep
+  const backLabel = (stepTrack === 'quick' || stepTrack === 'diagnostic')
+    ? (isGeneric ? 'Back to data' : '데이터로 돌아가기')
+    : t.analysis.layout.prevStep
 
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
   const [optionsOpen, setOptionsOpen] = useState(false)
@@ -141,7 +149,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       const validation = validateVariableMapping(canonicalSelectedMethod, mappingForValidation, columnInfo)
       if (!validation.isValid) {
         logger.warn('[VariableSelection] Validation errors', { errors: validation.errors })
-        setValidationAlert(validation.errors.join(' / '))
+        setValidationAlert(
+          localizeVariableMappingValidationErrors(validation.errors, t.language, canonicalSelectedMethod.id).join(' / ')
+        )
         return
       }
     }
@@ -166,7 +176,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     } else {
       goToNextStep()
     }
-  }, [canonicalSelectedMethod, columnInfo, existingMapping, uploadedData, analysisOptions.nullProportion, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
+  }, [canonicalSelectedMethod, columnInfo, existingMapping, uploadedData, analysisOptions.nullProportion, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep, t.language])
 
   const handleBack = useCallback(() => {
     if (onBack) {
@@ -339,8 +349,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }, [canonicalSelectedMethod?.id, selectorType, existingMapping, initialSelection])
 
   const previewSlots = useMemo(
-    () => resolveMethodSlots(selectorType, methodRequirements),
-    [selectorType, methodRequirements]
+    () => getLocalizedSlotConfigs(resolveMethodSlots(selectorType, methodRequirements), t),
+    [selectorType, methodRequirements, t]
   )
 
   const previewVariableMapping = useMemo(
@@ -354,11 +364,13 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     selectedMethodId: canonicalSelectedMethod?.id,
     suggestedSettings,
     variableMapping: previewVariableMapping,
+    presentationLanguage: t.language,
   }), [
     analysisOptions,
     methodRequirements,
     canonicalSelectedMethod?.id,
     suggestedSettings,
+    t.language,
     previewVariableMapping,
   ])
 
@@ -371,7 +383,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const previewMissingRequirements = useMemo(() => {
     if (selectorType === 'auto') return []
 
-    return previewSlots.flatMap(slot => {
+    const slotBasedItems = previewSlots.flatMap(slot => {
       if (!slot.required) return []
 
       const assignedCount = countAssignedValues(previewVariableMapping[slot.mappingKey])
@@ -379,7 +391,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         return [{
           key: slot.id,
           label: slot.label,
-          detail: `${slot.label}을(를) 선택해야 합니다`,
+          detail: isGeneric
+            ? `${slot.label} must be selected.`
+            : `${slot.label}을(를) 선택해야 합니다`,
         }]
       }
 
@@ -387,13 +401,37 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         return [{
           key: slot.id,
           label: slot.label,
-          detail: `${slot.label} ${slot.minCount}개 필요, 현재 ${assignedCount}개`,
+          detail: isGeneric
+            ? `${slot.label}: at least ${slot.minCount} required, currently ${assignedCount}`
+            : `${slot.label} ${slot.minCount}개 필요, 현재 ${assignedCount}개`,
         }]
       }
 
       return []
     })
-  }, [selectorType, previewSlots, previewVariableMapping])
+
+    if (!canonicalSelectedMethod) {
+      return slotBasedItems
+    }
+
+    const slotKeys = new Set(slotBasedItems.map(item => item.key))
+    const validation = validateVariableMapping(canonicalSelectedMethod, previewVariableMapping, [])
+    const validationItems = validation.errors.flatMap(error => {
+      const detail = describeVariableMappingValidationError(error, t.language, canonicalSelectedMethod.id)
+      if (!detail?.previewKey || slotKeys.has(detail.previewKey)) {
+        return []
+      }
+
+      const matchingSlot = previewSlots.find(slot => slot.id === detail.previewKey)
+      return [{
+        key: detail.previewKey,
+        label: matchingSlot?.label ?? detail.previewKey,
+        detail: detail.message,
+      }]
+    })
+
+    return [...slotBasedItems, ...validationItems]
+  }, [canonicalSelectedMethod, isGeneric, previewSlots, previewVariableMapping, selectorType, t.language])
 
   // F1: 필수 슬롯이 프리필되지 않았을 때 메서드별 가이드 표시
   const needsVariableGuide = useMemo(() => {
@@ -413,15 +451,21 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
     if (detectedVariables.pairedVars?.length === 2 && !detectedVariables.groupVariable) {
       return {
-        title: '현재 데이터는 대응 비교 구조에 더 가깝습니다',
-        message: `선택된 데이터는 ${detectedVariables.pairedVars.join(', ')}처럼 같은 대상의 전후 측정값으로 보입니다. 독립 집단 비교보다 대응표본 t-검정을 먼저 검토하는 편이 안전합니다.`,
-        actionLabel: '대응표본 t-검정 또는 Wilcoxon 검정을 검토해보세요.',
-        actionCtaLabel: '분석 방법 다시 선택',
+        title: isGeneric
+          ? 'This dataset looks closer to a paired-comparison structure'
+          : '현재 데이터는 대응 비교 구조에 더 가깝습니다',
+        message: isGeneric
+          ? `The selected data looks like repeated measurements on the same subjects, such as ${detectedVariables.pairedVars.join(', ')}. Review a paired t-test or Wilcoxon test before using an independent-group comparison.`
+          : `선택된 데이터는 ${detectedVariables.pairedVars.join(', ')}처럼 같은 대상의 전후 측정값으로 보입니다. 독립 집단 비교보다 대응표본 t-검정을 먼저 검토하는 편이 안전합니다.`,
+        actionLabel: isGeneric
+          ? 'Review a paired t-test or Wilcoxon test instead.'
+          : '대응표본 t-검정 또는 Wilcoxon 검정을 검토해보세요.',
+        actionCtaLabel: isGeneric ? 'Choose another method' : '분석 방법 다시 선택',
       }
     }
 
     return undefined
-  }, [canonicalSelectedMethod, selectorType, detectedVariables])
+  }, [canonicalSelectedMethod, isGeneric, selectorType, detectedVariables])
 
   const handleMethodChange = useCallback(() => {
     prepareManualMethodBrowsing()
@@ -541,7 +585,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         <Alert className="border-border/50 bg-surface-container-lowest shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <Info className="h-4 w-4" />
           <AlertDescription>
-            자동 변수 감지에 실패했습니다. 아래 슬롯에서 분석에 필요한 변수를 직접 선택해주세요.
+            {isGeneric
+              ? 'Automatic variable detection was not available. Select the variables required for the analysis from the slots below.'
+              : '자동 변수 감지에 실패했습니다. 아래 슬롯에서 분석에 필요한 변수를 직접 선택해주세요.'}
           </AlertDescription>
         </Alert>
       )}
@@ -609,14 +655,18 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
                 Step 3
               </p>
-              <p className="mt-1 text-sm font-medium text-foreground">다음 단계에서 적용될 실행 설정</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {isGeneric ? 'Execution settings for the next step' : '다음 단계에서 적용될 실행 설정'}
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                현재 변수 선택과 분석 옵션 기준으로 Step 4에서 아래 설정이 그대로 사용됩니다.
+                {isGeneric
+                  ? 'Step 4 will use the following settings based on the current variable selection and analysis options.'
+                  : '현재 변수 선택과 분석 옵션 기준으로 Step 4에서 아래 설정이 그대로 사용됩니다.'}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                변수 {previewVariableCount}개
+                {isGeneric ? `Variables ${previewVariableCount}` : `변수 ${previewVariableCount}개`}
               </div>
               {executionSettingEntries.map(entry => (
                 <div
@@ -635,7 +685,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
               data-testid="execution-preview-missing"
             >
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-warning">
-                실행 전 필요한 항목
+                {isGeneric ? 'Required before running' : '실행 전 필요한 항목'}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {previewMissingRequirements.map(item => (

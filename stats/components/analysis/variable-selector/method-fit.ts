@@ -4,6 +4,7 @@ import type {
   VariableType,
 } from '@/lib/statistics/variable-requirements'
 import { isTypeCompatibleWithValues } from '@/lib/utils/variable-type-mapper'
+import { isEnglishLanguage } from '@/lib/preferences'
 import {
   getSlotConfigs,
   isTypeAccepted,
@@ -46,6 +47,8 @@ export interface VariableCandidate {
   isSelectable: boolean
 }
 
+type PresentationLanguage = 'ko' | 'en' | string
+
 // Click과 DnD 양쪽 경로가 공유해야 하는 "이 후보를 이 슬롯에 붙일 수 있는가" 판정.
 // 4개 게이트: (1) status=invalid 등으로 isSelectable=false인 후보 (2) 슬롯 accept 타입 불일치
 // (3) 단일 슬롯이 이미 찼음 (4) 복수 슬롯이 maxCount 도달. 모두 통과해야 true.
@@ -70,13 +73,23 @@ const EXACT_TWO_LEVEL_FACTOR_METHODS = new Set([
 
 const PRE_POST_NAME_PATTERN = /(pre|post|before|after|baseline|followup|사전|사후|전후)/i
 
-const TYPE_LABELS: Record<VariableType, string> = {
-  continuous: '연속형',
-  categorical: '범주형',
-  binary: '이진형',
-  ordinal: '서열형',
-  date: '날짜형',
-  count: '카운트형',
+const TYPE_LABELS: Record<'ko' | 'en', Record<VariableType, string>> = {
+  ko: {
+    continuous: '연속형',
+    categorical: '범주형',
+    binary: '이진형',
+    ordinal: '서열형',
+    date: '날짜형',
+    count: '카운트형',
+  },
+  en: {
+    continuous: 'continuous',
+    categorical: 'categorical',
+    binary: 'binary',
+    ordinal: 'ordinal',
+    date: 'date',
+    count: 'count',
+  },
 }
 
 function normalizeDataType(
@@ -86,8 +99,13 @@ function normalizeDataType(
   return dataType
 }
 
-function getRequirementTypesText(types: VariableType[]): string {
-  return [...new Set(types)].map(type => TYPE_LABELS[type]).join(', ')
+function isEnglishPresentationLanguage(language?: PresentationLanguage): boolean {
+  return isEnglishLanguage(language)
+}
+
+function getRequirementTypesText(types: VariableType[], language?: PresentationLanguage): string {
+  const labels = isEnglishPresentationLanguage(language) ? TYPE_LABELS.en : TYPE_LABELS.ko
+  return [...new Set(types)].map(type => labels[type]).join(', ')
 }
 
 function toAcceptedTypes(types: VariableType[]): AcceptedType[] {
@@ -553,14 +571,23 @@ function getAssignmentFailureReason(
   column: SelectorColumnInfo,
   slot: SlotConfig,
   requirement: VariableRequirement | undefined,
-  methodId?: string
+  methodId?: string,
+  presentationLanguage?: PresentationLanguage,
 ): string | null {
+  const generic = isEnglishPresentationLanguage(presentationLanguage)
   if (requirement && !columnMatchesRequirement(column, requirement)) {
-    return `${slot.label}에는 ${getRequirementTypesText(requirement.types)} 변수가 필요합니다.`
+    return generic
+      ? `${slot.label} requires ${getRequirementTypesText(requirement.types, presentationLanguage)} variables.`
+      : `${slot.label}에는 ${getRequirementTypesText(requirement.types, presentationLanguage)} 변수가 필요합니다.`
   }
 
   if (!requirement && !slot.accepts.includes(column.type)) {
-    return `${slot.label}에는 ${slot.accepts.includes('numeric') ? '연속형' : '범주형'} 변수가 필요합니다.`
+    const expectedType = slot.accepts.includes('numeric')
+      ? (generic ? 'numeric' : '연속형')
+      : (generic ? 'categorical' : '범주형')
+    return generic
+      ? `${slot.label} requires ${expectedType} variables.`
+      : `${slot.label}에는 ${expectedType} 변수가 필요합니다.`
   }
 
   if (
@@ -568,11 +595,15 @@ function getAssignmentFailureReason(
     && (requirement.role === 'factor' || requirement.role === 'between')
     && column.uniqueCount < 2
   ) {
-    return `${slot.label}는 최소 2개 수준이 필요합니다. 현재 ${column.uniqueCount}개 수준입니다.`
+    return generic
+      ? `${slot.label} requires at least 2 levels. The current column has ${column.uniqueCount}.`
+      : `${slot.label}는 최소 2개 수준이 필요합니다. 현재 ${column.uniqueCount}개 수준입니다.`
   }
 
   if (requiresExactTwoLevels(methodId, requirement) && column.uniqueCount !== 2) {
-    return `이 방법의 그룹 변수는 정확히 2개 수준이어야 합니다. 현재 ${column.uniqueCount}개 수준입니다.`
+    return generic
+      ? `This method requires a group variable with exactly 2 levels. The current column has ${column.uniqueCount}.`
+      : `이 방법의 그룹 변수는 정확히 2개 수준이어야 합니다. 현재 ${column.uniqueCount}개 수준입니다.`
   }
 
   return null
@@ -581,12 +612,16 @@ function getAssignmentFailureReason(
 function getRecommendedReason(
   column: SelectorColumnInfo,
   requirement: VariableRequirement | undefined,
-  methodId?: string
+  methodId?: string,
+  presentationLanguage?: PresentationLanguage,
 ): string | null {
+  const generic = isEnglishPresentationLanguage(presentationLanguage)
   if (!requirement) return null
 
   if (requirement.role === 'factor' && column.uniqueCount === 2) {
-    return '범주형이면서 2개 수준이라 그룹 변수로 적합합니다.'
+    return generic
+      ? 'A categorical column with 2 levels fits this group-variable role well.'
+      : '범주형이면서 2개 수준이라 그룹 변수로 적합합니다.'
   }
 
   if (
@@ -594,7 +629,9 @@ function getRecommendedReason(
     && column.uniqueCount >= 2
     && !requiresExactTwoLevels(methodId, requirement)
   ) {
-    return `범주형이며 ${column.uniqueCount}개 수준을 가져 요인 변수로 적합합니다.`
+    return generic
+      ? `A categorical column with ${column.uniqueCount} levels fits this factor role well.`
+      : `범주형이며 ${column.uniqueCount}개 수준을 가져 요인 변수로 적합합니다.`
   }
 
   if (
@@ -602,15 +639,21 @@ function getRecommendedReason(
     requirement.types.includes('continuous') &&
     column.rawType === 'continuous'
   ) {
-    return '연속형 변수이므로 결과 변수로 사용하기 적합합니다.'
+    return generic
+      ? 'A continuous column fits the outcome-variable role well.'
+      : '연속형 변수이므로 결과 변수로 사용하기 적합합니다.'
   }
 
   if (requirement.role === 'event' && column.uniqueCount === 2) {
-    return '이진형 사건 변수로 해석하기 적합합니다.'
+    return generic
+      ? 'A binary column fits the event-variable role well.'
+      : '이진형 사건 변수로 해석하기 적합합니다.'
   }
 
   if (requirement.role === 'time' && column.rawType === 'date') {
-    return '시간 순서를 가진 날짜형 변수라 시간 축으로 적합합니다.'
+    return generic
+      ? 'A date column with temporal order fits the time-variable role well.'
+      : '시간 순서를 가진 날짜형 변수라 시간 축으로 적합합니다.'
   }
 
   if (
@@ -619,23 +662,38 @@ function getRecommendedReason(
     && column.rawType === 'continuous'
   ) {
     return PRE_POST_NAME_PATTERN.test(column.name)
-      ? '전후 비교처럼 보이는 이름이라 반복 측정 변수로 적합합니다.'
-      : '반복 측정 변수로 사용하기 적합한 연속형 변수입니다.'
+      ? (generic
+          ? 'The column name suggests a before/after pair, so it fits a repeated-measure role.'
+          : '전후 비교처럼 보이는 이름이라 반복 측정 변수로 적합합니다.')
+      : (generic
+          ? 'A continuous column fits a repeated-measure role well.'
+          : '반복 측정 변수로 사용하기 적합한 연속형 변수입니다.')
   }
 
   if ((methodId === 'paired-t' || methodId === 'wilcoxon') && PRE_POST_NAME_PATTERN.test(column.name)) {
-    return '전후 비교처럼 보이는 이름이라 대응 측정 변수 후보로 적합합니다.'
+    return generic
+      ? 'The column name suggests a before/after comparison, so it is a strong paired-measure candidate.'
+      : '전후 비교처럼 보이는 이름이라 대응 측정 변수 후보로 적합합니다.'
   }
 
   return null
 }
 
-function getValidReason(slot: SlotConfig, requirement?: VariableRequirement): string {
+function getValidReason(
+  slot: SlotConfig,
+  requirement?: VariableRequirement,
+  presentationLanguage?: PresentationLanguage,
+): string {
+  const generic = isEnglishPresentationLanguage(presentationLanguage)
   if (requirement) {
-    return `${slot.label}에 사용할 수 있는 ${getRequirementTypesText(requirement.types)} 변수입니다.`
+    return generic
+      ? `This column can be assigned to ${slot.label} as a ${getRequirementTypesText(requirement.types, presentationLanguage)} variable.`
+      : `${slot.label}에 사용할 수 있는 ${getRequirementTypesText(requirement.types, presentationLanguage)} 변수입니다.`
   }
 
-  return `${slot.label}에 사용할 수 있는 변수입니다.`
+  return generic
+    ? `This column can be assigned to ${slot.label}.`
+    : `${slot.label}에 사용할 수 있는 변수입니다.`
 }
 
 export function buildVariableCandidates(params: {
@@ -645,8 +703,10 @@ export function buildVariableCandidates(params: {
   focusSlotId: string | null
   methodRequirements?: StatisticalMethodRequirements
   methodId?: string
+  presentationLanguage?: PresentationLanguage
 }): VariableCandidate[] {
-  const { columns, slots, assignments, focusSlotId, methodRequirements, methodId } = params
+  const { columns, slots, assignments, focusSlotId, methodRequirements, methodId, presentationLanguage } = params
+  const generic = isEnglishPresentationLanguage(presentationLanguage)
   const focusSlot = slots.find(slot => slot.id === focusSlotId) ?? slots[0]
   if (!focusSlot) return []
 
@@ -673,13 +733,23 @@ export function buildVariableCandidates(params: {
           column,
           status: 'assigned' as const,
           reason: assignedSlotId === focusSlot.id
-            ? '현재 이 역할에 배정되어 있습니다.'
-            : '이미 다른 역할에 배정되어 있습니다. 클릭하면 해제할 수 있습니다.',
+            ? (generic
+                ? 'Already assigned to this role.'
+                : '현재 이 역할에 배정되어 있습니다.')
+            : (generic
+                ? 'Already assigned to another role. Click to remove it first.'
+                : '이미 다른 역할에 배정되어 있습니다. 클릭하면 해제할 수 있습니다.'),
           isSelectable: true,
         }
       }
 
-      const failureReason = getAssignmentFailureReason(column, focusSlot, requirement, methodId)
+      const failureReason = getAssignmentFailureReason(
+        column,
+        focusSlot,
+        requirement,
+        methodId,
+        presentationLanguage,
+      )
       if (failureReason) {
         return {
           column,
@@ -689,7 +759,7 @@ export function buildVariableCandidates(params: {
         }
       }
 
-      const recommendedReason = getRecommendedReason(column, requirement, methodId)
+      const recommendedReason = getRecommendedReason(column, requirement, methodId, presentationLanguage)
       if (recommendedReason) {
         return {
           column,
@@ -702,7 +772,7 @@ export function buildVariableCandidates(params: {
       return {
         column,
         status: 'valid' as const,
-        reason: getValidReason(focusSlot, requirement),
+        reason: getValidReason(focusSlot, requirement, presentationLanguage),
         isSelectable: true,
       }
     })
@@ -720,8 +790,10 @@ export function buildMethodFitState(params: {
   methodRequirements?: StatisticalMethodRequirements
   methodId?: string
   mismatchHint?: MethodMismatchHint
+  presentationLanguage?: PresentationLanguage
 }): MethodFitState {
-  const { slots, assignments, columns, methodRequirements, methodId, mismatchHint } = params
+  const { slots, assignments, columns, methodRequirements, methodId, mismatchHint, presentationLanguage } = params
+  const generic = isEnglishPresentationLanguage(presentationLanguage)
 
   if (mismatchHint) {
     return {
@@ -737,33 +809,45 @@ export function buildMethodFitState(params: {
     const assigned = assignments[slot.id] ?? []
     const requirement = findRequirementForSlot(slot, methodRequirements)
     const eligibleColumns = columns.filter(
-      column => !getAssignmentFailureReason(column, slot, requirement, methodId)
+      column => !getAssignmentFailureReason(column, slot, requirement, methodId, presentationLanguage)
     )
 
     if (assigned.length === 0) {
       if (eligibleColumns.length === 0) {
         return {
           status: 'blocked',
-          title: '현재 데이터로는 바로 실행할 수 없습니다',
-          message: `${slot.label}에 사용할 수 있는 변수가 현재 데이터에 없습니다.`,
-          actionLabel: '분석 방법을 바꾸거나, 이 역할에 맞는 변수를 먼저 준비해 주세요.',
+          title: generic ? 'The current dataset cannot run this analysis yet' : '현재 데이터로는 바로 실행할 수 없습니다',
+          message: generic
+            ? `No currently available column can be assigned to ${slot.label}.`
+            : `${slot.label}에 사용할 수 있는 변수가 현재 데이터에 없습니다.`,
+          actionLabel: generic
+            ? 'Change the method or prepare a column that fits this role first.'
+            : '분석 방법을 바꾸거나, 이 역할에 맞는 변수를 먼저 준비해 주세요.',
         }
       }
 
       return {
         status: 'partial',
-        title: '필수 역할을 먼저 채워주세요',
-        message: `${slot.label}부터 선택하면 다음 단계로 진행할 수 있습니다.`,
-        actionLabel: '역할 슬롯을 클릭하면 가능한 변수만 먼저 보여줍니다.',
+        title: generic ? 'Fill the required roles first' : '필수 역할을 먼저 채워주세요',
+        message: generic
+          ? `Start with ${slot.label} to continue to the next step.`
+          : `${slot.label}부터 선택하면 다음 단계로 진행할 수 있습니다.`,
+        actionLabel: generic
+          ? 'Click a role slot to narrow the candidate list to matching columns.'
+          : '역할 슬롯을 클릭하면 가능한 변수만 먼저 보여줍니다.',
       }
     }
 
     if (slot.minCount !== undefined && assigned.length < slot.minCount) {
       return {
         status: 'partial',
-        title: '필수 역할을 더 채워주세요',
-        message: `${slot.label}에는 최소 ${slot.minCount}개의 변수가 필요합니다.`,
-        actionLabel: '현재 역할에 필요한 개수를 채운 뒤 분석을 계속할 수 있습니다.',
+        title: generic ? 'Add more required variables' : '필수 역할을 더 채워주세요',
+        message: generic
+          ? `${slot.label} requires at least ${slot.minCount} variables.`
+          : `${slot.label}에는 최소 ${slot.minCount}개의 변수가 필요합니다.`,
+        actionLabel: generic
+          ? 'Complete the required count for this role before continuing.'
+          : '현재 역할에 필요한 개수를 채운 뒤 분석을 계속할 수 있습니다.',
       }
     }
 
@@ -772,19 +856,25 @@ export function buildMethodFitState(params: {
       if (!column) {
         return {
           status: 'blocked',
-          title: '선택한 변수를 다시 확인해 주세요',
-          message: `${variableName} 변수를 현재 데이터에서 찾을 수 없습니다.`,
-          actionLabel: '데이터를 다시 불러왔거나 컬럼명이 바뀐 경우 선택을 새로 맞춰주세요.',
+          title: generic ? 'Review the selected variables' : '선택한 변수를 다시 확인해 주세요',
+          message: generic
+            ? `The current dataset does not contain ${variableName}.`
+            : `${variableName} 변수를 현재 데이터에서 찾을 수 없습니다.`,
+          actionLabel: generic
+            ? 'If the data was reloaded or column names changed, reassign the variables.'
+            : '데이터를 다시 불러왔거나 컬럼명이 바뀐 경우 선택을 새로 맞춰주세요.',
         }
       }
 
-      const failureReason = getAssignmentFailureReason(column, slot, requirement, methodId)
+      const failureReason = getAssignmentFailureReason(column, slot, requirement, methodId, presentationLanguage)
       if (failureReason) {
         return {
           status: 'blocked',
-          title: '현재 배정으로는 분석을 실행할 수 없습니다',
+          title: generic ? 'The current assignment cannot run this analysis' : '현재 배정으로는 분석을 실행할 수 없습니다',
           message: failureReason,
-          actionLabel: '해당 역할의 조건을 만족하는 변수로 바꾸면 바로 진행할 수 있습니다.',
+          actionLabel: generic
+            ? 'Replace the column with one that satisfies this role to continue.'
+            : '해당 역할의 조건을 만족하는 변수로 바꾸면 바로 진행할 수 있습니다.',
         }
       }
     }
@@ -792,8 +882,12 @@ export function buildMethodFitState(params: {
 
   return {
     status: 'ready',
-    title: '분석 실행 준비가 완료되었습니다',
-    message: '필수 역할이 모두 유효하게 채워졌습니다.',
-    actionLabel: '현재 설정으로 바로 분석을 실행할 수 있습니다.',
+    title: generic ? 'Analysis is ready to run' : '분석 실행 준비가 완료되었습니다',
+    message: generic
+      ? 'All required roles have been filled with valid columns.'
+      : '필수 역할이 모두 유효하게 채워졌습니다.',
+    actionLabel: generic
+      ? 'You can run the analysis immediately with the current setup.'
+      : '현재 설정으로 바로 분석을 실행할 수 있습니다.',
   }
 }

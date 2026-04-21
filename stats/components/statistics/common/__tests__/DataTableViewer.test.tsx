@@ -3,6 +3,13 @@ import { vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { DataTableViewer } from '../DataTableViewer'
 
+vi.mock('@/hooks/use-app-preferences', () => ({
+  useAppPreferences: () => ({
+    locale: 'ko-KR',
+    currentLanguage: 'ko',
+  }),
+}))
+
 // Mock data
 const mockData = [
   { id: 1, name: 'Alice', age: 30, score: 85.5 },

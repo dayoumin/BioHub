@@ -23,6 +23,7 @@ import {
   heroRevealVariants,
 } from './results-helpers'
 import type { TerminologyDictionary } from '@/lib/terminology'
+import { getLocaleForLanguage, isEnglishLanguage } from '@/lib/preferences'
 
 export interface ResultsHeroCardProps {
   statisticalResult: StatisticalResult
@@ -37,6 +38,7 @@ export interface ResultsHeroCardProps {
   executionSettingEntries?: ExecutionSettingEntry[]
   /** 각 entry의 default 값을 조회해 "기본값 그대로"인 배지는 숨기는 데 쓴다. */
   methodRequirements?: StatisticalMethodRequirements
+  presentationLanguage?: string
   prefersReducedMotion: boolean
   t: Pick<TerminologyDictionary, 'results'>
 }
@@ -54,6 +56,7 @@ const DEFAULT_ALPHA = 0.05
 export function pickHeroOptionEntries(
   entries: ExecutionSettingEntry[] | undefined,
   methodRequirements?: StatisticalMethodRequirements,
+  presentationLanguage = 'ko',
 ): ExecutionSettingEntry[] {
   if (!entries) return []
   const settings = methodRequirements?.settings
@@ -62,7 +65,12 @@ export function pickHeroOptionEntries(
     if (entry.key === 'alpha') return Number(entry.value) !== DEFAULT_ALPHA
     const setting = settings?.[entry.key]
     if (setting?.default !== undefined && setting?.default !== null) {
-      const defaultLabel = getSettingOptionLabel(setting.options, setting.default)
+      const defaultLabel = getSettingOptionLabel(
+        setting.options,
+        setting.default,
+        entry.key,
+        presentationLanguage,
+      )
       if (entry.value === defaultLabel) return false
     }
     return true
@@ -80,13 +88,20 @@ export function ResultsHeroCard({
   uploadedData,
   executionSettingEntries,
   methodRequirements,
+  presentationLanguage,
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
+  const resolvedPresentationLanguage = isEnglishLanguage(presentationLanguage) ? 'en' : 'ko'
+  const isEnglishPresentation = resolvedPresentationLanguage === 'en'
   const resolvedMethodId = methodId ?? statisticalResult.testName
   const methodEntry = resolvedMethodId ? STATISTICAL_METHODS[resolvedMethodId] : null
   const validationMeta = resolvedMethodId ? VALIDATION_METADATA[resolvedMethodId] : undefined
-  const heroOptionEntries = pickHeroOptionEntries(executionSettingEntries, methodRequirements)
+  const heroOptionEntries = pickHeroOptionEntries(
+    executionSettingEntries,
+    methodRequirements,
+    resolvedPresentationLanguage,
+  )
   const showBinaryConclusion = methodEntry ? (!methodEntry.isDataTool && 
     methodEntry.category !== 'multivariate' && 
     methodEntry.category !== 'design' &&
@@ -155,7 +170,7 @@ export function ResultsHeroCard({
 
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                분석 방법
+                {isEnglishPresentation ? 'Method' : '분석 방법'}
               </p>
               <p className="truncate text-sm font-semibold text-foreground">{statisticalResult.testName}</p>
             </div>
@@ -179,7 +194,7 @@ export function ResultsHeroCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-[10px] text-muted-foreground/40 font-mono tabular-nums cursor-help ml-auto flex-shrink-0">
-                  {resultTimestamp.toLocaleString('ko-KR', {
+                  {resultTimestamp.toLocaleString(getLocaleForLanguage(resolvedPresentationLanguage), {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                   })}
                 </span>
@@ -202,7 +217,7 @@ export function ResultsHeroCard({
                         void navigator.clipboard.writeText(apaFormat)
                         toast.success(TOAST.clipboard.copySuccess)
                       }}
-                      aria-label="APA 복사"
+                      aria-label={isEnglishPresentation ? 'Copy APA' : 'APA 복사'}
                     >
                       <Copy className="w-3 h-3" />
                     </button>
@@ -217,7 +232,9 @@ export function ResultsHeroCard({
                 <div className="flex flex-wrap gap-1.5">
                   {uploadedFileName && (
                     <Badge variant="outline" className="max-w-full bg-background/70 text-[11px] font-normal" title={uploadedFileName}>
-                      <span className="truncate">파일 · {uploadedFileName}</span>
+                      <span className="truncate">
+                        {isEnglishPresentation ? `File · ${uploadedFileName}` : `파일 · ${uploadedFileName}`}
+                      </span>
                     </Badge>
                   )}
                   {uploadedData && (
@@ -242,21 +259,27 @@ export function ResultsHeroCard({
                     <TooltipTrigger asChild>
                       <div className="inline-flex items-center gap-2 text-[11px] text-muted-foreground/70 cursor-help">
                         <Badge variant="outline" className="border-border/50 bg-background/70 text-[11px] font-normal">
-                          {validationMeta.isCustomImpl ? '자체 구현' : validationMeta.pythonLib}
+                          {validationMeta.isCustomImpl
+                            ? (isEnglishPresentation ? 'Custom implementation' : '자체 구현')
+                            : validationMeta.pythonLib}
                         </Badge>
                         <Badge variant="outline" className="border-border/50 bg-background/70 text-[11px] font-normal">
-                          R 검증 완료
+                          {isEnglishPresentation ? 'R validated' : 'R 검증 완료'}
                         </Badge>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs text-xs">
                       <p>
                         {validationMeta.isCustomImpl
-                          ? '자체 구현 (Pyodide 라이브러리 제약)'
-                          : `${validationMeta.pythonLib} 기반 계산`}
+                          ? (isEnglishPresentation
+                            ? 'Custom implementation (Pyodide library constraint)'
+                            : '자체 구현 (Pyodide 라이브러리 제약)')
+                          : (isEnglishPresentation
+                            ? `Computed with ${validationMeta.pythonLib}`
+                            : `${validationMeta.pythonLib} 기반 계산`)}
                       </p>
                       <p className="text-muted-foreground">
-                        {'R 교차검증 정밀도 LRE '}
+                        {isEnglishPresentation ? 'R cross-validation precision LRE ' : 'R 교차검증 정밀도 LRE '}
                         {validationMeta.lre.toFixed(1)}
                         {' / 15.0'}
                       </p>
@@ -266,7 +289,9 @@ export function ResultsHeroCard({
 
                 {heroOptionEntries.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 bg-surface-container/25 rounded-md px-2 py-1.5" data-testid="analysis-options-badges">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 self-start pt-[3px]">옵션</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 self-start pt-[3px]">
+                      {isEnglishPresentation ? 'Options' : '옵션'}
+                    </span>
                     {heroOptionEntries.map((entry) => (
                       <Badge
                         key={entry.key}

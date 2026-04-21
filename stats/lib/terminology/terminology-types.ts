@@ -7,8 +7,9 @@
  */
 
 import type { GuidedQuestion, CategoryDefinition } from '@/types/analysis'
+import type { AppLanguageCode, AppTerminologyDomain } from '@/lib/preferences'
 
-export type BuiltinTerminologyDomain = 'aquaculture' | 'generic' | 'medical'
+export type BuiltinTerminologyDomain = AppTerminologyDomain
 
 /**
  * 변수 타입별 용어
@@ -2284,6 +2285,8 @@ export interface FlowStateMachineText {
 export interface TerminologyDictionary<Domain extends string = string> {
   /** 도메인 식별자 */
   domain: Domain
+  /** UI 언어 코드 */
+  language: AppLanguageCode
   /** 도메인 표시명 */
   displayName: string
   /** 변수 용어 */
@@ -2367,7 +2370,13 @@ export interface TerminologyContextValue {
   /** 현재 용어 사전 */
   dictionary: TerminologyDictionary<string>
   /** 도메인 변경 함수 */
-  setDomain: (domain: string) => void
+  setDomain: (domain: AppTerminologyDomain) => void
   /** 현재 도메인 */
-  currentDomain: string
+  currentDomain: AppTerminologyDomain
+  /** 현재 UI 언어 */
+  currentLanguage: AppLanguageCode
+  /** 현재 언어 locale */
+  locale: string
+  /** UI 언어 변경 함수 */
+  setLanguage: (language: AppLanguageCode) => void
 }

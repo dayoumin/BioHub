@@ -179,6 +179,29 @@ function getProjectRelinkCompatibility(
   };
 }
 
+function resolveProjectAnalysisId(
+  currentProject: GraphProject | null,
+  dataPackage: DataPackage | null,
+): string | undefined {
+  if (!currentProject) {
+    return dataPackage?.analysisResultId;
+  }
+
+  if (!dataPackage) {
+    return currentProject.analysisId;
+  }
+
+  const dataPackageChanged =
+    currentProject.dataPackageId.length > 0 &&
+    currentProject.dataPackageId !== dataPackage.id;
+
+  if (dataPackageChanged) {
+    return dataPackage.analysisResultId;
+  }
+
+  return dataPackage.analysisResultId ?? currentProject.analysisId;
+}
+
 interface GraphStudioActions {
   // 데이터
   /** DataPackage 로드 + 초기 ChartSpec 자동 생성 (원자적 단일 액션) */
@@ -505,7 +528,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         id: projectId,
         name,
         projectId: currentProject?.projectId ?? linkedResearchProjectId ?? dataPackage?.projectId ?? undefined,
-        analysisId: currentProject?.analysisId ?? dataPackage?.analysisResultId,
+        analysisId: resolveProjectAnalysisId(currentProject, dataPackage),
         chartSpec: sanitizedChartSpec,
         dataPackageId: dataPackage?.id ?? '',
         createdAt: currentProject?.createdAt ?? now,

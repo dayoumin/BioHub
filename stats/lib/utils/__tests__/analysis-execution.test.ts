@@ -111,6 +111,32 @@ describe('buildAnalysisExecutionContext', () => {
     )
   })
 
+  it('localizes summary entries for the generic domain', () => {
+    const result = buildAnalysisExecutionContext({
+      analysisOptions: makeAnalysisOptions({
+        showAssumptions: false,
+        showEffectSize: false,
+        methodSettings: {
+          postHoc: 'games-howell',
+          welch: true,
+        },
+      }),
+      methodRequirements: getMethodRequirements('one-way-anova'),
+      selectedMethodId: 'one-way-anova',
+      variableMapping: { dependentVar: 'score', groupVar: 'group' },
+      presentationLanguage: 'en',
+    })
+
+    expect(result.executionSettingEntries).toEqual(
+      expect.arrayContaining([
+        { key: 'postHoc', label: 'Post-hoc method', value: 'Games-Howell' },
+        { key: 'welch', label: 'Execution mode', value: 'Welch ANOVA' },
+        { key: 'showAssumptions', label: 'Assumption checks', value: 'Skipped' },
+        { key: 'showEffectSize', label: 'Effect size', value: 'Hidden' },
+      ])
+    )
+  })
+
   it('does not pass the materialized equalVar default through plain two-sample-t execution', () => {
     const result = buildAnalysisExecutionContext({
       analysisOptions: makeAnalysisOptions({

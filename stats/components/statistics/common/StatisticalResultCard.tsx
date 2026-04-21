@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 // 효과크기 타입별 툴팁 설명
 function getEffectSizeTooltip(type?: string): string {
@@ -119,6 +120,7 @@ export function StatisticalResultCard({
   onRerun,
   onViewDetails
 }: StatisticalResultCardProps) {
+  const { locale } = useAppPreferences()
   const [isExpanded, setIsExpanded] = React.useState(!expandable)
   const [activeTab, setActiveTab] = React.useState('main')
 
@@ -460,7 +462,7 @@ export function StatisticalResultCard({
                           <>
                             <dt className="text-muted-foreground">분석 시간:</dt>
                             <dd className="font-medium">
-                              {new Date(result.timestamp).toLocaleString('ko-KR')}
+                              {new Date(result.timestamp).toLocaleString(locale)}
                             </dd>
                           </>
                         )}

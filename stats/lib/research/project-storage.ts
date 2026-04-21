@@ -2,6 +2,10 @@ import type { ProjectEntityKind, ProjectEntityRef, ResearchProject } from '@/lib
 import { generateId } from '@/lib/utils/generate-id'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 import {
+  emitCrossTabCustomEvent,
+  registerCrossTabCustomEventBridge,
+} from '@/lib/utils/cross-tab-custom-events'
+import {
   deleteCloudResearchProject,
   fetchCloudProjectDetail,
   linkCloudProjectEntityRef,
@@ -19,6 +23,7 @@ export interface ResearchProjectEntityRefsChangedDetail {
   projectIds: string[]
   entityIds: string[]
 }
+const RESEARCH_PROJECT_ENTITY_REFS_CHANNEL = 'research-project-entity-refs'
 
 const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
 let lastProjectsHydrateAt = 0
@@ -27,17 +32,20 @@ const pendingEntityLinks = new Set<string>()
 const pendingEntityUnlinks = new Set<string>()
 
 function notifyProjectEntityRefsChanged(projectIds: string[], entityIds: string[]): void {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new CustomEvent<ResearchProjectEntityRefsChangedDetail>(
+  emitCrossTabCustomEvent<ResearchProjectEntityRefsChangedDetail>(
+    RESEARCH_PROJECT_ENTITY_REFS_CHANNEL,
     RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
     {
-      detail: {
-        projectIds: [...new Set(projectIds)],
-        entityIds: [...new Set(entityIds)],
-      },
+      projectIds: [...new Set(projectIds)],
+      entityIds: [...new Set(entityIds)],
     },
-  ))
+  )
 }
+
+registerCrossTabCustomEventBridge<ResearchProjectEntityRefsChangedDetail>(
+  RESEARCH_PROJECT_ENTITY_REFS_CHANNEL,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+)
 
 function parseIsoTimestamp(value: string | undefined): number {
   if (!value) return 0

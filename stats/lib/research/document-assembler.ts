@@ -14,6 +14,7 @@ import type { BlastEntryLike } from './entity-resolver'
 import type { CitationRecord } from './citation-types'
 import { citationKey } from './citation-types'
 import { buildCitationString } from './citation-apa-formatter'
+import { generateFigurePatternSummary } from './paper-package-assembler'
 import type {
   DocumentBlueprint,
   DocumentPreset,
@@ -21,8 +22,15 @@ import type {
   DocumentTable,
   FigureRef,
   DocumentMetadata,
+  DocumentSourceRef,
 } from './document-blueprint-types'
-import { convertPaperTable, buildFigureRef, generateDocumentId } from './document-blueprint-types'
+import {
+  convertPaperTable,
+  buildFigureRef,
+  createDocumentSourceRef,
+  generateDocumentId,
+  getDocumentSourceId,
+} from './document-blueprint-types'
 import { createEmptySections } from './document-preset-registry'
 
 // ── 데이터 로더 인터페이스 (테스트 용이성) ──
@@ -92,14 +100,33 @@ function mergeMethods(records: HistoryRecord[], language: 'ko' | 'en'): string {
   return parts.join('\n\n')
 }
 
+function mergeDocumentSourceRefs(
+  refs: ReadonlyArray<DocumentSourceRef>,
+): DocumentSourceRef[] {
+  const merged = new Map<string, DocumentSourceRef>()
+  for (const ref of refs) {
+    const existing = merged.get(ref.sourceId)
+    if (!existing) {
+      merged.set(ref.sourceId, ref)
+      continue
+    }
+    if (existing.kind === 'unknown' && ref.kind !== 'unknown') {
+      merged.set(ref.sourceId, ref)
+    }
+  }
+  return Array.from(merged.values())
+}
+
 /** Results 섹션 텍스트 + 표 + Figure 병합 */
 function mergeResults(
   records: HistoryRecord[],
   figures: GraphProject[],
+  allHistory: HistoryRecord[],
   language: 'ko' | 'en',
 ): { content: string; tables: DocumentTable[]; figureRefs: FigureRef[] } {
   const parts: string[] = []
   const tables: DocumentTable[] = []
+  const historyById = new Map(allHistory.map((record) => [record.id, record]))
 
   for (const record of records) {
     const draft = record.paperDraft
@@ -113,16 +140,35 @@ function mergeResults(
 
     if (draft.tables) {
       for (const pt of draft.tables) {
-        tables.push(convertPaperTable(pt))
+        tables.push(convertPaperTable(pt, {
+          sourceAnalysisId: record.id,
+          sourceAnalysisLabel: methodName,
+        }))
       }
     }
   }
 
-  const figureRefs = figures.map((gp, i) => buildFigureRef(gp, i))
+  const figureRefs = figures.map((gp, i) => {
+    const linkedRecord = gp.analysisId ? historyById.get(gp.analysisId) : undefined
+    return buildFigureRef(gp, i, {
+      relatedAnalysisId: gp.analysisId,
+      relatedAnalysisLabel: linkedRecord?.method?.name ?? linkedRecord?.name,
+      patternSummary: generateFigurePatternSummary(gp, linkedRecord),
+    })
+  })
 
   if (figureRefs.length > 0) {
     const figureSection = language === 'ko' ? '\n\n### 그림' : '\n\n### Figures'
-    const figureLines = figureRefs.map(f => `- **${f.label}**: ${f.caption}`)
+    const figureLines = figureRefs.map((figureRef) => {
+      const lines = [`- **${figureRef.label}**: ${figureRef.caption}`]
+      if (figureRef.relatedAnalysisLabel) {
+        lines.push(`  - ${language === 'ko' ? '관련 분석' : 'Related analysis'}: ${figureRef.relatedAnalysisLabel}`)
+      }
+      if (figureRef.patternSummary) {
+        lines.push(`  - ${language === 'ko' ? '패턴 요약' : 'Pattern summary'}: ${figureRef.patternSummary}`)
+      }
+      return lines.join('\n')
+    })
     parts.push(`${figureSection}\n\n${figureLines.join('\n')}`)
   }
 
@@ -233,14 +279,21 @@ export function assembleDocument(
     if (methodsContent) {
       methodsSection.content = methodsContent
       methodsSection.generatedBy = 'template'
-      methodsSection.sourceRefs = projectHistory.map(h => h.id)
+      methodsSection.sourceRefs = projectHistory.map((h) => createDocumentSourceRef('analysis', h.id, {
+        label: h.method?.name ?? h.name,
+      }))
     }
   }
 
   // Results 섹션 채우기
   const resultsSection = sections.find(s => s.id === 'results')
   if (resultsSection) {
-    const { content, tables, figureRefs } = mergeResults(projectHistory, projectFigures, language)
+    const { content, tables, figureRefs } = mergeResults(
+      projectHistory,
+      projectFigures,
+      sources.allHistory,
+      language,
+    )
 
     // BLAST 결과 추가
     const blastContent = mergeBlastResults(sources.entityRefs, sources.blastHistory ?? [])
@@ -249,10 +302,14 @@ export function assembleDocument(
     if (fullContent) {
       resultsSection.content = fullContent
       resultsSection.generatedBy = 'template'
-      resultsSection.sourceRefs = [
-        ...projectHistory.map(h => h.id),
-        ...projectFigures.map(gp => gp.id),
-      ]
+      resultsSection.sourceRefs = mergeDocumentSourceRefs([
+        ...projectHistory.map((h) => createDocumentSourceRef('analysis', h.id, {
+          label: h.method?.name ?? h.name,
+        })),
+        ...projectFigures.map((gp) => createDocumentSourceRef('figure', gp.id, {
+          label: gp.name,
+        })),
+      ])
     }
     if (tables.length > 0) resultsSection.tables = tables
     if (figureRefs.length > 0) resultsSection.figures = figureRefs
@@ -303,17 +360,83 @@ export function reassembleDocument(
     sources,
   ).sections
 
+  const mergeTables = (
+    freshTables: DocumentTable[] | undefined,
+    existingTables: DocumentTable[] | undefined,
+  ): DocumentTable[] | undefined => {
+    const merged = new Map<string, DocumentTable>()
+
+    for (const table of freshTables ?? []) {
+      const key = `${table.sourceAnalysisId ?? 'manual'}:${table.id ?? table.caption}`
+      merged.set(key, table)
+    }
+
+    for (const table of existingTables ?? []) {
+      const key = `${table.sourceAnalysisId ?? 'manual'}:${table.id ?? table.caption}`
+      if (!merged.has(key)) {
+        merged.set(key, table)
+      }
+    }
+
+    return merged.size > 0 ? Array.from(merged.values()) : undefined
+  }
+
+  const mergeFigures = (
+    freshFigures: FigureRef[] | undefined,
+    existingFigures: FigureRef[] | undefined,
+  ): FigureRef[] | undefined => {
+    const merged = new Map<string, FigureRef>()
+
+    for (const figure of freshFigures ?? []) {
+      merged.set(figure.entityId, figure)
+    }
+
+    for (const figure of existingFigures ?? []) {
+      if (!merged.has(figure.entityId)) {
+        merged.set(figure.entityId, figure)
+      }
+    }
+
+    return merged.size > 0 ? Array.from(merged.values()) : undefined
+  }
+
   const refreshStructuredSectionFields = (
     existingSection: DocumentSection,
     freshSection: DocumentSection | undefined,
   ): DocumentSection => {
     if (!freshSection) return existingSection
 
+    const tables = mergeTables(freshSection.tables, existingSection.tables)
+    const figures = mergeFigures(freshSection.figures, existingSection.figures)
+    const preservedSourceRefs = new Map(
+      freshSection.sourceRefs.map((ref) => [ref.sourceId, ref] as const),
+    )
+
+    for (const table of existingSection.tables ?? []) {
+      if (table.sourceAnalysisId) {
+        preservedSourceRefs.set(
+          table.sourceAnalysisId,
+          createDocumentSourceRef('analysis', table.sourceAnalysisId, {
+            label: table.sourceAnalysisLabel,
+          }),
+        )
+      }
+    }
+
+    for (const figure of existingSection.figures ?? []) {
+      preservedSourceRefs.set(
+        figure.entityId,
+        createDocumentSourceRef('figure', figure.entityId, {
+          label: figure.label,
+        }),
+      )
+    }
+
     return {
       ...existingSection,
-      sourceRefs: freshSection.sourceRefs,
-      tables: freshSection.tables,
-      figures: freshSection.figures,
+      sourceRefs: Array.from(preservedSourceRefs.values()),
+      tables,
+      figures,
     }
   }
 

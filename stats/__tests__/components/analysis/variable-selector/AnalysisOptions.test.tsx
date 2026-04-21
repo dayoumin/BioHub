@@ -25,8 +25,9 @@ vi.mock('@/lib/stores/analysis-store', () => ({
   useAnalysisStore: (selector: (state: typeof storeState) => unknown) => selector(storeState),
 }))
 
-vi.mock('@/hooks/use-terminology', () => ({
-  useTerminology: () => ({
+function createTerminology(domain: 'aquaculture' | 'generic') {
+  return {
+    domain,
     selectorUI: {
       labels: {
         alpha: 'Alpha',
@@ -35,7 +36,13 @@ vi.mock('@/hooks/use-terminology', () => ({
         effectSize: 'Effect size',
       },
     },
-  }),
+  }
+}
+
+let mockTerminology = createTerminology('aquaculture')
+
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => mockTerminology,
 }))
 
 vi.mock('@/components/ui/label', () => ({
@@ -76,6 +83,7 @@ vi.mock('@/components/ui/select', () => ({
 
 describe('AnalysisOptionsSection', () => {
   beforeEach(() => {
+    mockTerminology = createTerminology('aquaculture')
     storeState.analysisOptions = {
       alpha: 0.05,
       showAssumptions: true,
@@ -214,6 +222,21 @@ describe('AnalysisOptionsSection', () => {
     expect(screen.getAllByText('실행 방식').length).toBeGreaterThan(0)
     expect(screen.getByText('일반 ANOVA')).toBeInTheDocument()
     expect(screen.getByText('Welch ANOVA')).toBeInTheDocument()
+  })
+
+  it('falls back to generic-domain execution copy for schema-driven settings', () => {
+    mockTerminology = createTerminology('generic')
+
+    render(
+      <AnalysisOptionsSection methodRequirements={getMethodRequirements('two-sample-t')} />
+    )
+
+    expect(screen.getByText('Execution mode')).toBeInTheDocument()
+    expect(screen.getByText('Student t-test')).toBeInTheDocument()
+    expect(screen.getByText('Welch t-test')).toBeInTheDocument()
+    expect(screen.getByText('Chooses between Student and Welch execution modes.')).toBeInTheDocument()
+    expect(screen.queryByText('실행 방식')).toBeNull()
+    expect(screen.queryByText('Student t-검정')).toBeNull()
   })
 
   it('updates generic numeric settings through methodSettings', () => {

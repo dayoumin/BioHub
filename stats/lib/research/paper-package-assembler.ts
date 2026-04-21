@@ -8,6 +8,7 @@ import type { GraphProject } from '@/types/graph-studio'
 import type {
   PaperPackage,
   PackageItem,
+  PackageAnalysisLink,
   PackageReference,
   AssemblyResult,
   ReferenceRole,
@@ -101,11 +102,39 @@ function formatReference(ref: PackageReference, index: number, isKo: boolean): s
   return lines.join('\n')
 }
 
+function getPackageItemAnalysisLinks(item: PackageItem): PackageAnalysisLink[] {
+  if (item.analysisLinks && item.analysisLinks.length > 0) {
+    return item.analysisLinks
+      .filter((link) => link.sourceId.trim().length > 0)
+      .map((link) => ({ sourceId: link.sourceId, label: link.label }))
+  }
+
+  if (item.analysisIds.length === 0) {
+    return []
+  }
+
+  if (item.type === 'analysis') {
+    return item.analysisIds.map((label) => ({ sourceId: item.sourceId, label }))
+  }
+
+  return item.analysisIds.map((label) => ({ sourceId: label, label }))
+}
+
+function getPackageItemAnalysisLabels(item: PackageItem): string[] {
+  return getPackageItemAnalysisLinks(item).map((link) => link.label)
+}
+
+function getPackageItemAnalysisSourceIds(item: PackageItem): string[] {
+  const sourceIds = getPackageItemAnalysisLinks(item).map((link) => link.sourceId)
+  return Array.from(new Set(sourceIds))
+}
+
 /** HistoryRecord에서 구조화된 분석 결과 JSON을 추출 (defensive) */
 function serializeAnalysisItem(item: PackageItem, record: HistoryRecord): string {
   const methodName = record.method?.name ?? '분석'
   const r = (record.results ?? {}) as Record<string, unknown>
   const vm = record.variableMapping as Record<string, unknown> | null | undefined
+  const analysisLinks = getPackageItemAnalysisLinks(item)
 
   // 변수 정보 추출 (VariableMapping 실제 필드: dependentVar, independentVar, groupVar 등)
   const dependent = vm?.['dependentVar']
@@ -133,8 +162,11 @@ function serializeAnalysisItem(item: PackageItem, record: HistoryRecord): string
 
   const json = JSON.stringify(
     {
-      id: item.analysisIds[0] ?? item.label,
+      id: item.sourceId,
+      sourceId: item.sourceId,
       method: methodName,
+      analysisLabel: analysisLinks[0]?.label ?? undefined,
+      sourceAnalysisIds: getPackageItemAnalysisSourceIds(item),
       label: item.label,
       section: item.section,
       dependent: dependent || undefined,
@@ -154,13 +186,19 @@ function serializeAnalysisItem(item: PackageItem, record: HistoryRecord): string
   return `### [${item.label}] ${methodName}\n\`\`\`json\n${json}\n\`\`\``
 }
 
-function serializeFigureItem(item: PackageItem): string {
+function serializeFigureItem(item: PackageItem, isKo: boolean): string {
+  const analysisLabels = getPackageItemAnalysisLabels(item)
+  const analysisSourceIds = getPackageItemAnalysisSourceIds(item)
   const lines = [
     `### [${item.label}]`,
+    `- **원본 ID**: ${item.sourceId}`,
     item.patternSummary ? `- **패턴 요약**: ${item.patternSummary}` : '- **패턴 요약**: (직접 입력 필요)',
   ]
-  if (item.analysisIds.length > 0) {
-    lines.push(`- **관련 분석**: ${item.analysisIds.join(', ')}`)
+  if (analysisLabels.length > 0) {
+    lines.push(`- **${isKo ? '관련 분석' : 'Related analyses'}**: ${analysisLabels.join(', ')}`)
+  }
+  if (analysisSourceIds.length > 0) {
+    lines.push(`- **${isKo ? '원본 분석 ID' : 'Source analysis IDs'}**: ${analysisSourceIds.join(', ')}`)
   }
   return lines.join('\n')
 }
@@ -263,7 +301,7 @@ Write a complete manuscript draft based on the statistical analysis results and 
       if (!graph) {
         warnings.push(`[경고] ${item.label}: Graph Studio 프로젝트를 찾을 수 없음 (sourceId: ${item.sourceId})`)
       }
-      figureParts.push(serializeFigureItem(item))
+      figureParts.push(serializeFigureItem(item, isKo))
     }
     sections.push(figureParts.join('\n\n'))
   }
@@ -298,11 +336,13 @@ Write a complete manuscript draft based on the statistical analysis results and 
   if (analysisItems.length > 0) {
     const checklist = [
       isKo ? '## 검증 체크리스트 (논문 완성 후 대조용)' : '## Verification Checklist',
-      isKo ? '| 분석 | ID | 확인 |' : '| Analysis | ID | Check |',
-      '|------|-----|------|',
+      isKo ? '| 분석 | 레이블 | 원본 ID | 확인 |' : '| Analysis | Label | Source ID | Check |',
+      '|------|--------|-----------|------|',
     ]
     for (const item of analysisItems) {
-      checklist.push(`| ${item.label} | ${item.analysisIds.join(', ')} | [ ] |`)
+      checklist.push(
+        `| ${item.label} | ${getPackageItemAnalysisLabels(item).join(', ')} | ${getPackageItemAnalysisSourceIds(item).join(', ')} | [ ] |`,
+      )
     }
     sections.push(checklist.join('\n'))
   }

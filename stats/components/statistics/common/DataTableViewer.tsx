@@ -46,6 +46,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 interface DataTableViewerProps {
   /** 데이터 배열 */
@@ -84,6 +85,7 @@ export function DataTableViewer({
   open,
   onOpenChange,
 }: DataTableViewerProps) {
+  const { locale } = useAppPreferences()
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
@@ -254,7 +256,7 @@ export function DataTableViewer({
       return <span className="text-muted-foreground italic">null</span>
     }
     if (type === 'number' && typeof value === 'number') {
-      return value.toLocaleString('ko-KR', { maximumFractionDigits: 4 })
+      return value.toLocaleString(locale, { maximumFractionDigits: 4 })
     }
     return String(value)
   }

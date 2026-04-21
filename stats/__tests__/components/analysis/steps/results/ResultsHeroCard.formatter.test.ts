@@ -77,6 +77,35 @@ describe('pickHeroOptionEntries', () => {
     expect(pickHeroOptionEntries(entries, methodRequirements)).toEqual([])
   })
 
+  it('hides localized generic-domain defaults with the same comparison rule', () => {
+    const entries: ExecutionSettingEntry[] = [
+      { key: 'alternative', label: 'Alternative hypothesis', value: 'Two-sided' },
+      { key: 'welch', label: 'Execution mode', value: 'Welch ANOVA' },
+    ]
+    const methodRequirements = {
+      settings: {
+        alternative: {
+          label: '대립가설',
+          default: 'two-sided',
+          options: [
+            { value: 'two-sided', label: '양측 검정', description: '' },
+            { value: 'greater', label: '단측 검정 (greater)', description: '' },
+          ],
+        },
+        welch: {
+          label: '실행 방식',
+          default: true,
+          options: [
+            { value: false, label: '일반 ANOVA', description: '' },
+            { value: true, label: 'Welch ANOVA', description: '' },
+          ],
+        },
+      },
+    } as unknown as StatisticalMethodRequirements
+
+    expect(pickHeroOptionEntries(entries, methodRequirements, 'generic')).toEqual([])
+  })
+
   it('keeps entries whose value differs from default', () => {
     const entries: ExecutionSettingEntry[] = [
       { key: 'postHoc', label: '사후검정 방법', value: 'Bonferroni' },

@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
   "version": "1.44.7",
-  "lastUpdated": "2026-04-20",
+  "lastUpdated": "2026-04-21",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -102,6 +102,99 @@
             "screen",
             "getByText",
             "toBeInTheDocument"
+          ]
+        },
+        {
+          "name": "도메인별 문구 회귀 테스트",
+          "purpose": "generic/aquaculture 등 terminology domain에 따라 슬롯 라벨이나 validation 문구가 올바르게 바뀌는지 고정",
+          "code": "import { render, screen, fireEvent } from '@testing-library/react';\nimport { vi } from 'vitest';\nimport { MyStep } from '@/components/MyStep';\nimport { validateSomething } from '@/lib/validation';\n\nconst mockTerminology = { domain: 'generic', variables: { group: { title: 'Group Variable', description: 'Categorical variable defining groups to compare' } } };\nvi.mock('@/hooks/use-terminology', () => ({ useTerminology: () => mockTerminology }));\nvi.mock('@/lib/validation', () => ({ validateSomething: vi.fn() }));\n\nit('generic domain에서는 submit validation도 영어로 보여준다', () => {\n  vi.mocked(validateSomething).mockReturnValueOnce({ isValid: false, errors: ['그룹 변수(범주형)를 선택해주세요'] });\n  render(<MyStep />);\n  fireEvent.click(screen.getByRole('button', { name: /complete/i }));\n  expect(screen.getByText('Select a categorical group variable.')).toBeInTheDocument();\n});",
+          "keywords": [
+            "terminology domain",
+            "generic",
+            "validation message",
+            "localization",
+            "regression"
+          ]
+        },
+        {
+          "name": "환경설정 Provider 지속성 테스트",
+          "purpose": "language/domain 같은 전역 선호값이 localStorage와 Provider 상태에 독립적으로 반영되는지 고정",
+          "code": "import { renderHook, act, waitFor } from '@testing-library/react';\nimport { AppPreferencesProvider } from '@/lib/preferences';\nimport { useAppPreferences } from '@/hooks/use-app-preferences';\n\nconst storageState: Record<string, string> = {};\nObject.defineProperty(window, 'localStorage', {\n  value: {\n    getItem: (key: string) => storageState[key] ?? null,\n    setItem: (key: string, value: string) => { storageState[key] = value; },\n    removeItem: (key: string) => { delete storageState[key]; },\n    clear: () => Object.keys(storageState).forEach((key) => delete storageState[key]),\n  },\n  writable: true,\n});\n\nit('저장된 language/domain을 hydrate하고 변경을 다시 저장한다', async () => {\n  storageState['app-language'] = 'en';\n  storageState['terminology-domain'] = 'generic';\n  const wrapper = ({ children }: { children: React.ReactNode }) => <AppPreferencesProvider>{children}</AppPreferencesProvider>;\n  const { result } = renderHook(() => useAppPreferences(), { wrapper });\n\n  await waitFor(() => expect(result.current.currentLanguage).toBe('en'));\n\n  act(() => {\n    result.current.setLanguage('ko');\n    result.current.setDomain('aquaculture');\n  });\n\n  expect(storageState['app-language']).toBe('ko');\n  expect(storageState['terminology-domain']).toBe('aquaculture');\n});",
+          "keywords": [
+            "AppPreferencesProvider",
+            "language",
+            "domain",
+            "localStorage",
+            "hydrate",
+            "persistence"
+          ]
+        },
+        {
+          "name": "Terminology resolver 조합 테스트",
+          "purpose": "language-owned UI 섹션과 domain-owned terminology 섹션이 resolver에서 올바르게 합성되는지 고정",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { resolveTerminologyDictionary } from '@/lib/terminology/resolve-terminology-dictionary';\n\ndescribe('resolveTerminologyDictionary', () => {\n  it('en+aquaculture 조합은 영어 UI와 수산 용어를 함께 사용한다', () => {\n    const dictionary = resolveTerminologyDictionary('en', 'aquaculture');\n    expect(dictionary.analysis.stepTitles.variableSelection).toBe('Variable Selection');\n    expect(dictionary.analysisInfo.cardTitle).toBe('Analysis Info');\n    expect(dictionary.variables.dependent.title).toBe('Measurement Variable (Y)');\n  });\n\n  it('ko+generic 조합은 한국어 UI와 범용 용어를 함께 사용한다', () => {\n    const dictionary = resolveTerminologyDictionary('ko', 'generic');\n    expect(dictionary.analysis.stepTitles.variableSelection).toBe('변수 선택');\n    expect(dictionary.analysisInfo.cardTitle).toBe('분석 정보');\n    expect(dictionary.variables.group.title).toBe('그룹 변수');\n  });\n\n  it('exact combo도 language-owned guided flow 데이터를 유지한다', () => {\n    const dictionary = resolveTerminologyDictionary('en', 'generic');\n    expect(dictionary.guidedQuestionData.compare[0]?.question).toBe('What do you want to compare?');\n  });\n});",
+          "keywords": [
+            "resolveTerminologyDictionary",
+            "language pack",
+            "domain pack",
+            "composition",
+            "terminology",
+            "regression"
+          ]
+        },
+        {
+          "name": "Mixed section cross-combo 테스트",
+          "purpose": "purposeInput, hub 같은 혼합 섹션이 cross-combo에서도 fallback domain 문구 대신 조합별 override를 사용하도록 고정",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { resolveTerminologyDictionary } from '@/lib/terminology/resolve-terminology-dictionary';\n\ndescribe('mixed terminology sections', () => {\n  it('en+aquaculture purposeInput/hub는 수산 문맥을 유지한다', () => {\n    const dictionary = resolveTerminologyDictionary('en', 'aquaculture');\n    expect(dictionary.purposeInput.purposes.compare.examples).toContain('farms');\n    expect(dictionary.hub.aiSearch.placeholder).toContain('flounder');\n  });\n\n  it('ko+generic purposeInput/hub는 범용 문맥을 유지한다', () => {\n    const dictionary = resolveTerminologyDictionary('ko', 'generic');\n    expect(dictionary.purposeInput.purposes.compare.examples).toContain('반별 시험 점수');\n    expect(dictionary.hub.aiSearch.placeholder).toContain('평균 차이');\n  });\n});",
+          "keywords": [
+            "purposeInput",
+            "hub",
+            "cross combo",
+            "mixed section",
+            "terminology",
+            "regression"
+          ]
+        },
+        {
+          "name": "Guided flow language ownership 테스트",
+          "purpose": "guidedQuestionData와 progressiveCategoryData가 cross-combo에서도 language pack 기준으로 일관되게 합성되는지 고정",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { resolveTerminologyDictionary } from '@/lib/terminology/resolve-terminology-dictionary';\n\ndescribe('guided flow terminology data', () => {\n  it('en+aquaculture는 영어 질문 데이터와 카테고리 라벨을 사용한다', () => {\n    const dictionary = resolveTerminologyDictionary('en', 'aquaculture');\n    expect(dictionary.guidedQuestionData.compare[0]?.question).toBe('What do you want to compare?');\n    expect(dictionary.progressiveCategoryData[0]?.title).toBe('Comparison Analysis');\n  });\n\n  it('ko+generic은 한국어 질문 데이터와 카테고리 라벨을 사용한다', () => {\n    const dictionary = resolveTerminologyDictionary('ko', 'generic');\n    expect(dictionary.guidedQuestionData.compare[0]?.question).toBe('무엇을 비교하려고 하나요?');\n    expect(dictionary.progressiveCategoryData[0]?.title).toBe('차이/비교 분석');\n  });\n});",
+          "keywords": [
+            "guidedQuestionData",
+            "progressiveCategoryData",
+            "language ownership",
+            "cross combo",
+            "terminology",
+            "regression"
+          ]
+        },
+        {
+          "name": "Preference switcher copy 테스트",
+          "purpose": "LanguageSwitcher/DomainSwitcher가 현재 UI 언어에 맞는 안내 문구를 렌더하고 language/domain 역할을 혼동하지 않는지 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { vi } from 'vitest';\nimport { LanguageSwitcher } from '@/components/terminology/LanguageSwitcher';\nimport { DomainSwitcher } from '@/components/terminology/DomainSwitcher';\n\nvi.mock('@/hooks/use-app-preferences', () => ({\n  useAppPreferences: () => ({ currentLanguage: 'en', setLanguage: vi.fn() }),\n}));\nvi.mock('@/hooks/use-terminology', () => ({\n  useTerminologyContext: () => ({ currentDomain: 'generic', currentLanguage: 'en', setDomain: vi.fn(), dictionary: { displayName: 'General Statistics' } }),\n}));\nvi.mock('@/lib/terminology', () => ({ getAvailableDomains: () => ['aquaculture', 'generic'] }));\n\nit('영어 UI에서는 switcher helper copy도 영어로 보인다', () => {\n  render(<><LanguageSwitcher /><DomainSwitcher /></>);\n  expect(screen.getByText('UI Language')).toBeInTheDocument();\n  expect(screen.getByText('Terminology Domain')).toBeInTheDocument();\n  expect(screen.getByText('Changes domain-specific terminology and examples while keeping the UI language separate.')).toBeInTheDocument();\n});",
+          "keywords": [
+            "LanguageSwitcher",
+            "DomainSwitcher",
+            "UI language",
+            "terminology domain",
+            "copy",
+            "regression"
+          ]
+        },
+        {
+          "name": "언어/locale 잔여 문구 회귀 테스트",
+          "purpose": "terminology로 덮이지 않는 설정/카드/사이드바/도구 모달 문구가 currentLanguage와 locale을 따라가고, 영어 결과 라벨이 한국어 원문을 누수시키지 않는지 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { vi } from 'vitest';\nimport { SettingsModal } from '@/components/layout/settings-modal';\nimport { SampleSizeModal } from '@/components/analysis/hub/SampleSizeModal';\nimport { AnalysisInfoCard } from '@/components/analysis/components/AnalysisInfoCard';\n\nlet mockLanguage: 'ko' | 'en' = 'en';\nlet mockLocale = 'en-US';\n\nvi.mock('@/hooks/use-app-preferences', () => ({\n  useAppPreferences: () => ({ currentLanguage: mockLanguage, locale: mockLocale, setLanguage: vi.fn() }),\n}));\nvi.mock('@/hooks/use-terminology', () => ({\n  useTerminology: () => ({\n    language: mockLanguage,\n    analysisInfo: {\n      cardTitle: 'Analysis Info',\n      labels: { dataSize: 'Data Size', assumptions: 'Assumptions' },\n      assumptions: { met: 'Met', partialViolation: 'Partially violated' },\n      units: { rows: 'rows', nVariables: (count: number) => `${count} variables` },\n    },\n  }),\n  useTerminologyContext: () => ({ currentDomain: 'generic', currentLanguage: mockLanguage, setDomain: vi.fn(), dictionary: { displayName: 'General Statistics' } }),\n}));\nvi.mock('@/lib/terminology', () => ({ getAvailableDomains: () => ['aquaculture', 'generic'] }));\n\nit('영어 UI에서는 설정 모달 잔여 문구도 영어로 보인다', () => {\n  render(<SettingsModal open={true} onOpenChange={vi.fn()} />);\n  expect(screen.getByText('Settings')).toBeInTheDocument();\n  expect(screen.getByText('Notifications')).toBeInTheDocument();\n});\n\nit('SampleSizeModal은 영어 결과 라벨과 CTA prompt를 유지한다', async () => {\n  const user = userEvent.setup();\n  const onStartAnalysis = vi.fn();\n  render(<SampleSizeModal open={true} onClose={vi.fn()} onStartAnalysis={onStartAnalysis} />);\n  expect(screen.getByText('per group')).toBeInTheDocument();\n  await user.click(screen.getByRole('button', { name: 'Start analysis with this test' }));\n  expect(onStartAnalysis).toHaveBeenCalledWith('Run an independent samples t-test to compare the means of two groups');\n});\n\nit('AnalysisInfoCard는 app locale로 숫자를 포맷한다', () => {\n  render(<AnalysisInfoCard dataRows={10000} />);\n  expect(screen.getByText(/10,000\\s*rows/)).toBeInTheDocument();\n});",
+          "keywords": [
+            "currentLanguage",
+            "locale",
+            "useAppPreferences mock",
+            "SettingsModal",
+            "AppSidebar",
+            "SampleSizeModal",
+            "AnalysisInfoCard",
+            "fallback copy",
+            "regression"
           ]
         },
         {
@@ -265,6 +358,45 @@
             "nested route",
             "active state",
             "navigation",
+            "regression"
+          ]
+        },
+        {
+          "name": "Terminology-aware guidance regression 테스트",
+          "purpose": "selector/guidance 컴포넌트가 useTerminology 도메인 전환에 따라 공통 UI와 fallback copy를 함께 바꾸는지 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { beforeEach, describe, it, expect, vi } from 'vitest';\nimport { MethodGuidancePanel } from '@/components/analysis/variable-selector/MethodGuidancePanel';\n\nlet mockTerminology = createTerminology('aquaculture');\nvi.mock('@/hooks/use-terminology', () => ({\n  useTerminology: () => mockTerminology,\n}));\n\ndescribe('MethodGuidancePanel terminology', () => {\n  beforeEach(() => {\n    mockTerminology = createTerminology('aquaculture');\n  });\n\n  it('generic domain에서는 한국어 원문 대신 영어 fallback/translation pending을 노출한다', () => {\n    mockTerminology = createTerminology('generic');\n\n    render(<MethodGuidancePanel methodRequirements={getMethodRequirements('descriptive-stats')} />);\n\n    expect(screen.getByText('Method Guide')).toBeInTheDocument();\n    expect(screen.getByText('Localized guidance is not available for this section yet.')).toBeInTheDocument();\n    expect(screen.queryByText('평균, 표준편차, 분위수 등 요약')).toBeNull();\n  });\n});",
+          "keywords": [
+            "useTerminology",
+            "domain switch",
+            "MethodGuidancePanel",
+            "generic fallback",
+            "translation pending",
+            "regression"
+          ]
+        },
+        {
+          "name": "Execution summary locale propagation 테스트",
+          "purpose": "buildAnalysisExecutionContext와 Step 4 카드가 동일한 domain 기반 fallback label/value를 사용하는지 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { describe, it, expect } from 'vitest';\nimport { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution';\n\nit('generic domain에서 실행 설정 요약을 영어 fallback copy로 렌더한다', () => {\n  const result = buildAnalysisExecutionContext({\n    analysisOptions: {\n      alpha: 0.05,\n      showAssumptions: false,\n      showEffectSize: false,\n      methodSettings: { postHoc: 'games-howell', welch: true },\n    },\n    methodRequirements: getMethodRequirements('one-way-anova'),\n    selectedMethodId: 'one-way-anova',\n    variableMapping: { dependentVar: 'score', groupVar: 'group' },\n    presentationDomain: 'generic',\n  });\n\n  expect(result.executionSettingEntries).toEqual(expect.arrayContaining([\n    { key: 'postHoc', label: 'Post-hoc method', value: 'Games-Howell' },\n    { key: 'welch', label: 'Execution mode', value: 'Welch ANOVA' },\n    { key: 'showAssumptions', label: 'Assumption checks', value: 'Skipped' },\n  ]));\n});",
+          "keywords": [
+            "buildAnalysisExecutionContext",
+            "execution summary",
+            "presentationDomain",
+            "generic fallback",
+            "step 4",
+            "regression"
+          ]
+        },
+        {
+          "name": "Localized slot metadata regression 테스트",
+          "purpose": "VariableSelectionStep와 UnifiedVariableSelector가 같은 localized slot label/description을 공유하는지 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { describe, it, expect } from 'vitest';\nimport { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep';\nimport { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector';\n\nit('generic domain에서 preview와 selector 슬롯이 영어 역할 라벨로 정렬된다', () => {\n  mockTerminology = createTerminology('generic');\n\n  render(<VariableSelectionStep />);\n  expect(screen.getByTestId('execution-preview-missing-dependent')).toHaveTextContent('Dependent Variable must be selected.');\n\n  render(\n    <UnifiedVariableSelector\n      data={[{ score: 71, sex: 'M' }]}\n      selectorType='group-comparison'\n      methodId='two-sample-t'\n      methodName='Independent Samples t-Test'\n      onComplete={vi.fn()}\n    />,\n  );\n\n  expect(screen.getByText('Fill the role slots first')).toBeInTheDocument();\n  expect(screen.getByText(/Required slots/)).toBeInTheDocument();\n});",
+          "keywords": [
+            "localized slots",
+            "VariableSelectionStep",
+            "UnifiedVariableSelector",
+            "generic domain",
+            "role labels",
             "regression"
           ]
         }
@@ -1146,13 +1278,14 @@
         {
           "name": "Collapsed sidebar tooltip exclusivity 테스트",
           "purpose": "사이드바가 collapsed 상태일 때 hover가 이동하면 이전 tooltip이 남지 않고 현재 항목 tooltip만 유지되는지 검증",
-          "code": "import { render, screen, within, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { AppSidebar } from '@/components/layout/app-sidebar';\nimport { STORAGE_KEYS } from '@/lib/constants/storage-keys';\n\nbeforeEach(() => {\n  localStorage.clear();\n  localStorage.setItem(STORAGE_KEYS.ui.sidebar, 'collapsed');\n});\n\nit('shows only the active tooltip while collapsed', async () => {\n  const user = userEvent.setup();\n  const { container } = render(<AppSidebar />);\n\n  const bioToolsLink = container.querySelector('a[href=\"/bio-tools\"]') as HTMLElement;\n  const graphStudioLink = container.querySelector('a[href=\"/graph-studio\"]') as HTMLElement;\n\n  await user.hover(bioToolsLink);\n\n  const firstTooltip = await screen.findByRole('tooltip');\n  expect(within(firstTooltip).getByText('Bio-Tools')).toBeInTheDocument();\n\n  await user.hover(firstTooltip);\n  await user.unhover(bioToolsLink);\n  await user.hover(graphStudioLink);\n\n  await waitFor(() => {\n    const tooltips = screen.getAllByRole('tooltip');\n    expect(tooltips).toHaveLength(1);\n    expect(within(tooltips[0] as HTMLElement).getByText('Graph Studio')).toBeInTheDocument();\n  });\n});",
+          "code": "import { render, screen, within, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { vi } from 'vitest';\nimport { AppSidebar } from '@/components/layout/app-sidebar';\nimport { STORAGE_KEYS } from '@/lib/constants/storage-keys';\n\nvi.mock('@/hooks/use-app-preferences', () => ({\n  useAppPreferences: () => ({ currentLanguage: 'en', locale: 'en-US' }),\n}));\n\nbeforeEach(() => {\n  localStorage.clear();\n  localStorage.setItem(STORAGE_KEYS.ui.sidebar, 'collapsed');\n});\n\nit('shows only the active tooltip while collapsed', async () => {\n  const user = userEvent.setup();\n  const { container } = render(<AppSidebar />);\n\n  const bioToolsLink = container.querySelector('a[href=\"/bio-tools\"]') as HTMLElement;\n  const graphStudioLink = container.querySelector('a[href=\"/graph-studio\"]') as HTMLElement;\n\n  await user.hover(bioToolsLink);\n\n  const firstTooltip = await screen.findByRole('tooltip');\n  expect(within(firstTooltip).getByText('Bio-Tools')).toBeInTheDocument();\n\n  await user.hover(firstTooltip);\n  await user.unhover(bioToolsLink);\n  await user.hover(graphStudioLink);\n\n  await waitFor(() => {\n    const tooltips = screen.getAllByRole('tooltip');\n    expect(tooltips).toHaveLength(1);\n    expect(within(tooltips[0] as HTMLElement).getByText('Graph Studio')).toBeInTheDocument();\n  });\n});",
           "keywords": [
             "AppSidebar",
             "collapsed sidebar",
             "tooltip",
             "hover",
             "localStorage",
+            "useAppPreferences mock",
             "regression"
           ]
         }

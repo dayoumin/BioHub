@@ -17,11 +17,13 @@ import { Clock, PanelRightClose, PanelRightOpen, Pin, Trash2 } from 'lucide-reac
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { HistoryItem, UnifiedHistorySidebarProps } from '@/types/history'
+import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 // ── 기본 아이템 렌더러 ──
 
 function DefaultItemContent<T>({ item }: { item: HistoryItem<T> }): ReactNode {
-  const dateStr = new Date(item.createdAt).toLocaleDateString('ko-KR', {
+  const { locale } = useAppPreferences()
+  const dateStr = new Date(item.createdAt).toLocaleDateString(locale, {
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',

@@ -89,6 +89,23 @@ describe('convertPaperTable', () => {
     expect(result.headers).toEqual(['H1', 'H2'])
     expect(result.rows).toEqual([['R1', 'R2']])
   })
+
+  it('should preserve source analysis metadata when provided', () => {
+    const pt: PaperTable = {
+      id: 'test-result',
+      title: 'ANOVA Table',
+      htmlContent: '',
+      plainText: 'Source\tF\tp\nGroup\t4.50\t0.012',
+    }
+
+    const result = convertPaperTable(pt, {
+      sourceAnalysisId: 'hist_1',
+      sourceAnalysisLabel: 'One-way ANOVA',
+    })
+
+    expect(result.sourceAnalysisId).toBe('hist_1')
+    expect(result.sourceAnalysisLabel).toBe('One-way ANOVA')
+  })
 })
 
 describe('buildFigureRef', () => {
@@ -112,6 +129,7 @@ describe('buildFigureRef', () => {
     expect(result.entityId).toBe('gp_1')
     expect(result.label).toBe('Figure 1')
     expect(result.caption).toBe('Growth Chart (bar)')
+    expect(result.chartType).toBe('bar')
   })
 
   it('should use 1-based index for label', () => {
@@ -130,6 +148,20 @@ describe('buildFigureRef', () => {
     const result = buildFigureRef(gp, 0)
 
     expect(result.caption).toBe('Growth Chart')
+  })
+
+  it('should preserve related analysis metadata when provided', () => {
+    const gp = makeGraphProject()
+
+    const result = buildFigureRef(gp, 0, {
+      relatedAnalysisId: 'hist_1',
+      relatedAnalysisLabel: 'One-way ANOVA',
+      patternSummary: 'B 평균이 A보다 높음',
+    })
+
+    expect(result.relatedAnalysisId).toBe('hist_1')
+    expect(result.relatedAnalysisLabel).toBe('One-way ANOVA')
+    expect(result.patternSummary).toBe('B 평균이 A보다 높음')
   })
 })
 

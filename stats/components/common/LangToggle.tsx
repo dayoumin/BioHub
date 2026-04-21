@@ -2,10 +2,11 @@
 
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { AppLanguageCode } from '@/lib/preferences'
 
 interface LangToggleProps {
-  value: 'ko' | 'en'
-  onChange: (lang: 'ko' | 'en') => void
+  value: AppLanguageCode
+  onChange: (lang: AppLanguageCode) => void
   loading?: boolean
 }
 

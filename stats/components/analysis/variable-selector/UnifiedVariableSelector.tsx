@@ -20,6 +20,8 @@ import { AlertCircle, GripVertical, X, ArrowRight, ArrowLeft, CheckCircle2, Info
 import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services'
 import { isRecord } from '@/lib/utils/type-guards'
+import { useTerminology } from '@/hooks/use-terminology'
+import { isEnglishLanguage } from '@/lib/preferences'
 import {
   getMethodRequirements,
 } from '@/lib/statistics/variable-requirements'
@@ -27,7 +29,6 @@ import {
   toAcceptedType,
   isTypeAccepted,
   buildMappingFromSlots,
-  validateSlots,
   type SelectorType,
   type SlotConfig,
   type AcceptedType,
@@ -45,6 +46,7 @@ import {
   type VariableCandidate,
   resolveMethodSlots,
 } from './method-fit'
+import { getLocalizedSlotConfigs } from './localized-slot-metadata'
 
 interface UnifiedVariableSelectorProps {
   data: Record<string, unknown>[]
@@ -63,10 +65,18 @@ interface UnifiedVariableSelectorProps {
 
 // 테스트와 공유되는 상태 라벨 — 카피 드리프트 시 test도 같이 깨지도록 SSOT 유지.
 export const CANDIDATE_STATUS_LABELS = {
-  recommended: '추천',
-  valid: '가능',
-  assigned: '배정됨',
-  invalid: '불가',
+  aquaculture: {
+    recommended: '추천',
+    valid: '가능',
+    assigned: '배정됨',
+    invalid: '불가',
+  },
+  generic: {
+    recommended: 'Recommended',
+    valid: 'Available',
+    assigned: 'Assigned',
+    invalid: 'Unavailable',
+  },
 } as const
 
 const COLOR_MAP = {
@@ -103,11 +113,15 @@ const COLOR_MAP = {
 function PoolVariable({
   candidate,
   onClick,
+  language,
 }: {
   candidate: VariableCandidate
   onClick: () => void
+  language: string
 }) {
   const { column, status, isSelectable } = candidate
+  const isEnglish = isEnglishLanguage(language)
+  const statusLabels = isEnglish ? CANDIDATE_STATUS_LABELS.generic : CANDIDATE_STATUS_LABELS.aquaculture
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `pool-${column.name}`,
     data: { columnName: column.name, columnType: column.type },
@@ -145,7 +159,9 @@ function PoolVariable({
                 : 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
             )}
           >
-            {column.type === 'numeric' ? '연속형' : '범주형'}
+            {column.type === 'numeric'
+              ? (isEnglish ? 'Numeric' : '연속형')
+              : (isEnglish ? 'Categorical' : '범주형')}
           </Badge>
           <Badge
             variant="outline"
@@ -158,7 +174,7 @@ function PoolVariable({
               status === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
             )}
           >
-            {CANDIDATE_STATUS_LABELS[status]}
+            {statusLabels[status]}
           </Badge>
         </div>
         <p className="mt-1 truncate text-[11px] text-muted-foreground">{candidate.reason}</p>
@@ -168,12 +184,16 @@ function PoolVariable({
 }
 
 function DragOverlayChip({ name, type }: { name: string; type: AcceptedType }) {
+  const t = useTerminology()
+  const isEnglish = isEnglishLanguage(t.language)
   return (
     <div className="flex items-center gap-2 rounded-lg border border-primary/50 bg-background px-3 py-2 text-sm shadow-lg">
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
       <span className="font-medium">{name}</span>
       <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-        {type === 'numeric' ? '연속형' : '범주형'}
+        {type === 'numeric'
+          ? (isEnglish ? 'Numeric' : '연속형')
+          : (isEnglish ? 'Categorical' : '범주형')}
       </Badge>
     </div>
   )
@@ -187,6 +207,7 @@ function RoleSlot({
   onClickAssign,
   isActive,
   hasValidationError,
+  language,
 }: {
   slot: SlotConfig
   assignedVars: string[]
@@ -195,7 +216,9 @@ function RoleSlot({
   onClickAssign: (slotId: string) => void
   isActive: boolean
   hasValidationError: boolean
+  language: string
 }) {
+  const isEnglish = isEnglishLanguage(language)
   const { isOver, setNodeRef, active } = useDroppable({
     id: `slot-${slot.id}`,
     data: { slotId: slot.id },
@@ -231,7 +254,9 @@ function RoleSlot({
               slot.required ? 'border-destructive/30 text-destructive' : '',
             )}
           >
-            {slot.required ? '필수' : '선택'}
+            {slot.required
+              ? (isEnglish ? 'Required' : '필수')
+              : (isEnglish ? 'Optional' : '선택')}
           </Badge>
         </div>
         {slot.multiple && slot.maxCount && (
@@ -257,7 +282,9 @@ function RoleSlot({
                 <span>{varName}</span>
                 {col && (
                   <span className="text-[10px] opacity-60">
-                    {col.type === 'numeric' ? '연속형' : '범주형'}
+                    {col.type === 'numeric'
+                      ? (isEnglish ? 'Numeric' : '연속형')
+                      : (isEnglish ? 'Categorical' : '범주형')}
                   </span>
                 )}
                 <button
@@ -266,7 +293,7 @@ function RoleSlot({
                     onRemove(varName)
                   }}
                   className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
-                  aria-label={`${varName} 제거`}
+                  aria-label={isEnglish ? `Remove ${varName}` : `${varName} 제거`}
                   data-testid={`remove-${varName}`}
                 >
                   <X className="h-3 w-3" />
@@ -281,11 +308,11 @@ function RoleSlot({
           className="w-full py-1 text-left text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground"
         >
           {isRejectDrop ? (
-            '이 역할에는 맞지 않는 변수입니다.'
+            isEnglish ? 'This column does not fit the selected role.' : '이 역할에는 맞지 않는 변수입니다.'
           ) : (
             <div className="space-y-1">
               <div className={cn('font-medium', hasValidationError && 'text-destructive')}>
-                {getEmptySlotHint(slot)}
+                {getEmptySlotHint(slot, language)}
               </div>
               {showExpandedHelp && (
                 <div className="text-[11px] leading-relaxed">{slot.description}</div>
@@ -302,11 +329,14 @@ function MethodFitBanner({
   fitState,
   methodName,
   onAction,
+  language,
 }: {
   fitState: MethodFitState
   methodName?: string
   onAction?: () => void
+  language: string
 }) {
+  const isEnglish = isEnglishLanguage(language)
   const tone = {
     ready: 'border-emerald-200 bg-emerald-50 text-emerald-900',
     partial: 'border-amber-200 bg-amber-50 text-amber-900',
@@ -326,7 +356,9 @@ function MethodFitBanner({
         {icon}
         <div className="min-w-0">
           <p className="text-sm font-semibold tracking-tight">
-            {methodName ? `${methodName} 설정 상태` : fitState.title}
+            {methodName
+              ? (isEnglish ? `${methodName} configuration status` : `${methodName} 설정 상태`)
+              : fitState.title}
           </p>
           <p className="mt-1 text-sm">{fitState.message}</p>
           {fitState.actionLabel && (
@@ -363,6 +395,8 @@ export function UnifiedVariableSelector({
   mismatchHint,
   onFitAction,
 }: UnifiedVariableSelectorProps) {
+  const t = useTerminology()
+  const isEnglish = isEnglishLanguage(t.language)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
@@ -373,8 +407,8 @@ export function UnifiedVariableSelector({
   )
 
   const slots = useMemo(
-    () => resolveMethodSlots(selectorType, methodRequirements),
-    [selectorType, methodRequirements]
+    () => getLocalizedSlotConfigs(resolveMethodSlots(selectorType, methodRequirements), t),
+    [selectorType, methodRequirements, t]
   )
 
   const columns = useMemo((): SelectorColumnInfo[] => {
@@ -414,7 +448,10 @@ export function UnifiedVariableSelector({
     onMappingChange?.(buildMappingFromSlots(slots, assignments))
   }, [slots, assignments, onMappingChange])
 
-  const liveValidationErrors = useMemo(() => validateSlots(slots, assignments), [slots, assignments])
+  const liveValidationErrors = useMemo(
+    () => formatSlotValidationErrors(slots, assignments, t.language),
+    [slots, assignments, t.language],
+  )
   const slotValidationState = useMemo(() => {
     const state = new Set<string>()
     for (const slot of slots) {
@@ -460,7 +497,8 @@ export function UnifiedVariableSelector({
     methodRequirements,
     methodId,
     mismatchHint,
-  }), [slots, assignments, columns, methodRequirements, methodId, mismatchHint])
+    presentationLanguage: t.language,
+  }), [slots, assignments, columns, methodRequirements, methodId, mismatchHint, t.language])
 
   const variableCandidates = useMemo(() => buildVariableCandidates({
     columns,
@@ -469,7 +507,8 @@ export function UnifiedVariableSelector({
     focusSlotId: focusedSlotId,
     methodRequirements,
     methodId,
-  }), [columns, slots, assignments, focusedSlotId, methodRequirements, methodId])
+    presentationLanguage: t.language,
+  }), [columns, slots, assignments, focusedSlotId, methodRequirements, methodId, t.language])
 
   const findTargetSlot = useCallback((varType: AcceptedType): SlotConfig | undefined => {
     // Focus 슬롯 우선 → required 빈 슬롯 → 아무 accept 가능한 슬롯 순.
@@ -572,7 +611,7 @@ export function UnifiedVariableSelector({
   }, [slots, assignments, assignedSet, variableCandidates])
 
   const handleSubmit = useCallback(() => {
-    const errors = validateSlots(slots, assignments)
+    const errors = formatSlotValidationErrors(slots, assignments, t.language)
     if (errors.length > 0) {
       setValidationErrors(errors)
       return
@@ -585,7 +624,7 @@ export function UnifiedVariableSelector({
 
     const mapping = buildMappingFromSlots(slots, assignments)
     onComplete(mapping)
-  }, [slots, assignments, fitState, onComplete])
+  }, [slots, assignments, fitState, onComplete, t.language])
 
   const isReady = fitState.status === 'ready' && liveValidationErrors.length === 0
   const requiredSlotCount = useMemo(() => slots.filter(slot => slot.required).length, [slots])
@@ -620,6 +659,7 @@ export function UnifiedVariableSelector({
         fitState={fitState}
         methodName={methodName ?? methodRequirements?.name}
         onAction={onFitAction}
+        language={t.language}
       />
       <MethodGuidancePanel methodRequirements={methodRequirements} />
 
@@ -636,22 +676,30 @@ export function UnifiedVariableSelector({
                 Step 3
               </p>
               <p className="text-sm font-semibold tracking-tight text-foreground">
-                역할 슬롯을 먼저 채우세요
+                {isEnglish ? 'Fill the role slots first' : '역할 슬롯을 먼저 채우세요'}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                슬롯을 클릭하면 현재 역할에 맞는 변수만 먼저 정리됩니다. 드래그는 보조 기능으로만 사용할 수 있습니다.
+                {isEnglish
+                  ? 'Click a slot to focus the candidate list on columns that match the current role. Drag and drop remains optional.'
+                  : '슬롯을 클릭하면 현재 역할에 맞는 변수만 먼저 정리됩니다. 드래그는 보조 기능으로만 사용할 수 있습니다.'}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="h-7 text-xs font-medium">
-                필수 슬롯 {completedRequiredSlotCount}/{requiredSlotCount}
+                {isEnglish
+                  ? `Required slots ${completedRequiredSlotCount}/${requiredSlotCount}`
+                  : `필수 슬롯 ${completedRequiredSlotCount}/${requiredSlotCount}`}
               </Badge>
               <Badge variant="secondary" className="h-7 text-xs font-medium">
-                선택된 변수 {assignedVariableCount}개
+                {isEnglish
+                  ? `Selected variables ${assignedVariableCount}`
+                  : `선택된 변수 ${assignedVariableCount}개`}
               </Badge>
               {recommendedCandidateCount > 0 && (
                 <Badge variant="outline" className="h-7 border-primary/20 bg-primary/5 text-xs font-medium text-primary">
-                  추천 후보 {recommendedCandidateCount}개
+                  {isEnglish
+                    ? `Recommended candidates ${recommendedCandidateCount}`
+                    : `추천 후보 ${recommendedCandidateCount}개`}
                 </Badge>
               )}
             </div>
@@ -663,10 +711,12 @@ export function UnifiedVariableSelector({
             <div className="flex items-start justify-between gap-3 px-1">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  분석 역할
+                  {isEnglish ? 'Analysis roles' : '분석 역할'}
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  필수 역할부터 채우면 시스템이 다음 추천 후보를 좁혀줍니다.
+                  {isEnglish
+                    ? 'Filling required roles first helps the system narrow the next recommended candidates.'
+                    : '필수 역할부터 채우면 시스템이 다음 추천 후보를 좁혀줍니다.'}
                 </p>
               </div>
               <Badge variant="outline" className="text-[11px] font-medium">
@@ -683,6 +733,7 @@ export function UnifiedVariableSelector({
                 onClickAssign={handleSlotClick}
                 isActive={activeSlotId === slot.id}
                 hasValidationError={slotValidationState.has(slot.id)}
+                language={t.language}
               />
             ))}
           </div>
@@ -691,23 +742,23 @@ export function UnifiedVariableSelector({
             <div className="flex items-start justify-between gap-3 px-1">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  사용 가능한 변수
+                  {isEnglish ? 'Available variables' : '사용 가능한 변수'}
                 </h3>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span>현재 기준</span>
+                  <span>{isEnglish ? 'Current focus' : '현재 기준'}</span>
                   <span className="rounded-full border border-border/50 bg-background px-2 py-0.5 font-medium text-foreground">
-                    {focusedSlot?.label ?? '역할 선택'}
+                    {focusedSlot?.label ?? (isEnglish ? 'Role selection' : '역할 선택')}
                   </span>
                   <span className="rounded-full border border-border/50 bg-background px-2 py-0.5">
-                    연속형 {numericColumnCount}
+                    {isEnglish ? `Numeric ${numericColumnCount}` : `연속형 ${numericColumnCount}`}
                   </span>
                   <span className="rounded-full border border-border/50 bg-background px-2 py-0.5">
-                    범주형 {categoricalColumnCount}
+                    {isEnglish ? `Categorical ${categoricalColumnCount}` : `범주형 ${categoricalColumnCount}`}
                   </span>
                 </div>
               </div>
               <Badge variant="outline" className="text-[11px] font-medium">
-                {columns.length}개
+                {isEnglish ? `${columns.length}` : `${columns.length}개`}
               </Badge>
             </div>
             <div className="space-y-1 overflow-y-auto pr-1 lg:max-h-[500px]" data-testid="variable-pool">
@@ -716,11 +767,14 @@ export function UnifiedVariableSelector({
                   key={candidate.column.name}
                   candidate={candidate}
                   onClick={() => handlePoolClick(candidate)}
+                  language={t.language}
                 />
               ))}
               {variableCandidates.length === 0 && (
                 <p className="py-4 text-center text-xs text-muted-foreground">
-                  현재 역할에 사용할 수 있는 변수가 없습니다.
+                  {isEnglish
+                    ? 'No available columns fit the currently focused role.'
+                    : '현재 역할에 사용할 수 있는 변수가 없습니다.'}
                 </p>
               )}
             </div>
@@ -745,7 +799,7 @@ export function UnifiedVariableSelector({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              진행 상태
+              {isEnglish ? 'Progress' : '진행 상태'}
             </p>
             <p className="mt-1 text-sm text-foreground">{fitState.message}</p>
           </div>
@@ -753,7 +807,7 @@ export function UnifiedVariableSelector({
             {onBack ? (
               <Button variant="outline" size="default" className="h-10 w-full sm:w-auto" onClick={onBack}>
                 <ArrowLeft className="mr-1.5 h-4 w-4" />
-                {backLabel ?? '이전 단계'}
+                {backLabel ?? (isEnglish ? 'Previous step' : '이전 단계')}
               </Button>
             ) : null}
             <Button
@@ -764,7 +818,7 @@ export function UnifiedVariableSelector({
               data-testid="variable-selection-next"
             >
               {isReady && <CheckCircle2 className="h-3.5 w-3.5" />}
-              분석 실행으로 계속
+              {isEnglish ? 'Continue to run analysis' : '분석 실행으로 계속'}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -815,6 +869,51 @@ function buildInitialAssignments(
   return result
 }
 
-function getEmptySlotHint(slot: SlotConfig): string {
+function formatSlotValidationErrors(
+  slots: SlotConfig[],
+  assignments: Record<string, string[]>,
+  language: string,
+): string[] {
+  const errors: string[] = []
+  const isEnglish = isEnglishLanguage(language)
+
+  for (const slot of slots) {
+    const assigned = assignments[slot.id] ?? []
+    const count = assigned.length
+
+    if (slot.required && count === 0) {
+      errors.push(
+        isEnglish
+          ? `${slot.label} must be selected.`
+          : `${slot.label}을(를) 선택해주세요`,
+      )
+    }
+
+    if (slot.multiple) {
+      if (slot.minCount !== undefined && count > 0 && count < slot.minCount) {
+        errors.push(
+          isEnglish
+            ? `${slot.label}: at least ${slot.minCount} required (current ${count})`
+            : `${slot.label}: 최소 ${slot.minCount}개 필요 (현재 ${count}개)`,
+        )
+      }
+      if (slot.maxCount !== undefined && count > slot.maxCount) {
+        errors.push(
+          isEnglish
+            ? `${slot.label}: at most ${slot.maxCount} allowed (current ${count})`
+            : `${slot.label}: 최대 ${slot.maxCount}개 (현재 ${count}개)`,
+        )
+      }
+    }
+  }
+
+  return errors
+}
+
+function getEmptySlotHint(slot: SlotConfig, language: string): string {
+  if (isEnglishLanguage(language)) {
+    return `Click to assign ${slot.label}`
+  }
+
   return `${slot.label}을(를) 클릭해서 채우세요`
 }

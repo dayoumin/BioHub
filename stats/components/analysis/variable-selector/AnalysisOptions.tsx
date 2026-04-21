@@ -25,6 +25,11 @@ import type {
   StatisticalMethodRequirements,
 } from '@/lib/statistics/variable-requirements'
 import {
+  getLocalizedSettingDescription,
+  getLocalizedSettingLabel,
+  getLocalizedSettingOptions,
+} from '@/lib/statistics/localized-setting-metadata'
+import {
   MANAGED_REQUIREMENT_SETTING_KEYS,
   buildManagedAnalysisOptionDefaults,
   type ManagedRequirementSettingKey,
@@ -73,6 +78,7 @@ export function AnalysisOptionsSection({
   className,
 }: AnalysisOptionsSectionProps) {
   const t = useTerminology()
+  const language = t.language
   const analysisOptions = useAnalysisStore(state => state.analysisOptions)
   const setAnalysisOptions = useAnalysisStore(state => state.setAnalysisOptions)
 
@@ -90,18 +96,51 @@ export function AnalysisOptionsSection({
     [settings]
   )
 
+  const localizedLabels = useMemo(() => ({
+    alpha: alphaSetting
+      ? getLocalizedSettingLabel('alpha', alphaSetting.label, language)
+      : t.selectorUI.labels.alpha,
+    testValue: testValueSetting
+      ? getLocalizedSettingLabel('testValue', testValueSetting.label, language)
+      : t.selectorUI.labels.testValue,
+    nullProportion: nullProportionSetting
+      ? getLocalizedSettingLabel('testProportion', nullProportionSetting.label, language)
+      : undefined,
+    alternative: alternativeSetting
+      ? getLocalizedSettingLabel('alternative', alternativeSetting.label, language)
+      : undefined,
+    ciMethod: ciMethodSetting
+      ? getLocalizedSettingLabel('ciMethod', ciMethodSetting.label, language)
+      : undefined,
+  }), [
+    alphaSetting,
+    testValueSetting,
+    nullProportionSetting,
+    alternativeSetting,
+    ciMethodSetting,
+    language,
+    t.selectorUI.labels.alpha,
+    t.selectorUI.labels.testValue,
+  ])
+
+  const localizedDescriptions = useMemo(() => ({
+    nullProportion: nullProportionSetting
+      ? getLocalizedSettingDescription('testProportion', nullProportionSetting.description, language)
+      : undefined,
+  }), [nullProportionSetting, language])
+
   const alternativeOptions = useMemo(
-    () => alternativeSetting?.options ?? [
+    () => getLocalizedSettingOptions('alternative', alternativeSetting?.options, language) ?? [
       { value: 'two-sided', label: 'Two-sided', description: '' },
       { value: 'greater', label: 'Greater', description: '' },
       { value: 'less', label: 'Less', description: '' },
     ],
-    [alternativeSetting?.options]
+    [alternativeSetting?.options, language]
   )
 
   const ciMethodOptions = useMemo(
-    () => ciMethodSetting?.options ?? [],
-    [ciMethodSetting?.options]
+    () => getLocalizedSettingOptions('ciMethod', ciMethodSetting?.options, language) ?? [],
+    [ciMethodSetting?.options, language]
   )
   const initializedDefaultsKeyRef = useRef<string | null>(null)
 
@@ -251,7 +290,7 @@ export function AnalysisOptionsSection({
         {(alphaSetting || !methodRequirements) && (
           <div className="flex items-center justify-between">
             <Label htmlFor="alpha-select" className="text-xs text-muted-foreground">
-              {alphaSetting?.label ?? t.selectorUI.labels.alpha}
+              {localizedLabels.alpha}
             </Label>
             <Select
               value={String(analysisOptions.alpha)}
@@ -272,7 +311,7 @@ export function AnalysisOptionsSection({
         {testValueSetting && (
           <div className="flex items-center justify-between">
             <Label htmlFor="test-value-input" className="text-xs text-muted-foreground">
-              {testValueSetting.label ?? t.selectorUI.labels.testValue}
+              {localizedLabels.testValue}
             </Label>
             <Input
               id="test-value-input"
@@ -292,10 +331,10 @@ export function AnalysisOptionsSection({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="null-proportion-input" className="text-xs text-muted-foreground">
-                {nullProportionSetting.label}
+                {localizedLabels.nullProportion}
               </Label>
               <p className="text-[11px] text-muted-foreground/80">
-                {nullProportionSetting.description}
+                {localizedDescriptions.nullProportion}
               </p>
             </div>
             <Input
@@ -317,7 +356,7 @@ export function AnalysisOptionsSection({
         {alternativeSetting && (
           <div className="flex items-center justify-between">
             <Label htmlFor="alternative-select" className="text-xs text-muted-foreground">
-              {alternativeSetting.label}
+              {localizedLabels.alternative}
             </Label>
             <Select
               value={analysisOptions.alternative ?? String(alternativeSetting.default ?? 'two-sided')}
@@ -340,7 +379,7 @@ export function AnalysisOptionsSection({
         {ciMethodSetting && ciMethodOptions.length > 0 && (
           <div className="flex items-center justify-between">
             <Label htmlFor="ci-method-select" className="text-xs text-muted-foreground">
-              {ciMethodSetting.label}
+              {localizedLabels.ciMethod}
             </Label>
             <Select
               value={analysisOptions.ciMethod ?? String(ciMethodSetting.default ?? ciMethodOptions[0]?.value ?? '')}
@@ -362,16 +401,19 @@ export function AnalysisOptionsSection({
 
         {genericSettings.map(([key, setting]) => {
           const currentValue = getGenericSettingValue(analysisOptions.methodSettings, key, setting)
+          const localizedLabel = getLocalizedSettingLabel(key, setting.label, language)
+          const localizedDescription = getLocalizedSettingDescription(key, setting.description, language)
+          const localizedOptions = getLocalizedSettingOptions(key, setting.options, language)
 
-          if (setting.options && setting.options.length > 0) {
+          if (localizedOptions && localizedOptions.length > 0) {
             return (
               <div key={key} className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor={`setting-${key}-select`} className="text-xs text-muted-foreground">
-                    {setting.label}
+                    {localizedLabel}
                   </Label>
                   <p className="text-[11px] text-muted-foreground/80">
-                    {setting.description}
+                    {localizedDescription}
                   </p>
                 </div>
                 <Select
@@ -386,7 +428,7 @@ export function AnalysisOptionsSection({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {setting.options.map(option => (
+                    {localizedOptions.map(option => (
                       <SelectItem key={String(option.value)} value={String(option.value)}>
                         {option.label}
                       </SelectItem>
@@ -401,10 +443,10 @@ export function AnalysisOptionsSection({
             <div key={key} className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor={`setting-${key}-input`} className="text-xs text-muted-foreground">
-                  {setting.label}
+                  {localizedLabel}
                 </Label>
                 <p className="text-[11px] text-muted-foreground/80">
-                  {setting.description}
+                  {localizedDescription}
                 </p>
               </div>
               <Input

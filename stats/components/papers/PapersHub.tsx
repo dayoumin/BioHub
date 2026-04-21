@@ -15,8 +15,14 @@ import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/resea
 import { loadAndRestoreHistory } from '@/lib/stores/store-orchestration'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { loadDocumentBlueprints } from '@/lib/research/document-blueprint-storage'
+import {
+  listPackages,
+  PAPER_PACKAGES_CHANGED_EVENT,
+  type PaperPackagesChangedDetail,
+} from '@/lib/research/paper-package-storage'
 import { PRESET_REGISTRY } from '@/lib/research/document-preset-registry'
 import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
+import type { PaperPackage } from '@/lib/research/paper-package-types'
 import DocumentAssemblyDialog from './DocumentAssemblyDialog'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { cn } from '@/lib/utils'
@@ -105,6 +111,38 @@ function DraftHistoryCard({ name, method, timestamp, onClick }: DraftHistoryCard
   )
 }
 
+interface PackageCardProps {
+  pkg: PaperPackage
+  onClick: () => void
+}
+
+function PackageCard({ pkg, onClick }: PackageCardProps): React.ReactElement {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
+        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+      )}
+    >
+      <div className="shrink-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-2 rounded-lg">
+        <Package className="w-4 h-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-sm truncate">{pkg.overview.title || '제목 없는 패키지'}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          v{pkg.version} · {pkg.items.filter(item => item.included).length}개 항목 포함
+        </p>
+      </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+        <Clock className="w-3 h-3" />
+        {formatTimeAgo(new Date(pkg.updatedAt))}
+      </div>
+    </button>
+  )
+}
+
 // ── 기능 소개 ──
 
 const FEATURES = [
@@ -141,14 +179,43 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
   const setShowHub = useModeStore(s => s.setShowHub)
   const activeProject = useResearchProjectStore(selectActiveProject)
   const [documents, setDocuments] = useState<DocumentBlueprint[]>([])
+  const [packages, setPackages] = useState<PaperPackage[]>([])
   const [assemblyOpen, setAssemblyOpen] = useState(false)
 
   // 문서 목록 로드
   useEffect(() => {
-    if (!activeProject) return
-    loadDocumentBlueprints(activeProject.id).then(setDocuments).catch(() => {
+    if (!activeProject) {
       setDocuments([])
-    })
+      setPackages([])
+      return
+    }
+
+    const reloadMaterials = (): void => {
+      loadDocumentBlueprints(activeProject.id).then(setDocuments).catch(() => {
+        setDocuments([])
+      })
+      setPackages(listPackages(activeProject.id).sort((left, right) => (
+        right.updatedAt.localeCompare(left.updatedAt)
+      )))
+    }
+
+    reloadMaterials()
+
+    const handlePackageChange = (event: Event): void => {
+      if (event instanceof CustomEvent) {
+        const detail = event.detail as PaperPackagesChangedDetail | undefined
+        if (detail && !detail.projectIds.includes(activeProject.id)) {
+          return
+        }
+      }
+      reloadMaterials()
+    }
+
+    window.addEventListener(PAPER_PACKAGES_CHANGED_EVENT, handlePackageChange)
+
+    return (): void => {
+      window.removeEventListener(PAPER_PACKAGES_CHANGED_EVENT, handlePackageChange)
+    }
   }, [activeProject])
 
   const draftHistories = analysisHistory
@@ -229,6 +296,24 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                 key={doc.id}
                 doc={doc}
                 onClick={() => onOpenDocument(doc.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeProject && onOpenPackage && packages.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            패키지
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {packages.map(pkg => (
+              <PackageCard
+                key={pkg.id}
+                pkg={pkg}
+                onClick={() => onOpenPackage(pkg.id, activeProject.id)}
               />
             ))}
           </div>
