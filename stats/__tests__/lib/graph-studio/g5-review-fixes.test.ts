@@ -171,7 +171,7 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
 
   it('unsupported shape/size encodings are sanitized and do not block relinking', () => {
     const spec: ChartSpec = {
-      ...makeSpec('Legacy Bubble'),
+      ...makeSpec('Compat Bubble'),
       encoding: {
         x: { field: 'group', type: 'nominal' },
         y: { field: 'value', type: 'quantitative' },
@@ -185,7 +185,7 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
     act(() => { useGraphStudioStore.getState().setProject(project) })
     act(() => {
       useGraphStudioStore.getState().loadDataPackage(makePkg({
-        id: 'legacy-shape-size',
+        id: 'compat-shape-size',
         columns: [
           ...BASE_COLS,
           { name: 'treatment', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
@@ -194,7 +194,7 @@ describe('인코딩 호환성 검사 확장 (Medium)', () => {
     })
 
     expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-1')
-    expect(useGraphStudioStore.getState().chartSpec?.title).toBe('Legacy Bubble')
+    expect(useGraphStudioStore.getState().chartSpec?.title).toBe('Compat Bubble')
     expect(useGraphStudioStore.getState().chartSpec?.encoding.shape).toBeUndefined()
     expect(useGraphStudioStore.getState().chartSpec?.encoding.size).toBeUndefined()
   })

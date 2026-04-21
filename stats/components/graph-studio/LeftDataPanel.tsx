@@ -106,6 +106,7 @@ export function LeftDataPanel(): React.ReactElement {
         label: file.name,
         columns,
         data,
+        lineageMode: 'manual',
         createdAt: new Date().toISOString(),
       };
 

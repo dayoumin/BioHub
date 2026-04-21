@@ -325,6 +325,10 @@ describe('history result Graph Studio import fidelity', () => {
       fittedPoints: [[1, 2], [2, 4], [3, 6], [4, 8]],
     })
     expect(pkg.analysisResultId).toBe('hist-graph-1')
+    expect(pkg.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'hist-graph-1', label: 'simple-regression' },
+    ])
+    expect(pkg.lineageMode).toBe('derived')
     expect(pkg.data).toMatchObject({
       x: [3, 1, 4, 2],
       y: [6, 2, 8, 4],

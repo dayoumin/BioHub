@@ -250,18 +250,18 @@ describe('review regression fixes', () => {
     act(() => {
       useGraphStudioStore.getState().setProject(
         makeProject({
-          id: 'legacy-project',
-          analysisId: 'analysis-legacy',
+          id: 'compat-project',
+          analysisId: 'analysis-compat',
           dataPackageId: '',
-          sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-legacy', label: 'Legacy Analysis' }],
+          sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Analysis' }],
         }),
       )
       useGraphStudioStore.getState().loadDataPackageWithSpec(
         makePkg({ id: 'pkg-upload-empty-prev', label: 'Fresh Upload' }),
-        makeSpec('Relinked Legacy Graph'),
+        makeSpec('Relinked Compat Graph'),
         { preserveCurrentProject: true },
       )
-      useGraphStudioStore.getState().saveCurrentProject('Relinked Legacy Graph')
+      useGraphStudioStore.getState().saveCurrentProject('Relinked Compat Graph')
     })
 
     const persistedProject = saveSpy.mock.calls.at(-1)?.[0]
@@ -325,13 +325,13 @@ describe('review regression fixes', () => {
 
   it('saveCurrentProject omits deprecated editHistory from newly persisted projects', () => {
     const saveSpy = vi.spyOn(projectStorage, 'saveProject')
-    const legacyProject = {
+    const compatProject = {
       ...makeProject(),
       editHistory: [{ patches: [], explanation: 'old', confidence: 0.4 }],
     } as GraphProject & { editHistory: Array<{ patches: []; explanation: string; confidence: number }> }
 
     act(() => {
-      useGraphStudioStore.getState().setProject(legacyProject)
+      useGraphStudioStore.getState().setProject(compatProject)
       useGraphStudioStore.getState().saveCurrentProject('Saved Graph')
     })
 
@@ -545,7 +545,10 @@ describe('loadDataPackage', () => {
     act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
 
     const state = useGraphStudioStore.getState()
-    expect(state.dataPackage).toBe(pkg)
+    expect(state.dataPackage).toMatchObject({
+      ...pkg,
+      lineageMode: 'manual',
+    })
     expect(state.isDataLoaded).toBe(true)
     expect(state.chartSpec).not.toBeNull()
     expect(state.specHistory).toHaveLength(1)
@@ -580,11 +583,11 @@ describe('loadDataPackage', () => {
     expect(spec?.encoding.x.field).not.toBe(spec?.encoding.y.field)
   })
 
-  it('normalizes legacy analysisResultId into canonical sourceRefs on load', () => {
+  it('normalizes compat analysisResultId into canonical sourceRefs on load', () => {
     const pkg = makePkg({
-      id: 'pkg-legacy-source',
-      label: 'Legacy Analysis Package',
-      analysisResultId: 'analysis-legacy',
+      id: 'pkg-compat-source',
+      label: 'Compat Analysis Package',
+      analysisResultId: 'analysis-compat',
       columns: [
         { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
         { name: 'y', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
@@ -594,8 +597,72 @@ describe('loadDataPackage', () => {
     act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
 
     expect(useGraphStudioStore.getState().dataPackage?.sourceRefs).toEqual([
-      { kind: 'analysis', sourceId: 'analysis-legacy', label: 'Legacy Analysis Package' },
+      { kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Analysis Package' },
     ])
+    expect(useGraphStudioStore.getState().dataPackage?.analysisResultId).toBe('analysis-compat')
+    expect(useGraphStudioStore.getState().dataPackage?.lineageMode).toBe('derived')
+  })
+
+  it('infers mixed lineageMode from canonical multi-source refs on load', () => {
+    const pkg = makePkg({
+      id: 'pkg-mixed',
+      label: 'Mixed Package',
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'analysis-1', label: 'Analysis 1' },
+        { kind: 'figure', sourceId: 'figure-1', label: 'Figure 1' },
+      ],
+      columns: [
+        { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().dataPackage?.analysisResultId).toBeUndefined()
+    expect(useGraphStudioStore.getState().dataPackage?.lineageMode).toBe('mixed')
+  })
+
+  it('drops stale analysisResultId when canonical sourceRefs are no longer a single analysis', () => {
+    const pkg = makePkg({
+      id: 'pkg-stale-compat-analysis',
+      label: 'Stale Compat Analysis',
+      analysisResultId: 'analysis-stale',
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'analysis-current', label: 'Current Analysis' },
+        { kind: 'figure', sourceId: 'figure-upstream', label: 'Upstream Figure' },
+      ],
+      columns: [
+        { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().dataPackage?.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'analysis-current', label: 'Current Analysis' },
+      { kind: 'figure', sourceId: 'figure-upstream', label: 'Upstream Figure' },
+    ])
+    expect(useGraphStudioStore.getState().dataPackage?.analysisResultId).toBeUndefined()
+    expect(useGraphStudioStore.getState().dataPackage?.lineageMode).toBe('mixed')
+  })
+
+  it('reconciles stale explicit lineageMode against canonical multi-source refs', () => {
+    const pkg = makePkg({
+      id: 'pkg-stale-lineage-mode',
+      label: 'Mixed Sources',
+      lineageMode: 'derived',
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'analysis-current', label: 'Current Analysis' },
+        { kind: 'figure', sourceId: 'figure-upstream', label: 'Upstream Figure' },
+      ],
+      columns: [
+        { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().dataPackage?.lineageMode).toBe('mixed')
   })
 })
 
@@ -899,10 +966,14 @@ describe('setProject', () => {
     expect(state.currentProject).toMatchObject({
       ...project,
       sourceRefs: [{ kind: 'data-package', sourceId: pkg.id, label: pkg.label }],
+      lineageMode: 'derived',
     })
     // setProject가 exportConfig를 정규화하며 새 객체를 생성하므로 toStrictEqual 사용
     expect(state.chartSpec).toStrictEqual(spec)
-    expect(state.dataPackage).toBe(pkg)
+    expect(state.dataPackage).toMatchObject({
+      ...pkg,
+      lineageMode: 'manual',
+    })
     expect(state.isDataLoaded).toBe(true)
     expect(state.specHistory).toHaveLength(1)
     expect(state.historyIndex).toBe(0)
@@ -914,22 +985,27 @@ describe('setProject', () => {
     act(() => { useGraphStudioStore.getState().setProject(project) })
 
     const state = useGraphStudioStore.getState()
-    expect(state.currentProject).toBe(project)
+    expect(state.currentProject).toMatchObject({
+      ...project,
+      lineageMode: 'manual',
+    })
     expect(state.dataPackage).toBeNull()
     expect(state.isDataLoaded).toBe(false)
   })
 
-  it('normalizes legacy analysisId into canonical sourceRefs when restoring a project', () => {
+  it('normalizes compat analysisId into canonical sourceRefs when restoring a project', () => {
     const project = makeProject({
-      analysisId: 'analysis-legacy-project',
+      analysisId: 'analysis-compat-project',
       dataPackageId: '',
     })
 
     act(() => { useGraphStudioStore.getState().setProject(project) })
 
-    expect(useGraphStudioStore.getState().currentProject?.sourceRefs).toEqual([
-      { kind: 'analysis', sourceId: 'analysis-legacy-project', label: 'My Project' },
-    ])
+    expect(useGraphStudioStore.getState().currentProject).toMatchObject({
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-compat-project', label: 'My Project' }],
+      lineageMode: 'derived',
+      analysisId: 'analysis-compat-project',
+    })
   })
 })
 
@@ -1367,12 +1443,12 @@ describe('undo/redo — exportConfig 보존', () => {
 describe('setProject — 구버전 exportConfig 마이그레이션', () => {
   it('width/height/transparent가 포함된 구버전 exportConfig를 정규화한다', () => {
     // 구버전 localStorage 데이터를 시뮬레이션 (타입 캐스팅으로 런타임 객체 생성)
-    const legacySpec = {
+    const historicalSpec = {
       ...makeSpec(),
       exportConfig: { format: 'png', dpi: 300, width: 800, height: 600, transparent: false },
     } as unknown as ChartSpec
 
-    const project = makeProject({ chartSpec: legacySpec })
+    const project = makeProject({ chartSpec: historicalSpec })
 
     act(() => { useGraphStudioStore.getState().setProject(project) })
 
@@ -1397,12 +1473,12 @@ describe('setProject — 구버전 exportConfig 마이그레이션', () => {
   })
 
   it('구버전 exportConfig에 physicalWidth/Height 없으면 마이그레이션 후 필드가 생기지 않는다', () => {
-    const legacySpec = {
+    const historicalSpec = {
       ...makeSpec(),
       exportConfig: { format: 'png', dpi: 300, width: 800, height: 600 },
     } as unknown as ChartSpec
 
-    const project = makeProject({ chartSpec: legacySpec })
+    const project = makeProject({ chartSpec: historicalSpec })
     act(() => { useGraphStudioStore.getState().setProject(project) })
 
     const { chartSpec } = useGraphStudioStore.getState()
@@ -1415,7 +1491,7 @@ describe('setProject — 구버전 exportConfig 마이그레이션', () => {
     const { applyAndValidatePatches } = await import('@/lib/graph-studio/chart-spec-utils')
 
     // columns: [] 이면 chartSpecSchema.min(1) 실패 → columns 1개 이상 포함
-    const legacySpec = {
+    const historicalSpec = {
       version: '1.0',
       chartType: 'bar',
       title: 'Old Title',
@@ -1435,7 +1511,7 @@ describe('setProject — 구버전 exportConfig 마이그레이션', () => {
       exportConfig: { format: 'png', dpi: 300, width: 800, height: 600, transparent: false },
     } as unknown as ChartSpec
 
-    const project = makeProject({ chartSpec: legacySpec })
+    const project = makeProject({ chartSpec: historicalSpec })
     act(() => { useGraphStudioStore.getState().setProject(project) })
 
     const { chartSpec } = useGraphStudioStore.getState()

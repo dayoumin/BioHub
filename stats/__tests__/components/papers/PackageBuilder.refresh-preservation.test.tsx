@@ -292,7 +292,7 @@ describe('PackageBuilder refresh preservation', () => {
     expect(savedFigure?.patternSummary).toBeUndefined()
   })
 
-  it('uses graph source snapshots as the next canonical lineage fallback before legacy analysisId', async () => {
+  it('uses graph source snapshots as the next canonical lineage fallback before compat analysisId', async () => {
     mockLoadPackage.mockResolvedValue(createPackage())
     mockListProjectEntityRefs.mockReturnValue([
       { entityKind: 'analysis', entityId: 'analysis-2' },
@@ -301,7 +301,7 @@ describe('PackageBuilder refresh preservation', () => {
     mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-2', 'Snapshot analysis')])
     mockListProjects.mockReturnValue([
       {
-        ...createGraphProject('figure-1', 'analysis-legacy'),
+        ...createGraphProject('figure-1', 'analysis-compat'),
         sourceSnapshot: {
           capturedAt: '2026-04-14T00:00:00.000Z',
           rowCount: 12,

@@ -47,8 +47,8 @@ export function sanitizeChartSpecForRenderer(spec: ChartSpec): ChartSpec {
         const { scale: _scale, legend, ...colorRest } = color;
         const sanitizedLegend = legend
           ? (() => {
-              const legacyLegend = legend as Record<string, unknown>;
-              const { title: _title, titleFontSize: _titleFontSize, ...legendRest } = legacyLegend;
+              const rawLegend = legend as Record<string, unknown>;
+              const { title: _title, titleFontSize: _titleFontSize, ...legendRest } = rawLegend;
               return hasOwnKeys(legendRest) ? legendRest : undefined;
             })()
           : undefined;

@@ -93,6 +93,17 @@ export function getDataPackageSourceRefs(
   return []
 }
 
+export function resolveDataPackageAnalysisResultId(
+  dataPackage: Pick<DataPackage, 'sourceRefs' | 'analysisResultId' | 'label'>,
+): string | undefined {
+  const sourceRefs = getDataPackageSourceRefs(dataPackage)
+  if (sourceRefs.length !== 1 || sourceRefs[0]?.kind !== 'analysis') {
+    return undefined
+  }
+
+  return sourceRefs[0].sourceId
+}
+
 export function getGraphProjectAnalysisSourceRefs(
   graph: Pick<GraphProject, 'sourceRefs' | 'sourceSnapshot' | 'analysisId' | 'name'>,
 ): GraphSourceRef[] {
@@ -123,12 +134,22 @@ export function getGraphProjectAnalysisSourceRefs(
   }]
 }
 
+function getGraphProjectSnapshotSourceRefs(
+  graph: Pick<GraphProject, 'sourceSnapshot'>,
+): GraphSourceRef[] {
+  return (graph.sourceSnapshot?.sourceRefs ?? []).map((sourceRef) => ({ ...sourceRef }))
+}
+
 export function resolveGraphProjectAnalysisId(
   currentProject: GraphProject | null,
   dataPackage: DataPackage | null,
 ): string | undefined {
   const sourceRefs = resolveGraphProjectSourceRefs(currentProject, dataPackage)
-  return sourceRefs.find((sourceRef) => sourceRef.kind === 'analysis')?.sourceId
+  if (sourceRefs.length !== 1 || sourceRefs[0]?.kind !== 'analysis') {
+    return undefined
+  }
+
+  return sourceRefs[0].sourceId
 }
 
 export function resolveGraphProjectSourceRefs(
@@ -165,6 +186,11 @@ export function resolveGraphProjectSourceRefs(
   }
 
   if (!dataPackageChanged && currentProject) {
+    const snapshotSourceRefs = getGraphProjectSnapshotSourceRefs(currentProject)
+    if (snapshotSourceRefs.length > 0) {
+      return snapshotSourceRefs
+    }
+
     const analysisSourceRefs = getGraphProjectAnalysisSourceRefs(currentProject)
     if (analysisSourceRefs.length > 0) {
       return analysisSourceRefs
@@ -187,6 +213,14 @@ export function resolveGraphProjectLineageMode(
   dataPackage: DataPackage | null,
   sourceRefs: readonly GraphSourceRef[],
 ): GraphLineageMode {
+  if (sourceRefs.length > 1) {
+    return 'mixed'
+  }
+
+  if (sourceRefs.length === 1) {
+    return 'derived'
+  }
+
   if (dataPackage?.lineageMode) {
     return dataPackage.lineageMode
   }
@@ -195,11 +229,7 @@ export function resolveGraphProjectLineageMode(
     return currentProject.lineageMode
   }
 
-  if (sourceRefs.length > 1) {
-    return 'mixed'
-  }
-
-  return sourceRefs.length === 1 ? 'derived' : 'manual'
+  return 'manual'
 }
 
 export function buildGraphProjectSourceSchema(
@@ -299,6 +329,27 @@ export function buildGraphProjectSourceSnapshot(
     }
   }
 
+  if (currentProject && sourceRefs.length > 0) {
+    const columns = (currentProject.sourceSchema ?? []).map((column) => ({ ...column }))
+    const referencedFields = collectReferencedFields(chartSpec)
+
+    return {
+      capturedAt,
+      dataPackageId: currentProject.dataPackageId || undefined,
+      rowCount: 0,
+      columns,
+      sourceRefs: sourceRefs.map((sourceRef) => ({ ...sourceRef })),
+      referencedFields,
+      schemaFingerprint: columns.length > 0 ? buildSchemaFingerprint(columns) : undefined,
+      sourceFingerprint: buildSourceFingerprint({
+        rowCount: 0,
+        columnPreviews: [],
+        sourceRefs,
+        referencedFields,
+      }),
+    }
+  }
+
   return undefined
 }
 
@@ -323,5 +374,38 @@ export function resolveGraphProjectLineage(
       chartSpec,
       capturedAt,
     ),
+  }
+}
+
+export function normalizePersistedGraphProject(
+  project: GraphProject,
+  dataPackage: DataPackage | null = null,
+): GraphProject {
+  const capturedAt = project.updatedAt || project.createdAt || new Date().toISOString()
+  const lineage = resolveGraphProjectLineage(
+    project,
+    dataPackage,
+    project.chartSpec,
+    capturedAt,
+  )
+
+  const shouldNormalize =
+    lineage.sourceRefs.length > 0
+    || project.lineageMode == null
+    || project.analysisId !== lineage.analysisId
+    || (project.sourceSnapshot == null && lineage.sourceSnapshot != null)
+    || (project.sourceSchema == null && lineage.sourceSchema != null)
+
+  if (!shouldNormalize) {
+    return project
+  }
+
+  return {
+    ...project,
+    analysisId: lineage.analysisId,
+    ...(lineage.sourceRefs.length > 0 ? { sourceRefs: lineage.sourceRefs } : {}),
+    lineageMode: lineage.lineageMode,
+    ...(lineage.sourceSchema ? { sourceSchema: lineage.sourceSchema } : {}),
+    ...(lineage.sourceSnapshot ? { sourceSnapshot: lineage.sourceSnapshot } : {}),
   }
 }

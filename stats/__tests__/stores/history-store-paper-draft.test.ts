@@ -78,12 +78,12 @@ function makeRecord(overrides: Partial<HistoryRecord> = {}): HistoryRecord {
   }
 }
 
-/** 구버전 레코드 팩토리 (postHocDisplay 필드 없음) */
-function makeLegacyRecord(): HistoryRecord {
+/** 호환 레코드 팩토리 (postHocDisplay 필드 없음) */
+function makeCompatRecord(): HistoryRecord {
   const base = makeRecord()
-  const legacyDraft = { ...sampleDraft } as Record<string, unknown>
-  delete legacyDraft.postHocDisplay  // 구버전에 없는 필드
-  return { ...base, paperDraft: legacyDraft as unknown as PaperDraft }
+  const compatDraft = { ...sampleDraft } as Record<string, unknown>
+  delete compatDraft.postHocDisplay  // 구버전에 없는 필드
+  return { ...base, paperDraft: compatDraft as unknown as PaperDraft }
 }
 
 // ─── 테스트 ───────────────────────────────────────────────────────────────────
@@ -151,15 +151,15 @@ describe('history-store — paperDraft 라이프사이클', () => {
     })
   })
 
-  it('legacy t-test method id도 양쪽 복원 경로에서 canonical method로 복원한다', async () => {
-    const legacyRecord = makeRecord({
+  it('compat t-test method id도 양쪽 복원 경로에서 canonical method로 복원한다', async () => {
+    const compatRecord = makeRecord({
       method: { id: 'independent-t-test', name: '독립표본 t-검정', category: 't-test' },
     })
 
-    mockGetHistory.mockResolvedValueOnce(legacyRecord)
+    mockGetHistory.mockResolvedValueOnce(compatRecord)
     const fullResult = await useHistoryStore.getState().loadFromHistory('test-history-1')
 
-    mockGetHistory.mockResolvedValueOnce(legacyRecord)
+    mockGetHistory.mockResolvedValueOnce(compatRecord)
     const settingsResult = await useHistoryStore.getState().loadSettingsFromHistory('test-history-1')
 
     expect(fullResult?.selectedMethod?.id).toBe('two-sample-t')
@@ -169,7 +169,7 @@ describe('history-store — paperDraft 라이프사이클', () => {
   // ── 3. 구버전 데이터 호환성 ────────────────────────────────────────────────
 
   it('구버전 레코드(postHocDisplay 없음)를 로드하면 postHocDisplay가 undefined다 → 컴포넌트 fallback 필요', async () => {
-    mockGetHistory.mockResolvedValueOnce(makeLegacyRecord())
+    mockGetHistory.mockResolvedValueOnce(makeCompatRecord())
 
     await act(async () => {
       await useHistoryStore.getState().loadFromHistory('test-history-1')

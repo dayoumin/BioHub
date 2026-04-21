@@ -56,8 +56,8 @@ export function TerminologyProvider({
   initialDomain = DEFAULT_DOMAIN
 }: TerminologyProviderProps) {
   const preferences = React.useContext(AppPreferencesContext)
-  const [legacyDomain, setLegacyDomain] = useState<AppTerminologyDomain>(initialDomain)
-  const [legacyLanguage, setLegacyLanguage] = useState<AppLanguageCode>(DEFAULT_LANGUAGE)
+  const [fallbackDomain, setFallbackDomain] = useState<AppTerminologyDomain>(initialDomain)
+  const [fallbackLanguage, setFallbackLanguage] = useState<AppLanguageCode>(DEFAULT_LANGUAGE)
 
   // 컴포넌트 마운트 시 localStorage에서 저장된 도메인 불러오기
   useEffect(() => {
@@ -67,27 +67,27 @@ export function TerminologyProvider({
 
     const savedLanguage = localStorage.getItem(STORAGE_KEYS.ui.language)
     if (savedLanguage === 'ko' || savedLanguage === 'en') {
-      setLegacyLanguage(savedLanguage)
+      setFallbackLanguage(savedLanguage)
     }
 
     const savedDomain = localStorage.getItem(STORAGE_KEYS.ui.terminologyDomain)
     if (savedDomain === 'aquaculture' || savedDomain === 'generic') {
-      setLegacyDomain(savedDomain as AppTerminologyDomain)
+      setFallbackDomain(savedDomain as AppTerminologyDomain)
     }
   }, [preferences])
 
-  const currentDomain = preferences?.currentDomain ?? legacyDomain
-  const currentLanguage = preferences?.currentLanguage ?? legacyLanguage
+  const currentDomain = preferences?.currentDomain ?? fallbackDomain
+  const currentLanguage = preferences?.currentLanguage ?? fallbackLanguage
   const locale = preferences?.locale ?? DEFAULT_LOCALE
 
-  // 레거시 standalone 사용처와의 호환을 위한 fallback persistence
+  // standalone 사용처 호환을 위한 fallback persistence
   const setDomain = useCallback((domain: AppTerminologyDomain) => {
     if (preferences) {
       preferences.setDomain(domain)
       return
     }
 
-    setLegacyDomain(domain)
+    setFallbackDomain(domain)
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.ui.terminologyDomain, domain)
     }
@@ -99,7 +99,7 @@ export function TerminologyProvider({
       return
     }
 
-    setLegacyLanguage(language)
+    setFallbackLanguage(language)
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.ui.language, language)
       document.documentElement.lang = language

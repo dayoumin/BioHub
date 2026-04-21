@@ -2,7 +2,7 @@
  * variable-detection-service 회귀 테스트
  *
  * extractDetectedVariables()는 PurposeInputStep(Step 2) + page.tsx(quickAnalysisMode) 공용.
- * 3순위 우선순위: LLM variableAssignments → legacy detectedVariables → heuristic
+ * 3순위 우선순위: LLM variableAssignments → compat detectedVariables → heuristic
  */
 
 import { describe, it, expect, vi } from 'vitest'
@@ -364,7 +364,7 @@ describe('extractDetectedVariables', () => {
       expect(result.filteredOutVars).toContain('id')
     })
 
-    it('legacy detectedVariables가 ID 컬럼을 dependent로 가리켜도 무시', () => {
+    it('compat detectedVariables가 ID 컬럼을 dependent로 가리켜도 무시', () => {
       const data = {
         columns: [
           makeCol('id', 'numeric', { idDetection: { isId: true, reason: 'id 이름 패턴', confidence: 0.95, source: 'name' } }),
@@ -418,11 +418,11 @@ describe('extractDetectedVariables', () => {
     })
   })
 
-  // ─── 2순위: legacy detectedVariables ───
+  // ─── 2순위: compat detectedVariables ───
 
-  describe('2순위: legacy detectedVariables', () => {
+  describe('2순위: compat detectedVariables', () => {
 
-    it('legacy groupVariable + dependentVariables 매핑', () => {
+    it('compat groupVariable + dependentVariables 매핑', () => {
       const rec = makeRecommendation({
         detectedVariables: {
           groupVariable: { name: '사료종류', uniqueValues: ['A', 'B', 'C'], count: 3 },
@@ -435,7 +435,7 @@ describe('extractDetectedVariables', () => {
       expect(result.dependentCandidate).toBe('체장')
     })
 
-    it('legacy 변수가 데이터에 없으면 fallback', () => {
+    it('compat 변수가 데이터에 없으면 fallback', () => {
       const rec = makeRecommendation({
         detectedVariables: {
           groupVariable: { name: '없는컬럼', uniqueValues: [], count: 0 },
@@ -519,8 +519,8 @@ describe('extractDetectedVariables', () => {
     })
 
     it('columnStats만 있는 persisted state도 정상 동작 (backward-compat)', () => {
-      const legacyData = { columnStats: [...CATEGORICAL_COLS, ...NUMERIC_COLS] }
-      const result = extractDetectedVariables('independent-samples-t-test', legacyData, null)
+      const compatData = { columnStats: [...CATEGORICAL_COLS, ...NUMERIC_COLS] }
+      const result = extractDetectedVariables('independent-samples-t-test', compatData, null)
 
       expect(result.groupVariable).toBe('성별')
       expect(result.dependentCandidate).toBe('체중')

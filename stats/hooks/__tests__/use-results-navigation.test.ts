@@ -311,6 +311,8 @@ describe('useResultsNavigation', () => {
         label: 'Independent Samples t-Test 결과',
         projectId: 'research-project-1',
         analysisResultId: 'history-graph',
+        sourceRefs: [{ kind: 'analysis', sourceId: 'history-graph', label: 'History' }],
+        lineageMode: 'derived',
       }),
       expect.objectContaining({
         encoding: {
@@ -364,6 +366,7 @@ describe('useResultsNavigation', () => {
           group: ['A', 'B'],
           mean: [10, 14],
         },
+        lineageMode: 'manual',
       }),
       expect.anything(),
     )

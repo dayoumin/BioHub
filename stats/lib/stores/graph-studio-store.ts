@@ -33,6 +33,8 @@ import {
   buildGraphProjectProvenanceEdges,
   buildGraphProjectSourceSnapshot,
   getDataPackageSourceRefs,
+  normalizePersistedGraphProject,
+  resolveDataPackageAnalysisResultId,
   resolveGraphProjectLineage,
   resolveGraphProjectSourceRefs,
 } from '@/lib/graph-studio/project-lineage';
@@ -277,25 +279,34 @@ function buildRelinkWarning(
 
 function normalizeDataPackage(dataPackage: DataPackage): DataPackage {
   const sourceRefs = getDataPackageSourceRefs(dataPackage)
-  return sourceRefs.length > 0
-    ? {
-        ...dataPackage,
-        sourceRefs,
-      }
-    : dataPackage
+  const compatAnalysisResultId = resolveDataPackageAnalysisResultId(dataPackage)
+  const inferredLineageMode: GraphLineageMode = sourceRefs.length > 1
+    ? 'mixed'
+    : sourceRefs.length === 1
+      ? 'derived'
+      : (dataPackage.lineageMode ?? 'manual')
+  const shouldNormalize =
+    sourceRefs.length > 0
+    || dataPackage.lineageMode !== inferredLineageMode
+    || dataPackage.analysisResultId !== compatAnalysisResultId
+
+  if (!shouldNormalize) {
+    return dataPackage
+  }
+
+  return {
+    ...dataPackage,
+    ...(sourceRefs.length > 0 ? { sourceRefs } : {}),
+    analysisResultId: compatAnalysisResultId,
+    lineageMode: inferredLineageMode,
+  }
 }
 
 function normalizeGraphProject(
   project: GraphProject,
   dataPackage?: DataPackage,
 ): GraphProject {
-  const sourceRefs = resolveGraphProjectSourceRefs(project, dataPackage ?? null)
-  return sourceRefs.length > 0
-    ? {
-        ...project,
-        sourceRefs,
-      }
-    : project
+  return normalizePersistedGraphProject(project, dataPackage ?? null)
 }
 
 export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>(

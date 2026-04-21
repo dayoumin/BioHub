@@ -123,6 +123,13 @@ pnpm test:coverage    # 커버리지
 - Next.js 15 App Router (Pages Router 금지)
 - shadcn/ui 컴포넌트 우선
 
+## Windows / Codex 인코딩 대응
+
+- Windows PowerShell 출력은 UTF-8 파일도 mojibake로 보일 수 있음. 콘솔에 깨져 보여도 즉시 파일 손상으로 단정하지 말 것.
+- 한글/특수문자 포함 파일 확인은 `Get-Content` 출력만 믿지 말고, Python으로 `encoding='utf-8'` 직접 읽기 기준으로 판단할 것.
+- 수동 편집은 반드시 `apply_patch` 우선. 특히 JSX 문자열, terminology 사전, 문서 파일은 줄 단위 수정만 허용.
+- 이 환경에서는 Codex 번들 `rg.exe`가 WindowsApps 권한 문제로 실행 실패할 수 있다. `rg` 재시도를 반복하지 말고 텍스트 검색은 `git grep`, 비추적 파일 검색은 `Select-String`, 파일 목록은 `git ls-files` 또는 `Get-ChildItem`을 우선 사용할 것.
+
 ## 명명 규칙 요약
 
 - **TS/JS**: camelCase (변수), UPPER_SNAKE (상수), PascalCase (타입/컴포넌트)

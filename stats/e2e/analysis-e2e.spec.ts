@@ -210,7 +210,7 @@ test.describe('@phase1 @critical Step 3: 변수 선택', () => {
 
     await goToVariableSelection(page)
 
-    // Smart Flow: UnifiedVariableSelector or legacy step — either must be visible
+    // Smart Flow: UnifiedVariableSelector or older step variant — either must be visible
     const unifiedSelector = page.locator(S.unifiedVariableSelector)
     const varStep = page.locator(S.variableSelectionStep)
     await expect(unifiedSelector.or(varStep).first()).toBeVisible({ timeout: 10000 })

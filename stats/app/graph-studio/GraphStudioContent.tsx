@@ -55,6 +55,7 @@ export default function GraphStudioContent(): React.ReactElement {
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
   // primitive 셀렉터: React Compiler 스냅샷 비교에 안전
   const currentProjectId = useGraphStudioStore(state => state.currentProject?.id ?? null);
+  const relinkWarning = useGraphStudioStore(state => state.relinkWarning);
   const detachMissingProject = useGraphStudioStore(state => state.detachMissingProject);
   const setProject = useGraphStudioStore(state => state.setProject);
   const aiPanelOpen = useGraphStudioStore(state => state.aiPanelOpen);
@@ -70,6 +71,7 @@ export default function GraphStudioContent(): React.ReactElement {
 
   const detachedProjectIdRef = useRef<string | null>(null);
   const previousProjectIdRef = useRef<string | null>(null);
+  const previousRelinkWarningKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const previousProjectId = previousProjectIdRef.current;
@@ -80,6 +82,28 @@ export default function GraphStudioContent(): React.ReactElement {
     );
     previousProjectIdRef.current = currentProjectId;
   }, [currentProjectId]);
+
+  useEffect(() => {
+    if (!relinkWarning) {
+      previousRelinkWarningKeyRef.current = null;
+      return;
+    }
+
+    const warningKey = [
+      relinkWarning.projectId,
+      relinkWarning.previousSchemaFingerprint ?? '',
+      relinkWarning.nextSchemaFingerprint ?? '',
+      relinkWarning.previousSourceFingerprint ?? '',
+      relinkWarning.nextSourceFingerprint ?? '',
+    ].join(':');
+
+    if (previousRelinkWarningKeyRef.current === warningKey) {
+      return;
+    }
+
+    previousRelinkWarningKeyRef.current = warningKey;
+    toast.warning(`${relinkWarning.projectName} 연결이 해제되어 현재 데이터 기준의 새 세션으로 전환했습니다.`);
+  }, [relinkWarning]);
 
   // ?project=<id> 쿼리 파라미터로 프로젝트 복원.
   useEffect(() => {

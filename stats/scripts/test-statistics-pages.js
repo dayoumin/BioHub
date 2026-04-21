@@ -62,7 +62,7 @@ const calculationValidators = {
     ]
 
     // 구형 Pyodide 패턴
-    const legacyPyodidePatterns = [
+    const compatPyodidePatterns = [
       /loadPyodideWithPackages/,
       /pyodide\.runPythonAsync/,
       /pyodide\.globals\.set/
@@ -70,11 +70,11 @@ const calculationValidators = {
 
     const coreMatches = pyodideCorePatterns.filter(p => p.test(content)).length
     const statsMatches = pyodideStatsPatterns.filter(p => p.test(content)).length
-    const legacyMatches = legacyPyodidePatterns.filter(p => p.test(content)).length
+    const compatMatches = compatPyodidePatterns.filter(p => p.test(content)).length
 
     const hasPyodideCore = coreMatches >= 2
     const hasPyodideStats = statsMatches >= 2
-    const hasLegacyPyodide = legacyMatches >= 2
+    const hasCompatPyodide = compatMatches >= 2
 
     // Worker 번호 추출
     let workerIds = []
@@ -92,16 +92,16 @@ const calculationValidators = {
     } else if (hasPyodideStats) {
       method = 'pyodideStats'
       type = 'Stats'
-    } else if (hasLegacyPyodide) {
-      method = 'Pyodide (Legacy)'
-      type = 'Legacy'
+    } else if (hasCompatPyodide) {
+      method = 'Pyodide (Compat)'
+      type = 'Compat'
     }
 
     return {
-      passed: hasPyodideCore || hasPyodideStats || hasLegacyPyodide,
+      passed: hasPyodideCore || hasPyodideStats || hasCompatPyodide,
       method: method || 'PyodideCore',
       details: {
-        patterns: coreMatches + statsMatches + legacyMatches,
+        patterns: coreMatches + statsMatches + compatMatches,
         workers: [...new Set(workerIds)],
         type: type || 'Unknown'
       }

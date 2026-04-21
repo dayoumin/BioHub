@@ -214,6 +214,10 @@ export function useResultsNavigation({
       projectId: linkedHistory?.projectId,
       analysisContext: toAnalysisContext(results),
       analysisResultId: currentHistoryId ?? undefined,
+      sourceRefs: currentHistoryId
+        ? [{ kind: 'analysis', sourceId: currentHistoryId, label: linkedHistory?.name ?? results.method }]
+        : undefined,
+      lineageMode: currentHistoryId ? 'derived' : 'manual',
       createdAt: new Date().toISOString(),
     }
 

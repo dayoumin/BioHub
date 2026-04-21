@@ -88,7 +88,7 @@
           "signature": "interpretPValueEn(pValue: number, alpha?: number): string",
           "purpose": "Get English interpretation string for p-value",
           "example": "interpretPValueEn(0.003) // 'very significant (p < 0.01)'",
-          "rules": ["For internal calculation results", "Matches utils.ts legacy behavior"]
+          "rules": ["For internal calculation results", "Matches utils.ts historical behavior"]
         },
         {
           "name": "interpretEffectSizeEn",

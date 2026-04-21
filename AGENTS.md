@@ -129,6 +129,7 @@ pnpm test:coverage    # 커버리지
   3. 손상 확정 후에만 수정
 - 검증 시 터미널 출력 대신 실제 소스 기준으로 재확인할 것. 예: 깨진 문자열 패턴 검색 + Python UTF-8 재읽기.
 - 새 한글 문자열 추가 후에는 해당 파일에서 mojibake 패턴(`�`, 비정상 치환문자, 의도치 않은 `??`)이 없는지 바로 점검할 것.
+- 이 환경에서는 Codex 번들 `rg.exe`가 WindowsApps 권한 문제로 실행 실패할 수 있다. `rg` 재시도를 반복하지 말고 텍스트 검색은 `git grep`, 비추적 파일 검색은 `Select-String`, 파일 목록은 `git ls-files` 또는 `Get-ChildItem`을 우선 사용할 것.
 
 ## 명명 규칙 요약
 

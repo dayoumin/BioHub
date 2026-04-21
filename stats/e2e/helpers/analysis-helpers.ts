@@ -126,7 +126,7 @@ export async function selectPurpose(page: Page, purpose: 'group-comparison' | 'c
     return true;
   }
 
-  // Fallback: try legacy purpose selection pattern
+  // Fallback: try older purpose selection pattern
   const pattern = purposeMap[purpose];
   const purposeCard = page.locator(`text=/${pattern}/`).first();
 

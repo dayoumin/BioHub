@@ -93,16 +93,16 @@ export function VariableSelectorPanel({
   onAssignmentChange,
   onComplete,
   columnTypes: providedColumnTypes,
-  roles: legacyRoles,
+  roles: compatRoles,
 }: VariableSelectorPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedVariable, setSelectedVariable] = useState<string | null>(null)
 
   // methodId에서 역할 정의 가져오기
   const roles = useMemo(() => {
-    // 레거시 roles prop이 제공되면 사용 (하위 호환)
-    if (legacyRoles && legacyRoles.length > 0) {
-      return legacyRoles
+    // compat roles prop이 제공되면 사용 (하위 호환)
+    if (compatRoles && compatRoles.length > 0) {
+      return compatRoles
     }
 
     // methodId가 없으면 빈 배열
@@ -128,7 +128,7 @@ export function VariableSelectorPanel({
       acceptTypes: getCompatibleUITypes(req.types),
       allowedVariableTypes: req.types, // binary 검증용 원본 타입 보존
     }))
-  }, [methodId, legacyRoles])
+  }, [methodId, compatRoles])
 
   // 열 타입 자동 감지
   const columnTypes = useMemo(() => {
@@ -507,4 +507,3 @@ export function VariableSelectorPanel({
     </div>
   )
 }
-

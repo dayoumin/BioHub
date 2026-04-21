@@ -20,6 +20,7 @@ import type { GraphProject } from '@/types/graph-studio';
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 import { deleteSnapshot } from './chart-snapshot-storage';
 import { removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
+import { normalizePersistedGraphProject } from './project-lineage';
 import {
   emitCrossTabCustomEvent,
   registerCrossTabCustomEventBridge,
@@ -56,7 +57,7 @@ registerCrossTabCustomEventBridge<GraphProjectsChangedDetail>(
 // ─── 읽기 ───────────────────────────────────────────────────
 
 export function listProjects(): GraphProject[] {
-  return readJson<GraphProject[]>(STORAGE_KEY, []);
+  return readJson<GraphProject[]>(STORAGE_KEY, []).map((project) => normalizePersistedGraphProject(project));
 }
 
 export function loadProject(projectId: string): GraphProject | null {

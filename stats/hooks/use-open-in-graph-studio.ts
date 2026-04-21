@@ -47,6 +47,7 @@ export function useOpenInGraphStudio(): (opts: OpenOptions) => void {
       label,
       columns: built.columns,
       data: built.data,
+      lineageMode: 'manual',
       createdAt: new Date().toISOString(),
     }
 

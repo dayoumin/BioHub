@@ -164,7 +164,7 @@ describe('useReducedMotion', () => {
       expect(result.current).toBe(true)
     })
 
-    it('should update when OS setting changes (legacy browsers)', () => {
+    it('should update when OS setting changes (older browsers)', () => {
       let changeHandler: ((event: MediaQueryListEvent) => void) | null = null
 
       window.matchMedia = vi.fn().mockImplementation((query) => ({
@@ -184,7 +184,7 @@ describe('useReducedMotion', () => {
 
       expect(result.current).toBe(false)
 
-      // Legacy API로 변경 시뮬레이션
+      // Older API로 변경 시뮬레이션
       act(() => {
         if (changeHandler) {
           changeHandler({ matches: true } as MediaQueryListEvent)
@@ -219,7 +219,7 @@ describe('useReducedMotion', () => {
       expect(removeEventListenerSpy).toHaveBeenCalledWith('change', expect.any(Function))
     })
 
-    it('should remove listener on unmount (legacy browsers)', () => {
+    it('should remove listener on unmount (older browsers)', () => {
       const removeListenerSpy = vi.fn()
 
       window.matchMedia = vi.fn().mockImplementation((query) => ({

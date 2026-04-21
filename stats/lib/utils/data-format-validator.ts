@@ -324,10 +324,10 @@ const METHOD_FORMAT_RULES: Record<string, MethodFormatRule> = {
 }
 
 /**
- * methodId로 rule을 조회한다. Analysis flow 브릿지 대비 canonical ↔ legacy-alias 양방향 매칭:
- * 1) 직접 조회 (legacy key)
+ * methodId로 rule을 조회한다. Analysis flow 브릿지 대비 canonical ↔ compat-alias 양방향 매칭:
+ * 1) 직접 조회 (compat key)
  * 2) canonical id로 조회 (Analysis flow가 canonical id를 넘길 때)
- * 3) canonical entry의 alias 중 rule에 등록된 첫 키 사용 (legacy-keyed rule 매핑)
+ * 3) canonical entry의 alias 중 rule에 등록된 첫 키 사용 (compat-keyed rule 매핑)
  */
 function resolveMethodFormatRule(methodId: string): MethodFormatRule | undefined {
   const direct = METHOD_FORMAT_RULES[methodId]
@@ -349,7 +349,7 @@ function resolveMethodFormatRule(methodId: string): MethodFormatRule | undefined
 /**
  * 업로드된 데이터가 통계 방법의 기대 형태와 맞는지 검증합니다.
  *
- * @param methodId - 통계 방법 ID (canonical 또는 legacy alias 모두 허용)
+ * @param methodId - 통계 방법 ID (canonical 또는 compat alias 모두 허용)
  * @param data - 업로드된 데이터 (parsed rows)
  * @returns 검증 결과 (경고 메시지 포함)
  *

@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react'
 import { useCanonicalSelectedMethod } from '@/hooks/use-canonical-selected-method'
 
 describe('useCanonicalSelectedMethod', () => {
-  it('normalizes legacy aliases to canonical IDs while preserving the display name', () => {
+  it('normalizes compat aliases to canonical IDs while preserving the display name', () => {
     const { result } = renderHook(() => useCanonicalSelectedMethod({
       id: 't-test',
       name: 't-test (독립표본)',

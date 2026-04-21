@@ -55,8 +55,8 @@ describe('statistical-methods.ts', () => {
   // ============================================
   // 2. 페이지 경로 일치 검증
   // ============================================
-  describe('Legacy SM IDs are accessible via Proxy', () => {
-    const legacySMIds = [
+  describe('Compat SM IDs are accessible via Proxy', () => {
+    const compatSMIds = [
       't-test',
       'welch-t',
       'one-sample-t',
@@ -106,7 +106,7 @@ describe('statistical-methods.ts', () => {
       'proportion-test',
     ]
 
-    it.each(legacySMIds)('%s: legacy SM ID가 Proxy를 통해 접근 가능해야 함', (smId) => {
+    it.each(compatSMIds)('%s: compat SM ID가 Proxy를 통해 접근 가능해야 함', (smId) => {
       expect(STATISTICAL_METHODS[smId]).toBeDefined()
     })
   })
@@ -121,7 +121,7 @@ describe('statistical-methods.ts', () => {
       expect(method?.id).toBe('two-sample-t')
     })
 
-    it('legacy SM ID로 방법을 찾을 수 있어야 함', () => {
+    it('compat SM ID로 방법을 찾을 수 있어야 함', () => {
       // 't-test'는 'two-sample-t'의 alias
       const method = getMethodByIdOrAlias('t-test')
       expect(method).not.toBeNull()
@@ -134,7 +134,7 @@ describe('statistical-methods.ts', () => {
       expect(method?.id).toBe('one-way-anova')
     })
 
-    it('제거된 레거시 alias는 더 이상 해석하지 않아야 함', () => {
+    it('제거된 compat alias는 더 이상 해석하지 않아야 함', () => {
       expect(getMethodByIdOrAlias('independent-t-test')?.id).toBe('two-sample-t')
       expect(getMethodByIdOrAlias('paired-t-test')?.id).toBe('paired-t')
       expect(getMethodByIdOrAlias('one-sample-t-test')?.id).toBe('one-sample-t')
@@ -298,20 +298,20 @@ describe('statistical-methods.ts', () => {
   // ============================================
   describe('현재 DecisionTree ID 매핑', () => {
     const currentMappings = [
-      { legacy: 'two-sample-t', expected: 'two-sample-t' },
-      { legacy: 'paired-t', expected: 'paired-t' },
-      { legacy: 'one-way-anova', expected: 'one-way-anova' },
-      { legacy: 'repeated-measures-anova', expected: 'repeated-measures-anova' },
-      { legacy: 'mann-whitney', expected: 'mann-whitney' },
-      { legacy: 'wilcoxon', expected: 'wilcoxon-signed-rank' },
-      { legacy: 'kruskal-wallis', expected: 'kruskal-wallis' },
-      { legacy: 'friedman', expected: 'friedman' },
+      { compat: 'two-sample-t', expected: 'two-sample-t' },
+      { compat: 'paired-t', expected: 'paired-t' },
+      { compat: 'one-way-anova', expected: 'one-way-anova' },
+      { compat: 'repeated-measures-anova', expected: 'repeated-measures-anova' },
+      { compat: 'mann-whitney', expected: 'mann-whitney' },
+      { compat: 'wilcoxon', expected: 'wilcoxon-signed-rank' },
+      { compat: 'kruskal-wallis', expected: 'kruskal-wallis' },
+      { compat: 'friedman', expected: 'friedman' },
     ]
 
     it.each(currentMappings)(
-      'ID "$legacy" → "$expected"로 매핑되어야 함',
-      ({ legacy, expected }) => {
-        const method = getMethodByIdOrAlias(legacy)
+      'ID "$compat" → "$expected"로 매핑되어야 함',
+      ({ compat, expected }) => {
+        const method = getMethodByIdOrAlias(compat)
         expect(method).not.toBeNull()
         expect(method?.id).toBe(expected)
       }
@@ -323,19 +323,19 @@ describe('statistical-methods.ts', () => {
   // ============================================
   describe('현재 recommender/page ID 매핑', () => {
     const recommenderMappings = [
-      { legacy: 't-test', expected: 'two-sample-t' },
-      { legacy: 'paired-t', expected: 'paired-t' },
-      { legacy: 'pearson', expected: 'pearson-correlation' },
-      { legacy: 'spearman', expected: 'pearson-correlation' },
-      { legacy: 'linear-regression', expected: 'simple-regression' },
-      { legacy: 'multiple-regression', expected: 'simple-regression' },
-      { legacy: 'chi-squared', expected: 'chi-square-goodness' },
+      { compat: 't-test', expected: 'two-sample-t' },
+      { compat: 'paired-t', expected: 'paired-t' },
+      { compat: 'pearson', expected: 'pearson-correlation' },
+      { compat: 'spearman', expected: 'pearson-correlation' },
+      { compat: 'linear-regression', expected: 'simple-regression' },
+      { compat: 'multiple-regression', expected: 'simple-regression' },
+      { compat: 'chi-squared', expected: 'chi-square-goodness' },
     ]
 
     it.each(recommenderMappings)(
-      'recommender ID "$legacy" → "$expected"로 매핑되어야 함',
-      ({ legacy, expected }) => {
-        const method = getMethodByIdOrAlias(legacy)
+      'recommender ID "$compat" → "$expected"로 매핑되어야 함',
+      ({ compat, expected }) => {
+        const method = getMethodByIdOrAlias(compat)
         expect(method).not.toBeNull()
         expect(method?.id).toBe(expected)
       }

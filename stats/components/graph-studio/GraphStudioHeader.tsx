@@ -61,9 +61,10 @@ export function GraphStudioHeader({
     toggleAiPanel,
     clearData,
     goToSetup,
-    clearRelinkWarning,
   } = useGraphStudioStore();
   const [showNewChartDialog, setShowNewChartDialog] = useState(false);
+  const [showRelinkSaveDialog, setShowRelinkSaveDialog] = useState(false);
+  const [dismissedRelinkWarningKey, setDismissedRelinkWarningKey] = useState<string | null>(null);
   const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([]);
   const documentUsageRequestSeqRef = useRef(0);
   const currentResearchProjectId = currentProject?.projectId;
@@ -72,6 +73,31 @@ export function GraphStudioHeader({
   const canRedo = historyIndex < specHistory.length - 1;
   const currentProjectId = currentProject?.id ?? null;
   const visibleUsages = documentUsages.slice(0, 2);
+  const relinkWarningKey = relinkWarning
+    ? JSON.stringify({
+      projectId: relinkWarning.projectId,
+      missingFields: relinkWarning.missingFields,
+      extraFields: relinkWarning.extraFields,
+      typeMismatches: relinkWarning.typeMismatches,
+      semanticMismatchFields: relinkWarning.semanticMismatchFields,
+      previousSchemaFingerprint: relinkWarning.previousSchemaFingerprint,
+      nextSchemaFingerprint: relinkWarning.nextSchemaFingerprint,
+      previousSourceFingerprint: relinkWarning.previousSourceFingerprint,
+      nextSourceFingerprint: relinkWarning.nextSourceFingerprint,
+    })
+    : null;
+  const showRelinkWarningBanner = relinkWarning !== null && relinkWarningKey !== dismissedRelinkWarningKey;
+
+  useEffect(() => {
+    if (relinkWarningKey === null) {
+      setDismissedRelinkWarningKey(null);
+      return;
+    }
+
+    if (dismissedRelinkWarningKey && dismissedRelinkWarningKey !== relinkWarningKey) {
+      setDismissedRelinkWarningKey(null);
+    }
+  }, [dismissedRelinkWarningKey, relinkWarningKey]);
 
   const reloadDocumentUsages = useCallback(() => {
     const requestSeq = documentUsageRequestSeqRef.current + 1;
@@ -138,6 +164,31 @@ export function GraphStudioHeader({
     setShowNewChartDialog(false);
     clearData();
   }, [clearData]);
+
+  const handleSaveRequest = useCallback(() => {
+    if (!onSave) {
+      return;
+    }
+
+    if (relinkWarning) {
+      setShowRelinkSaveDialog(true);
+      return;
+    }
+
+    onSave();
+  }, [onSave, relinkWarning]);
+
+  const handleConfirmRelinkSave = useCallback(() => {
+    setShowRelinkSaveDialog(false);
+    setDismissedRelinkWarningKey(null);
+    onSave?.();
+  }, [onSave]);
+
+  const handleDismissRelinkWarning = useCallback(() => {
+    if (relinkWarningKey) {
+      setDismissedRelinkWarningKey(relinkWarningKey);
+    }
+  }, [relinkWarningKey]);
 
   const handleResetChart = useCallback(() => {
     goToSetup();
@@ -263,7 +314,7 @@ export function GraphStudioHeader({
           <Button
             variant="outline"
             size="sm"
-            onClick={onSave}
+            onClick={handleSaveRequest}
             disabled={!onSave || isSaving}
             className="gap-1"
             data-testid="graph-studio-save"
@@ -299,7 +350,7 @@ export function GraphStudioHeader({
 
       </header>
 
-      {relinkWarning && (
+      {showRelinkWarningBanner && relinkWarning && (
         <div className="px-6 pt-3">
           <Alert variant="warning" className="border-none">
             <AlertTriangle className="h-4 w-4" />
@@ -324,10 +375,15 @@ export function GraphStudioHeader({
                   schema fp: {relinkWarning.previousSchemaFingerprint} → {relinkWarning.nextSchemaFingerprint}
                 </p>
               )}
+              {relinkWarning.previousSourceFingerprint && relinkWarning.nextSourceFingerprint && (
+                <p>
+                  source fp: {relinkWarning.previousSourceFingerprint} → {relinkWarning.nextSourceFingerprint}
+                </p>
+              )}
             </AlertDescription>
             <button
               type="button"
-              onClick={clearRelinkWarning}
+              onClick={handleDismissRelinkWarning}
               className="absolute right-3 top-3 rounded-md p-1 text-current/70 hover:bg-black/5 hover:text-current dark:hover:bg-white/10"
               aria-label="relink warning 닫기"
             >
@@ -351,6 +407,42 @@ export function GraphStudioHeader({
             <AlertDialogAction onClick={handleConfirmNewChart}>
               새 차트 만들기
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showRelinkSaveDialog} onOpenChange={setShowRelinkSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>현재 provenance로 다시 저장할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              저장된 그래프와 현재 데이터 구조가 달라 연결이 해제된 상태입니다. 계속 저장하면
+              현재 데이터 기준의 source snapshot과 lineage 정보로 덮어씁니다.
+            </AlertDialogDescription>
+            {relinkWarning && (
+              <div className="space-y-1 text-sm text-muted-foreground">
+                {relinkWarning.missingFields.length > 0 && (
+                  <p>누락 필드: {relinkWarning.missingFields.join(', ')}</p>
+                )}
+                {relinkWarning.semanticMismatchFields.length > 0 && (
+                  <p>범주 샘플 불일치: {relinkWarning.semanticMismatchFields.join(', ')}</p>
+                )}
+                {relinkWarning.previousSchemaFingerprint && relinkWarning.nextSchemaFingerprint && (
+                  <p>
+                    schema fp: {relinkWarning.previousSchemaFingerprint} → {relinkWarning.nextSchemaFingerprint}
+                  </p>
+                )}
+                {relinkWarning.previousSourceFingerprint && relinkWarning.nextSourceFingerprint && (
+                  <p>
+                    source fp: {relinkWarning.previousSourceFingerprint} → {relinkWarning.nextSourceFingerprint}
+                  </p>
+                )}
+              </div>
+            )}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmRelinkSave}>현재 데이터로 저장</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

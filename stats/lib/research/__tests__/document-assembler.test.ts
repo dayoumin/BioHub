@@ -202,7 +202,7 @@ describe('assembleDocument', () => {
     expect(results?.figures?.[0]?.patternSummary).toBeTruthy()
   })
 
-  it('should prefer graph sourceRefs over legacy analysisId for figure provenance', () => {
+  it('should prefer graph sourceRefs over compat analysisId for figure provenance', () => {
     const sources: AssemblerDataSources = {
       entityRefs: [
         makeEntityRef({ id: 'pref_2', entityId: 'gp_1', entityKind: 'figure' }),

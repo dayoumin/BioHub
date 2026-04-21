@@ -321,6 +321,7 @@ export const dataPackageSchema = z.object({
   data: z.record(z.string(), z.array(z.unknown())),
   projectId: z.string().optional(),
   analysisContext: analysisContextSchema.optional(),
+  // Deprecated compatibility field. Canonical provenance lives in sourceRefs/lineageMode.
   analysisResultId: z.string().optional(),
   sourceRefs: z.array(graphSourceRefSchema).optional(),
   lineageMode: graphLineageModeSchema.optional(),

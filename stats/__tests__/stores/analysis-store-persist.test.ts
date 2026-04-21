@@ -63,7 +63,7 @@ describe('analysis-store persistence and explicit override tracking', () => {
     })
   })
 
-  it('rehydrate 시 legacy selectedMethod alias를 canonical ID로 정규화한다', async () => {
+  it('rehydrate 시 compat selectedMethod alias를 canonical ID로 정규화한다', async () => {
     sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
       state: {
         currentStep: 2,
@@ -100,7 +100,7 @@ describe('analysis-store persistence and explicit override tracking', () => {
     expect(restored.selectedMethod?.category).toBe('t-test')
   })
 
-  it('rehydrate 시 version < 5 migrate 경로에서도 legacy alias를 canonical로 승격한다', async () => {
+  it('rehydrate 시 version < 5 migrate 경로에서도 compat alias를 canonical로 승격한다', async () => {
     sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify({
       state: {
         currentStep: 2,

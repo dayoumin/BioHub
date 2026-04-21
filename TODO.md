@@ -46,6 +46,7 @@
 - [x] AI 해석의 요약 (결론 도출 근거) 정보를 결과 카드에 축약하여 노출 (Hero Card의 AI 요약 첫 줄) (2026-04-07)
 - [x] 분석 유형별(통계 메서드별) 기본 시각화 컴포넌트 매핑 일관성 확보 (`b94b7bb2`, 2026-04-14 analysisVizTypeToChartType + adapter 우선 priority + AnalysisVizType union)
 - [ ] 사용자 언어(질문 기반)가 통계 엄밀함을 해치는지 확인하고 문구 미세 조정 및 모니터링 *(부분 — terminology 인프라 구축, 자동 검증 lint 없음)*
+  - [x] `language(ko/en)` + `domain(aquaculture/generic)` 분리 인프라, cross-combo resolver, guided flow ownership 정리, Settings 모달 언어/도메인 전환 UI 연결 및 조합 회귀 테스트 보강 (2026-04-21)
 - [x] **ResultsActionStep 훅 추출**: `useResultsCopyExport`, `useResultsHistory`, `useResultsNavigation`, `useResultsPaperDraft`로 분리하고 액션/훅 테스트까지 보강. (`be77c7a5`, `dfa36cc9`, 2026-04-20)
 
 ## 2. StatisticalExecutor 留덉씠洹몃젅?댁뀡 諛??뚯꽌 踰꾧렇 ?닿껐 (B2)

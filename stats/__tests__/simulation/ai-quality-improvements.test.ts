@@ -680,7 +680,7 @@ describe('Turso adapter — aiRecommendation JSON 직렬화 라운드트립', ()
 })
 
 // Section 7: per-call options → llm-recommender.test.ts에 실제 spy 테스트로 이전
-describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
+describe('loadHistoryFromDB - compat sessionStorage merge', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.clear()
@@ -699,7 +699,7 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
     })
   })
 
-  it('merges only missing legacy histories even when IndexedDB already has records', async () => {
+  it('merges only missing compat histories even when IndexedDB already has records', async () => {
     sessionStorage.setItem('analysis-storage', JSON.stringify({
       state: {
         analysisHistory: [
@@ -714,17 +714,17 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
             results: { method: 't-test', pValue: 0.2 },
           },
           {
-            id: 'legacy-missing-id',
+            id: 'compat-missing-id',
             timestamp: '2026-03-02T00:00:00.000Z',
-            name: 'legacy missing',
+            name: 'compat missing',
             purpose: 'compare means',
             analysisPurpose: 'compare means',
               method: { id: 't-test', name: 't-test', category: 't-test', description: 'desc' },
-              dataFileName: 'legacy.csv',
+              dataFileName: 'compat.csv',
               dataRowCount: 42,
               variableMapping: { dependentVar: 'score', groupVar: 'group' },
               analysisOptions: { confidenceLevel: 0.99, testValue: 5 },
-              aiInterpretation: 'legacy interpretation',
+              aiInterpretation: 'compat interpretation',
               apaFormat: 't(40)=2.10, p=.04',
               aiRecommendation: makeAiContext({ provider: 'ollama' }),
             interpretationChat: [{ id: 'c1', role: 'user', content: 'question', timestamp: 1 }],
@@ -741,8 +741,8 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
       .mockResolvedValueOnce([
         makeHistoryRecord({ id: 'existing-id', name: 'indexeddb current' }),
         makeHistoryRecord({
-          id: 'legacy-missing-id',
-          name: 'legacy missing',
+          id: 'compat-missing-id',
+          name: 'compat missing',
           variableMapping: { dependentVar: 'score', groupVar: 'group' },
           analysisOptions: { alpha: 0.01, testValue: 5 },
         }),
@@ -754,8 +754,8 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
 
     expect(saveHistoryMock).toHaveBeenCalledTimes(1)
     expect(saveHistoryMock.mock.calls[0][0]).toMatchObject({
-      id: 'legacy-missing-id',
-      name: 'legacy missing',
+      id: 'compat-missing-id',
+      name: 'compat missing',
       variableMapping: { dependentVar: 'score', groupVar: 'group' },
       analysisOptions: {
         alpha: 0.01,
@@ -763,7 +763,7 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
         showEffectSize: true,
         testValue: 5,
       },
-      aiInterpretation: 'legacy interpretation',
+      aiInterpretation: 'compat interpretation',
       apaFormat: 't(40)=2.10, p=.04',
     })
     expect(saveHistoryMock.mock.calls[0][0].aiRecommendation).toMatchObject({
@@ -778,7 +778,7 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
     expect(parsed.state.analysisHistory).toBeUndefined()
   })
 
-  it('maps legacy confidenceLevel to alpha when loading history settings', async () => {
+  it('maps compat confidenceLevel to alpha when loading history settings', async () => {
     getHistoryMock.mockResolvedValueOnce(makeHistoryRecord({
       analysisOptions: { confidenceLevel: 0.99, showEffectSize: false },
     }))
@@ -793,14 +793,14 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
     })
   })
 
-  it('pre-assigns stable IDs to id-less legacy items for dedup on retry', async () => {
+  it('pre-assigns stable IDs to id-less compat items for dedup on retry', async () => {
     sessionStorage.setItem('analysis-storage', JSON.stringify({
       state: {
         analysisHistory: [
           {
-            // id 없는 레거시 항목
+            // id 없는 호환 항목
             timestamp: '2026-01-01T00:00:00.000Z',
-            name: 'no-id legacy',
+            name: 'no-id compat',
             purpose: 'test',
             method: { id: 't-test', name: 't-test', category: 't-test' },
             dataFileName: 'a.csv',
@@ -814,7 +814,7 @@ describe('loadHistoryFromDB - legacy sessionStorage merge', () => {
     getAllHistoryMock
       .mockResolvedValueOnce([]) // migration filter
       .mockResolvedValueOnce([   // final load
-        makeHistoryRecord({ id: 'migrated-id', name: 'no-id legacy' }),
+        makeHistoryRecord({ id: 'migrated-id', name: 'no-id compat' }),
       ])
 
     await act(async () => {

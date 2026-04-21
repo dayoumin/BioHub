@@ -178,4 +178,29 @@ describe('GraphStudioContent save flow', () => {
     expect(toastWarningMock).toHaveBeenCalledWith("'Growth Curve' 저장 완료 (미리보기 스냅샷 갱신 실패)");
     expect(toastSuccessMock).not.toHaveBeenCalled();
   });
+
+  it('shows a warning toast when a relink mismatch warning is active', async () => {
+    render(<GraphStudioContent />);
+
+    act(() => {
+      useGraphStudioStore.setState({
+        relinkWarning: {
+          projectId: 'project-1',
+          projectName: 'Growth Curve',
+          missingFields: ['treatment'],
+          extraFields: [],
+          typeMismatches: [],
+          semanticMismatchFields: ['group'],
+          previousSchemaFingerprint: 'prev-fp',
+          nextSchemaFingerprint: 'next-fp',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(toastWarningMock).toHaveBeenCalledWith(
+        'Growth Curve 연결이 해제되어 현재 데이터 기준의 새 세션으로 전환했습니다.',
+      );
+    });
+  });
 });

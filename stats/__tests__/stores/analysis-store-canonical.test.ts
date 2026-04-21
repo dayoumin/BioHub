@@ -10,7 +10,7 @@ describe('analysis-store canonical method id invariant', () => {
     })
   })
 
-  it("setSelectedMethod는 legacy alias 't-test'를 canonical 'two-sample-t'로 정규화한다", () => {
+  it("setSelectedMethod는 compat alias 't-test'를 canonical 'two-sample-t'로 정규화한다", () => {
     act(() => {
       useAnalysisStore.getState().setSelectedMethod({
         id: 't-test',
@@ -26,7 +26,7 @@ describe('analysis-store canonical method id invariant', () => {
     expect(stored?.category).toBe('t-test')
   })
 
-  it("setSelectedMethod는 legacy alias 'anova'를 canonical 'one-way-anova'로 정규화한다", () => {
+  it("setSelectedMethod는 compat alias 'anova'를 canonical 'one-way-anova'로 정규화한다", () => {
     act(() => {
       useAnalysisStore.getState().setSelectedMethod({
         id: 'anova',

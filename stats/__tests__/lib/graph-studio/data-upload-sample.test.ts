@@ -66,6 +66,7 @@ function buildSamplePackage(sourceId: string): DataPackage {
     label: '어류 성장 샘플 (Bass · Bream · Carp)',
     columns: SAMPLE_COLUMNS,
     data: SAMPLE_DATA,
+    lineageMode: 'manual',
     createdAt: new Date().toISOString(),
   };
 }
@@ -184,6 +185,7 @@ describe('loadDataPackageWithSpec 스토어 액션', () => {
     const state = useGraphStudioStore.getState();
     expect(state.isDataLoaded).toBe(true);
     expect(state.dataPackage?.id).toBe('test-1');
+    expect(state.dataPackage?.lineageMode).toBe('manual');
     expect(state.chartSpec?.chartType).toBe('bar');
     expect(state.chartSpec?.encoding.x.field).toBe('species');
   });

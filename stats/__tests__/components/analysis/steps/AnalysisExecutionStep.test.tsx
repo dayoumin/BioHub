@@ -426,7 +426,7 @@ describe('AnalysisExecutionStep', () => {
       )
     })
 
-    it('legacy alias selectedMethod도 canonical ID와 설정 정규화로 executor에 전달한다', async () => {
+    it('compat alias selectedMethod도 canonical ID와 설정 정규화로 executor에 전달한다', async () => {
       storeState = {
         ...makeStoreState(),
         analysisOptions: {

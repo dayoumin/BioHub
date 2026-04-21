@@ -34,12 +34,12 @@ import {
 /**
  * 공통 ID로 메서드 조회 + 한글 이름 적용
  * @param idOrAlias - Method ID or alias
- * @param options - legacy ID 유지 또는 표시용 alias 지정
+ * @param options - compat ID 유지 또는 표시용 alias 지정
  */
 function getMethod(
   idOrAlias: string,
   options?: {
-    useLegacyId?: boolean
+    useCompatId?: boolean
     displayName?: string
     displayDescription?: string
   }
@@ -67,7 +67,7 @@ function getMethod(
       : getKoreanDescription(method.id))
 
   return {
-    id: options?.useLegacyId ? idOrAlias : method.id,
+    id: options?.useCompatId ? idOrAlias : method.id,
     name: displayName,
     description: displayDescription,
     category: method.category
@@ -118,7 +118,7 @@ const STEP_SAMPLE_TYPE = (dt: DecisionTreeText, isPaired: boolean): ReasoningSte
 interface Alternative {
   id: string
   reason: string
-  useLegacyId?: boolean
+  useCompatId?: boolean
   displayName?: string
   displayDescription?: string
 }
@@ -135,7 +135,7 @@ function createResult(
   reasoning: ReasoningStep[],
   alternatives: Alternative[] = [],
   options?: {
-    useLegacyId?: boolean
+    useCompatId?: boolean
     displayName?: string
     displayDescription?: string
     warnings?: string[]
@@ -143,14 +143,14 @@ function createResult(
 ): DecisionResult {
   return {
     method: getMethod(methodId, {
-      useLegacyId: options?.useLegacyId,
+      useCompatId: options?.useCompatId,
       displayName: options?.displayName,
       displayDescription: options?.displayDescription,
     }),
     reasoning,
     alternatives: alternatives.map(alt => ({
       method: getMethod(alt.id, {
-        useLegacyId: alt.useLegacyId,
+        useCompatId: alt.useCompatId,
         displayName: alt.displayName,
         displayDescription: alt.displayDescription,
       }),
@@ -228,15 +228,15 @@ function decideCompare_TwoGroups_Paired(
   if (normality === 'yes') {
     reasoning.push(STEP_NORMALITY(dt, true))
     return createResult('paired-t', reasoning, [
-      { id: 'wilcoxon', reason: dt.reasons.safeAlternativeUncertain, useLegacyId: true }
-    ], { useLegacyId: true })
+      { id: 'wilcoxon', reason: dt.reasons.safeAlternativeUncertain, useCompatId: true }
+    ], { useCompatId: true })
   }
 
   reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('wilcoxon', reasoning, [
     { id: 'sign-test', reason: dt.reasons.ordinalOrDirectional },
-    { id: 'paired-t', reason: dt.reasons.cltRobustN30, useLegacyId: true }
-  ], { useLegacyId: true })
+    { id: 'paired-t', reason: dt.reasons.cltRobustN30, useCompatId: true }
+  ], { useCompatId: true })
 }
 
 /** 2그룹 독립표본 비교 */
@@ -255,22 +255,22 @@ function decideCompare_TwoGroups_Independent(
     if (homogeneity === 'yes') {
       reasoning.push(STEP_HOMOGENEITY(dt, 'yes', dt.descriptions.studentTTest))
       return createResult('two-sample-t', reasoning, [
-        { id: 'welch-t', reason: dt.reasons.noEqualVarianceNeeded, useLegacyId: true },
-        { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
-      ], { useLegacyId: true })
+        { id: 'welch-t', reason: dt.reasons.noEqualVarianceNeeded, useCompatId: true },
+        { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useCompatId: true }
+      ], { useCompatId: true })
     }
 
     reasoning.push(STEP_HOMOGENEITY(dt, homogeneity))
     return createResult('welch-t', reasoning, [
-      { id: 'two-sample-t', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
-      { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
-    ], { useLegacyId: true })
+      { id: 'two-sample-t', reason: dt.reasons.equalVarianceConfirmed, useCompatId: true },
+      { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useCompatId: true }
+    ], { useCompatId: true })
   }
 
   reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('mann-whitney', reasoning, [
-    { id: 'welch-t', reason: dt.reasons.robustN30, useLegacyId: true }
-  ], { useLegacyId: true })
+    { id: 'welch-t', reason: dt.reasons.robustN30, useCompatId: true }
+  ], { useCompatId: true })
 }
 
 /** 3그룹 이상 반복측정 비교 */
@@ -294,14 +294,14 @@ function decideCompare_MultiGroups_Repeated(
   if (normality === 'yes') {
     reasoning.push(STEP_NORMALITY(dt, true))
     return createResult('repeated-measures-anova', reasoning, [
-      { id: 'friedman', reason: dt.reasons.sphericityViolated, useLegacyId: true }
-    ], { useLegacyId: true, warnings: [dt.warnings.sphericity] })
+      { id: 'friedman', reason: dt.reasons.sphericityViolated, useCompatId: true }
+    ], { useCompatId: true, warnings: [dt.warnings.sphericity] })
   }
 
   reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('friedman', reasoning, [
-    { id: 'repeated-measures-anova', reason: dt.reasons.robustN30, useLegacyId: true }
-  ], { useLegacyId: true })
+    { id: 'repeated-measures-anova', reason: dt.reasons.robustN30, useCompatId: true }
+  ], { useCompatId: true })
 }
 
 /** 3그룹 이상 독립표본 비교 */
@@ -318,7 +318,7 @@ function decideCompare_MultiGroups_Independent(
   if (design_type === 'mixed') {
     reasoning.push({ step: dt.steps.designType, description: dt.descriptions.mixedDesignMixedModel })
     return createResult('mixed-model', reasoning, [
-      { id: 'repeated-measures-anova', reason: dt.reasons.simpleRepeatedMeasure, useLegacyId: true }
+      { id: 'repeated-measures-anova', reason: dt.reasons.simpleRepeatedMeasure, useCompatId: true }
     ], { warnings: [dt.warnings.randomEffects] })
   }
 
@@ -326,7 +326,7 @@ function decideCompare_MultiGroups_Independent(
   if (outcome_count === '2+') {
     reasoning.push({ step: dt.steps.dependentVariable, description: dt.descriptions.multivariateMANOVA })
     return createResult('manova', reasoning, [
-      { id: 'one-way-anova', reason: dt.reasons.individualDVAnalysis, useLegacyId: true }
+      { id: 'one-way-anova', reason: dt.reasons.individualDVAnalysis, useCompatId: true }
     ], { warnings: [dt.warnings.multivariateNormality] })
   }
 
@@ -334,7 +334,7 @@ function decideCompare_MultiGroups_Independent(
   if (has_covariate === 'yes') {
     reasoning.push({ step: dt.steps.covariate, description: dt.descriptions.covariateANCOVA })
     return createResult('ancova', reasoning, [
-      { id: 'one-way-anova', reason: dt.reasons.covariateNotNeeded, useLegacyId: true }
+      { id: 'one-way-anova', reason: dt.reasons.covariateNotNeeded, useCompatId: true }
     ], { warnings: [dt.warnings.regressionHomogeneity] })
   }
 
@@ -350,16 +350,16 @@ function decideCompare_MultiGroups_Independent(
           displayName: WELCH_ANOVA_DISPLAY_NAME,
           displayDescription: WELCH_ANOVA_DESCRIPTION,
         },
-        { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
-      ], { useLegacyId: true })
+        { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useCompatId: true }
+      ], { useCompatId: true })
     }
 
     reasoning.push(STEP_HOMOGENEITY(dt, homogeneity))
     return createResult('one-way-anova', reasoning, [
-      { id: 'one-way-anova', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
-      { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
+      { id: 'one-way-anova', reason: dt.reasons.equalVarianceConfirmed, useCompatId: true },
+      { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useCompatId: true }
     ], {
-      useLegacyId: true,
+      useCompatId: true,
       displayName: WELCH_ANOVA_DISPLAY_NAME,
       displayDescription: WELCH_ANOVA_DESCRIPTION,
     })
@@ -371,7 +371,7 @@ function decideCompare_MultiGroups_Independent(
   if (comparison_target === 'median') {
     reasoning.push({ step: dt.steps.comparisonTarget, description: dt.descriptions.medianComparisonMood })
     return createResult('mood-median', reasoning, [
-      { id: 'kruskal-wallis', reason: dt.reasons.fullDistributionComparison, useLegacyId: true }
+      { id: 'kruskal-wallis', reason: dt.reasons.fullDistributionComparison, useCompatId: true }
     ])
   }
 
@@ -383,7 +383,7 @@ function decideCompare_MultiGroups_Independent(
       displayName: WELCH_ANOVA_DISPLAY_NAME,
       displayDescription: WELCH_ANOVA_DESCRIPTION,
     }
-  ], { useLegacyId: true })
+  ], { useCompatId: true })
 }
 
 

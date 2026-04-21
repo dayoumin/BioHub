@@ -148,6 +148,41 @@ describe('GraphStudioHeader', () => {
     expect(saveButton).toHaveTextContent('저장 중...')
   })
 
+  it('asks for confirmation before saving when a relink mismatch warning is active', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn()
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(makeSpec())
+      useGraphStudioStore.setState({
+        relinkWarning: {
+          projectId: 'project-1',
+          projectName: 'Saved Chart',
+          missingFields: ['treatment'],
+          extraFields: [],
+          typeMismatches: [],
+          semanticMismatchFields: ['group'],
+          previousSchemaFingerprint: 'prev-fp',
+          nextSchemaFingerprint: 'next-fp',
+          previousSourceFingerprint: 'prev-source',
+          nextSourceFingerprint: 'next-source',
+        },
+      })
+    })
+
+    render(<GraphStudioHeader onSave={onSave} />)
+
+    await user.click(screen.getByTestId('graph-studio-save'))
+
+    expect(onSave).not.toHaveBeenCalled()
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('현재 provenance로 다시 저장할까요?')
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('source fp: prev-source → next-source')
+
+    await user.click(screen.getByRole('button', { name: '현재 데이터로 저장' }))
+
+    expect(onSave).toHaveBeenCalledTimes(1)
+  })
+
   it('links to a document that uses the current figure project', async () => {
     const user = userEvent.setup()
     const spec = makeSpec()
@@ -310,8 +345,9 @@ describe('GraphStudioHeader', () => {
     expect(screen.getByRole('button', { name: '최신 문서' })).toBeInTheDocument()
   })
 
-  it('renders relink warnings and clears them when dismissed', async () => {
+  it('dismisses the relink banner without clearing the save confirmation guard', async () => {
     const user = userEvent.setup()
+    const onSave = vi.fn()
 
     act(() => {
       useGraphStudioStore.getState().setChartSpec(makeSpec())
@@ -325,21 +361,30 @@ describe('GraphStudioHeader', () => {
           semanticMismatchFields: ['group'],
           previousSchemaFingerprint: 'prev-fp',
           nextSchemaFingerprint: 'next-fp',
+          previousSourceFingerprint: 'prev-source',
+          nextSourceFingerprint: 'next-source',
         },
       })
     })
 
-    render(<GraphStudioHeader />)
+    render(<GraphStudioHeader onSave={onSave} />)
 
     expect(screen.getByText('Saved Chart 연결이 해제되었습니다')).toBeInTheDocument()
     expect(screen.getByText('누락 필드: treatment')).toBeInTheDocument()
     expect(screen.getByText('범주 샘플 불일치: group')).toBeInTheDocument()
     expect(screen.getByText('schema fp: prev-fp → next-fp')).toBeInTheDocument()
+    expect(screen.getByText('source fp: prev-source → next-source')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'relink warning 닫기' }))
 
     await waitFor(() => {
-      expect(useGraphStudioStore.getState().relinkWarning).toBeNull()
+      expect(screen.queryByText('Saved Chart 연결이 해제되었습니다')).not.toBeInTheDocument()
     })
+
+    expect(useGraphStudioStore.getState().relinkWarning).not.toBeNull()
+
+    await user.click(screen.getByTestId('graph-studio-save'))
+
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('현재 provenance로 다시 저장할까요?')
   })
 })

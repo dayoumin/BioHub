@@ -1,7 +1,7 @@
 /**
  * Method ID Unification — Integration Simulation Tests
  *
- * Verifies end-to-end that legacy SM IDs resolve to canonical entries
+ * Verifies end-to-end that compat SM IDs resolve to canonical entries
  * through every resolution path: Proxy, getMethodByAlias, getMethodByIdOrAlias,
  * common chi-square family classification, IndexedDB deserialization,
  * dynamic registration, and enumeration integrity.
@@ -20,14 +20,14 @@ import {
 } from '@/lib/registry'
 
 // ============================================
-// Scenario A: Legacy ID → Canonical Resolution
+// Scenario A: Compat ID → Canonical Resolution
 // ============================================
 
 /**
- * All 16 legacy SM ID → canonical mappings to test.
- * Each [legacyId, canonicalId] pair covers one demoted alias.
+ * All 16 compat SM ID → canonical mappings to test.
+ * Each [compatId, canonicalId] pair covers one demoted alias.
  */
-const LEGACY_TO_CANONICAL: Array<[string, string]> = [
+const COMPAT_TO_CANONICAL: Array<[string, string]> = [
   ['t-test', 'two-sample-t'],
   ['anova', 'one-way-anova'],
   ['correlation', 'pearson-correlation'],
@@ -47,31 +47,31 @@ const LEGACY_TO_CANONICAL: Array<[string, string]> = [
   ['kendall', 'pearson-correlation'],
 ]
 
-describe('Scenario A: Legacy ID → Canonical Resolution (all 16 demoted SM IDs)', () => {
-  describe.each(LEGACY_TO_CANONICAL)(
-    'legacy "%s" → canonical "%s"',
-    (legacyId: string, canonicalId: string) => {
+describe('Scenario A: Compat ID → Canonical Resolution (all 16 demoted SM IDs)', () => {
+  describe.each(COMPAT_TO_CANONICAL)(
+    'compat "%s" → canonical "%s"',
+    (compatId: string, canonicalId: string) => {
       let proxyResult: StatisticalMethodEntry | undefined
       let aliasResult: StatisticalMethodEntry | null
       let idOrAliasResult: StatisticalMethodEntry | null
 
       beforeAll(() => {
-        proxyResult = STATISTICAL_METHODS[legacyId]
-        aliasResult = getMethodByAlias(legacyId)
-        idOrAliasResult = getMethodByIdOrAlias(legacyId)
+        proxyResult = STATISTICAL_METHODS[compatId]
+        aliasResult = getMethodByAlias(compatId)
+        idOrAliasResult = getMethodByIdOrAlias(compatId)
       })
 
-      it('STATISTICAL_METHODS[legacyId] returns the canonical entry (Proxy)', () => {
+      it('STATISTICAL_METHODS[compatId] returns the canonical entry (Proxy)', () => {
         expect(proxyResult).toBeDefined()
         expect(proxyResult!.id).toBe(canonicalId)
       })
 
-      it('getMethodByAlias(legacyId) returns the canonical entry', () => {
+      it('getMethodByAlias(compatId) returns the canonical entry', () => {
         expect(aliasResult).not.toBeNull()
         expect(aliasResult!.id).toBe(canonicalId)
       })
 
-      it('getMethodByIdOrAlias(legacyId) returns the canonical entry', () => {
+      it('getMethodByIdOrAlias(compatId) returns the canonical entry', () => {
         expect(idOrAliasResult).not.toBeNull()
         expect(idOrAliasResult!.id).toBe(canonicalId)
       })
@@ -96,7 +96,7 @@ describe('Scenario A: Legacy ID → Canonical Resolution (all 16 demoted SM IDs)
 // ============================================
 
 describe('Scenario B: chi-square family classification logic', () => {
-  // Legacy chi-square family IDs that used to drive the dedicated selector.
+  // Compat chi-square family IDs that used to drive the dedicated selector.
   // The common selector still relies on the same family split.
   const GOODNESS_IDS = new Set([
     'chi-square-goodness',
@@ -115,7 +115,7 @@ describe('Scenario B: chi-square family classification logic', () => {
     expect(deriveMode('one-sample-proportion')).toBe('goodness')
   })
 
-  it('"proportion-test" (legacy) also triggers goodness mode', () => {
+  it('"proportion-test" (compat) also triggers goodness mode', () => {
     expect(deriveMode('proportion-test')).toBe('goodness')
   })
 
@@ -123,7 +123,7 @@ describe('Scenario B: chi-square family classification logic', () => {
     expect(BINARY_ONLY_IDS.has('one-sample-proportion')).toBe(true)
   })
 
-  it('"proportion-test" (legacy) is in BINARY_ONLY_IDS', () => {
+  it('"proportion-test" (compat) is in BINARY_ONLY_IDS', () => {
     expect(BINARY_ONLY_IDS.has('proportion-test')).toBe(true)
   })
 
@@ -149,7 +149,7 @@ describe('Scenario B: chi-square family classification logic', () => {
 // Scenario C: IndexedDB Deserialization Simulation
 // ============================================
 
-describe('Scenario C: IndexedDB deserialization — stored legacy IDs resolve to canonical', () => {
+describe('Scenario C: IndexedDB deserialization — stored compat IDs resolve to canonical', () => {
   interface MockStoredRecord {
     id: string
     method: { id: string; name: string }
@@ -157,7 +157,7 @@ describe('Scenario C: IndexedDB deserialization — stored legacy IDs resolve to
     results: unknown
   }
 
-  const TOP_5_LEGACY: Array<[string, string]> = [
+  const TOP_5_COMPAT: Array<[string, string]> = [
     ['t-test', 'two-sample-t'],
     ['anova', 'one-way-anova'],
     ['correlation', 'pearson-correlation'],
@@ -165,13 +165,13 @@ describe('Scenario C: IndexedDB deserialization — stored legacy IDs resolve to
     ['descriptive', 'descriptive-stats'],
   ]
 
-  it.each(TOP_5_LEGACY)(
+  it.each(TOP_5_COMPAT)(
     'stored record with method.id = "%s" resolves to "%s"',
-    (legacyId: string, expectedCanonical: string) => {
+    (compatId: string, expectedCanonical: string) => {
       // Simulate reading from IndexedDB
       const storedRecord: MockStoredRecord = {
-        id: `record-${legacyId}`,
-        method: { id: legacyId, name: 'Test Method' },
+        id: `record-${compatId}`,
+        method: { id: compatId, name: 'Test Method' },
         timestamp: Date.now(),
         results: null,
       }
@@ -186,17 +186,17 @@ describe('Scenario C: IndexedDB deserialization — stored legacy IDs resolve to
     },
   )
 
-  it('resolves all 5 legacy IDs without returning null', () => {
-    const results = TOP_5_LEGACY.map(([legacyId]) =>
-      getMethodByIdOrAlias(legacyId),
+  it('resolves all 5 compat IDs without returning null', () => {
+    const results = TOP_5_COMPAT.map(([compatId]) =>
+      getMethodByIdOrAlias(compatId),
     )
     const nullCount = results.filter((r) => r === null).length
     expect(nullCount).toBe(0)
   })
 
   it('each resolved entry has distinct canonical ID (no duplicates between unrelated aliases)', () => {
-    const canonicalIds = TOP_5_LEGACY.map(([legacyId]) =>
-      getMethodByIdOrAlias(legacyId)!.id,
+    const canonicalIds = TOP_5_COMPAT.map(([compatId]) =>
+      getMethodByIdOrAlias(compatId)!.id,
     )
     const uniqueIds = new Set(canonicalIds)
     expect(uniqueIds.size).toBe(canonicalIds.length)
@@ -280,7 +280,7 @@ describe('Scenario D: Dynamic registration alias sync', () => {
 // ============================================
 
 describe('Scenario E: Enumeration returns only canonical keys', () => {
-  const LEGACY_SM_IDS = [
+  const COMPAT_SM_IDS = [
     't-test',
     'anova',
     'correlation',
@@ -322,9 +322,9 @@ describe('Scenario E: Enumeration returns only canonical keys', () => {
     enumeratedKeys = Object.keys(STATISTICAL_METHODS)
   })
 
-  it('Object.keys(STATISTICAL_METHODS) does NOT contain any legacy SM ID', () => {
-    for (const legacyId of LEGACY_SM_IDS) {
-      expect(enumeratedKeys).not.toContain(legacyId)
+  it('Object.keys(STATISTICAL_METHODS) does NOT contain any compat SM ID', () => {
+    for (const compatId of COMPAT_SM_IDS) {
+      expect(enumeratedKeys).not.toContain(compatId)
     }
   })
 

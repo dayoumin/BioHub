@@ -65,7 +65,7 @@ const KOREAN_NAMES: Record<string, { name: string; description: string }> = {
 
 /**
  * 공통 메서드 조회 + 한글 이름 오버라이드
- * legacy ID도 지원 (backward compatibility)
+ * compat alias ID도 지원 (backward compatibility)
  */
 function createMethod(
   idOrAlias: string,

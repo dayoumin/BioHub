@@ -373,7 +373,7 @@ describe('VariableSelectionStep', () => {
       )
     })
 
-    it('canonicalizes legacy alias ids before building method requirements and selector props', () => {
+    it('canonicalizes compat alias ids before building method requirements and selector props', () => {
       renderWithMethod('anova', 'ANOVA')
 
       expect(capturedSelectorType).toBe('group-comparison')

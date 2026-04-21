@@ -184,6 +184,7 @@ export function DataUploadPanel(): React.ReactElement {
         label: `샘플: ${sample.label}`,
         columns,
         data,
+        lineageMode: 'manual',
         createdAt: new Date().toISOString(),
       };
       loadDataOnly(pkg);
@@ -230,6 +231,7 @@ export function DataUploadPanel(): React.ReactElement {
           label: file.name,
           columns,
           data,
+          lineageMode: 'manual',
           createdAt: new Date().toISOString(),
         };
         if (!checkDataSize(pkg)) return;
@@ -259,6 +261,7 @@ export function DataUploadPanel(): React.ReactElement {
         label: '클립보드 데이터',
         columns,
         data,
+        lineageMode: 'manual',
         createdAt: new Date().toISOString(),
       };
       if (!checkDataSize(pkg)) return;

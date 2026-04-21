@@ -410,7 +410,7 @@ describe('DataExplorationStep terminology integration', () => {
     expect(screen.getByTestId('data-upload-step')).toBeInTheDocument()
   })
 
-  it('renders correlation card without legacy warning copy when numeric variables are insufficient', () => {
+  it('renders correlation card without old warning copy when numeric variables are insufficient', () => {
     const dataWithOneNumeric: DataRow[] = [
       { category: 'A', value: 1 },
       { category: 'B', value: 2 },
@@ -487,11 +487,11 @@ describe('DataExplorationStep terminology integration', () => {
     expect(screen.getByText('TEST_SCATTER / TEST_HEATMAP')).toBeInTheDocument()
   })
 
-  it('does not fall back to legacy hardcoded column panel copy', () => {
+  it('does not fall back to old hardcoded column panel copy', () => {
     render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
 
-    const legacyCopy = ['error', 'normal', 'numeric', 'categorical', 'sample', 'missing', 'total columns', 'recommended analysis', 'parametric', 'nonparametric']
-    legacyCopy.forEach((text) => {
+    const oldCopy = ['error', 'normal', 'numeric', 'categorical', 'sample', 'missing', 'total columns', 'recommended analysis', 'parametric', 'nonparametric']
+    oldCopy.forEach((text) => {
       expect(screen.queryByText(text)).not.toBeInTheDocument()
     })
   })

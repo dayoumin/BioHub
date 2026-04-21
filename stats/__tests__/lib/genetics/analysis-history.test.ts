@@ -75,11 +75,11 @@ describe('analysis-history', () => {
     vi.restoreAllMocks()
   })
 
-  describe('하위 호환 — 레거시 엔트리', () => {
+  describe('하위 호환 — compat 엔트리', () => {
     it('type 없는 기존 바코딩 엔트리를 정상 로드', () => {
       // 기존 형식: type 필드 없음
-      const legacy = {
-        id: 'legacy-1',
+      const compatEntry = {
+        id: 'compat-1',
         sampleName: 'Old Sample',
         marker: 'COI',
         sequencePreview: 'ATGC',
@@ -88,12 +88,12 @@ describe('analysis-history', () => {
         status: 'high',
         createdAt: 1000,
       }
-      localStorage.setItem(HISTORY_KEY, JSON.stringify([legacy]))
+      localStorage.setItem(HISTORY_KEY, JSON.stringify([compatEntry]))
 
       const all = loadGeneticsHistory()
       expect(all).toHaveLength(1)
       expect(all[0].type).toBe('barcoding')
-      expect(all[0].id).toBe('legacy-1')
+      expect(all[0].id).toBe('compat-1')
 
       // loadAnalysisHistory도 동일하게 로드
       const barcoding = loadAnalysisHistory()

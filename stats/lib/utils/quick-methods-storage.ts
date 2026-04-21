@@ -1,7 +1,7 @@
 import { getMethodByAlias } from '@/lib/constants/statistical-methods'
 
 /**
- * localStorage에서 빠른 분석 메서드 목록 로드 (legacy ID → canonical 마이그레이션 포함)
+ * localStorage에서 빠른 분석 메서드 목록 로드 (compat ID → canonical 마이그레이션 포함)
  */
 export function loadQuickMethods(storageKey: string, defaults: string[]): string[] {
   if (typeof window === 'undefined') return defaults

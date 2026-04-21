@@ -735,7 +735,7 @@ describe('StatisticalExecutor Routing', () => {
   // Category: pca / multivariate
   // ============================================
   describe('Category: pca', () => {
-    it('should route "pca" through pcaAnalysis (not legacy pca)', async () => {
+    it('should route "pca" through pcaAnalysis (not old pca path)', async () => {
       const mockedStats = vi.mocked(pyodideStats)
 
       const result = await executor.executeMethod(

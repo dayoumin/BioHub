@@ -410,7 +410,7 @@ export interface DataPackage {
   projectId?: string;
   /** 분석 맥락 — 생산자가 "무슨 분석을 했는가"를 기술 */
   analysisContext?: AnalysisContext;
-  /** @deprecated sourceRefs로 대체되는 단일-analysis 호환 필드 */
+  /** @deprecated canonical sourceRefs에서 파생되는 단일-analysis 호환 필드. 신규 join 기준으로 사용하지 않는다. */
   analysisResultId?: string;
   /** canonical provenance source 집합. analysisResultId의 일반화된 형태. */
   sourceRefs?: GraphSourceRef[];
@@ -426,7 +426,7 @@ export interface GraphProject {
   name: string;
   /** 상위 연구 프로젝트 연결용. 미연결 상태 허용. */
   projectId?: string;
-  /** @deprecated sourceRefs/sourceSnapshot에서 파생되는 단일-analysis 호환 필드 */
+  /** @deprecated canonical sourceRefs/sourceSnapshot에서 파생되는 단일-analysis 호환 필드. 신규 join 기준으로 사용하지 않는다. */
   analysisId?: string;
   /** 저장 시점 기준 canonical provenance source 집합. */
   sourceRefs?: GraphSourceRef[];

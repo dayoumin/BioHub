@@ -130,11 +130,11 @@ describe('BOLD 히스토리 — sequence 저장/복원', () => {
     expect(entry.sequence.length).toBe(2000)
   })
 
-  it('레거시 엔트리 (sequence 없음) → 빈 문자열 복원', () => {
+  it('compat 엔트리 (sequence 없음) → 빈 문자열 복원', () => {
     const raw = [{
-      id: 'bold-legacy-no-seq',
+      id: 'bold-compat-no-seq',
       type: 'bold',
-      sampleName: 'Legacy',
+      sampleName: 'Compat',
       db: 'public.tax-derep',
       searchMode: 'rapid',
       sequencePreview: 'ATGC',
@@ -148,7 +148,7 @@ describe('BOLD 히스토리 — sequence 저장/복원', () => {
 
     const entry = loadGeneticsHistory('bold')[0] as BoldHistoryEntry
     expect(entry.sequence).toBe('')
-    expect(entry.sampleName).toBe('Legacy')
+    expect(entry.sampleName).toBe('Compat')
     expect(entry.topSpecies).toBe('Gadus morhua')
   })
 })

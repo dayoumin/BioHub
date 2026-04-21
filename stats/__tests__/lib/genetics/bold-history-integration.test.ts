@@ -229,11 +229,11 @@ describe('BOLD 히스토리 통합', () => {
       expect(entry.sequence).toBe(TEST_SEQ)
     })
 
-    it('sequence 없는 레거시 엔트리도 빈 문자열로 복원', () => {
+    it('sequence 없는 compat 엔트리도 빈 문자열로 복원', () => {
       const raw = [{
-        id: 'bold-legacy',
+        id: 'bold-compat',
         type: 'bold',
-        sampleName: 'Legacy',
+        sampleName: 'Compat',
         db: 'public.tax-derep',
         searchMode: 'rapid',
         sequencePreview: 'ATGC',

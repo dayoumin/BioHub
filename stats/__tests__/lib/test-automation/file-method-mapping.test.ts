@@ -31,7 +31,7 @@ describe('Worker-Method Mapping SSOT', () => {
     it('should not have extra methods that do not exist as pages', () => {
       const result = validateMappingCompleteness()
 
-      // Extra methods are acceptable (aliases, legacy)
+      // Extra methods are acceptable (aliases, compat)
       // But we should be aware of them
       if (result.extraMethods.length > 0) {
         console.log('Extra methods in mapping:', result.extraMethods)

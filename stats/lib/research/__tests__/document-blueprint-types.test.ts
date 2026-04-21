@@ -167,18 +167,18 @@ describe('buildFigureRef', () => {
 })
 
 describe('getGraphPrimaryAnalysisId', () => {
-  it('should prefer sourceRefs analysis ids over legacy analysisId', () => {
+  it('should prefer sourceRefs analysis ids over compat analysisId', () => {
     const gp = makeGraphProject({
-      analysisId: 'hist_legacy',
+      analysisId: 'hist_compat',
       sourceRefs: [{ kind: 'analysis', sourceId: 'hist_canonical', label: 'Canonical' }],
     })
 
     expect(getGraphPrimaryAnalysisId(gp)).toBe('hist_canonical')
   })
 
-  it('should fall back to sourceSnapshot analysis refs before legacy analysisId', () => {
+  it('should fall back to sourceSnapshot analysis refs before compat analysisId', () => {
     const gp = makeGraphProject({
-      analysisId: 'hist_legacy',
+      analysisId: 'hist_compat',
       sourceSnapshot: {
         capturedAt: '2026-01-01',
         rowCount: 3,

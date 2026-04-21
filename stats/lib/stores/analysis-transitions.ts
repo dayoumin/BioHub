@@ -85,7 +85,7 @@ export function createManualMethodBrowsingPatch(): AnalysisTransitionPatch {
 
 /**
  * selectedMethod.id invariant: analysis-store에 들어오는 모든 id는 canonical로 정규화한다.
- * legacy alias('t-test', 'anova' 등)는 getMethodByAlias로 canonical entry를 조회해 id/category를
+ * compat alias('t-test', 'anova' 등)는 getMethodByAlias로 canonical entry를 조회해 id/category를
  * 승격한다. 원본 name은 보존하고, description이 비어 있거나 없을 때만 canonical 설명으로 보완한다.
  */
 export function normalizeSelectedMethod(

@@ -105,6 +105,60 @@ describe('loadProject', () => {
   it('존재하지 않는 ID → null', () => {
     expect(loadProject('nonexistent')).toBeNull();
   });
+
+  it('compat persisted projects are normalized to canonical lineage on load', () => {
+    saveProject({
+      ...makeProject('p-compat', 'Compat Project'),
+      analysisId: 'analysis-compat',
+      dataPackageId: '',
+      sourceRefs: undefined,
+      lineageMode: undefined,
+      sourceSnapshot: undefined,
+      sourceSchema: undefined,
+    });
+
+    const loaded = loadProject('p-compat');
+
+    expect(loaded).toMatchObject({
+      id: 'p-compat',
+      analysisId: 'analysis-compat',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Project' }],
+      lineageMode: 'derived',
+    });
+    expect(loaded?.sourceSnapshot?.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Project' },
+    ]);
+  });
+
+  it('loadProject preserves snapshot-only provenance refs when sourceRefs are missing', () => {
+    saveProject({
+      ...makeProject('p-snapshot-only', 'Snapshot Only'),
+      analysisId: 'analysis-compat',
+      sourceRefs: undefined,
+      sourceSnapshot: {
+        capturedAt: '2026-01-02T00:00:00.000Z',
+        dataPackageId: 'pkg-1',
+        rowCount: 2,
+        columns: [
+          { name: 'x', type: 'nominal' },
+          { name: 'y', type: 'quantitative' },
+        ],
+        sourceRefs: [
+          { kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Project' },
+          { kind: 'figure', sourceId: 'fig-upstream', label: 'Upstream Figure' },
+        ],
+        schemaFingerprint: 'schema-1',
+        sourceFingerprint: 'source-1',
+      },
+    });
+
+    const loaded = loadProject('p-snapshot-only');
+
+    expect(loaded?.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Project' },
+      { kind: 'figure', sourceId: 'fig-upstream', label: 'Upstream Figure' },
+    ]);
+  });
 });
 
 // ─── deleteProject ────────────────────────────────────────────

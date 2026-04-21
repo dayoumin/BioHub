@@ -60,7 +60,7 @@ export function prefetchWorkerForMethod(method: StatisticalMethod): void {
   if (!coreService.isInitialized()) return
 
   // Primary: method.category로 직접 조회.
-  // Fallback: canonical entry category (category가 stale하거나 legacy alias가 id에만 남은 경우 방어).
+  // Fallback: canonical entry category (category가 stale하거나 compat alias가 id에만 남은 경우 방어).
   const canonicalCategory = getMethodByAlias(method.id)?.category
   const workers =
     CATEGORY_WORKER_MAP[method.category] ??

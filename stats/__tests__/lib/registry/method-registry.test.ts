@@ -50,7 +50,7 @@ describe('Method Registry', () => {
       expect(getSelectorType(methodId)).toBe(expectedType)
     })
 
-    const legacyMappings: Array<[string, string]> = [
+    const compatMappings: Array<[string, string]> = [
       ['t-test', 'group-comparison'],
       ['anova', 'group-comparison'],
       ['regression', 'multiple-regression'],
@@ -58,7 +58,7 @@ describe('Method Registry', () => {
       ['roc-curve', 'roc-curve'],
     ]
 
-    it.each(legacyMappings)('maps legacy id %s to %s', (methodId, expectedType) => {
+    it.each(compatMappings)('maps compat id %s to %s', (methodId, expectedType) => {
       expect(getSelectorType(methodId)).toBe(expectedType)
     })
   })

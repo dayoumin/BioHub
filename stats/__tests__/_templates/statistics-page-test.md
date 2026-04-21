@@ -280,4 +280,4 @@ When AI generates a test:
 - [ ] Includes isAnalyzing flag verification
 - [ ] Uses TypeScript generics for types
 - [ ] No `any` types
-- [ ] Follows current API (not legacy patterns)
+- [ ] Follows current API (not older patterns)

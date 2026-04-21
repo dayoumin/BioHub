@@ -3,8 +3,10 @@ import type { ChartSpec, DataPackage, GraphProject } from '@/types/graph-studio'
 import {
   buildGraphProjectProvenanceEdges,
   didGraphDataPackageChange,
+  normalizePersistedGraphProject,
   resolveGraphProjectAnalysisId,
   resolveGraphProjectLineage,
+  resolveGraphProjectLineageMode,
   resolveGraphProjectSourceRefs,
 } from '@/lib/graph-studio/project-lineage'
 
@@ -50,7 +52,7 @@ function makeProject(overrides: Partial<GraphProject> = {}): GraphProject {
     id: 'gp-1',
     name: 'Saved Graph',
     chartSpec: makeSpec(),
-    dataPackageId: 'pkg-legacy',
+    dataPackageId: 'pkg-compat',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -61,8 +63,8 @@ describe('project-lineage', () => {
   it('treats empty dataPackageId as a relink when a new package is attached', () => {
     const currentProject = makeProject({
       dataPackageId: '',
-      analysisId: 'analysis-legacy',
-      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-legacy', label: 'Legacy Analysis' }],
+      analysisId: 'analysis-compat',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Analysis' }],
     })
     const dataPackage = makePkg({ id: 'pkg-new' })
 
@@ -88,9 +90,18 @@ describe('project-lineage', () => {
       { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
       { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
     ])
+    expect(resolveGraphProjectAnalysisId(
+      makeProject(),
+      makePkg({
+        sourceRefs: [
+          { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+          { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
+        ],
+      }),
+    )).toBeUndefined()
   })
 
-  it('preserves richer current project provenance when the attached package only has a legacy analysisResultId', () => {
+  it('preserves richer current project provenance when the attached package only has a compat analysisResultId', () => {
     const sourceRefs = resolveGraphProjectSourceRefs(
       makeProject({
         dataPackageId: 'pkg-1',
@@ -103,6 +114,35 @@ describe('project-lineage', () => {
         id: 'pkg-1',
         analysisResultId: 'hist-1',
       }),
+    )
+
+    expect(sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+      { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
+    ])
+  })
+
+  it('preserves snapshot-only provenance refs instead of collapsing to analysis-only refs', () => {
+    const sourceRefs = resolveGraphProjectSourceRefs(
+      makeProject({
+        dataPackageId: 'pkg-1',
+        sourceSnapshot: {
+          capturedAt: '2026-01-02T00:00:00.000Z',
+          dataPackageId: 'pkg-1',
+          rowCount: 2,
+          columns: [
+            { name: 'group', type: 'nominal' },
+            { name: 'value', type: 'quantitative' },
+          ],
+          sourceRefs: [
+            { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+            { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
+          ],
+          schemaFingerprint: 'schema-1',
+          sourceFingerprint: 'source-1',
+        },
+      }),
+      null,
     )
 
     expect(sourceRefs).toEqual([
@@ -125,8 +165,8 @@ describe('project-lineage', () => {
     const lineage = resolveGraphProjectLineage(
       makeProject({
         dataPackageId: '',
-        analysisId: 'analysis-legacy',
-        sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-legacy', label: 'Legacy Analysis' }],
+        analysisId: 'analysis-compat',
+        sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-compat', label: 'Compat Analysis' }],
       }),
       makePkg({ id: 'pkg-new' }),
       makeSpec('Relinked Graph'),
@@ -160,6 +200,54 @@ describe('project-lineage', () => {
     expect(lineage.sourceSchema).toEqual([
       { name: 'group', type: 'nominal' },
       { name: 'value', type: 'quantitative' },
+    ])
+  })
+
+  it('infers mixed lineage from merged sourceRefs before stale explicit lineage flags', () => {
+    const currentProject = makeProject({
+      dataPackageId: 'pkg-1',
+      lineageMode: 'derived',
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+        { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
+      ],
+    })
+    const dataPackage = makePkg({
+      id: 'pkg-1',
+      lineageMode: 'derived',
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+      ],
+    })
+    const sourceRefs = resolveGraphProjectSourceRefs(currentProject, dataPackage)
+
+    expect(resolveGraphProjectLineageMode(currentProject, dataPackage, sourceRefs)).toBe('mixed')
+  })
+
+  it('normalizes persisted projects from snapshot-only provenance without dropping non-analysis refs', () => {
+    const normalizedProject = normalizePersistedGraphProject(makeProject({
+      sourceRefs: undefined,
+      analysisId: 'hist-1',
+      sourceSnapshot: {
+        capturedAt: '2026-01-02T00:00:00.000Z',
+        dataPackageId: 'pkg-1',
+        rowCount: 2,
+        columns: [
+          { name: 'group', type: 'nominal' },
+          { name: 'value', type: 'quantitative' },
+        ],
+        sourceRefs: [
+          { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+          { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
+        ],
+        schemaFingerprint: 'schema-1',
+        sourceFingerprint: 'source-1',
+      },
+    }))
+
+    expect(normalizedProject.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'hist-1', label: 'ANOVA' },
+      { kind: 'figure', sourceId: 'fig-1', label: 'Existing Figure' },
     ])
   })
 })

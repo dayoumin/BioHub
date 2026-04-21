@@ -640,7 +640,7 @@ export interface AnalysisResult {
     rmse?: number
     rSquared?: number
     adjustedRSquared?: number
-    adjRSquared?: number  // Alias for adjustedRSquared (legacy compatibility)
+    adjRSquared?: number  // Alias for adjustedRSquared (compatibility)
     vif?: number[]  // 분산팽창지수
     residuals?: number[]
     predictions?: number[]
@@ -796,7 +796,7 @@ export type GuidedFlowStep =
   | 'ai-chat'      // AI 자연어 입력 (NEW - 기본 시작점)
   | 'category'     // 대분류 선택
   | 'subcategory'  // 중분류 선택
-  | 'purpose'      // 목적 선택 (legacy, 호환성 유지)
+  | 'purpose'      // 목적 선택 (compat, 호환성 유지)
   | 'questions'    // 조건 질문
   | 'result'       // 추천 결과
   | 'browse'       // 직접 선택 (전체 목록)

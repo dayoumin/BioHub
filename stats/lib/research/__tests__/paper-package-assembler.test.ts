@@ -259,7 +259,7 @@ describe('assemblePaperPackage', () => {
     expect(result.markdown).toContain('analysis-1, analysis-2')
   })
 
-  it('legacy figure labels are not exported as fake canonical source ids', () => {
+  it('compat figure labels are not exported as fake canonical source ids', () => {
     const pkg = makeMinimalPackage()
     pkg.items = [{
       id: generatePackageItemId(),

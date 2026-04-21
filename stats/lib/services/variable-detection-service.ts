@@ -164,16 +164,16 @@ export function extractDetectedVariables(
   }
 
   // ─── 2순위: 기존 detectedVariables (하위 호환) ───
-  const legacyGroup = recommendation?.detectedVariables?.groupVariable?.name
-  if (legacyGroup && allCols.has(legacyGroup)) {
-    detectedVars.groupVariable = legacyGroup
+  const compatGroup = recommendation?.detectedVariables?.groupVariable?.name
+  if (compatGroup && allCols.has(compatGroup)) {
+    detectedVars.groupVariable = compatGroup
   } else if (categoricalCols.length > 0) {
     detectedVars.groupVariable = categoricalCols[0]
   }
 
-  const legacyDependent = recommendation?.detectedVariables?.dependentVariables?.[0]
-  if (legacyDependent && allCols.has(legacyDependent) && !isIdCol(legacyDependent)) {
-    detectedVars.dependentCandidate = legacyDependent
+  const compatDependent = recommendation?.detectedVariables?.dependentVariables?.[0]
+  if (compatDependent && allCols.has(compatDependent) && !isIdCol(compatDependent)) {
+    detectedVars.dependentCandidate = compatDependent
   } else if (nonIdNumericCols.length > 0) {
     detectedVars.dependentCandidate = nonIdNumericCols[0]
   }
