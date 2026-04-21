@@ -2,13 +2,7 @@ import React from 'react'
 import { vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { DataTableViewer } from '../DataTableViewer'
-
-vi.mock('@/hooks/use-app-preferences', () => ({
-  useAppPreferences: () => ({
-    locale: 'ko-KR',
-    currentLanguage: 'ko',
-  }),
-}))
+import { renderWithAppPreferences } from '@/test-utils/render-with-app-preferences'
 
 // Mock data
 const mockData = [
@@ -34,7 +28,7 @@ describe('DataTableViewer', () => {
 
   describe('렌더링', () => {
     it('트리거 버튼이 렌더링되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -45,7 +39,7 @@ describe('DataTableViewer', () => {
     })
 
     it('커스텀 트리거가 렌더링되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -57,7 +51,7 @@ describe('DataTableViewer', () => {
     })
 
     it('파일명이 표시되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -70,7 +64,7 @@ describe('DataTableViewer', () => {
     })
 
     it('데이터 크기 정보가 표시되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -80,11 +74,23 @@ describe('DataTableViewer', () => {
 
       expect(screen.getByText(/5행 × 4열/)).toBeInTheDocument()
     })
+
+    it('locale prop이 있으면 provider 없이도 렌더링되어야 함', () => {
+      render(
+        <DataTableViewer
+          data={mockData}
+          columns={mockColumns}
+          locale="en-US"
+        />
+      )
+
+      expect(screen.getByText('데이터 전체보기')).toBeInTheDocument()
+    })
   })
 
   describe('검색 기능', () => {
     it('검색어 입력이 가능해야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -99,7 +105,7 @@ describe('DataTableViewer', () => {
     })
 
     it('검색어 초기화 버튼이 동작해야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -121,7 +127,7 @@ describe('DataTableViewer', () => {
 
   describe('페이지네이션', () => {
     it('페이지 정보가 표시되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -133,7 +139,7 @@ describe('DataTableViewer', () => {
     })
 
     it('페이지 크기 선택이 가능해야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -147,7 +153,7 @@ describe('DataTableViewer', () => {
 
   describe('정렬 기능', () => {
     it('열 헤더 클릭 시 정렬이 동작해야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -165,7 +171,7 @@ describe('DataTableViewer', () => {
 
   describe('CSV 내보내기', () => {
     it('CSV 버튼이 렌더링되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -177,7 +183,7 @@ describe('DataTableViewer', () => {
     })
 
     it('CSV 내보내기가 동작해야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -201,7 +207,7 @@ describe('DataTableViewer', () => {
         { value: 3 },
       ]
 
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={numericData}
           columns={['value']}
@@ -214,7 +220,7 @@ describe('DataTableViewer', () => {
     })
 
     it('제공된 타입 정보가 우선 적용되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -229,7 +235,7 @@ describe('DataTableViewer', () => {
 
   describe('빈 데이터 처리', () => {
     it('빈 데이터일 때 메시지가 표시되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={[]}
           columns={[]}
@@ -241,7 +247,7 @@ describe('DataTableViewer', () => {
     })
 
     it('검색 결과가 없을 때 메시지가 표시되어야 함', () => {
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}
@@ -262,7 +268,7 @@ describe('DataTableViewer', () => {
         { id: 1, name: null },
       ]
 
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={dataWithNull}
           columns={['id', 'name']}
@@ -278,7 +284,7 @@ describe('DataTableViewer', () => {
     it('open prop으로 Sheet 상태를 제어할 수 있어야 함', () => {
       const onOpenChange = vi.fn()
 
-      render(
+      renderWithAppPreferences(
         <DataTableViewer
           data={mockData}
           columns={mockColumns}

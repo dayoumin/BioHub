@@ -3,21 +3,13 @@ import type { TerminologyDictionary } from '../terminology-types'
 import type {
   DomainOwnedTerminologyKey,
   LanguageOwnedTerminologyKey,
+  MixedOwnedTerminologyKey,
 } from './pack-section-keys'
 
-export type DomainOverrideSections = Partial<Pick<
-  TerminologyDictionary,
-  | 'displayName'
-  | 'variables'
-  | 'validation'
-  | 'success'
-  | 'selectorUI'
-  | 'purposeInput'
-  | 'hub'
->>
-
 export type LanguageOwnedSections = Pick<TerminologyDictionary, LanguageOwnedTerminologyKey>
+export type MixedOwnedSections = Pick<TerminologyDictionary, MixedOwnedTerminologyKey>
 export type DomainOwnedSections = Pick<TerminologyDictionary, DomainOwnedTerminologyKey>
+export type DomainOverrideSections = Partial<DomainOwnedSections>
 
 export interface LanguagePack {
   language: AppLanguageCode
@@ -29,6 +21,7 @@ export interface DomainPack {
   domain: AppTerminologyDomain
   displayNames: Record<AppLanguageCode, string>
   sectionsByLanguage?: Partial<Record<AppLanguageCode, DomainOwnedSections>>
+  mixedSectionsByLanguage?: Partial<Record<AppLanguageCode, MixedOwnedSections>>
   exactDictionaries?: Partial<Record<AppLanguageCode, TerminologyDictionary>>
   overrides?: Partial<Record<AppLanguageCode, DomainOverrideSections>>
 }

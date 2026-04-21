@@ -7,6 +7,7 @@
 
 import type { PaperTable } from '@/lib/services/paper-draft/paper-types'
 import type { GraphProject } from '@/types/graph-studio'
+import { getGraphProjectAnalysisSourceRefs } from '@/lib/graph-studio/project-lineage'
 
 // ── 프리셋 ──
 
@@ -93,6 +94,31 @@ export interface DocumentBlueprint {
   updatedAt: string
 }
 
+function hashDocumentArtifact(value: string): string {
+  let hash = 5381
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(index)
+  }
+  return Math.abs(hash >>> 0).toString(36)
+}
+
+export function buildDocumentTableId(table: Pick<DocumentTable, 'caption' | 'headers' | 'rows' | 'sourceAnalysisId'>): string {
+  const serialized = [
+    table.sourceAnalysisId ?? 'manual',
+    table.caption,
+    table.headers.join('\u001f'),
+    table.rows.map((row) => row.join('\u001f')).join('\u001e'),
+  ].join('\u001d')
+  return `table_${hashDocumentArtifact(serialized)}`
+}
+
+export function normalizeDocumentTable(table: DocumentTable): DocumentTable {
+  return {
+    ...table,
+    id: table.id ?? buildDocumentTableId(table),
+  }
+}
+
 export function createDocumentSourceRef(
   kind: DocumentSourceKind,
   sourceId: string,
@@ -128,6 +154,7 @@ export function normalizeDocumentBlueprint(document: DocumentBlueprint): Documen
     sections: document.sections.map((section) => ({
       ...section,
       sourceRefs: (section.sourceRefs ?? []).map((ref) => normalizeDocumentSourceRef(ref as LegacyDocumentSourceRef)),
+      tables: section.tables?.map((table) => normalizeDocumentTable(table)),
     })),
   }
 }
@@ -154,7 +181,7 @@ export function convertPaperTable(
     while (cells.length < headers.length) cells.push('')
     return cells
   })
-  return {
+  return normalizeDocumentTable({
     id: pt.id,
     caption: pt.title,
     headers,
@@ -162,7 +189,7 @@ export function convertPaperTable(
     htmlContent: pt.htmlContent,
     sourceAnalysisId: options?.sourceAnalysisId,
     sourceAnalysisLabel: options?.sourceAnalysisLabel,
-  }
+  })
 }
 
 /**
@@ -190,6 +217,10 @@ export function buildFigureRef(
     relatedAnalysisLabel: options?.relatedAnalysisLabel,
     patternSummary: options?.patternSummary,
   }
+}
+
+export function getGraphPrimaryAnalysisId(graph: GraphProject): string | undefined {
+  return getGraphProjectAnalysisSourceRefs(graph)[0]?.sourceId
 }
 
 import { generateId } from '@/lib/utils/generate-id'

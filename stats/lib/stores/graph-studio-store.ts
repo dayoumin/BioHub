@@ -13,7 +13,11 @@ import type {
   DataPackage,
   DataType,
   ExportConfig,
+  GraphColumnTypeMismatch,
   GraphProject,
+  GraphRelinkWarning,
+  GraphSourceRef,
+  GraphLineageMode,
   GraphStudioState,
 } from '@/types/graph-studio';
 import {
@@ -25,6 +29,13 @@ import {
   saveProject,
   generateProjectId,
 } from '@/lib/graph-studio/project-storage';
+import {
+  buildGraphProjectProvenanceEdges,
+  buildGraphProjectSourceSnapshot,
+  getDataPackageSourceRefs,
+  resolveGraphProjectLineage,
+  resolveGraphProjectSourceRefs,
+} from '@/lib/graph-studio/project-lineage';
 import { deleteSnapshots } from '@/lib/graph-studio/chart-snapshot-storage';
 import { upsertProjectEntityRef, removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
 
@@ -50,17 +61,11 @@ interface LoadDataPackageWithSpecOptions {
   preserveCurrentProject?: boolean;
 }
 
-interface ColumnTypeMismatch {
-  field: string;
-  expected: DataType;
-  actual: DataType;
-}
-
 interface ProjectRelinkCompatibility {
   isCompatible: boolean;
   missingFields: string[];
   extraFields: string[];
-  typeMismatches: ColumnTypeMismatch[];
+  typeMismatches: GraphColumnTypeMismatch[];
   semanticMismatchFields: string[];
 }
 
@@ -126,7 +131,7 @@ function getProjectRelinkCompatibility(
   const referencedFields = collectReferencedFields(spec);
 
   const missingFields = referencedFields.filter((field) => !actualMap.has(field));
-  const typeMismatches: ColumnTypeMismatch[] = referencedFields.flatMap((field) => {
+  const typeMismatches: GraphColumnTypeMismatch[] = referencedFields.flatMap((field) => {
     const expected = expectedMap.get(field);
     const actual = actualMap.get(field);
 
@@ -179,28 +184,6 @@ function getProjectRelinkCompatibility(
   };
 }
 
-function resolveProjectAnalysisId(
-  currentProject: GraphProject | null,
-  dataPackage: DataPackage | null,
-): string | undefined {
-  if (!currentProject) {
-    return dataPackage?.analysisResultId;
-  }
-
-  if (!dataPackage) {
-    return currentProject.analysisId;
-  }
-
-  const dataPackageChanged =
-    currentProject.dataPackageId.length > 0 &&
-    currentProject.dataPackageId !== dataPackage.id;
-
-  if (dataPackageChanged) {
-    return dataPackage.analysisResultId;
-  }
-
-  return dataPackage.analysisResultId ?? currentProject.analysisId;
-}
 
 interface GraphStudioActions {
   // 데이터
@@ -234,6 +217,7 @@ interface GraphStudioActions {
   setAiPanelDock: (dock: AiPanelDock) => void;
   /** Step 1에서 미리 선택한 스타일 템플릿 ID 설정 */
   setPendingTemplateId: (id: string | null) => void;
+  clearRelinkWarning: () => void;
 
   // 프로젝트
   setProject: (project: GraphProject, dataPackage?: DataPackage) => void;
@@ -249,6 +233,7 @@ interface GraphStudioActions {
 const initialState: GraphStudioState = {
   currentProject: null,
   linkedResearchProjectId: null,
+  relinkWarning: null,
   dataPackage: null,
   isDataLoaded: false,
   chartSpec: null,
@@ -262,6 +247,57 @@ const initialState: GraphStudioState = {
 
 const MAX_HISTORY = 50;
 
+function buildRelinkWarning(
+  project: GraphProject,
+  dataPackage: DataPackage,
+  spec: ChartSpec,
+  compatibility: ProjectRelinkCompatibility,
+): GraphRelinkWarning {
+  const nextSnapshot = buildGraphProjectSourceSnapshot(
+    project,
+    dataPackage,
+    resolveGraphProjectSourceRefs(project, dataPackage),
+    spec,
+    new Date().toISOString(),
+  );
+
+  return {
+    projectId: project.id,
+    projectName: project.name,
+    missingFields: compatibility.missingFields,
+    extraFields: compatibility.extraFields,
+    typeMismatches: compatibility.typeMismatches,
+    semanticMismatchFields: compatibility.semanticMismatchFields,
+    previousSchemaFingerprint: project.sourceSnapshot?.schemaFingerprint,
+    nextSchemaFingerprint: nextSnapshot?.schemaFingerprint,
+    previousSourceFingerprint: project.sourceSnapshot?.sourceFingerprint,
+    nextSourceFingerprint: nextSnapshot?.sourceFingerprint,
+  };
+}
+
+function normalizeDataPackage(dataPackage: DataPackage): DataPackage {
+  const sourceRefs = getDataPackageSourceRefs(dataPackage)
+  return sourceRefs.length > 0
+    ? {
+        ...dataPackage,
+        sourceRefs,
+      }
+    : dataPackage
+}
+
+function normalizeGraphProject(
+  project: GraphProject,
+  dataPackage?: DataPackage,
+): GraphProject {
+  const sourceRefs = resolveGraphProjectSourceRefs(project, dataPackage ?? null)
+  return sourceRefs.length > 0
+    ? {
+        ...project,
+        sourceRefs,
+      }
+    : project
+}
+
 export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>(
   (set, get) => ({
     ...initialState,
@@ -269,6 +305,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     // ── 데이터 ──
 
     loadDataPackage: (pkg) => {
+      const normalizedPkg = normalizeDataPackage(pkg);
       const { chartSpec, currentProject } = get();
       const existingSpec = chartSpec ? sanitizeChartSpecForRenderer(chartSpec) : null;
 
@@ -276,21 +313,22 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       // 기존 chartSpec을 보존하되 dataSourceId만 갱신한다.
       // 동일 필드명만으로 재부착하지 않고, 참조 필드/컬럼 스키마/범주 샘플값 호환성까지 본다.
       if (currentProject && existingSpec) {
-        const compatibility = getProjectRelinkCompatibility(existingSpec, pkg);
+        const compatibility = getProjectRelinkCompatibility(existingSpec, normalizedPkg);
 
         if (compatibility.isCompatible) {
           const restoredSpec: ChartSpec = {
             ...existingSpec,
-            data: { ...existingSpec.data, sourceId: pkg.id },
+            data: { ...existingSpec.data, sourceId: normalizedPkg.id },
           };
           set({
-            dataPackage: pkg,
-            linkedResearchProjectId: currentProject.projectId ?? pkg.projectId ?? null,
+            dataPackage: normalizedPkg,
+            linkedResearchProjectId: currentProject.projectId ?? normalizedPkg.projectId ?? null,
             isDataLoaded: true,
             chartSpec: restoredSpec,
             specHistory: [restoredSpec],
             historyIndex: 0,
             previousChartSpec: null,
+            relinkWarning: null,
             aiPanelOpen: false,
           });
           return;
@@ -305,17 +343,22 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
             semanticMismatchFields: compatibility.semanticMismatchFields,
           },
         );
+        const relinkWarning = buildRelinkWarning(currentProject, normalizedPkg, existingSpec, compatibility);
+        set({
+          relinkWarning,
+        });
       }
 
-      const spec = createChartSpecFromDataPackage(pkg);
+      const spec = createChartSpecFromDataPackage(normalizedPkg);
       set({
-        dataPackage: pkg,
-        linkedResearchProjectId: pkg.projectId ?? null,
+        dataPackage: normalizedPkg,
+        linkedResearchProjectId: normalizedPkg.projectId ?? null,
         isDataLoaded: true,
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
         previousChartSpec: null,
+        relinkWarning: currentProject ? get().relinkWarning : null,
         // encoding 불일치로 fall-through한 경우 currentProject 해제
         currentProject: null,
         aiPanelOpen: false,
@@ -323,16 +366,19 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     loadDataPackageWithSpec: (pkg, spec, options) => {
+      const normalizedPkg = normalizeDataPackage(pkg);
+      const preservedProject = get().currentProject
       const currentProject = options?.preserveCurrentProject
-        ? get().currentProject
+        ? (preservedProject ? normalizeGraphProject(preservedProject, normalizedPkg) : null)
         : null;
       const linkedResearchProjectId = options?.preserveCurrentProject
         ? get().linkedResearchProjectId
-        : pkg.projectId ?? null;
+        : normalizedPkg.projectId ?? null;
       const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
       set({
-        dataPackage: pkg,
+        dataPackage: normalizedPkg,
         linkedResearchProjectId,
+        relinkWarning: null,
         isDataLoaded: true,
         chartSpec: sanitizedSpec,
         specHistory: [sanitizedSpec],
@@ -344,14 +390,16 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     loadDataOnly: (pkg) => {
+      const normalizedPkg = normalizeDataPackage(pkg);
       const { chartSpec, dataPackage, currentProject } = get();
       const activeDraftSourceId = currentProject
         ? null
         : chartSpec?.data.sourceId ?? dataPackage?.id ?? null;
       clearAiChatHistory(activeDraftSourceId);
       set({
-        dataPackage: pkg,
-        linkedResearchProjectId: pkg.projectId ?? null,
+        dataPackage: normalizedPkg,
+        linkedResearchProjectId: normalizedPkg.projectId ?? null,
+        relinkWarning: null,
         isDataLoaded: true,
         chartSpec: null,
         specHistory: [],
@@ -371,6 +419,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       set({
         dataPackage: null,
         linkedResearchProjectId: null,
+        relinkWarning: null,
         isDataLoaded: false,
         chartSpec: null,
         specHistory: [],
@@ -389,6 +438,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: sanitizedSpec,
         specHistory: [sanitizedSpec],
         historyIndex: 0,
+        relinkWarning: null,
       });
     },
 
@@ -408,6 +458,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: sanitizedSpec,
         specHistory: newHistory,
         historyIndex: newHistory.length - 1,
+        relinkWarning: null,
       });
     },
 
@@ -460,6 +511,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         specHistory: [],
         historyIndex: -1,
         previousChartSpec: chartSpec, // 이전 spec 보관
+        relinkWarning: null,
         aiPanelOpen: false,
       });
     },
@@ -475,6 +527,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         specHistory: [sanitizedSpec],
         historyIndex: 0,
         previousChartSpec: null,
+        relinkWarning: null,
         aiPanelOpen: false,
       });
     },
@@ -482,14 +535,17 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     toggleAiPanel: () => set(state => ({ aiPanelOpen: !state.aiPanelOpen })),
     setAiPanelDock: (dock) => set({ aiPanelDock: dock }),
     setPendingTemplateId: (id) => set({ pendingTemplateId: id }),
+    clearRelinkWarning: () => set({ relinkWarning: null }),
 
     // ── 프로젝트 ──
 
     setProject: (project, dataPackage) => {
+      const normalizedDataPackage = dataPackage ? normalizeDataPackage(dataPackage) : undefined
+      const normalizedProject = normalizeGraphProject(project, normalizedDataPackage)
       // 구버전 exportConfig 마이그레이션: width/height/transparent는 삭제됨.
       // localStorage 직렬화 객체에는 런타임에 알 수 없는 키가 있을 수 있으므로
       // format/dpi만 명시적으로 추출해 정규화한다.
-      const raw = project.chartSpec;
+      const raw = normalizedProject.chartSpec;
       const spec: ChartSpec = sanitizeChartSpecForRenderer({
         ...raw,
         exportConfig: {
@@ -502,10 +558,11 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         },
       });
       set({
-        currentProject: project,
-        linkedResearchProjectId: project.projectId ?? dataPackage?.projectId ?? null,
-        dataPackage: dataPackage ?? null,
-        isDataLoaded: dataPackage != null,
+        currentProject: normalizedProject,
+        linkedResearchProjectId: normalizedProject.projectId ?? normalizedDataPackage?.projectId ?? null,
+        relinkWarning: null,
+        dataPackage: normalizedDataPackage ?? null,
+        isDataLoaded: normalizedDataPackage != null,
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
@@ -520,15 +577,24 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const { chartSpec, dataPackage, currentProject, linkedResearchProjectId } = get();
       if (!chartSpec) return null;
       const sanitizedChartSpec = sanitizeChartSpecForRenderer(chartSpec);
-
       const now = new Date().toISOString();
+      const lineage = resolveGraphProjectLineage(
+        currentProject,
+        dataPackage,
+        sanitizedChartSpec,
+        now,
+      );
       // 기존 프로젝트가 있으면 같은 ID로 업데이트, 없으면 새로 생성
       const projectId = currentProject?.id ?? generateProjectId();
       const project: GraphProject = {
         id: projectId,
         name,
         projectId: currentProject?.projectId ?? linkedResearchProjectId ?? dataPackage?.projectId ?? undefined,
-        analysisId: resolveProjectAnalysisId(currentProject, dataPackage),
+        analysisId: lineage.analysisId,
+        sourceRefs: lineage.sourceRefs.length > 0 ? lineage.sourceRefs : undefined,
+        lineageMode: lineage.lineageMode,
+        sourceSchema: lineage.sourceSchema,
+        sourceSnapshot: lineage.sourceSnapshot,
         chartSpec: sanitizedChartSpec,
         dataPackageId: dataPackage?.id ?? '',
         createdAt: currentProject?.createdAt ?? now,
@@ -542,6 +608,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
             entityKind: 'figure',
             entityId: project.id,
             label: project.name,
+            provenanceEdges: lineage.provenanceEdges.length > 0 ? lineage.provenanceEdges : undefined,
           });
         }
 
@@ -555,13 +622,18 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
               removeProjectEntityRefsByEntityIds('figure', [project.id]);
             } catch (err) {}
           } else {
-            // 메타데이터 롤백: 기존 프로젝트 이름(label) 복구
+            // 메타데이터 롤백: 기존 프로젝트 이름(label)과 provenance 복구
             try {
+              removeProjectEntityRefsByEntityIds('figure', [currentProject.id]);
               upsertProjectEntityRef({
                 projectId: currentProject.projectId ?? project.projectId,
                 entityKind: 'figure',
                 entityId: currentProject.id,
                 label: currentProject.name,
+                provenanceEdges:
+                  resolveGraphProjectSourceRefs(currentProject, null).length > 0
+                    ? buildGraphProjectProvenanceEdges(resolveGraphProjectSourceRefs(currentProject, null))
+                    : undefined,
               });
             } catch (err) {}
           }
@@ -581,15 +653,17 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       set({
         currentProject: project,
         linkedResearchProjectId: project.projectId ?? null,
+        relinkWarning: null,
       });
       return projectId;
     },
 
-    disconnectProject: () => set({ currentProject: null }),
+    disconnectProject: () => set({ currentProject: null, relinkWarning: null }),
 
     detachMissingProject: () => set((state) => ({
       currentProject: null,
       linkedResearchProjectId: null,
+      relinkWarning: null,
       dataPackage: state.dataPackage
         ? {
             ...state.dataPackage,

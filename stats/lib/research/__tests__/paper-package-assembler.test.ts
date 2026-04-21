@@ -111,6 +111,8 @@ describe('assemblePaperPackage', () => {
       id: generatePackageItemId(),
       type: 'analysis',
       sourceId: 'h1',
+      sourceTitle: 'One-way ANOVA 결과',
+      sourceNavigateTo: '/?history=h1',
       analysisIds: ['ANAL-01'],
       analysisLinks: [{ sourceId: 'h1', label: 'ANAL-01' }],
       label: 'Table 1',
@@ -132,6 +134,8 @@ describe('assemblePaperPackage', () => {
     expect(result.markdown).toContain('One-way ANOVA')
     expect(result.markdown).toContain('ANAL-01')
     expect(result.markdown).toContain('"id": "h1"')
+    expect(result.markdown).toContain('"sourceTitle": "One-way ANOVA 결과"')
+    expect(result.markdown).toContain('"sourceNavigateTo": "/?history=h1"')
     expect(result.markdown).toContain('"analysisLabel": "ANAL-01"')
     expect(result.markdown).toContain('"sourceAnalysisIds": [')
   })
@@ -230,6 +234,8 @@ describe('assemblePaperPackage', () => {
       id: generatePackageItemId(),
       type: 'figure',
       sourceId: 'g1',
+      sourceTitle: '박스플롯',
+      sourceNavigateTo: '/graph-studio?project=g1',
       analysisIds: ['ANAL-01', 'ANAL-02'],
       analysisLinks: [
         { sourceId: 'analysis-1', label: 'ANAL-01' },
@@ -247,7 +253,32 @@ describe('assemblePaperPackage', () => {
     }
     const result = assemblePaperPackage(pkg, sources)
     expect(result.markdown).toContain('해역 B의 평균(2.8)이 A(2.1)보다 높음')
+    expect(result.markdown).toContain('**원본 제목**: 박스플롯')
+    expect(result.markdown).toContain('**원본 링크**: /graph-studio?project=g1')
     expect(result.markdown).toContain('ANAL-01, ANAL-02')
     expect(result.markdown).toContain('analysis-1, analysis-2')
+  })
+
+  it('legacy figure labels are not exported as fake canonical source ids', () => {
+    const pkg = makeMinimalPackage()
+    pkg.items = [{
+      id: generatePackageItemId(),
+      type: 'figure',
+      sourceId: 'g1',
+      analysisIds: ['ANAL-01'],
+      label: 'Figure 1',
+      section: 'results',
+      order: 0,
+      included: true,
+    }]
+    const sources: PackageDataSources = {
+      historyRecords: [],
+      graphProjects: [{ id: 'g1', name: '박스플롯' } as unknown as GraphProject],
+    }
+
+    const result = assemblePaperPackage(pkg, sources)
+
+    expect(result.markdown).toContain('**관련 분석**: ANAL-01')
+    expect(result.markdown).not.toContain('**원본 분석 ID**: ANAL-01')
   })
 })

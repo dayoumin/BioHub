@@ -1,17 +1,11 @@
 import React from 'react'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import PackageBuilder from '@/components/papers/PackageBuilder'
 import type { PaperPackage } from '@/lib/research/paper-package-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
-
-vi.mock('@/hooks/use-app-preferences', () => ({
-  useAppPreferences: () => ({
-    locale: 'ko-KR',
-    currentLanguage: 'ko',
-  }),
-}))
+import { renderWithAppPreferences } from '@/test-utils/render-with-app-preferences'
 
 const {
   mockLoadPackage,
@@ -214,7 +208,7 @@ describe('PackageBuilder refresh preservation', () => {
     mockListProjects.mockReturnValue([createGraphProject('figure-1', 'analysis-1')])
     mockGenerateFigurePatternSummary.mockReturnValue('fresh generated summary')
 
-    render(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
     await openStep2()
 
     await screen.findByDisplayValue('Custom Table Label')
@@ -227,6 +221,7 @@ describe('PackageBuilder refresh preservation', () => {
     expect(sourceLinks).toHaveLength(2)
     expect(sourceLinks[0]).toHaveAttribute('href', '/?history=analysis-1')
     expect(sourceLinks[1]).toHaveAttribute('href', '/graph-studio?project=figure-1')
+    expect(screen.getAllByRole('link', { name: 'ANAL-01' })[0]).toHaveAttribute('href', '/?history=analysis-1')
 
     act(() => {
       window.dispatchEvent(new Event(refsChangedEvent))
@@ -240,6 +235,7 @@ describe('PackageBuilder refresh preservation', () => {
     expect(screen.getByDisplayValue('Custom Figure Label')).toBeInTheDocument()
     expect(screen.getByDisplayValue('fresh generated summary')).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')[0]).not.toBeChecked()
+    expect(screen.getAllByRole('link', { name: 'ANAL-01' })[0]).toHaveAttribute('href', '/?history=analysis-1')
   })
 
   it('relinks figure lineage to the latest canonical analysis id and clears stale summaries before save', async () => {
@@ -263,13 +259,19 @@ describe('PackageBuilder refresh preservation', () => {
 
     mockListProjectEntityRefs.mockReturnValue([
       { entityKind: 'analysis', entityId: 'analysis-2' },
-      { entityKind: 'figure', entityId: 'figure-1' },
+      {
+        entityKind: 'figure',
+        entityId: 'figure-1',
+        provenanceEdges: [
+          { role: 'derived-from', targetKind: 'analysis', targetId: 'analysis-2', label: 'canonical edge' },
+        ],
+      },
     ])
     mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-2', 'Relinked analysis')])
-    mockListProjects.mockReturnValue([createGraphProject('figure-1', 'analysis-2')])
+    mockListProjects.mockReturnValue([createGraphProject('figure-1', 'analysis-1')])
     mockGenerateFigurePatternSummary.mockImplementation(() => undefined)
 
-    render(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
     await openStep2()
 
     await waitFor(() => {
@@ -288,6 +290,32 @@ describe('PackageBuilder refresh preservation', () => {
     expect(savedFigure?.analysisIds).toEqual(['ANAL-01'])
     expect(savedFigure?.analysisLinks).toEqual([{ sourceId: 'analysis-2', label: 'ANAL-01' }])
     expect(savedFigure?.patternSummary).toBeUndefined()
+  })
+
+  it('uses graph source snapshots as the next canonical lineage fallback before legacy analysisId', async () => {
+    mockLoadPackage.mockResolvedValue(createPackage())
+    mockListProjectEntityRefs.mockReturnValue([
+      { entityKind: 'analysis', entityId: 'analysis-2' },
+      { entityKind: 'figure', entityId: 'figure-1' },
+    ])
+    mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-2', 'Snapshot analysis')])
+    mockListProjects.mockReturnValue([
+      {
+        ...createGraphProject('figure-1', 'analysis-legacy'),
+        sourceSnapshot: {
+          capturedAt: '2026-04-14T00:00:00.000Z',
+          rowCount: 12,
+          columns: [],
+          sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-2', label: 'Snapshot canonical' }],
+        },
+      } as GraphProject,
+    ])
+
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    await openStep2()
+
+    await screen.findByDisplayValue('Figure 1')
+    expect(screen.getAllByRole('link', { name: 'ANAL-01' }).at(-1)).toHaveAttribute('href', '/?history=analysis-2')
   })
 
   it('keeps an existing item when its source is still referenced but temporarily unavailable during refresh', async () => {
@@ -312,7 +340,7 @@ describe('PackageBuilder refresh preservation', () => {
     mockGetAllHistory.mockResolvedValue([])
     mockListProjects.mockReturnValue([])
 
-    render(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
     await openStep2()
 
     await screen.findByDisplayValue('Keep Me')
@@ -350,7 +378,7 @@ describe('PackageBuilder refresh preservation', () => {
     mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-1', 'Latest analysis')])
     mockListProjects.mockReturnValue([createGraphProject('figure-1', 'analysis-1')])
 
-    render(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
     await openStep2()
 
     await waitFor(() => {
@@ -371,7 +399,7 @@ describe('PackageBuilder refresh preservation', () => {
     mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-1', 'Latest analysis')])
     mockListProjects.mockReturnValue([createGraphProject('figure-1', 'analysis-1')])
 
-    render(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
     await openStep2()
 
     await waitFor(() => {
@@ -422,7 +450,7 @@ describe('PackageBuilder refresh preservation', () => {
       .mockImplementationOnce(() => firstHistoryLoad.promise)
       .mockResolvedValueOnce([createHistoryRecord('analysis-1', 'Latest analysis')])
 
-    render(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
     await openStep2()
 
     await waitFor(() => {
@@ -445,5 +473,60 @@ describe('PackageBuilder refresh preservation', () => {
 
     expect(screen.getByDisplayValue('Latest analysis')).toBeInTheDocument()
     expect(screen.queryByDisplayValue('Older analysis')).not.toBeInTheDocument()
+  })
+
+  it('treats recollected package items as unsaved local changes when a newer package snapshot arrives', async () => {
+    mockLoadPackage
+      .mockResolvedValueOnce(createPackage({
+        items: [
+          {
+            id: 'item-figure-1',
+            type: 'figure',
+            sourceId: 'figure-1',
+            analysisIds: ['analysis-1'],
+            label: 'Figure 1',
+            section: 'results',
+            order: 0,
+            included: true,
+          },
+        ],
+      }))
+      .mockResolvedValueOnce(createPackage({
+        updatedAt: '2026-04-14T00:00:00.000Z',
+        items: [
+          {
+            id: 'item-figure-1',
+            type: 'figure',
+            sourceId: 'figure-1',
+            analysisIds: ['ANAL-99'],
+            label: 'Figure 1',
+            section: 'results',
+            order: 0,
+            included: true,
+          },
+        ],
+      }))
+
+    mockListProjectEntityRefs.mockReturnValue([
+      { entityKind: 'analysis', entityId: 'analysis-1' },
+      { entityKind: 'figure', entityId: 'figure-1' },
+    ])
+    mockGetAllHistory.mockResolvedValue([createHistoryRecord('analysis-1', 'Latest analysis')])
+    mockListProjects.mockReturnValue([createGraphProject('figure-1', 'analysis-1')])
+    mockGenerateFigurePatternSummary.mockReturnValue('fresh generated summary')
+
+    renderWithAppPreferences(<PackageBuilder packageId="pkg-1" onBack={vi.fn()} />)
+    await openStep2()
+
+    await screen.findByDisplayValue('fresh generated summary')
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(paperPackagesChangedEvent, {
+        detail: { packageIds: ['pkg-1'] },
+      }))
+      await Promise.resolve()
+    })
+
+    await screen.findByText('다른 탭에서 이 패키지가 먼저 변경되었습니다.')
   })
 })

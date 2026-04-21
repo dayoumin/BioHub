@@ -47,6 +47,7 @@ export const projectEntityRefs = sqliteTable('project_entity_refs', {
   entityKind: text('entity_kind').notNull(),
   entityId: text('entity_id').notNull(),
   label: text('label'),
+  provenanceEdges: text('provenance_edges'),      // JSON array
   sortOrder: integer('sort_order').default(0),
   createdAt: text('created_at').notNull(),        // ISO 8601
   updatedAt: text('updated_at'),

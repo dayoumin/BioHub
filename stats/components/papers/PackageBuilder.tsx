@@ -41,12 +41,14 @@ import {
   buildAnalysisHistoryUrl,
   buildGraphStudioProjectUrl,
 } from '@/lib/research/source-navigation'
+import { getGraphProjectAnalysisSourceRefs } from '@/lib/graph-studio/project-lineage'
 import {
   GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects,
   type GraphProjectsChangedDetail,
 } from '@/lib/graph-studio/project-storage'
 import { getAllHistory } from '@/lib/utils/storage'
+import type { HistoryRecord } from '@/lib/utils/storage-types'
 import PackagePreview from './PackagePreview'
 import { useAppPreferences } from '@/hooks/use-app-preferences'
 
@@ -262,6 +264,21 @@ function Step2({ items, onChange }: Step2Props): React.ReactElement {
                     원본 열기
                   </a>
                 )}
+              </div>
+            )}
+            {(item.analysisLinks?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="shrink-0">연결 분석</span>
+                {item.analysisLinks?.map((analysisLink) => (
+                  <a
+                    key={`${item.id}:${analysisLink.sourceId}`}
+                    href={buildAnalysisHistoryUrl(analysisLink.sourceId)}
+                    className="rounded-md bg-muted px-2 py-0.5 font-medium text-foreground hover:bg-muted/80 hover:underline"
+                    title={`원본 분석 열기 · ${analysisLink.sourceId}`}
+                  >
+                    {analysisLink.label}
+                  </a>
+                ))}
               </div>
             )}
             {item.type === 'figure' && (
@@ -500,6 +517,24 @@ function mergeCollectedPackageItems(
     .map((item, index) => ({ ...item, order: index }))
 }
 
+function arePackageItemsEqual(
+  leftItems: readonly PackageItem[],
+  rightItems: readonly PackageItem[],
+): boolean {
+  if (leftItems.length !== rightItems.length) {
+    return false
+  }
+
+  return leftItems.every((leftItem, index) => {
+    const rightItem = rightItems[index]
+    if (!rightItem) {
+      return false
+    }
+
+    return JSON.stringify(leftItem) === JSON.stringify(rightItem)
+  })
+}
+
 function getGraphProjectChartType(
   graph: ReturnType<typeof listProjects>[number],
 ): string | undefined {
@@ -507,6 +542,43 @@ function getGraphProjectChartType(
     spec?: { chartType?: string }
   }
   return graph.chartSpec?.chartType ?? graphWithLegacySpec.spec?.chartType
+}
+
+function getFigureAnalysisLinks(
+  ref: ReturnType<typeof listProjectEntityRefs>[number],
+  graph: ReturnType<typeof listProjects>[number],
+  analysisMetaByHistoryId: ReadonlyMap<string, { analysisLabel: string }>,
+  historyById: ReadonlyMap<string, HistoryRecord>,
+): PackageAnalysisLink[] {
+  const provenanceLinks = (ref.provenanceEdges ?? [])
+    .filter((edge) => edge.targetKind === 'analysis')
+    .map((edge) => createAnalysisLink(
+      edge.targetId,
+      analysisMetaByHistoryId.get(edge.targetId)?.analysisLabel
+        ?? edge.label
+        ?? historyById.get(edge.targetId)?.method?.name
+        ?? historyById.get(edge.targetId)?.name
+        ?? edge.targetId,
+    ))
+
+  if (provenanceLinks.length > 0) {
+    return provenanceLinks
+  }
+
+  const graphSourceLinks = getGraphProjectAnalysisSourceRefs(graph)
+    .map((sourceRef) => createAnalysisLink(
+      sourceRef.sourceId,
+      analysisMetaByHistoryId.get(sourceRef.sourceId)?.analysisLabel
+        ?? sourceRef.label
+        ?? historyById.get(sourceRef.sourceId)?.method?.name
+        ?? historyById.get(sourceRef.sourceId)?.name
+        ?? sourceRef.sourceId,
+    ))
+
+  if (graphSourceLinks.length > 0) {
+    return graphSourceLinks
+  }
+  return []
 }
 
 // ── Step 4: 저널 설정 + 추가 맥락 ───────────────────────
@@ -776,17 +848,10 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
             const graph = graphById.get(ref.entityId)
             if (graph) {
               figureCount++
-              const linkedRecord = graph.analysisId ? historyById.get(graph.analysisId) : undefined
-              const linkedAnalysisMeta = graph.analysisId
-                ? analysisMetaByHistoryId.get(graph.analysisId)
-                : undefined
+              const analysisLinks = getFigureAnalysisLinks(ref, graph, analysisMetaByHistoryId, historyById)
+              const primaryAnalysisId = analysisLinks[0]?.sourceId
+              const linkedRecord = primaryAnalysisId ? historyById.get(primaryAnalysisId) : undefined
               const patternSummary = generateFigurePatternSummary(graph, linkedRecord)
-              const analysisLinks = graph.analysisId
-                ? [createAnalysisLink(
-                    graph.analysisId,
-                    linkedAnalysisMeta?.analysisLabel ?? linkedRecord?.method?.name ?? linkedRecord?.name ?? graph.analysisId,
-                  )]
-                : []
               newItems.push({
                 id: generatePackageItemId(),
                 type: 'figure',
@@ -814,11 +879,19 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           if (!prev || `${prev.id}:${prev.projectId ?? 'none'}` !== collectionScopeKey) {
             return prev
           }
+          const mergedItems = mergeCollectedPackageItems(prev.items, newItems, referencedSourceKeys)
+          if (!arePackageItemsEqual(prev.items, mergedItems)) {
+            hasLocalChangesRef.current = true
+          }
           return {
             ...prev,
-            items: mergeCollectedPackageItems(prev.items, newItems, referencedSourceKeys),
+            items: mergedItems,
           }
         })
+        if (hasLocalChangesRef.current) {
+          setPackageConflict(null)
+          setAssemblyResult(null)
+        }
         lastCollectedScopeRef.current = collectionScopeKey
       } catch {
         // 수집 실패 시 빈 상태 유지

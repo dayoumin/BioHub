@@ -68,6 +68,12 @@ function normalizeEntityRef(raw: unknown): ProjectEntityRef | null {
     entityId: row.entity_id,
     label: typeof row.label === 'string' ? row.label : undefined,
     order: typeof row.sort_order === 'number' ? row.sort_order : undefined,
+    provenanceEdges: Array.isArray(row.provenance_edges)
+      ? row.provenance_edges as ProjectEntityRef['provenanceEdges']
+      : parseJsonField<ProjectEntityRef['provenanceEdges']>(row.provenance_edges)
+        ?? (Array.isArray(row.provenanceEdges)
+          ? row.provenanceEdges as ProjectEntityRef['provenanceEdges']
+          : parseJsonField<ProjectEntityRef['provenanceEdges']>(row.provenanceEdges)),
     createdAt: row.created_at,
     updatedAt: typeof row.updated_at === 'string' ? row.updated_at : undefined,
   }

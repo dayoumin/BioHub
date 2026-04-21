@@ -37,6 +37,7 @@ import {
   type SampleSizeResult,
 } from '@/lib/sample-size/calculator'
 import { useAppPreferences } from '@/hooks/use-app-preferences'
+import { getLocalizedErrorMessage } from '@/lib/constants/error-messages'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -248,41 +249,18 @@ const SAMPLE_SIZE_RESULT_LABELS: Record<
   },
 }
 
-const SAMPLE_SIZE_ERROR_TRANSLATIONS: Record<string, string> = {
-  "Cohen's d에 유효한 숫자를 입력하세요": "Enter a valid number for Cohen's d.",
-  "Cohen's f에 유효한 숫자를 입력하세요": "Enter a valid number for Cohen's f.",
-  'α에 유효한 숫자를 입력하세요': 'Enter a valid number for alpha.',
-  '검정력에 유효한 숫자를 입력하세요': 'Enter a valid number for power.',
-  '그룹 수에 유효한 숫자를 입력하세요': 'Enter a valid number for the number of groups.',
-  '비율 p₁에 유효한 숫자를 입력하세요': 'Enter a valid number for proportion p₁.',
-  '비율 p₂에 유효한 숫자를 입력하세요': 'Enter a valid number for proportion p₂.',
-  '상관계수 r에 유효한 숫자를 입력하세요': 'Enter a valid number for correlation r.',
-  '유의수준 α는 0~1 사이여야 합니다': 'Alpha must be between 0 and 1.',
-  '검정력은 0~1 사이여야 합니다': 'Power must be between 0 and 1.',
-  '검정력(1-β)은 유의수준(α)보다 커야 합니다': 'Power (1-beta) must be greater than alpha.',
-  '효과 크기 d는 0보다 커야 합니다': "Effect size d must be greater than 0.",
-  '효과 크기 f는 0보다 커야 합니다': "Effect size f must be greater than 0.",
-  '그룹 수는 3 이상의 정수여야 합니다': 'The number of groups must be an integer greater than or equal to 3.',
-  '수렴하지 않음 — 효과 크기가 너무 작거나 그룹 수가 많을 수 있습니다': 'The estimate did not converge. The effect size may be too small or there may be too many groups.',
-  '비율은 0 초과 1 미만이어야 합니다': 'Proportions must be greater than 0 and less than 1.',
-  '두 비율이 동일합니다 — 탐지할 차이가 없습니다': 'The two proportions are identical, so there is no difference to detect.',
-  'r은 -1 ~ 1 범위여야 합니다': 'r must be between -1 and 1.',
-  'r이 0이면 검정력을 달성할 수 없습니다': 'If r is 0, the target power cannot be achieved.',
-}
-
-function containsHangul(value: string): boolean {
-  return /[가-힣]/.test(value)
-}
-
 function formatSampleSizeNumber(value: number, language: UiLanguage): string {
   return value.toLocaleString(language === 'en' ? 'en-US' : 'ko-KR')
 }
 
 function localizeSampleSizeError(error: string, language: UiLanguage): string {
-  if (language !== 'en') return error
-  return SAMPLE_SIZE_ERROR_TRANSLATIONS[error] ?? (containsHangul(error)
-    ? 'Unable to calculate the sample size. Review the inputs and try again.'
-    : error)
+  return getLocalizedErrorMessage(
+    error,
+    language,
+    language === 'en'
+      ? 'Unable to calculate the sample size. Review the inputs and try again.'
+      : undefined,
+  )
 }
 
 function localizeSampleSizeResult(

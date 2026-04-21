@@ -1,14 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { UnifiedHistorySidebar } from '../UnifiedHistorySidebar'
 import type { HistoryItem } from '@/types/history'
-
-vi.mock('@/hooks/use-app-preferences', () => ({
-  useAppPreferences: () => ({
-    locale: 'ko-KR',
-    currentLanguage: 'ko',
-  }),
-}))
+import { renderWithAppPreferences } from '@/test-utils/render-with-app-preferences'
 
 interface TestHistoryData {
   note: string
@@ -31,13 +25,13 @@ const items: HistoryItem<TestHistoryData>[] = [
 describe('UnifiedHistorySidebar', () => {
   it('닫힌 상태와 열린 상태에서 우측 패널 아이콘이 올바르게 전환된다', () => {
     const onSelect = vi.fn()
-    const { container } = render(
+    const { container } = renderWithAppPreferences(
       <UnifiedHistorySidebar
         items={items}
         onSelect={onSelect}
         defaultOpen={false}
         title="Analysis history"
-      />,
+      />
     )
 
     expect(container.querySelector('.lucide-panel-right-open')).toBeInTheDocument()

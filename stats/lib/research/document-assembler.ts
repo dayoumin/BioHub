@@ -25,11 +25,12 @@ import type {
   DocumentSourceRef,
 } from './document-blueprint-types'
 import {
+  buildDocumentTableId,
   convertPaperTable,
   buildFigureRef,
   createDocumentSourceRef,
+  getGraphPrimaryAnalysisId,
   generateDocumentId,
-  getDocumentSourceId,
 } from './document-blueprint-types'
 import { createEmptySections } from './document-preset-registry'
 
@@ -66,8 +67,14 @@ function filterProjectHistory(
 ): HistoryRecord[] {
   const analysisIds = new Set(
     entityRefs
-      .filter(ref => ref.entityKind === 'analysis')
-      .map(ref => ref.entityId),
+      .flatMap((ref) => {
+        if (ref.entityKind === 'analysis') {
+          return [ref.entityId]
+        }
+        return (ref.provenanceEdges ?? [])
+          .filter((edge) => edge.targetKind === 'analysis')
+          .map((edge) => edge.targetId)
+      }),
   )
   return allHistory.filter(h => analysisIds.has(h.id))
 }
@@ -105,20 +112,33 @@ function mergeDocumentSourceRefs(
 ): DocumentSourceRef[] {
   const merged = new Map<string, DocumentSourceRef>()
   for (const ref of refs) {
-    const existing = merged.get(ref.sourceId)
+    const key = `${ref.kind}:${ref.sourceId}`
+    const existing = merged.get(key)
     if (!existing) {
-      merged.set(ref.sourceId, ref)
+      merged.set(key, ref)
       continue
     }
     if (existing.kind === 'unknown' && ref.kind !== 'unknown') {
-      merged.set(ref.sourceId, ref)
+      merged.set(key, ref)
     }
   }
   return Array.from(merged.values())
 }
 
+function getFigurePrimaryAnalysisId(
+  figureRef: ProjectEntityRef | undefined,
+  graph: GraphProject,
+): string | undefined {
+  const provenanceAnalysisId = figureRef?.provenanceEdges
+    ?.find((edge) => edge.targetKind === 'analysis')
+    ?.targetId
+
+  return provenanceAnalysisId ?? getGraphPrimaryAnalysisId(graph)
+}
+
 /** Results 섹션 텍스트 + 표 + Figure 병합 */
 function mergeResults(
+  entityRefs: ProjectEntityRef[],
   records: HistoryRecord[],
   figures: GraphProject[],
   allHistory: HistoryRecord[],
@@ -127,6 +147,11 @@ function mergeResults(
   const parts: string[] = []
   const tables: DocumentTable[] = []
   const historyById = new Map(allHistory.map((record) => [record.id, record]))
+  const figureRefById = new Map(
+    entityRefs
+      .filter((ref) => ref.entityKind === 'figure')
+      .map((ref) => [ref.entityId, ref] as const),
+  )
 
   for (const record of records) {
     const draft = record.paperDraft
@@ -149,9 +174,10 @@ function mergeResults(
   }
 
   const figureRefs = figures.map((gp, i) => {
-    const linkedRecord = gp.analysisId ? historyById.get(gp.analysisId) : undefined
+    const relatedAnalysisId = getFigurePrimaryAnalysisId(figureRefById.get(gp.id), gp)
+    const linkedRecord = relatedAnalysisId ? historyById.get(relatedAnalysisId) : undefined
     return buildFigureRef(gp, i, {
-      relatedAnalysisId: gp.analysisId,
+      relatedAnalysisId,
       relatedAnalysisLabel: linkedRecord?.method?.name ?? linkedRecord?.name,
       patternSummary: generateFigurePatternSummary(gp, linkedRecord),
     })
@@ -289,6 +315,7 @@ export function assembleDocument(
   const resultsSection = sections.find(s => s.id === 'results')
   if (resultsSection) {
     const { content, tables, figureRefs } = mergeResults(
+      sources.entityRefs,
       projectHistory,
       projectFigures,
       sources.allHistory,
@@ -367,12 +394,12 @@ export function reassembleDocument(
     const merged = new Map<string, DocumentTable>()
 
     for (const table of freshTables ?? []) {
-      const key = `${table.sourceAnalysisId ?? 'manual'}:${table.id ?? table.caption}`
+      const key = table.id ?? buildDocumentTableId(table)
       merged.set(key, table)
     }
 
     for (const table of existingTables ?? []) {
-      const key = `${table.sourceAnalysisId ?? 'manual'}:${table.id ?? table.caption}`
+      const key = table.id ?? buildDocumentTableId(table)
       if (!merged.has(key)) {
         merged.set(key, table)
       }
@@ -400,7 +427,8 @@ export function reassembleDocument(
     return merged.size > 0 ? Array.from(merged.values()) : undefined
   }
 
-  const refreshStructuredSectionFields = (
+  const mergeStructuredSectionFields = (
+    baseSection: DocumentSection,
     existingSection: DocumentSection,
     freshSection: DocumentSection | undefined,
   ): DocumentSection => {
@@ -408,33 +436,26 @@ export function reassembleDocument(
 
     const tables = mergeTables(freshSection.tables, existingSection.tables)
     const figures = mergeFigures(freshSection.figures, existingSection.figures)
-    const preservedSourceRefs = new Map(
-      freshSection.sourceRefs.map((ref) => [ref.sourceId, ref] as const),
-    )
-
-    for (const table of existingSection.tables ?? []) {
-      if (table.sourceAnalysisId) {
-        preservedSourceRefs.set(
-          table.sourceAnalysisId,
-          createDocumentSourceRef('analysis', table.sourceAnalysisId, {
-            label: table.sourceAnalysisLabel,
-          }),
-        )
-      }
-    }
-
-    for (const figure of existingSection.figures ?? []) {
-      preservedSourceRefs.set(
-        figure.entityId,
+    const preservedSourceRefs = mergeDocumentSourceRefs([
+      ...freshSection.sourceRefs,
+      ...existingSection.sourceRefs,
+      ...(tables ?? []).flatMap((table) => (
+        table.sourceAnalysisId
+          ? [createDocumentSourceRef('analysis', table.sourceAnalysisId, {
+              label: table.sourceAnalysisLabel,
+            })]
+          : []
+      )),
+      ...(figures ?? []).map((figure) => (
         createDocumentSourceRef('figure', figure.entityId, {
           label: figure.label,
-        }),
-      )
-    }
+        })
+      )),
+    ])
 
     return {
-      ...existingSection,
-      sourceRefs: Array.from(preservedSourceRefs.values()),
+      ...baseSection,
+      sourceRefs: preservedSourceRefs,
       tables,
       figures,
     }
@@ -445,11 +466,15 @@ export function reassembleDocument(
 
     // 사용자 작성 또는 LLM 생성 섹션은 본문을 보존하되 구조화 메타는 최신화
     if (existingSection.generatedBy !== 'template') {
-      return refreshStructuredSectionFields(existingSection, fresh)
+      return mergeStructuredSectionFields(existingSection, existingSection, fresh)
     }
 
-    // template 섹션은 새로 조립된 내용으로 교체
-    return fresh ?? existingSection
+    // template 섹션도 본문은 최신 조립 결과로 교체하되 사용자가 추가한 구조화 sidecar는 보존
+    if (!fresh) {
+      return existingSection
+    }
+
+    return mergeStructuredSectionFields(fresh, existingSection, fresh)
   })
 
   const nowMs = Date.now()

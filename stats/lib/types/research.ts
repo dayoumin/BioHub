@@ -8,8 +8,18 @@
  * ProjectEntityKind is re-exported from @biohub/types (canonical source).
  */
 
-import type { ProjectEntityKind } from '@biohub/types'
-export type { ProjectEntityKind }
+import type {
+  ProjectArtifactKind,
+  ProjectEntityKind,
+  ProjectProvenanceEdge,
+  ProjectProvenanceRole,
+} from '@biohub/types'
+export type {
+  ProjectArtifactKind,
+  ProjectEntityKind,
+  ProjectProvenanceEdge,
+  ProjectProvenanceRole,
+}
 
 export type ResearchDomain =
   | 'general'
@@ -56,6 +66,7 @@ export interface ProjectEntityRef {
   entityId: string
   label?: string
   order?: number
+  provenanceEdges?: ProjectProvenanceEdge[]
   createdAt: string
   updatedAt?: string
 }

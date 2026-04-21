@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { DocumentSourceUsage } from '@/lib/research/document-source-usage';
 import { loadDocumentSourceUsages } from '@/lib/research/document-source-usage';
 import { buildDocumentEditorUrl } from '@/lib/research/source-navigation';
@@ -27,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3, Save } from 'lucide-react';
+import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3, Save, AlertTriangle, X } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
@@ -48,10 +49,24 @@ export function GraphStudioHeader({
   isSaving = false,
 }: GraphStudioHeaderProps): React.ReactElement {
   const router = useRouter();
-  const { chartSpec, currentProject, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel, clearData, goToSetup } = useGraphStudioStore();
+  const {
+    chartSpec,
+    currentProject,
+    historyIndex,
+    specHistory,
+    undo,
+    redo,
+    aiPanelOpen,
+    relinkWarning,
+    toggleAiPanel,
+    clearData,
+    goToSetup,
+    clearRelinkWarning,
+  } = useGraphStudioStore();
   const [showNewChartDialog, setShowNewChartDialog] = useState(false);
   const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([]);
   const documentUsageRequestSeqRef = useRef(0);
+  const currentResearchProjectId = currentProject?.projectId;
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
@@ -67,7 +82,10 @@ export function GraphStudioHeader({
       return;
     }
 
-    void loadDocumentSourceUsages(currentProjectId)
+    void loadDocumentSourceUsages(
+      currentProjectId,
+      currentResearchProjectId ? { projectId: currentResearchProjectId } : undefined,
+    )
       .then((usages) => {
         if (documentUsageRequestSeqRef.current === requestSeq) {
           setDocumentUsages(usages);
@@ -78,7 +96,7 @@ export function GraphStudioHeader({
           setDocumentUsages([]);
         }
       });
-  }, [currentProjectId]);
+  }, [currentProjectId, currentResearchProjectId]);
 
   useEffect(() => {
     reloadDocumentUsages();
@@ -90,6 +108,14 @@ export function GraphStudioHeader({
         void reloadDocumentUsages();
         return;
       }
+      const detail = event.detail as { projectId?: string } | undefined;
+      if (
+        currentResearchProjectId
+        && detail?.projectId
+        && detail.projectId !== currentResearchProjectId
+      ) {
+        return;
+      }
       void reloadDocumentUsages();
     };
 
@@ -97,7 +123,7 @@ export function GraphStudioHeader({
     return () => {
       window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged);
     };
-  }, [reloadDocumentUsages]);
+  }, [currentResearchProjectId, reloadDocumentUsages]);
 
   const handleNewChart = useCallback(() => {
     const hasUnsavedSession = chartSpec !== null && (currentProject === null || historyIndex > 0);
@@ -126,10 +152,11 @@ export function GraphStudioHeader({
   }, [redo]);
 
   return (
-    <header
-      className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-6 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
-      style={{ borderTop: '2px solid var(--section-accent-graph)' }}
-    >
+    <>
+      <header
+        className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-6 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
+        style={{ borderTop: '2px solid var(--section-accent-graph)' }}
+      >
       {/* 좌: 제목 + 새 차트 */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
@@ -215,6 +242,8 @@ export function GraphStudioHeader({
             size="sm"
             onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {
               sectionId: usage.sectionId,
+              tableId: usage.kind === 'table' ? usage.artifactId : undefined,
+              figureId: usage.kind === 'figure' ? usage.artifactId : undefined,
             }))}
             className="text-xs text-muted-foreground hover:text-foreground"
             title={`${usage.documentTitle} · ${usage.sectionTitle}`}
@@ -268,6 +297,46 @@ export function GraphStudioHeader({
         )}
       </div>
 
+      </header>
+
+      {relinkWarning && (
+        <div className="px-6 pt-3">
+          <Alert variant="warning" className="border-none">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{relinkWarning.projectName} 연결이 해제되었습니다</AlertTitle>
+            <AlertDescription>
+              <p>저장된 그래프와 현재 데이터 구조가 달라 새 세션으로 전환했습니다.</p>
+              {relinkWarning.missingFields.length > 0 && (
+                <p>누락 필드: {relinkWarning.missingFields.join(', ')}</p>
+              )}
+              {relinkWarning.typeMismatches.length > 0 && (
+                <p>
+                  타입 불일치: {relinkWarning.typeMismatches
+                    .map((mismatch) => `${mismatch.field} (${mismatch.expected} → ${mismatch.actual})`)
+                    .join(', ')}
+                </p>
+              )}
+              {relinkWarning.semanticMismatchFields.length > 0 && (
+                <p>범주 샘플 불일치: {relinkWarning.semanticMismatchFields.join(', ')}</p>
+              )}
+              {relinkWarning.previousSchemaFingerprint && relinkWarning.nextSchemaFingerprint && (
+                <p>
+                  schema fp: {relinkWarning.previousSchemaFingerprint} → {relinkWarning.nextSchemaFingerprint}
+                </p>
+              )}
+            </AlertDescription>
+            <button
+              type="button"
+              onClick={clearRelinkWarning}
+              className="absolute right-3 top-3 rounded-md p-1 text-current/70 hover:bg-black/5 hover:text-current dark:hover:bg-white/10"
+              aria-label="relink warning 닫기"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </Alert>
+        </div>
+      )}
+
       {/* 새 차트 확인 대화상자 */}
       <AlertDialog open={showNewChartDialog} onOpenChange={setShowNewChartDialog}>
         <AlertDialogContent>
@@ -285,6 +354,6 @@ export function GraphStudioHeader({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </header>
+    </>
   );
 }

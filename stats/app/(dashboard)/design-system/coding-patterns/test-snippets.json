@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.7",
+  "version": "1.44.9",
   "lastUpdated": "2026-04-21",
   "sources": [
     "stats/__tests__/",
@@ -86,6 +86,20 @@
             "manual browsing",
             "lifecycle"
           ]
+        },
+        {
+          "name": "Graph relink stale provenance 차단 테스트",
+          "purpose": "새 upload/data package로 relink할 때 이전 analysis provenance가 저장 결과에 남지 않도록 store save 경로를 고정하고, 빈 dataPackageId legacy project도 relink로 취급",
+          "code": "import { describe, it, expect, beforeEach, vi } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { useGraphStudioStore } from '@/lib/stores/graph-studio-store';\nimport * as projectStorage from '@/lib/graph-studio/project-storage';\n\ndescribe('graph studio relink lineage', () => {\n  beforeEach(() => {\n    act(() => {\n      useGraphStudioStore.getState().resetAll();\n    });\n  });\n\n  it('새 upload로 relink되면 stale analysis sourceRefs를 제거한다', () => {\n    const saveSpy = vi.spyOn(projectStorage, 'saveProject');\n\n    act(() => {\n      useGraphStudioStore.getState().setProject(\n        makeProject({\n          analysisId: 'analysis-old',\n          dataPackageId: 'pkg-old',\n          sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-old', label: 'Old Analysis' }],\n        }),\n        makePkg({ id: 'pkg-old', analysisResultId: 'analysis-old' }),\n      );\n      useGraphStudioStore.getState().loadDataPackageWithSpec(makePkg({ id: 'pkg-upload-new' }), makeSpec(), {\n        preserveCurrentProject: true,\n      });\n      useGraphStudioStore.getState().saveCurrentProject('Relinked Graph');\n    });\n\n    const persistedProject = saveSpy.mock.calls.at(-1)?.[0];\n    expect(persistedProject?.analysisId).toBeUndefined();\n    expect(persistedProject?.sourceRefs).toEqual([\n      { kind: 'data-package', sourceId: 'pkg-upload-new', label: 'test' },\n    ]);\n  });\n});",
+          "keywords": [
+            "graph studio",
+            "zustand",
+            "lineage",
+            "sourceRefs",
+            "relink",
+            "provenance",
+            "empty dataPackageId"
+          ]
         }
       ]
     },
@@ -130,6 +144,30 @@
           ]
         },
         {
+          "name": "AppPreferencesProvider wrapper helper",
+          "purpose": "locale/currentLanguage에 직접 의존하는 컴포넌트를 hook mock 없이 실제 preferences provider로 감싸는 테스트 패턴",
+          "code": "import { render, type RenderOptions } from '@testing-library/react';\nimport { AppPreferencesProvider } from '@/lib/preferences';\n\nexport function renderWithAppPreferences(\n  ui: React.ReactElement,\n  {\n    language = 'ko',\n    domain = 'aquaculture',\n    ...options\n  }: Omit<RenderOptions, 'wrapper'> & {\n    language?: 'ko' | 'en';\n    domain?: 'aquaculture' | 'generic';\n  } = {},\n) {\n  return render(ui, {\n    wrapper: ({ children }) => (\n      <AppPreferencesProvider initialLanguage={language} initialDomain={domain}>\n        {children}\n      </AppPreferencesProvider>\n    ),\n    ...options,\n  });\n}",
+          "keywords": [
+            "AppPreferencesProvider",
+            "renderWithAppPreferences",
+            "provider wrapper",
+            "locale",
+            "test helper"
+          ]
+        },
+        {
+          "name": "locale prop override 테스트",
+          "purpose": "leaf 표시 컴포넌트가 optional preferences hook 대신 locale/currentLanguage prop 주입만으로도 렌더되도록 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { AnalysisInfoCard } from '@/components/analysis/components/AnalysisInfoCard';\n\nit('locale/currentLanguage prop만으로 숫자 포맷을 제어한다', () => {\n  render(\n    <AnalysisInfoCard\n      dataRows={10000}\n      locale=\"en-US\"\n      currentLanguage=\"en\"\n    />,\n  );\n\n  expect(screen.getByText(/10,000\\s*rows/)).toBeInTheDocument();\n});",
+          "keywords": [
+            "locale prop",
+            "currentLanguage prop",
+            "optional preferences hook",
+            "leaf component",
+            "render without provider"
+          ]
+        },
+        {
           "name": "Terminology resolver 조합 테스트",
           "purpose": "language-owned UI 섹션과 domain-owned terminology 섹션이 resolver에서 올바르게 합성되는지 고정",
           "code": "import { describe, expect, it } from 'vitest';\nimport { resolveTerminologyDictionary } from '@/lib/terminology/resolve-terminology-dictionary';\n\ndescribe('resolveTerminologyDictionary', () => {\n  it('en+aquaculture 조합은 영어 UI와 수산 용어를 함께 사용한다', () => {\n    const dictionary = resolveTerminologyDictionary('en', 'aquaculture');\n    expect(dictionary.analysis.stepTitles.variableSelection).toBe('Variable Selection');\n    expect(dictionary.analysisInfo.cardTitle).toBe('Analysis Info');\n    expect(dictionary.variables.dependent.title).toBe('Measurement Variable (Y)');\n  });\n\n  it('ko+generic 조합은 한국어 UI와 범용 용어를 함께 사용한다', () => {\n    const dictionary = resolveTerminologyDictionary('ko', 'generic');\n    expect(dictionary.analysis.stepTitles.variableSelection).toBe('변수 선택');\n    expect(dictionary.analysisInfo.cardTitle).toBe('분석 정보');\n    expect(dictionary.variables.group.title).toBe('그룹 변수');\n  });\n\n  it('exact combo도 language-owned guided flow 데이터를 유지한다', () => {\n    const dictionary = resolveTerminologyDictionary('en', 'generic');\n    expect(dictionary.guidedQuestionData.compare[0]?.question).toBe('What do you want to compare?');\n  });\n});",
@@ -149,6 +187,7 @@
           "keywords": [
             "purposeInput",
             "hub",
+            "mixed-owned",
             "cross combo",
             "mixed section",
             "terminology",
@@ -1251,6 +1290,21 @@
             "error property",
             "domain",
             "boundary"
+          ]
+        },
+        {
+          "name": "로컬라이즈드 에러 fallback 우선 테스트",
+          "purpose": "미등록 영어 에러 문자열이 들어와도 caller가 넘긴 fallback을 우선 사용하고, mapped/fallback/raw 결정까지 공용 유틸에서 확인",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { getLocalizedErrorMessage, resolveLocalizedErrorMessage } from '@/lib/constants/error-messages';\n\ndescribe('getLocalizedErrorMessage', () => {\n  it('fallback이 있으면 raw 영어 에러보다 fallback을 우선한다', () => {\n    expect(\n      getLocalizedErrorMessage(\n        'Unhandled worker exception',\n        'en',\n        'Analysis failed. Check the data and selected method, then try again.',\n      ),\n    ).toBe('Analysis failed. Check the data and selected method, then try again.');\n  });\n\n  it('resolution kind를 같이 확인할 수 있다', () => {\n    expect(resolveLocalizedErrorMessage('Pyodide 계산 오류', 'en')).toMatchObject({\n      kind: 'mapped',\n      matchedKey: 'Pyodide 계산 오류',\n    });\n  });\n});",
+          "keywords": [
+            "getLocalizedErrorMessage",
+            "resolveLocalizedErrorMessage",
+            "fallback",
+            "english error",
+            "localization",
+            "utility",
+            "regression",
+            "resolution kind"
           ]
         }
       ]

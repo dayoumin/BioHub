@@ -74,6 +74,10 @@ vi.mock('@/hooks/use-app-preferences', () => ({
     locale: mockLocale,
     currentLanguage: mockLanguage,
   }),
+  useOptionalAppPreferences: () => ({
+    locale: mockLocale,
+    currentLanguage: mockLanguage,
+  }),
 }))
 
 describe('AnalysisInfoCard', () => {
@@ -174,6 +178,20 @@ describe('AnalysisInfoCard', () => {
       mockLocale = 'en-US'
 
       render(<AnalysisInfoCard dataRows={10000} />)
+
+      expect(screen.getByText(/10,000\s*rows/)).toBeInTheDocument()
+    })
+
+    it('renders with injected locale/currentLanguage props without relying on provider state', () => {
+      mockLanguage = 'en'
+
+      render(
+        <AnalysisInfoCard
+          dataRows={10000}
+          locale="en-US"
+          currentLanguage="en"
+        />
+      )
 
       expect(screen.getByText(/10,000\s*rows/)).toBeInTheDocument()
     })

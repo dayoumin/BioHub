@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb, CloudUpload } from 'lucide-react'
 import { toast } from 'sonner'
-import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
+import { getLocalizedErrorMessage } from '@/lib/constants/error-messages'
 import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
 import { useTerminology } from '@/hooks/use-terminology'
 import { Button } from '@/components/ui/button'
@@ -139,7 +139,11 @@ export function DataUploadStep({
         // 보안 검증 수행
         const securityCheck = await DataValidationService.validateFileContent(file)
         if (!securityCheck.isValid) {
-          const errorMsg = getUserFriendlyErrorMessage(securityCheck.error || 'File security validation failed')
+          const errorMsg = getLocalizedErrorMessage(
+            securityCheck.error || 'File security validation failed',
+            t.language,
+            t.dataUpload.errors.processingError,
+          )
           setError(errorMsg)
           setIsUploading(false)
           return
@@ -193,7 +197,11 @@ export function DataUploadStep({
               if (result.errors.length > 0) {
                 const critical = findCriticalParseError(result.errors)
                 if (critical) {
-                  setError(getUserFriendlyErrorMessage(`CSV parsing error: ${critical.message}`))
+                  setError(getLocalizedErrorMessage(
+                    `CSV parsing error: ${critical.message}`,
+                    t.language,
+                    t.dataUpload.errors.processingError,
+                  ))
                   setIsUploading(false)
                   return
                 }
@@ -227,7 +235,7 @@ export function DataUploadStep({
             dynamicTyping: true,
             skipEmptyLines: true,
             error: (error) => {
-              setError(getUserFriendlyErrorMessage(error))
+              setError(getLocalizedErrorMessage(error, t.language, t.dataUpload.errors.processingError))
               setIsUploading(false)
             }
           })

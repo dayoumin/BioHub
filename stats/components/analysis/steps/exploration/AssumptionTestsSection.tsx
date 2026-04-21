@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { staticPanelBase } from '@/components/common/card-styles'
 import type { StatisticalAssumptions } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
+import { getLocalizedErrorMessage } from '@/lib/constants/error-messages'
 
 interface AssumptionTestsSectionProps {
   assumptionResults: StatisticalAssumptions | null
@@ -29,25 +30,6 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
     ? 'Some assumption checks failed. Expert review is recommended.'
     : '일부 가정 검정 실패 — 전문가 확인 권장'
   const failureKeywords = ['실패', 'failed', 'failure']
-
-  const localizeFailureReason = (reason: string): string => {
-    if (!isEnglish) return reason
-    const normalizedReason = reason.toLowerCase()
-
-    if (normalizedReason.includes('normality') || reason.includes('정규성')) {
-      return 'The normality check failed. Expert review is recommended.'
-    }
-
-    if (normalizedReason.includes('variance') || normalizedReason.includes('homogeneity') || reason.includes('등분산')) {
-      return 'The homogeneity of variance check failed. Expert review is recommended.'
-    }
-
-    if (/[가-힣]/.test(reason)) {
-      return fallbackTestErrorMessage
-    }
-
-    return reason
-  }
 
   if (visibility === 'hidden') return null
 
@@ -80,7 +62,7 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
     ? assumptionResults.summary.reasons.filter((reason) => {
         const normalizedReason = reason.toLowerCase()
         return failureKeywords.some((keyword) => normalizedReason.includes(keyword))
-      }).map(localizeFailureReason)
+      }).map((reason) => getLocalizedErrorMessage(reason, isEnglish ? 'en' : 'ko', fallbackTestErrorMessage))
     : []
   const testErrorMessage = assumptionResults.summary?.testError
     ? (failReasons.length > 0 ? failReasons.join(' / ') : fallbackTestErrorMessage)

@@ -1,3 +1,5 @@
+import type { ProjectEntityKind } from '@biohub/types';
+
 /**
  * Graph Studio 타입 정의
  *
@@ -355,6 +357,49 @@ export interface ComparisonMeta {
 
 // ─── DataPackage (모듈 간 데이터 전달) ─────────────────────
 
+export type GraphExternalSourceKind = 'upload' | 'data-package';
+
+export type GraphSourceKind = ProjectEntityKind | GraphExternalSourceKind;
+
+export type GraphLineageMode = 'derived' | 'mixed' | 'manual';
+
+export interface GraphSourceRef {
+  kind: GraphSourceKind;
+  sourceId: string;
+  label?: string;
+}
+
+export interface GraphSourceSnapshot {
+  capturedAt: string;
+  dataPackageId?: string;
+  rowCount: number;
+  columns: Array<Pick<ColumnMeta, 'name' | 'type'>>;
+  sourceRefs: GraphSourceRef[];
+  columnPreviews?: Array<Pick<ColumnMeta, 'name' | 'type' | 'sampleValues'>>;
+  referencedFields?: string[];
+  schemaFingerprint?: string;
+  sourceFingerprint?: string;
+}
+
+export interface GraphColumnTypeMismatch {
+  field: string;
+  expected: DataType;
+  actual: DataType;
+}
+
+export interface GraphRelinkWarning {
+  projectId: string;
+  projectName: string;
+  missingFields: string[];
+  extraFields: string[];
+  typeMismatches: GraphColumnTypeMismatch[];
+  semanticMismatchFields: string[];
+  previousSchemaFingerprint?: string;
+  nextSchemaFingerprint?: string;
+  previousSourceFingerprint?: string;
+  nextSourceFingerprint?: string;
+}
+
 export interface DataPackage {
   id: string;
   source: 'analysis' | 'bio-tools' | 'upload' | 'species-checker';
@@ -365,8 +410,12 @@ export interface DataPackage {
   projectId?: string;
   /** 분석 맥락 — 생산자가 "무슨 분석을 했는가"를 기술 */
   analysisContext?: AnalysisContext;
-  /** Smart Flow 히스토리 원본 참조 ID (논문 도구 역참조용) */
+  /** @deprecated sourceRefs로 대체되는 단일-analysis 호환 필드 */
   analysisResultId?: string;
+  /** canonical provenance source 집합. analysisResultId의 일반화된 형태. */
+  sourceRefs?: GraphSourceRef[];
+  /** 원본과의 관계 상태. direct 파생인지, 혼합인지, 수동 편집본인지 표현. */
+  lineageMode?: GraphLineageMode;
   createdAt: string;
 }
 
@@ -377,8 +426,16 @@ export interface GraphProject {
   name: string;
   /** 상위 연구 프로젝트 연결용. 미연결 상태 허용. */
   projectId?: string;
-  /** 이 차트가 어떤 분석에서 파생되었는지 추적하는 canonical analysis history id. */
+  /** @deprecated sourceRefs/sourceSnapshot에서 파생되는 단일-analysis 호환 필드 */
   analysisId?: string;
+  /** 저장 시점 기준 canonical provenance source 집합. */
+  sourceRefs?: GraphSourceRef[];
+  /** 저장 시점 lineage 상태. */
+  lineageMode?: GraphLineageMode;
+  /** 저장 시점 원본 데이터 스키마 fingerprint 대체용. */
+  sourceSchema?: Array<Pick<ColumnMeta, 'name' | 'type'>>;
+  /** 저장 시점 provenance audit snapshot. reload 후에도 원본 관계를 설명할 수 있게 유지한다. */
+  sourceSnapshot?: GraphSourceSnapshot;
   chartSpec: ChartSpec;
   dataPackageId: string;
   /** Deprecated persisted field. Kept optional for backward compatibility with older saves. */
@@ -397,6 +454,8 @@ export interface GraphStudioState {
   currentProject: GraphProject | null;
   /** 현재 Graph Studio 세션이 명시적으로 연결된 연구 프로젝트 ID */
   linkedResearchProjectId: string | null;
+  /** 저장된 프로젝트를 다른 데이터로 relink하다 호환성 문제가 생기면 UI 경고로 노출 */
+  relinkWarning: GraphRelinkWarning | null;
 
   // 데이터
   dataPackage: DataPackage | null;

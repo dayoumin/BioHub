@@ -202,6 +202,28 @@ describe('assembleDocument', () => {
     expect(results?.figures?.[0]?.patternSummary).toBeTruthy()
   })
 
+  it('should prefer graph sourceRefs over legacy analysisId for figure provenance', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ id: 'pref_2', entityId: 'gp_1', entityKind: 'figure' }),
+      ],
+      allHistory: [
+        makeHistoryRecord({ id: 'hist_new' }),
+        makeHistoryRecord({ id: 'hist_old', name: 'Legacy analysis' }),
+      ],
+      allGraphProjects: [makeGraphProject({
+        analysisId: 'hist_old',
+        sourceRefs: [{ kind: 'analysis', sourceId: 'hist_new', label: 'Canonical analysis' }],
+      })],
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find(s => s.id === 'results')
+
+    expect(results?.figures?.[0]?.relatedAnalysisId).toBe('hist_new')
+    expect(results?.figures?.[0]?.relatedAnalysisLabel).toBe('독립표본 t-검정')
+  })
+
   it('should filter out non-project analyses', () => {
     const sources: AssemblerDataSources = {
       entityRefs: [
@@ -636,7 +658,7 @@ describe('reassembleDocument', () => {
 
     expect(results?.content).toBe('사용자가 정리한 결과 요약입니다.')
     expect(results?.generatedBy).toBe('user')
-    expect(results?.sourceRefs.map(getDocumentSourceId)).toEqual(['hist_1', 'gp_1'])
+    expect(results?.sourceRefs.map(getDocumentSourceId)).toEqual(['hist_1', 'gp_1', 'stale-ref'])
     expect(results?.tables?.[0]?.caption).toBe('Table 9. 갱신된 표')
     expect(results?.figures?.[0]?.caption).toBe('Updated Box Plot (box)')
   })
@@ -698,6 +720,66 @@ describe('reassembleDocument', () => {
     expect(results?.figures?.some((figure) => figure.entityId === 'manual-figure')).toBe(true)
     expect(results?.sourceRefs.map(getDocumentSourceId)).toContain('manual-analysis')
     expect(results?.sourceRefs.map(getDocumentSourceId)).toContain('manual-figure')
+  })
+
+  it('preserves manual sidecars and sourceRefs even when the section remains template-generated', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
+      ],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [],
+    }
+
+    const original = assembleDocument(BASE_OPTIONS, sources)
+    const edited = {
+      ...original,
+      sections: original.sections.map((section) => (
+        section.id === 'results'
+          ? {
+              ...section,
+              tables: [
+                ...(section.tables ?? []),
+                {
+                  id: 'manual-table-template',
+                  caption: 'Manual Template Table',
+                  headers: ['A'],
+                  rows: [['1']],
+                  sourceAnalysisId: 'manual-analysis-template',
+                  sourceAnalysisLabel: 'Manual Template Analysis',
+                },
+              ],
+              figures: [
+                ...(section.figures ?? []),
+                {
+                  entityId: 'manual-figure-template',
+                  label: 'Figure 99',
+                  caption: 'Manual Template Figure',
+                },
+              ],
+              sourceRefs: [
+                ...section.sourceRefs,
+                createDocumentSourceRef('analysis', 'manual-analysis-template', {
+                  label: 'Manual Template Analysis',
+                }),
+                createDocumentSourceRef('figure', 'manual-figure-template', {
+                  label: 'Figure 99',
+                }),
+              ],
+            }
+          : section
+      )),
+    }
+
+    const reassembled = reassembleDocument(edited, sources)
+    const results = reassembled.sections.find((section) => section.id === 'results')
+
+    expect(results?.generatedBy).toBe('template')
+    expect(results?.content).toContain('유의한 차이')
+    expect(results?.tables?.some((table) => table.id === 'manual-table-template')).toBe(true)
+    expect(results?.figures?.some((figure) => figure.entityId === 'manual-figure-template')).toBe(true)
+    expect(results?.sourceRefs.map((ref) => `${ref.kind}:${ref.sourceId}`)).toContain('analysis:manual-analysis-template')
+    expect(results?.sourceRefs.map((ref) => `${ref.kind}:${ref.sourceId}`)).toContain('figure:manual-figure-template')
   })
 })
 

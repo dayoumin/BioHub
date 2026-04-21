@@ -21,8 +21,13 @@ import { useAppPreferences } from '@/hooks/use-app-preferences'
 
 // ── 기본 아이템 렌더러 ──
 
-function DefaultItemContent<T>({ item }: { item: HistoryItem<T> }): ReactNode {
-  const { locale } = useAppPreferences()
+function DefaultItemContent<T>({
+  item,
+  locale,
+}: {
+  item: HistoryItem<T>
+  locale: string
+}): ReactNode {
   const dateStr = new Date(item.createdAt).toLocaleDateString(locale, {
     month: 'numeric',
     day: 'numeric',
@@ -63,6 +68,7 @@ function DefaultItemContent<T>({ item }: { item: HistoryItem<T> }): ReactNode {
 
 interface HistoryRowProps<T> {
   item: HistoryItem<T>
+  locale: string
   active: boolean
   selected: boolean
   onToggleSelect: (id: string) => void
@@ -73,6 +79,7 @@ interface HistoryRowProps<T> {
 
 const HistoryRow = memo(function HistoryRow<T>({
   item,
+  locale,
   active,
   selected,
   onToggleSelect,
@@ -99,7 +106,7 @@ const HistoryRow = memo(function HistoryRow<T>({
           className="mt-0.5 h-3 w-3 shrink-0 rounded border-gray-300 accent-primary"
         />
 
-        {renderItem ? renderItem(item) : <DefaultItemContent item={item} />}
+        {renderItem ? renderItem(item) : <DefaultItemContent item={item} locale={locale} />}
 
         {onPin && (
           <button
@@ -138,6 +145,7 @@ export function UnifiedHistorySidebar<T>({
   activeId = null,
   defaultOpen = true,
 }: UnifiedHistorySidebarProps<T>): ReactNode {
+  const { locale } = useAppPreferences()
   const [open, setOpen] = useState(defaultOpen)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -279,6 +287,7 @@ export function UnifiedHistorySidebar<T>({
               <HistoryRow
                 key={item.id}
                 item={item}
+                locale={locale}
                 active={item.id === activeId}
                 selected={selectedIds.has(item.id)}
                 onToggleSelect={handleToggleSelect}

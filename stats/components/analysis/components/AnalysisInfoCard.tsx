@@ -7,7 +7,8 @@ import { StatisticalMethod, ValidationResults, StatisticalAssumptions } from '@/
 import { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
-import { useAppPreferences } from '@/hooks/use-app-preferences'
+import { useOptionalAppPreferences } from '@/hooks/use-app-preferences'
+import type { AppLanguageCode } from '@/lib/preferences'
 
 // p-value 포맷팅 (매우 작은 값 처리)
 function formatPValue(p: number): string {
@@ -24,6 +25,8 @@ interface AnalysisInfoCardProps {
     variableMapping?: VariableMapping | null
     validationResults?: ValidationResults | null
     assumptionResults?: StatisticalAssumptions | null
+    locale?: string
+    currentLanguage?: AppLanguageCode
 }
 
 export function AnalysisInfoCard({
@@ -34,10 +37,14 @@ export function AnalysisInfoCard({
     timestamp,
     variableMapping,
     validationResults,
-    assumptionResults
+    assumptionResults,
+    locale: localeOverride,
+    currentLanguage: currentLanguageOverride,
 }: AnalysisInfoCardProps) {
     const t = useTerminology()
-    const { locale, currentLanguage } = useAppPreferences()
+    const preferences = useOptionalAppPreferences()
+    const locale = localeOverride ?? preferences?.locale ?? 'ko-KR'
+    const currentLanguage = currentLanguageOverride ?? preferences?.currentLanguage ?? 'ko'
     const undecidableLabel = currentLanguage === 'en' ? 'Undetermined' : '판정 불가'
 
     // 변수 정보 추출

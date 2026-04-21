@@ -40,7 +40,9 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/research/document-source-usage', () => ({
-  loadDocumentSourceUsages: (sourceId: string) => mockLoadDocumentSourceUsages(sourceId),
+  loadDocumentSourceUsages: (sourceId: string, options?: { projectId?: string }) => (
+    mockLoadDocumentSourceUsages(sourceId, options)
+  ),
 }))
 
 vi.mock('@/lib/research/document-blueprint-storage', () => ({
@@ -68,6 +70,7 @@ function makeProject(spec: ChartSpec) {
   return {
     id: 'project-1',
     name: 'Saved Chart',
+    projectId: 'research-project-1',
     chartSpec: spec,
     dataPackageId: 'pkg-1',
     createdAt: now,
@@ -156,6 +159,7 @@ describe('GraphStudioHeader', () => {
         sectionTitle: '결과',
         kind: 'figure',
         label: 'Figure 1',
+        artifactId: 'project-1',
       },
     ])
 
@@ -167,8 +171,8 @@ describe('GraphStudioHeader', () => {
 
     await user.click(await screen.findByRole('button', { name: '논문 초안' }))
 
-    expect(mockLoadDocumentSourceUsages).toHaveBeenCalledWith('project-1')
-    expect(mockRouterPush).toHaveBeenCalledWith('/papers?doc=doc-1&section=results')
+    expect(mockLoadDocumentSourceUsages).toHaveBeenCalledWith('project-1', { projectId: 'research-project-1' })
+    expect(mockRouterPush).toHaveBeenCalledWith('/papers?doc=doc-1&section=results&figure=project-1')
   })
 
   it('reloads document usages when papers change and shows explicit destinations', async () => {
@@ -204,13 +208,35 @@ describe('GraphStudioHeader', () => {
 
     await act(async () => {
       window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
-        detail: { projectId: 'project-1', documentId: 'doc-1', action: 'saved' },
+        detail: { projectId: 'research-project-1', documentId: 'doc-1', action: 'saved' },
       }))
     })
 
     expect(await screen.findByRole('button', { name: '논문 초안' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '보고서' })).toBeInTheDocument()
     expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores document change events from unrelated research projects', async () => {
+    const spec = makeSpec()
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject(spec))
+    })
+
+    render(<GraphStudioHeader />)
+
+    await waitFor(() => {
+      expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(1)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
+        detail: { projectId: 'other-project', documentId: 'doc-9', action: 'saved' },
+      }))
+    })
+
+    expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the newest document usages when an older request resolves later', async () => {
@@ -244,7 +270,7 @@ describe('GraphStudioHeader', () => {
 
     await act(async () => {
       window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
-        detail: { projectId: 'project-1', documentId: 'doc-2', action: 'saved' },
+        detail: { projectId: 'research-project-1', documentId: 'doc-2', action: 'saved' },
       }))
     })
 
@@ -282,5 +308,38 @@ describe('GraphStudioHeader', () => {
       expect(screen.queryByRole('button', { name: '오래된 문서' })).not.toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: '최신 문서' })).toBeInTheDocument()
+  })
+
+  it('renders relink warnings and clears them when dismissed', async () => {
+    const user = userEvent.setup()
+
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(makeSpec())
+      useGraphStudioStore.setState({
+        relinkWarning: {
+          projectId: 'project-1',
+          projectName: 'Saved Chart',
+          missingFields: ['treatment'],
+          extraFields: [],
+          typeMismatches: [],
+          semanticMismatchFields: ['group'],
+          previousSchemaFingerprint: 'prev-fp',
+          nextSchemaFingerprint: 'next-fp',
+        },
+      })
+    })
+
+    render(<GraphStudioHeader />)
+
+    expect(screen.getByText('Saved Chart 연결이 해제되었습니다')).toBeInTheDocument()
+    expect(screen.getByText('누락 필드: treatment')).toBeInTheDocument()
+    expect(screen.getByText('범주 샘플 불일치: group')).toBeInTheDocument()
+    expect(screen.getByText('schema fp: prev-fp → next-fp')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'relink warning 닫기' }))
+
+    await waitFor(() => {
+      expect(useGraphStudioStore.getState().relinkWarning).toBeNull()
+    })
   })
 })

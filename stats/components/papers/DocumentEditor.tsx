@@ -31,6 +31,7 @@ import {
   convertPaperTable,
   buildFigureRef,
   createDocumentSourceRef,
+  getGraphPrimaryAnalysisId,
   getDocumentSourceId,
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
@@ -64,6 +65,8 @@ const ReactMarkdown = lazy(() => import('react-markdown'))
 interface DocumentEditorProps {
   documentId: string
   initialSectionId?: string
+  initialTableId?: string
+  initialFigureId?: string
   onBack: () => void
 }
 
@@ -74,6 +77,8 @@ const AUTOSAVE_DELAY = 1500
 export default function DocumentEditor({
   documentId,
   initialSectionId,
+  initialTableId,
+  initialFigureId,
   onBack,
 }: DocumentEditorProps): React.ReactElement {
   const router = useRouter()
@@ -96,6 +101,7 @@ export default function DocumentEditor({
   const hasLocalChangesRef = useRef(false)
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
+  const pendingArtifactTargetRef = useRef<string | null>(null)
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
   const editor = usePlateEditor({
@@ -240,6 +246,14 @@ export default function DocumentEditor({
       cancelled = true
     }
   }, [applyLoadedDocument, documentId, initialSectionId])
+
+  useEffect(() => {
+    pendingArtifactTargetRef.current = initialTableId
+      ? `table:${initialTableId}`
+      : initialFigureId
+        ? `figure:${initialFigureId}`
+        : null
+  }, [initialFigureId, initialTableId])
 
   useEffect(() => {
     latestCitationsRef.current = citations
@@ -665,11 +679,12 @@ export default function DocumentEditor({
     const existingFigureCount = doc.sections.reduce(
       (acc, s) => acc + (s.figures?.length ?? 0), 0,
     )
-    const linkedAnalysis = graph.analysisId
-      ? analysisHistory.find((record) => record.id === graph.analysisId)
+    const relatedAnalysisId = getGraphPrimaryAnalysisId(graph)
+    const linkedAnalysis = relatedAnalysisId
+      ? analysisHistory.find((record) => record.id === relatedAnalysisId)
       : undefined
     const figRef = buildFigureRef(graph, existingFigureCount, {
-      relatedAnalysisId: graph.analysisId,
+      relatedAnalysisId,
       relatedAnalysisLabel: linkedAnalysis?.method?.name ?? linkedAnalysis?.name,
       patternSummary: linkedAnalysis
         ? generateFigurePatternSummary(graph, linkedAnalysis as unknown as HistoryRecord)
@@ -745,6 +760,21 @@ export default function DocumentEditor({
 
     return Array.from(links.values())
   }, [activeSection, analysisHistory, doc, needsReassemble])
+
+  useEffect(() => {
+    const target = pendingArtifactTargetRef.current
+    if (!target || !activeSectionId) {
+      return
+    }
+
+    const element = document.querySelector<HTMLElement>(`[data-doc-target="${target}"]`)
+    if (!element) {
+      return
+    }
+
+    pendingArtifactTargetRef.current = null
+    element.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [activeSectionId, doc, previewMode])
 
   // ── 렌더링 ──
 
@@ -920,7 +950,11 @@ export default function DocumentEditor({
                     const sourceAnalysisId = table.sourceAnalysisId
 
                     return (
-                    <div key={table.id ?? i} className="border rounded-lg overflow-hidden">
+                    <div
+                      key={table.id ?? i}
+                      data-doc-target={table.id ? `table:${table.id}` : undefined}
+                      className="border rounded-lg overflow-hidden"
+                    >
                       <div className="flex items-center gap-2 bg-muted/50 p-2">
                         <p className="min-w-0 flex-1 text-xs font-medium">{table.caption}</p>
                         {sourceAnalysisId && (
@@ -980,7 +1014,11 @@ export default function DocumentEditor({
                     const relatedAnalysisId = fig.relatedAnalysisId
 
                     return (
-                    <div key={fig.entityId} className="rounded border bg-muted/20 p-2 text-sm">
+                    <div
+                      key={fig.entityId}
+                      data-doc-target={`figure:${fig.entityId}`}
+                      className="rounded border bg-muted/20 p-2 text-sm"
+                    >
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{fig.label}</span>
                         <span className="text-muted-foreground">{fig.caption}</span>

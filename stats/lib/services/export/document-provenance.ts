@@ -5,7 +5,9 @@ import type {
 
 function buildAnalysisLine(label: string | undefined, id: string | undefined): string | null {
   if (label) {
-    return `관련 분석: ${label}`
+    return id
+      ? `관련 분석: ${label} (ID: ${id})`
+      : `관련 분석: ${label}`
   }
   if (id) {
     return `관련 분석 ID: ${id}`

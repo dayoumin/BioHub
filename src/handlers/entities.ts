@@ -36,7 +36,13 @@ export async function handleEntitiesApi(
 }
 
 async function handleLinkEntity(db: D1Database, userId: string, request: Request): Promise<Response> {
-  const body = await parseJsonBody<{ projectId?: string; entityKind?: string; entityId?: string; label?: string }>(request)
+  const body = await parseJsonBody<{
+    projectId?: string
+    entityKind?: string
+    entityId?: string
+    label?: string
+    provenanceEdges?: unknown
+  }>(request)
   if (body instanceof Response) return body
 
   if (!body.projectId || !body.entityKind || !body.entityId) {
@@ -51,9 +57,19 @@ async function handleLinkEntity(db: D1Database, userId: string, request: Request
   const id = `pref_${ts}_${Math.random().toString(36).slice(2, 8)}`
 
   await db.prepare(
-    `INSERT OR REPLACE INTO project_entity_refs (id, project_id, entity_kind, entity_id, label, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).bind(id, body.projectId, body.entityKind, body.entityId, body.label || null, now).run()
+    `INSERT OR REPLACE INTO project_entity_refs
+     (id, project_id, entity_kind, entity_id, label, provenance_edges, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    body.projectId,
+    body.entityKind,
+    body.entityId,
+    body.label || null,
+    body.provenanceEdges ? JSON.stringify(body.provenanceEdges) : null,
+    now,
+    now,
+  ).run()
 
   return jsonResponse({ id }, 201)
 }

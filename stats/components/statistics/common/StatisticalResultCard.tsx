@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useAppPreferences } from '@/hooks/use-app-preferences'
+import { useOptionalAppPreferences } from '@/hooks/use-app-preferences'
 
 // 효과크기 타입별 툴팁 설명
 function getEffectSizeTooltip(type?: string): string {
@@ -102,6 +102,7 @@ interface StatisticalResultCardProps {
   className?: string
   onRerun?: () => void
   onViewDetails?: () => void
+  locale?: string
 }
 
 /**
@@ -118,9 +119,11 @@ export function StatisticalResultCard({
   expandable = true,
   className,
   onRerun,
-  onViewDetails
+  onViewDetails,
+  locale: localeOverride,
 }: StatisticalResultCardProps) {
-  const { locale } = useAppPreferences()
+  const preferences = useOptionalAppPreferences()
+  const locale = localeOverride ?? preferences?.locale ?? 'ko-KR'
   const [isExpanded, setIsExpanded] = React.useState(!expandable)
   const [activeTab, setActiveTab] = React.useState('main')
 

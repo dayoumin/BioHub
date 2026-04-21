@@ -217,14 +217,15 @@ async function handleUpsertGeneticsHistory(
     const nowIso = new Date().toISOString()
     await db.prepare(
       `INSERT OR REPLACE INTO project_entity_refs
-       (id, project_id, entity_kind, entity_id, label, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+       (id, project_id, entity_kind, entity_id, label, provenance_edges, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       refId,
       projectId,
       entityKind,
       id,
       labelForGeneticsEntry(rawEntry, type),
+      null,
       nowIso,
       nowIso,
     ).run()

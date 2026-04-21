@@ -155,4 +155,75 @@ describe('project-storage cloud sync', () => {
       }),
     ])
   })
+
+  it('syncs provenance edges to and from the cloud entity payload', async () => {
+    const {
+      hydrateProjectRefsFromCloud,
+      listProjectEntityRefs,
+      upsertProjectEntityRef,
+    } = await import('../project-storage')
+
+    upsertProjectEntityRef({
+      projectId: 'proj-1',
+      entityKind: 'figure',
+      entityId: 'figure-1',
+      label: 'Figure 1',
+      provenanceEdges: [
+        {
+          role: 'derived-from',
+          targetKind: 'analysis',
+          targetId: 'analysis-1',
+          label: 'T-Test',
+        },
+      ],
+    })
+    await Promise.resolve()
+
+    expect(projectCloudMocks.linkCloudProjectEntityRef).toHaveBeenCalledWith(expect.objectContaining({
+      provenanceEdges: [
+        expect.objectContaining({
+          targetKind: 'analysis',
+          targetId: 'analysis-1',
+        }),
+      ],
+    }))
+
+    projectCloudMocks.fetchCloudProjectDetail.mockResolvedValue({
+      project: null,
+      entities: [
+        {
+          id: 'remote-pref-1',
+          projectId: 'proj-1',
+          entityKind: 'figure',
+          entityId: 'figure-1',
+          label: 'Figure 1',
+          provenanceEdges: [
+            {
+              role: 'derived-from',
+              targetKind: 'analysis',
+              targetId: 'analysis-remote',
+              label: 'Remote ANOVA',
+            },
+          ],
+          createdAt: '2026-04-22T00:00:00.000Z',
+          updatedAt: '2026-04-22T00:00:00.000Z',
+        },
+      ],
+    })
+
+    await hydrateProjectRefsFromCloud('proj-1')
+
+    expect(listProjectEntityRefs('proj-1')).toEqual([
+      expect.objectContaining({
+        entityKind: 'figure',
+        entityId: 'figure-1',
+        provenanceEdges: [
+          expect.objectContaining({
+            targetKind: 'analysis',
+            targetId: 'analysis-remote',
+          }),
+        ],
+      }),
+    ])
+  })
 })

@@ -383,15 +383,16 @@ describe('ResultsActionStep action wiring', () => {
 
   it('shows document round-trip actions for saved analysis results', async () => {
     loadDocumentSourceUsagesMock.mockResolvedValue([
-      {
-        documentId: 'doc-1',
-        documentTitle: '결과 보고서',
-        sectionId: 'results',
-        sectionTitle: '결과',
-        kind: 'table',
-        label: 'Table 1',
-      },
-    ])
+        {
+          documentId: 'doc-1',
+          documentTitle: '결과 보고서',
+          sectionId: 'results',
+          sectionTitle: '결과',
+          kind: 'table',
+          label: 'Table 1',
+          artifactId: 'table_1',
+        },
+      ])
 
     const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
     render(<ResultsActionStep results={RESULTS} />)
@@ -404,7 +405,7 @@ describe('ResultsActionStep action wiring', () => {
     })
 
     expect(loadDocumentSourceUsagesMock).toHaveBeenCalledWith('history-1', { projectId: 'project-1' })
-    expect(routerPushMock).toHaveBeenCalledWith('/papers?doc=doc-1&section=results')
+    expect(routerPushMock).toHaveBeenCalledWith('/papers?doc=doc-1&section=results&table=table_1')
   })
 
   it('reloads document usages when papers change while the result view stays open', async () => {

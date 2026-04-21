@@ -19,9 +19,6 @@ function composeWithOverrides(
     purposeInput: override?.purposeInput ?? base.purposeInput,
     hub: override?.hub ?? base.hub,
     variables: override?.variables ?? base.variables,
-    validation: override?.validation ?? base.validation,
-    success: override?.success ?? base.success,
-    selectorUI: override?.selectorUI ?? base.selectorUI,
   }
 }
 
@@ -35,6 +32,7 @@ export function resolveTerminologyDictionary(
   const exact = domainPack.exactDictionaries?.[language]
   const baseDictionary = exact ?? languagePack.fallbackDictionary
   const domainSections = domainPack.sectionsByLanguage?.[language]
+  const mixedSections = domainPack.mixedSectionsByLanguage?.[language]
   const override = domainPack.overrides?.[language]
 
   if (exact) {
@@ -42,6 +40,7 @@ export function resolveTerminologyDictionary(
       {
         ...baseDictionary,
         ...languagePack.sections,
+        ...mixedSections,
         ...domainSections,
       },
       domain,
@@ -54,6 +53,7 @@ export function resolveTerminologyDictionary(
     {
       ...baseDictionary,
       ...languagePack.sections,
+      ...mixedSections,
       ...domainSections,
     },
     domain,

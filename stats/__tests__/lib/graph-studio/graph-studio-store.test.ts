@@ -216,6 +216,61 @@ describe('review regression fixes', () => {
     expect(saveSpy).toHaveBeenLastCalledWith(expect.not.objectContaining({ projectId: 'research-project-stale' }))
   })
 
+  it('saveCurrentProject drops stale analysis lineage when relinked to a new upload package', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject({
+          id: 'persisted-project',
+          analysisId: 'analysis-old',
+          dataPackageId: 'pkg-old',
+          sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-old', label: 'Old Analysis' }],
+        }),
+        makePkg({ id: 'pkg-old', analysisResultId: 'analysis-old', label: 'Old Package' }),
+      )
+      useGraphStudioStore.getState().loadDataPackageWithSpec(
+        makePkg({ id: 'pkg-upload-new', label: 'Fresh Upload' }),
+        makeSpec('Relinked Graph'),
+        { preserveCurrentProject: true },
+      )
+      useGraphStudioStore.getState().saveCurrentProject('Relinked Graph')
+    })
+
+    const persistedProject = saveSpy.mock.calls.at(-1)?.[0]
+    expect(persistedProject?.analysisId).toBeUndefined()
+    expect(persistedProject?.sourceRefs).toEqual([
+      { kind: 'data-package', sourceId: 'pkg-upload-new', label: 'Fresh Upload' },
+    ])
+  })
+
+  it('treats an empty saved dataPackageId as changed when relinked to a new upload package', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject({
+          id: 'legacy-project',
+          analysisId: 'analysis-legacy',
+          dataPackageId: '',
+          sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-legacy', label: 'Legacy Analysis' }],
+        }),
+      )
+      useGraphStudioStore.getState().loadDataPackageWithSpec(
+        makePkg({ id: 'pkg-upload-empty-prev', label: 'Fresh Upload' }),
+        makeSpec('Relinked Legacy Graph'),
+        { preserveCurrentProject: true },
+      )
+      useGraphStudioStore.getState().saveCurrentProject('Relinked Legacy Graph')
+    })
+
+    const persistedProject = saveSpy.mock.calls.at(-1)?.[0]
+    expect(persistedProject?.analysisId).toBeUndefined()
+    expect(persistedProject?.sourceRefs).toEqual([
+      { kind: 'data-package', sourceId: 'pkg-upload-empty-prev', label: 'Fresh Upload' },
+    ])
+  })
+
   it('restorePreviousChartSpec returns from setup mode to the previous chart session', () => {
     const spec = makeSpec('Before Reset')
 
@@ -524,6 +579,24 @@ describe('loadDataPackage', () => {
     const spec = useGraphStudioStore.getState().chartSpec
     expect(spec?.encoding.x.field).not.toBe(spec?.encoding.y.field)
   })
+
+  it('normalizes legacy analysisResultId into canonical sourceRefs on load', () => {
+    const pkg = makePkg({
+      id: 'pkg-legacy-source',
+      label: 'Legacy Analysis Package',
+      analysisResultId: 'analysis-legacy',
+      columns: [
+        { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+        { name: 'y', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().dataPackage?.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'analysis-legacy', label: 'Legacy Analysis Package' },
+    ])
+  })
 })
 
 // ─── loadDataPackage — 프로젝트 복원 모드 ─────────────────
@@ -745,6 +818,13 @@ describe('loadDataPackage — 프로젝트 복원 모드', () => {
 
     expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Semantic Drift')
     expect(useGraphStudioStore.getState().currentProject).toBeNull()
+    expect(useGraphStudioStore.getState().relinkWarning).toEqual(expect.objectContaining({
+      projectId: 'proj-1',
+      projectName: 'My Project',
+      semanticMismatchFields: ['group'],
+    }))
+    expect(useGraphStudioStore.getState().relinkWarning?.nextSchemaFingerprint).toBeTruthy()
+    expect(useGraphStudioStore.getState().relinkWarning?.nextSourceFingerprint).toBeTruthy()
   })
 
   it('기존 스키마에 없던 추가 컬럼이 있어도 → 기존 spec 유지 + currentProject 유지', () => {
@@ -816,7 +896,10 @@ describe('setProject', () => {
     act(() => { useGraphStudioStore.getState().setProject(project, pkg) })
 
     const state = useGraphStudioStore.getState()
-    expect(state.currentProject).toBe(project)
+    expect(state.currentProject).toMatchObject({
+      ...project,
+      sourceRefs: [{ kind: 'data-package', sourceId: pkg.id, label: pkg.label }],
+    })
     // setProject가 exportConfig를 정규화하며 새 객체를 생성하므로 toStrictEqual 사용
     expect(state.chartSpec).toStrictEqual(spec)
     expect(state.dataPackage).toBe(pkg)
@@ -834,6 +917,19 @@ describe('setProject', () => {
     expect(state.currentProject).toBe(project)
     expect(state.dataPackage).toBeNull()
     expect(state.isDataLoaded).toBe(false)
+  })
+
+  it('normalizes legacy analysisId into canonical sourceRefs when restoring a project', () => {
+    const project = makeProject({
+      analysisId: 'analysis-legacy-project',
+      dataPackageId: '',
+    })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    expect(useGraphStudioStore.getState().currentProject?.sourceRefs).toEqual([
+      { kind: 'analysis', sourceId: 'analysis-legacy-project', label: 'My Project' },
+    ])
   })
 })
 
@@ -880,12 +976,16 @@ describe('saveCurrentProject', () => {
     const currentProject = makeProject({
       id: 'proj-relinked',
       analysisId: 'analysis-old',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-old', label: 'Old analysis' }],
+      lineageMode: 'derived',
       dataPackageId: 'pkg-old',
     })
     const relinkedPkg = makePkg({
       id: 'pkg-new',
       source: 'analysis',
       analysisResultId: 'analysis-new',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-new', label: 'New analysis' }],
+      lineageMode: 'derived',
       columns: [
         { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
         { name: 'value', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
@@ -900,7 +1000,97 @@ describe('saveCurrentProject', () => {
       useGraphStudioStore.getState().saveCurrentProject('Relinked Graph')
     })
 
-    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ analysisId: 'analysis-new' }))
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      analysisId: 'analysis-new',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-new', label: 'New analysis' }],
+      lineageMode: 'derived',
+      sourceSchema: [
+        { name: 'group', type: 'nominal' },
+        { name: 'value', type: 'quantitative' },
+      ],
+      sourceSnapshot: expect.objectContaining({
+        dataPackageId: 'pkg-new',
+        rowCount: 0,
+        columns: [
+          { name: 'group', type: 'nominal' },
+          { name: 'value', type: 'quantitative' },
+        ],
+        sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-new', label: 'New analysis' }],
+      }),
+    }))
+  })
+
+  it('keeps richer current sourceRefs when re-saving against the same data package', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+    const currentProject = makeProject({
+      id: 'proj-rich-lineage',
+      dataPackageId: 'pkg-same',
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'analysis-same', label: 'Primary analysis' },
+        { kind: 'figure', sourceId: 'figure-upstream', label: 'Upstream figure' },
+      ],
+    })
+    const attachedPkg = makePkg({
+      id: 'pkg-same',
+      analysisResultId: 'analysis-same',
+      label: 'Same Package',
+    })
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(currentProject, attachedPkg)
+      useGraphStudioStore.getState().saveCurrentProject('Saved With Rich Provenance')
+    })
+
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      sourceRefs: [
+        { kind: 'analysis', sourceId: 'analysis-same', label: 'Primary analysis' },
+        { kind: 'figure', sourceId: 'figure-upstream', label: 'Upstream figure' },
+      ],
+    }))
+  })
+
+  it('persists a provenance snapshot so reloaded graphs retain auditable source metadata', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+    const pkg = makePkg({
+      id: 'pkg-audit',
+      source: 'analysis',
+      analysisResultId: 'analysis-audit',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-audit', label: 'Audit analysis' }],
+      lineageMode: 'derived',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: ['A', 'B'], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 3, sampleValues: ['1', '2'], hasNull: false },
+      ],
+      data: {
+        group: ['A', 'B', 'A'],
+        value: [1, 2, 3],
+      },
+    })
+
+    act(() => {
+      useGraphStudioStore.getState().loadDataPackageWithSpec(pkg, makeSpec('Auditable Graph'))
+      useGraphStudioStore.getState().saveCurrentProject('Auditable Graph')
+    })
+
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      sourceSnapshot: {
+        capturedAt: expect.any(String),
+        dataPackageId: 'pkg-audit',
+        rowCount: 3,
+        columns: [
+          { name: 'group', type: 'nominal' },
+          { name: 'value', type: 'quantitative' },
+        ],
+        sourceRefs: [{ kind: 'analysis', sourceId: 'analysis-audit', label: 'Audit analysis' }],
+        columnPreviews: [
+          { name: 'group', type: 'nominal', sampleValues: ['A', 'B'] },
+          { name: 'value', type: 'quantitative', sampleValues: ['1', '2'] },
+        ],
+        referencedFields: ['group', 'value'],
+        schemaFingerprint: expect.any(String),
+        sourceFingerprint: expect.any(String),
+      },
+    }))
   })
 
   it('relinked dataPackage에 analysisResultId가 없으면 기존 analysisId를 stale lineage로 저장하지 않는다', () => {
@@ -1040,6 +1230,7 @@ describe('saveCurrentProject', () => {
 
     // upsert는 원래 동작하도록 두거나 모의 처리. 호출 내역 확인을 위해 spyOn 사용.
     const refSpy = vi.spyOn(researchProjectStorage, 'upsertProjectEntityRef').mockReturnValue({} as any)
+    const removeRefSpy = vi.spyOn(researchProjectStorage, 'removeProjectEntityRefsByEntityIds').mockImplementation(() => {})
     
     // saveProject에서 새로운 label을 쓰려고 할 때 에러를 발생시킴
     const saveSpy = vi.spyOn(projectStorage, 'saveProject').mockImplementation((proj: any) => {
@@ -1058,11 +1249,14 @@ describe('saveCurrentProject', () => {
     expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ label: 'New Name' }))
     // 에러 발생으로 롤백 시 Old Name 복구 호출
     expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ label: 'Old Name' }))
+    expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ provenanceEdges: undefined }))
+    expect(removeRefSpy).toHaveBeenCalledWith('figure', ['proj-rollback'])
     expect(useGraphStudioStore.getState().currentProject?.name).toBe('Old Name')
     expect(localStorage.getItem('graph_studio_projects')).toContain('"name":"Old Name"')
     expect(localStorage.getItem('graph_studio_projects')).not.toContain('"name":"New Name"')
 
     refSpy.mockRestore()
+    removeRefSpy.mockRestore()
     saveSpy.mockRestore()
     consoleErrorSpy.mockRestore()
   })

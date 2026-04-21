@@ -33,6 +33,21 @@ export type ProjectEntityKind =
   | 'translation-result'
   | 'protein-result'
 
+export type ProjectArtifactKind = 'section' | 'table' | 'figure'
+
+export type ProjectProvenanceRole =
+  | 'derived-from'
+  | 'uses'
+  | 'supports'
+  | 'references'
+
+export interface ProjectProvenanceEdge {
+  role: ProjectProvenanceRole
+  targetKind: ProjectEntityKind | `document-${ProjectArtifactKind}`
+  targetId: string
+  label?: string
+}
+
 export interface ProjectPaperConfig {
   title?: string
   authors?: string[]
@@ -66,6 +81,7 @@ export interface ProjectEntityRef {
   entityId: string
   label?: string
   order?: number
+  provenanceEdges?: ProjectProvenanceEdge[]
   /** ISO 8601 문자열. */
   createdAt: string
   updatedAt?: string

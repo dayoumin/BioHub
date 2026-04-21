@@ -729,7 +729,7 @@ describe('AnalysisExecutionStep', () => {
       )
       await runAllTimers()
 
-      expect(screen.getByText('Analysis failed. Check your data and selected method, then try again.')).toBeDefined()
+      expect(screen.getByText('Analysis failed. Check the data and selected method, then try again.')).toBeDefined()
       expect(screen.queryByText('Pyodide 계산 오류')).toBeNull()
     })
 

@@ -34,6 +34,7 @@ interface MockProjectEntityRefRow {
   entity_kind: string
   entity_id: string
   label: string | null
+  provenance_edges?: string | null
   created_at: string
   updated_at?: string
 }
@@ -180,16 +181,17 @@ class MockD1Database {
       return Promise.resolve({ meta: { changes: before - this.state.projectEntityRefs.length } })
     }
 
-    if (sql === 'INSERT OR REPLACE INTO project_entity_refs (id, project_id, entity_kind, entity_id, label, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)') {
+    if (sql === 'INSERT OR REPLACE INTO project_entity_refs (id, project_id, entity_kind, entity_id, label, provenance_edges, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)') {
       const [
         id,
         projectId,
         entityKind,
         entityId,
         label,
+        provenanceEdges,
         createdAt,
         updatedAt,
-      ] = params as [string, string, string, string, string | null, string, string]
+      ] = params as [string, string, string, string, string | null, string | null, string, string]
 
       const existingIndex = this.state.projectEntityRefs.findIndex((row) => (
         row.project_id === projectId
@@ -203,6 +205,7 @@ class MockD1Database {
         entity_kind: entityKind,
         entity_id: entityId,
         label,
+        provenance_edges: provenanceEdges,
         created_at: createdAt,
         updated_at: updatedAt,
       }

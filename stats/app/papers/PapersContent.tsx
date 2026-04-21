@@ -28,6 +28,8 @@ type PapersTab = 'docs' | 'literature'
 export default function PapersContent(): React.ReactElement {
   const [docId, setDocId] = useState<string | null>(null)
   const [docSectionId, setDocSectionId] = useState<string | undefined>(undefined)
+  const [docTableId, setDocTableId] = useState<string | undefined>(undefined)
+  const [docFigureId, setDocFigureId] = useState<string | undefined>(undefined)
   const [pkgId, setPkgId] = useState<string | null>(null)
   const [pkgProjectId, setPkgProjectId] = useState<string | undefined>(undefined)
   const [tab, setTab] = useState<PapersTab>('docs')
@@ -37,6 +39,8 @@ export default function PapersContent(): React.ReactElement {
     const params = new URLSearchParams(window.location.search)
     setDocId(params.get('doc'))
     setDocSectionId(params.get('section') ?? undefined)
+    setDocTableId(params.get('table') ?? undefined)
+    setDocFigureId(params.get('figure') ?? undefined)
     const pkg = params.get('pkg')
     setPkgId(pkg)
     setPkgProjectId(params.get('projectId') ?? undefined)
@@ -60,6 +64,8 @@ export default function PapersContent(): React.ReactElement {
     window.history.pushState({}, '', `/papers?doc=${id}`)
     setDocId(id)
     setDocSectionId(undefined)
+    setDocTableId(undefined)
+    setDocFigureId(undefined)
     setPkgId(null)
   }, [])
 
@@ -72,6 +78,8 @@ export default function PapersContent(): React.ReactElement {
     setPkgProjectId(projectId)
     setDocId(null)
     setDocSectionId(undefined)
+    setDocTableId(undefined)
+    setDocFigureId(undefined)
   }, [])
 
   const switchTab = useCallback((newTab: PapersTab) => {
@@ -87,6 +95,8 @@ export default function PapersContent(): React.ReactElement {
     setTab(newTab)
     setDocId(null)
     setDocSectionId(undefined)
+    setDocTableId(undefined)
+    setDocFigureId(undefined)
     setPkgId(null)
   }, [])
 
@@ -95,7 +105,15 @@ export default function PapersContent(): React.ReactElement {
   }, [])
 
   if (docId) {
-    return <DocumentEditor documentId={docId} initialSectionId={docSectionId} onBack={handleBack} />
+    return (
+      <DocumentEditor
+        documentId={docId}
+        initialSectionId={docSectionId}
+        initialTableId={docTableId}
+        initialFigureId={docFigureId}
+        onBack={handleBack}
+      />
+    )
   }
 
   if (pkgId) {

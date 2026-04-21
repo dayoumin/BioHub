@@ -3,6 +3,7 @@ import {
   loadAllDocumentBlueprints,
   loadDocumentBlueprints,
 } from './document-blueprint-storage'
+import { listProjectEntityRefs } from './project-storage'
 
 export interface DocumentSourceUsage {
   documentId: string
@@ -11,6 +12,7 @@ export interface DocumentSourceUsage {
   sectionTitle: string
   kind: 'section' | 'table' | 'figure'
   label: string
+  artifactId?: string
 }
 
 function sortDocuments(documents: DocumentBlueprint[]): DocumentBlueprint[] {
@@ -50,6 +52,7 @@ export function findDocumentSourceUsages(
           sectionTitle: section.title,
           kind: 'table',
           label: matchingTable.caption || section.title,
+          artifactId: matchingTable.id,
         }
       } else if (matchingFigure) {
         usage = {
@@ -59,6 +62,7 @@ export function findDocumentSourceUsages(
           sectionTitle: section.title,
           kind: 'figure',
           label: matchingFigure.label,
+          artifactId: matchingFigure.entityId,
         }
       } else {
         usage = {
@@ -82,8 +86,31 @@ export async function loadDocumentSourceUsages(
   sourceId: string,
   options?: { projectId?: string },
 ): Promise<DocumentSourceUsage[]> {
-  const documents = options?.projectId
-    ? await loadDocumentBlueprints(options.projectId)
-    : await loadAllDocumentBlueprints()
-  return findDocumentSourceUsages(documents, sourceId)
+  if (!options?.projectId) {
+    const documents = await loadAllDocumentBlueprints()
+    return findDocumentSourceUsages(documents, sourceId)
+  }
+
+  const [documents, projectEntityRefs] = await Promise.all([
+    loadDocumentBlueprints(options.projectId),
+    Promise.resolve(listProjectEntityRefs(options.projectId)),
+  ])
+
+  const draftDocumentIds = new Set(
+    projectEntityRefs
+      .filter((ref) => (
+        ref.entityKind === 'draft'
+        && (ref.provenanceEdges ?? []).some((edge) => (
+          (edge.targetKind === 'analysis' || edge.targetKind === 'figure')
+          && edge.targetId === sourceId
+        ))
+      ))
+      .map((ref) => ref.entityId),
+  )
+
+  const candidateDocuments = draftDocumentIds.size > 0
+    ? documents.filter((document) => draftDocumentIds.has(document.id))
+    : documents
+
+  return findDocumentSourceUsages(candidateDocuments, sourceId)
 }

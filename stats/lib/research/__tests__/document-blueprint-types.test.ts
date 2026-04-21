@@ -8,10 +8,23 @@ import { describe, it, expect } from 'vitest'
 import {
   convertPaperTable,
   buildFigureRef,
+  getGraphPrimaryAnalysisId,
   generateDocumentId,
 } from '../document-blueprint-types'
 import type { PaperTable } from '@/lib/services/paper-draft/paper-types'
 import type { GraphProject } from '@/types/graph-studio'
+
+const makeGraphProject = (
+  overrides: Partial<GraphProject> = {},
+): GraphProject => ({
+  id: 'gp_1',
+  name: 'Growth Chart',
+  chartSpec: { chartType: 'bar' } as GraphProject['chartSpec'],
+  dataPackageId: 'dp_1',
+  createdAt: '2026-01-01',
+  updatedAt: '2026-01-01',
+  ...overrides,
+})
 
 describe('convertPaperTable', () => {
   it('should parse tab-separated plainText into headers and rows', () => {
@@ -109,18 +122,6 @@ describe('convertPaperTable', () => {
 })
 
 describe('buildFigureRef', () => {
-  const makeGraphProject = (
-    overrides: Partial<GraphProject> = {},
-  ): GraphProject => ({
-    id: 'gp_1',
-    name: 'Growth Chart',
-    chartSpec: { chartType: 'bar' } as GraphProject['chartSpec'],
-    dataPackageId: 'dp_1',
-    createdAt: '2026-01-01',
-    updatedAt: '2026-01-01',
-    ...overrides,
-  })
-
   it('should create FigureRef with chart type in caption', () => {
     const gp = makeGraphProject()
 
@@ -162,6 +163,31 @@ describe('buildFigureRef', () => {
     expect(result.relatedAnalysisId).toBe('hist_1')
     expect(result.relatedAnalysisLabel).toBe('One-way ANOVA')
     expect(result.patternSummary).toBe('B 평균이 A보다 높음')
+  })
+})
+
+describe('getGraphPrimaryAnalysisId', () => {
+  it('should prefer sourceRefs analysis ids over legacy analysisId', () => {
+    const gp = makeGraphProject({
+      analysisId: 'hist_legacy',
+      sourceRefs: [{ kind: 'analysis', sourceId: 'hist_canonical', label: 'Canonical' }],
+    })
+
+    expect(getGraphPrimaryAnalysisId(gp)).toBe('hist_canonical')
+  })
+
+  it('should fall back to sourceSnapshot analysis refs before legacy analysisId', () => {
+    const gp = makeGraphProject({
+      analysisId: 'hist_legacy',
+      sourceSnapshot: {
+        capturedAt: '2026-01-01',
+        rowCount: 3,
+        columns: [],
+        sourceRefs: [{ kind: 'analysis', sourceId: 'hist_snapshot', label: 'Snapshot' }],
+      },
+    })
+
+    expect(getGraphPrimaryAnalysisId(gp)).toBe('hist_snapshot')
   })
 })
 

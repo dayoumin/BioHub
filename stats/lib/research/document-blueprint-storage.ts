@@ -11,11 +11,13 @@
 import {
   normalizeDocumentBlueprint,
   type DocumentBlueprint,
+  type DocumentSourceRef,
 } from './document-blueprint-types'
 import {
   upsertProjectEntityRef,
   removeProjectEntityRef,
 } from './project-storage'
+import type { ProjectProvenanceEdge } from '@/lib/types/research'
 import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
 import {
   emitCrossTabCustomEvent,
@@ -61,6 +63,61 @@ registerCrossTabCustomEventBridge<DocumentBlueprintsChangedDetail>(
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 )
 
+function buildDraftProvenanceEdges(blueprint: DocumentBlueprint): ProjectProvenanceEdge[] {
+  const edges = new Map<string, ProjectProvenanceEdge>()
+
+  const registerEdge = (
+    targetKind: ProjectProvenanceEdge['targetKind'] | null,
+    targetId: string | undefined,
+    label: string | undefined,
+  ): void => {
+    if (!targetKind || !targetId) {
+      return
+    }
+
+    const normalizedTargetId = targetId.trim()
+    if (normalizedTargetId.length === 0) {
+      return
+    }
+
+    const key = `${targetKind}:${normalizedTargetId}`
+    edges.set(key, {
+      role: 'uses',
+      targetKind,
+      targetId: normalizedTargetId,
+      label,
+    })
+  }
+
+  const registerSourceRef = (sourceRef: DocumentSourceRef): void => {
+    const targetKind = sourceRef.kind === 'analysis'
+      ? 'analysis'
+      : sourceRef.kind === 'figure'
+        ? 'figure'
+        : null
+    if (!targetKind) {
+      return
+    }
+
+    registerEdge(targetKind, sourceRef.sourceId, sourceRef.label)
+  }
+
+  for (const section of blueprint.sections) {
+    for (const sourceRef of section.sourceRefs ?? []) {
+      registerSourceRef(sourceRef)
+    }
+    for (const table of section.tables ?? []) {
+      registerEdge('analysis', table.sourceAnalysisId, table.sourceAnalysisLabel)
+    }
+    for (const figure of section.figures ?? []) {
+      registerEdge('figure', figure.entityId, figure.label)
+      registerEdge('analysis', figure.relatedAnalysisId, figure.relatedAnalysisLabel)
+    }
+  }
+
+  return Array.from(edges.values())
+}
+
 // ── 공개 API ──
 
 /**
@@ -94,6 +151,7 @@ export async function saveDocumentBlueprint(
     entityKind: 'draft',
     entityId: blueprint.id,
     label: blueprint.title,
+    provenanceEdges: buildDraftProvenanceEdges(toSave),
   })
   notifyDocumentBlueprintsChanged({
     projectId: blueprint.projectId,

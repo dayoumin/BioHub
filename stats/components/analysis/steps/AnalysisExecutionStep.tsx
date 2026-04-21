@@ -24,7 +24,7 @@ import {
   executeAssumptionTests,
 } from '@/lib/services'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
-import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
+import { getLocalizedErrorMessage } from '@/lib/constants/error-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
@@ -80,43 +80,6 @@ const EXECUTION_UI_TEXT = {
     countSuffix: '',
   },
 } as const
-
-function containsHangul(value: string): boolean {
-  return /[가-힣]/.test(value)
-}
-
-function localizeExecutionErrorMessage(
-  error: unknown,
-  language: 'ko' | 'en',
-  unknownFallback: string,
-): string {
-  if (!(error instanceof Error)) {
-    return unknownFallback
-  }
-
-  const rawMessage = error.message?.trim()
-  if (!rawMessage) {
-    return unknownFallback
-  }
-
-  if (language !== 'en' || !containsHangul(rawMessage)) {
-    return rawMessage
-  }
-
-  if (rawMessage.includes('정규성')) {
-    return 'The normality check could not be completed. Review the data and try again.'
-  }
-
-  if (rawMessage.includes('등분산')) {
-    return 'The homogeneity check could not be completed. Review the group data and try again.'
-  }
-
-  if (rawMessage.includes('Pyodide') || rawMessage.includes('계산') || rawMessage.includes('분석')) {
-    return 'Analysis failed. Check your data and selected method, then try again.'
-  }
-
-  return 'An analysis error occurred. Review the data and try again.'
-}
 
 export function AnalysisExecutionStep({
   selectedMethod,
@@ -371,10 +334,10 @@ export function AnalysisExecutionStep({
     } catch (err) {
       logger.error('분석 실행 오류', err)
       const friendlyMsg = err instanceof Error
-        ? localizeExecutionErrorMessage(
+        ? getLocalizedErrorMessage(
             err,
             t.language === 'en' ? 'en' : 'ko',
-            getUserFriendlyErrorMessage(err),
+            t.analysis.execution.unknownError,
           )
         : t.analysis.execution.unknownError
       setError(friendlyMsg)

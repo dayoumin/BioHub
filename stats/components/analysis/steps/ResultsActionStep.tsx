@@ -637,6 +637,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     className="h-9 px-3"
                     onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {
                       sectionId: usage.sectionId,
+                      tableId: usage.kind === 'table' ? usage.artifactId : undefined,
+                      figureId: usage.kind === 'figure' ? usage.artifactId : undefined,
                     }))}
                     title={`${usage.documentTitle} · ${usage.sectionTitle}`}
                   >

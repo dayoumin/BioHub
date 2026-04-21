@@ -291,6 +291,28 @@ const analysisContextSchema = z.object({
   comparisonMeta: comparisonMetaSchema.optional(),
 });
 
+const graphSourceKindSchema = z.enum([
+  'analysis',
+  'draft',
+  'figure',
+  'citation',
+  'blast-result',
+  'alignment-result',
+  'population-genetics-result',
+  'conservation-result',
+  'sequence-data',
+  'upload',
+  'data-package',
+]);
+
+const graphLineageModeSchema = z.enum(['derived', 'mixed', 'manual']);
+
+const graphSourceRefSchema = z.object({
+  kind: graphSourceKindSchema,
+  sourceId: z.string().min(1),
+  label: z.string().optional(),
+}).strict();
+
 export const dataPackageSchema = z.object({
   id: z.string().min(1),
   source: z.enum(['analysis', 'bio-tools', 'upload', 'species-checker']),
@@ -300,6 +322,8 @@ export const dataPackageSchema = z.object({
   projectId: z.string().optional(),
   analysisContext: analysisContextSchema.optional(),
   analysisResultId: z.string().optional(),
+  sourceRefs: z.array(graphSourceRefSchema).optional(),
+  lineageMode: graphLineageModeSchema.optional(),
   createdAt: z.string().datetime(),
 }).strict();
 

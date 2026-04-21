@@ -14,7 +14,7 @@ describe('document provenance helpers', () => {
       rows: [['1']],
       sourceAnalysisId: 'analysis-1',
       sourceAnalysisLabel: 'T-Test',
-    }))).toEqual(['- 관련 분석: T-Test'])
+    }))).toEqual(['- 관련 분석: T-Test (ID: analysis-1)'])
 
     expect(renderMarkdownProvenanceLines(getFigureProvenanceLines({
       entityId: 'figure-1',
@@ -24,13 +24,13 @@ describe('document provenance helpers', () => {
       relatedAnalysisLabel: 'T-Test',
       patternSummary: 'B가 A보다 높음',
     }))).toEqual([
-      '- 관련 분석: T-Test',
+      '- 관련 분석: T-Test (ID: analysis-1)',
       '- 패턴 요약: B가 A보다 높음',
     ])
 
     expect(renderHtmlProvenance([
-      '관련 분석: T-Test',
+      '관련 분석: T-Test (ID: analysis-1)',
       '패턴 요약: B가 A보다 높음',
-    ])).toContain('<li>관련 분석: T-Test</li>')
+    ])).toContain('<li>관련 분석: T-Test (ID: analysis-1)</li>')
   })
 })

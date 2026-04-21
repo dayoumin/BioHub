@@ -117,11 +117,14 @@ function getPackageItemAnalysisLinks(item: PackageItem): PackageAnalysisLink[] {
     return item.analysisIds.map((label) => ({ sourceId: item.sourceId, label }))
   }
 
-  return item.analysisIds.map((label) => ({ sourceId: label, label }))
+  return []
 }
 
 function getPackageItemAnalysisLabels(item: PackageItem): string[] {
-  return getPackageItemAnalysisLinks(item).map((link) => link.label)
+  if (item.analysisLinks && item.analysisLinks.length > 0) {
+    return item.analysisLinks.map((link) => link.label)
+  }
+  return [...item.analysisIds]
 }
 
 function getPackageItemAnalysisSourceIds(item: PackageItem): string[] {
@@ -164,6 +167,8 @@ function serializeAnalysisItem(item: PackageItem, record: HistoryRecord): string
     {
       id: item.sourceId,
       sourceId: item.sourceId,
+      sourceTitle: item.sourceTitle ?? undefined,
+      sourceNavigateTo: item.sourceNavigateTo ?? undefined,
       method: methodName,
       analysisLabel: analysisLinks[0]?.label ?? undefined,
       sourceAnalysisIds: getPackageItemAnalysisSourceIds(item),
@@ -192,6 +197,8 @@ function serializeFigureItem(item: PackageItem, isKo: boolean): string {
   const lines = [
     `### [${item.label}]`,
     `- **원본 ID**: ${item.sourceId}`,
+    item.sourceTitle ? `- **${isKo ? '원본 제목' : 'Source title'}**: ${item.sourceTitle}` : null,
+    item.sourceNavigateTo ? `- **${isKo ? '원본 링크' : 'Source link'}**: ${item.sourceNavigateTo}` : null,
     item.patternSummary ? `- **패턴 요약**: ${item.patternSummary}` : '- **패턴 요약**: (직접 입력 필요)',
   ]
   if (analysisLabels.length > 0) {
@@ -200,7 +207,7 @@ function serializeFigureItem(item: PackageItem, isKo: boolean): string {
   if (analysisSourceIds.length > 0) {
     lines.push(`- **${isKo ? '원본 분석 ID' : 'Source analysis IDs'}**: ${analysisSourceIds.join(', ')}`)
   }
-  return lines.join('\n')
+  return lines.filter((line): line is string => Boolean(line)).join('\n')
 }
 
 // ── assemblePaperPackage ──────────────────────────────────

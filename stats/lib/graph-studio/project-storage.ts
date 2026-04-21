@@ -2,9 +2,11 @@
  * Graph Studio 프로젝트 저장소 (localStorage)
  *
  * 저장 정책:
- * - GraphProject (chartSpec + 메타) → localStorage 영구 저장
- * - DataPackage (원본 데이터) → 저장 안 함 (세션 메모리 only)
- *   → 프로젝트 로드 후 사용자가 데이터 재업로드 필요
+ * - GraphProject (chartSpec + provenance 메타) → localStorage 영구 저장
+ * - DataPackage 전체 원본 행 데이터는 저장 안 함 (세션 메모리 only)
+ *   → 대신 GraphProject.sourceSnapshot/sourceSchema로 저장 시점 provenance를 감사 가능하게 남김
+ *   → sourceSnapshot에는 schema/source fingerprint와 sample preview가 포함될 수 있음
+ *   → 프로젝트 로드 후 차트 편집을 계속하려면 사용자가 데이터 재업로드 필요
  *
  * Quota 정책:
  * - 최대 MAX_GRAPH_PROJECTS개까지 저장

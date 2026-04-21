@@ -8,7 +8,10 @@ import type {
 import type { DomainPack } from './pack-types'
 import { aquaculture } from '../domains/aquaculture'
 import { generic } from '../domains/generic'
-import { extractDomainOwnedSections } from './extract-pack-sections'
+import {
+  extractDomainOwnedSections,
+  extractMixedOwnedSections,
+} from './extract-pack-sections'
 import {
   AQUACULTURE_EN_HUB,
   AQUACULTURE_EN_PURPOSE_INPUT,
@@ -216,6 +219,14 @@ export const DOMAIN_PACKS: Record<AppTerminologyDomain, DomainPack> = {
     sectionsByLanguage: {
       ko: extractDomainOwnedSections(aquaculture),
     },
+    mixedSectionsByLanguage: {
+      ko: extractMixedOwnedSections(aquaculture),
+      en: {
+        validation: AQUACULTURE_EN_VALIDATION,
+        success: AQUACULTURE_EN_SUCCESS,
+        selectorUI: AQUACULTURE_EN_SELECTOR_UI,
+      },
+    },
     exactDictionaries: {
       ko: aquaculture,
     },
@@ -225,9 +236,6 @@ export const DOMAIN_PACKS: Record<AppTerminologyDomain, DomainPack> = {
         purposeInput: AQUACULTURE_EN_PURPOSE_INPUT,
         hub: AQUACULTURE_EN_HUB,
         variables: AQUACULTURE_EN_VARIABLES,
-        validation: AQUACULTURE_EN_VALIDATION,
-        success: AQUACULTURE_EN_SUCCESS,
-        selectorUI: AQUACULTURE_EN_SELECTOR_UI,
       },
     },
   },
@@ -240,6 +248,14 @@ export const DOMAIN_PACKS: Record<AppTerminologyDomain, DomainPack> = {
     sectionsByLanguage: {
       en: extractDomainOwnedSections(generic),
     },
+    mixedSectionsByLanguage: {
+      ko: {
+        validation: GENERIC_KO_VALIDATION,
+        success: GENERIC_KO_SUCCESS,
+        selectorUI: GENERIC_KO_SELECTOR_UI,
+      },
+      en: extractMixedOwnedSections(generic),
+    },
     exactDictionaries: {
       en: generic,
     },
@@ -249,9 +265,6 @@ export const DOMAIN_PACKS: Record<AppTerminologyDomain, DomainPack> = {
         purposeInput: GENERIC_KO_PURPOSE_INPUT,
         hub: GENERIC_KO_HUB,
         variables: GENERIC_KO_VARIABLES,
-        validation: GENERIC_KO_VALIDATION,
-        success: GENERIC_KO_SUCCESS,
-        selectorUI: GENERIC_KO_SELECTOR_UI,
       },
     },
   },

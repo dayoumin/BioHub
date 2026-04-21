@@ -46,7 +46,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAppPreferences } from '@/hooks/use-app-preferences'
+import { useOptionalAppPreferences } from '@/hooks/use-app-preferences'
 
 interface DataTableViewerProps {
   /** 데이터 배열 */
@@ -62,6 +62,7 @@ interface DataTableViewerProps {
   /** Sheet 열림 상태 제어 */
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  locale?: string
 }
 
 type SortDirection = 'asc' | 'desc' | null
@@ -84,8 +85,10 @@ export function DataTableViewer({
   columnTypes: providedColumnTypes,
   open,
   onOpenChange,
+  locale: localeOverride,
 }: DataTableViewerProps) {
-  const { locale } = useAppPreferences()
+  const preferences = useOptionalAppPreferences()
+  const locale = localeOverride ?? preferences?.locale ?? 'ko-KR'
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)

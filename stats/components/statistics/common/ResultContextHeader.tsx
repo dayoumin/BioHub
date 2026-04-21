@@ -2,7 +2,7 @@ import React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { FileSpreadsheet, Database, Variable, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAppPreferences } from '@/hooks/use-app-preferences'
+import { useOptionalAppPreferences } from '@/hooks/use-app-preferences'
 
 export interface ResultContextHeaderProps {
   /** 분석 유형 (예: "독립표본 t-검정") */
@@ -19,6 +19,8 @@ export interface ResultContextHeaderProps {
   timestamp?: Date
   /** 추가 클래스명 */
   className?: string
+  /** locale 주입용 오버라이드 */
+  locale?: string
 }
 
 /**
@@ -32,9 +34,11 @@ export function ResultContextHeader({
   variables,
   sampleSize,
   timestamp,
-  className
+  className,
+  locale: localeOverride,
 }: ResultContextHeaderProps) {
-  const { locale } = useAppPreferences()
+  const preferences = useOptionalAppPreferences()
+  const locale = localeOverride ?? preferences?.locale ?? 'ko-KR'
   return (
     <div className={cn('p-4 bg-muted/30 rounded-lg border', className)}>
       <div className="flex flex-col gap-3">
