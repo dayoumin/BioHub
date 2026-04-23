@@ -3,11 +3,10 @@
 /**
  * 데이터 업로드 패널 — Graph Studio Step 1 (데이터 선택 전용)
  *
- * 4가지 편의 기능:
+ * 3가지 편의 기능:
  * - F1: 최근 프로젝트 바로가기
- * - F2: 저장된 스타일 템플릿 미리 선택
- * - F3: 클립보드 붙여넣기 (엑셀 TSV)
- * - F4: 다양한 샘플 데이터 (4종)
+ * - F2: 클립보드 붙여넣기 (엑셀 TSV)
+ * - F3: 다양한 샘플 데이터 (4종)
  *
  * 차트 유형 선택은 Step 2 (ChartSetupPanel)에서 처리
  */
@@ -19,8 +18,6 @@ import { motion } from 'framer-motion';
 import {
   FileSpreadsheet,
   Clock,
-  Palette,
-  Check,
   Lightbulb,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,12 +36,10 @@ import {
   GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects,
 } from '@/lib/graph-studio/project-storage';
-import { loadTemplates } from '@/lib/graph-studio/style-template-storage';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 import { StepIndicator } from '@/components/graph-studio/StepIndicator';
 import { staggerContainer, staggerItem } from '@/components/common/card-styles';
 import type { DataPackage, ChartType, GraphProject } from '@/types/graph-studio';
-import type { StyleTemplate } from '@/lib/graph-studio/style-template-storage';
 import { formatTimeAgo } from '@/lib/utils/format-time';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
@@ -120,8 +115,6 @@ const SAMPLE_DATASETS: SampleDataset[] = [
 export function DataUploadPanel(): React.ReactElement {
   const router = useRouter();
   const loadDataOnly = useGraphStudioStore(state => state.loadDataOnly);
-  const setPendingTemplateId = useGraphStudioStore(state => state.setPendingTemplateId);
-  const pendingTemplateId = useGraphStudioStore(state => state.pendingTemplateId);
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -132,7 +125,6 @@ export function DataUploadPanel(): React.ReactElement {
 
   // SSR-safe localStorage 읽기
   const [projects, setProjects] = useState<GraphProject[]>([]);
-  const [templates, setTemplates] = useState<StyleTemplate[]>([]);
 
   const refreshProjects = useCallback((): void => {
     setProjects(
@@ -144,13 +136,13 @@ export function DataUploadPanel(): React.ReactElement {
 
   useEffect(() => {
     refreshProjects();
-    setTemplates(loadTemplates());
   }, [refreshProjects]);
 
   useEffect((): (() => void) => {
     const handleStorage = (event: StorageEvent): void => {
-      if (event.key !== STORAGE_KEYS.graphStudio.projects) return;
-      refreshProjects();
+      if (event.key === STORAGE_KEYS.graphStudio.projects) {
+        refreshProjects();
+      }
     };
 
     window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, refreshProjects);
@@ -278,11 +270,6 @@ export function DataUploadPanel(): React.ReactElement {
     router.push(`/graph-studio?project=${projectId}`);
   }, [router]);
 
-  // ── 스타일 템플릿 선택 토글 (F2) ───────────────────────
-  const handleTemplateToggle = useCallback((templateId: string) => {
-    setPendingTemplateId(pendingTemplateId === templateId ? null : templateId);
-  }, [setPendingTemplateId, pendingTemplateId]);
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => { if (files[0]) void handleFile(files[0]); },
     accept: {
@@ -295,7 +282,6 @@ export function DataUploadPanel(): React.ReactElement {
   });
 
   const hasProjects = projects.length > 0;
-  const hasTemplates = templates.length > 0;
 
   return (
     <div
@@ -434,61 +420,14 @@ export function DataUploadPanel(): React.ReactElement {
         </motion.div>
       )}
 
-      {/* ── F2: 저장된 스타일 템플릿 ──────────────────── */}
-      {hasTemplates ? (
-        <motion.div
-          className="space-y-2"
-          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
-        >
-          <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-            <Palette className="w-3.5 h-3.5" />
-            저장된 스타일
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {templates.map((tmpl) => {
-              const isSelected = pendingTemplateId === tmpl.id;
-              return (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => handleTemplateToggle(tmpl.id)}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs',
-                    'border transition-all duration-200',
-                    isSelected
-                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                      : 'border-border bg-card text-foreground hover:border-primary/50',
-                  )}
-                  data-testid={`graph-studio-template-${tmpl.id}`}
-                >
-                  {isSelected && <Check className="w-3 h-3" />}
-                  {tmpl.name}
-                  <span className="text-muted-foreground/60">{tmpl.style.preset}</span>
-                </button>
-              );
-            })}
-          </div>
-        </motion.div>
-      ) : hasProjects ? (
-        /* 프로젝트는 있는데 템플릿이 없을 때 → 안내 */
-        <motion.div
-          className="text-xs text-muted-foreground/70 text-center"
-          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
-        >
-          차트 편집 후 스타일 탭에서 템플릿으로 저장하면 다음에 바로 적용할 수 있습니다
-        </motion.div>
-      ) : null}
-
-      {/* ── 빈 상태 안내 (프로젝트·템플릿 모두 없을 때) ── */}
-      {!hasProjects && !hasTemplates && (
-        <motion.div
-          className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60 py-2"
-          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
-        >
-          <Lightbulb className="w-3.5 h-3.5 shrink-0" />
-          <span>차트 완성 후 스타일을 템플릿으로 저장하면 다음에 바로 적용할 수 있습니다</span>
-        </motion.div>
-      )}
+      {/* ── 템플릿 이동 안내 ─────────────────────────── */}
+      <motion.div
+        className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60 py-2"
+        {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+      >
+        <Lightbulb className="w-3.5 h-3.5 shrink-0" />
+        <span>스타일 시작점은 다음 단계에서 고르고, 완성한 스타일은 편집 화면에서 템플릿으로 저장할 수 있습니다</span>
+      </motion.div>
 
       </motion.div>
 

@@ -78,9 +78,18 @@ async function setTitleSize(page: Page, value: number): Promise<void> {
 test.describe('Graph Studio visual regression', () => {
   const scenarios = [
     {
+      name: 'bar chart with proportional width',
+      snapshot: 'graph-studio-bar-proportional-width.png',
+      title: 'Average weight by species',
+      chartType: 'bar',
+      titleSize: 14,
+      viewport: { width: 1600, height: 1000 },
+    },
+    {
       name: 'top legend with default title size',
       snapshot: 'graph-studio-title-legend-top-default.png',
       title: 'Fish growth by species',
+      chartType: 'scatter',
       legendOrient: 'top' as const,
       titleSize: 14,
       viewport: { width: 1600, height: 1000 },
@@ -89,6 +98,7 @@ test.describe('Graph Studio visual regression', () => {
       name: 'top legend with large title size',
       snapshot: 'graph-studio-title-legend-top-large.png',
       title: 'Fish growth relationship across species',
+      chartType: 'scatter',
       legendOrient: 'top' as const,
       titleSize: 24,
       viewport: { width: 1600, height: 1000 },
@@ -97,6 +107,7 @@ test.describe('Graph Studio visual regression', () => {
       name: 'bottom legend with large title size',
       snapshot: 'graph-studio-title-legend-bottom-large.png',
       title: 'Fish growth relationship across species',
+      chartType: 'scatter',
       legendOrient: 'bottom' as const,
       titleSize: 24,
       viewport: { width: 1600, height: 1000 },
@@ -105,6 +116,7 @@ test.describe('Graph Studio visual regression', () => {
       name: 'top legend with large title size on compact desktop viewport',
       snapshot: 'graph-studio-title-legend-top-large-compact.png',
       title: 'Fish growth relationship across species',
+      chartType: 'scatter',
       legendOrient: 'top' as const,
       titleSize: 24,
       viewport: { width: 1280, height: 900 },
@@ -116,10 +128,12 @@ test.describe('Graph Studio visual regression', () => {
       await page.setViewportSize(scenario.viewport)
       await navigateToGraphStudio(page)
       await loadSampleData(page)
-      await createChart(page, 'scatter')
+      await createChart(page, scenario.chartType)
       await setChartTitle(page, scenario.title)
       await setTitleSize(page, scenario.titleSize)
-      await setLegendOrient(page, scenario.legendOrient)
+      if ('legendOrient' in scenario) {
+        await setLegendOrient(page, scenario.legendOrient)
+      }
 
       const chart = page.locator(S.graphStudioChart)
       await expect(chart).toBeVisible()

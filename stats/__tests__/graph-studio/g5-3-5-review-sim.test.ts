@@ -12,8 +12,9 @@
  */
 
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
-import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { CHART_TYPE_HINTS, JOURNAL_SIZE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
 import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';
+import { resolvePreviewCanvasSize } from '@/components/graph-studio/ChartPreview';
 import type { ChartSpec, ChartType } from '@/types/graph-studio';
 
 // ─── 픽스처 ─────────────────────────────────────────────────
@@ -140,6 +141,45 @@ describe('SIM-1: CHART_TYPE_ICONS 완전 매핑', () => {
     const icons = Object.values(CHART_TYPE_ICONS);
     const uniqueIcons = new Set(icons);
     expect(uniqueIcons.size).toBe(icons.length);
+  });
+});
+
+describe('SIM-1B: ChartPreview fixed canvas sizing', () => {
+  it('uses a fixed default preview sheet instead of filling the editor viewport', () => {
+    expect(resolvePreviewCanvasSize({ format: 'png', dpi: 300 })).toEqual({
+      width: 960,
+      height: 600,
+    });
+  });
+
+  it('preserves explicit physical width/height ratio inside the fixed preview sheet', () => {
+    expect(resolvePreviewCanvasSize({
+      format: 'png',
+      dpi: 300,
+      physicalWidth: 120,
+      physicalHeight: 60,
+    })).toEqual({
+      width: 960,
+      height: 480,
+    });
+  });
+
+  it('journal presets define physical size, DPI, and graph style together', () => {
+    const nature = JOURNAL_SIZE_PRESETS.find((preset) => preset.key === 'nature-single');
+    const ieee = JOURNAL_SIZE_PRESETS.find((preset) => preset.key === 'ieee-single');
+
+    expect(nature).toMatchObject({
+      width: 86,
+      height: 60,
+      dpi: 300,
+      stylePreset: 'science',
+    });
+    expect(ieee).toMatchObject({
+      width: 89,
+      height: 58,
+      dpi: 300,
+      stylePreset: 'ieee',
+    });
   });
 });
 

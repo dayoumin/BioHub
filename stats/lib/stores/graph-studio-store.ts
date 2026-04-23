@@ -24,6 +24,7 @@ import {
   createChartSpecFromDataPackage,
   sanitizeChartSpecForRenderer,
 } from '@/lib/graph-studio/chart-spec-utils';
+import { normalizeChartSpecForEditorRules } from '@/lib/graph-studio/editor-actions';
 import {
   deleteProjectCascade,
   saveProject,
@@ -309,6 +310,10 @@ function normalizeGraphProject(
   return normalizePersistedGraphProject(project, dataPackage ?? null)
 }
 
+function normalizeStoreChartSpec(spec: ChartSpec): ChartSpec {
+  return sanitizeChartSpecForRenderer(normalizeChartSpecForEditorRules(spec));
+}
+
 export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>(
   (set, get) => ({
     ...initialState,
@@ -385,7 +390,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const linkedResearchProjectId = options?.preserveCurrentProject
         ? get().linkedResearchProjectId
         : normalizedPkg.projectId ?? null;
-      const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
+      const sanitizedSpec = normalizeStoreChartSpec(spec);
       set({
         dataPackage: normalizedPkg,
         linkedResearchProjectId,
@@ -553,11 +558,15 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     setProject: (project, dataPackage) => {
       const normalizedDataPackage = dataPackage ? normalizeDataPackage(dataPackage) : undefined
       const normalizedProject = normalizeGraphProject(project, normalizedDataPackage)
+      const normalizedCurrentProject: GraphProject = {
+        ...normalizedProject,
+        dataPackageId: normalizedDataPackage?.id ?? normalizedProject.dataPackageId,
+      }
       // 구버전 exportConfig 마이그레이션: width/height/transparent는 삭제됨.
       // localStorage 직렬화 객체에는 런타임에 알 수 없는 키가 있을 수 있으므로
       // format/dpi만 명시적으로 추출해 정규화한다.
       const raw = normalizedProject.chartSpec;
-      const spec: ChartSpec = sanitizeChartSpecForRenderer({
+      const spec: ChartSpec = normalizeStoreChartSpec({
         ...raw,
         exportConfig: {
           format: raw.exportConfig.format,
@@ -569,8 +578,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         },
       });
       set({
-        currentProject: normalizedProject,
-        linkedResearchProjectId: normalizedProject.projectId ?? normalizedDataPackage?.projectId ?? null,
+        currentProject: normalizedCurrentProject,
+        linkedResearchProjectId: normalizedCurrentProject.projectId ?? normalizedDataPackage?.projectId ?? null,
         relinkWarning: null,
         dataPackage: normalizedDataPackage ?? null,
         isDataLoaded: normalizedDataPackage != null,
@@ -587,7 +596,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     saveCurrentProject: (name) => {
       const { chartSpec, dataPackage, currentProject, linkedResearchProjectId } = get();
       if (!chartSpec) return null;
-      const sanitizedChartSpec = sanitizeChartSpecForRenderer(chartSpec);
+      const sanitizedChartSpec = normalizeStoreChartSpec(chartSpec);
+      const resolvedDataPackageId = dataPackage?.id ?? currentProject?.dataPackageId ?? '';
       const now = new Date().toISOString();
       const lineage = resolveGraphProjectLineage(
         currentProject,

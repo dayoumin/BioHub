@@ -29,7 +29,7 @@ import { TOAST } from '@/lib/constants/toast-messages';
 import { resolveAxisColors } from '@/lib/charts/chart-color-resolver';
 import { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
 import { CanvasToolbar } from './CanvasToolbar';
-import type { ChartSpec } from '@/types/graph-studio';
+import type { ChartSpec, ExportConfig } from '@/types/graph-studio';
 
 interface ChartPreviewProps {
   /** Export 시 getEchartsInstance() 접근용. GraphStudioPage에서 주입. */
@@ -42,6 +42,40 @@ const BRACKET_TICK_H = 6;   // 틱 길이 (px) — 수직 막대에서 아래 �
 const BRACKET_LABEL_GAP = 14; // 라벨과 브래킷 사이 거리 (px)
 const BRACKET_Y_RATIO = 1.12; // 값 축 최댓값 대비 첫 번째 브래킷 위치 배율
 const BRACKET_Y_STEP = 0.10;  // 브래킷 간 추가 높이 간격 (좁은→낮게, 넓은→높게)
+const DEFAULT_PREVIEW_WIDTH_PX = 960;
+const DEFAULT_PREVIEW_HEIGHT_PX = 600;
+const DEFAULT_PREVIEW_ASPECT_RATIO = DEFAULT_PREVIEW_WIDTH_PX / DEFAULT_PREVIEW_HEIGHT_PX;
+const MIN_PREVIEW_ASPECT_RATIO = 0.5;
+const MAX_PREVIEW_ASPECT_RATIO = 2.4;
+
+interface PreviewCanvasSize {
+  width: number;
+  height: number;
+}
+
+function clampPreviewAspectRatio(value: number): number {
+  return Math.min(MAX_PREVIEW_ASPECT_RATIO, Math.max(MIN_PREVIEW_ASPECT_RATIO, value));
+}
+
+export function resolvePreviewCanvasSize(exportConfig: ExportConfig): PreviewCanvasSize {
+  const physicalWidth = exportConfig.physicalWidth;
+  const physicalHeight = exportConfig.physicalHeight;
+  const aspectRatio = physicalWidth !== undefined && physicalHeight !== undefined
+    ? clampPreviewAspectRatio(physicalWidth / physicalHeight)
+    : DEFAULT_PREVIEW_ASPECT_RATIO;
+
+  if (aspectRatio >= DEFAULT_PREVIEW_ASPECT_RATIO) {
+    return {
+      width: DEFAULT_PREVIEW_WIDTH_PX,
+      height: Math.round(DEFAULT_PREVIEW_WIDTH_PX / aspectRatio),
+    };
+  }
+
+  return {
+    width: Math.round(DEFAULT_PREVIEW_HEIGHT_PX * aspectRatio),
+    height: DEFAULT_PREVIEW_HEIGHT_PX,
+  };
+}
 
 /**
  * 유의성 브래킷을 ECharts graphic[]으로 생성.
@@ -272,6 +306,10 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
     }),
     [chartSpec?.exportConfig.format],
   );
+  const previewCanvasSize = useMemo(
+    () => chartSpec ? resolvePreviewCanvasSize(chartSpec.exportConfig) : null,
+    [chartSpec?.exportConfig],
+  );
 
   // option 변경 시 렌더링 시작 시간 기록
   useEffect(() => {
@@ -284,6 +322,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
   const handleRenderTiming = useCallback(() => {
     if (hasWarnedSlowRef.current || !renderStartRef.current) return;
     const elapsed = performance.now() - renderStartRef.current;
+    renderStartRef.current = 0;
     if (elapsed >= CHART_DATA_LIMITS.RENDER_VERY_SLOW_MS) {
       toast.warning(TOAST.graphStudio.renderingVerySlow);
       hasWarnedSlowRef.current = true;
@@ -347,21 +386,33 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
   return (
     <div className="flex flex-col h-full p-4 group/canvas" data-testid="graph-studio-chart">
       {/* ECharts canvas + floating toolbar */}
-      <div className="flex-1 min-h-0 relative">
-        <CanvasToolbar
-          echartsRef={effectiveRef}
-          onExport={onExport}
-          zoomEnabled={!!capabilities?.supportsZoom && !chartSpec.facet}
-        />
-        <ReactECharts
-          ref={effectiveRef}
-          option={option}
-          opts={opts}
-          onEvents={onEvents}
-          style={{ width: '100%', height: '100%' }}
-          notMerge
-          lazyUpdate={false}
-        />
+      <div className="flex-1 min-h-0 overflow-auto bg-[#f2f4f6]">
+        <div className="flex min-h-full items-center justify-center p-8">
+          <div
+            className="relative bg-white shadow-[0_12px_32px_rgba(25,28,30,0.06)]"
+            data-testid="graph-studio-chart-frame"
+            style={{
+              width: `${previewCanvasSize?.width ?? DEFAULT_PREVIEW_WIDTH_PX}px`,
+              height: `${previewCanvasSize?.height ?? DEFAULT_PREVIEW_HEIGHT_PX}px`,
+              flex: '0 0 auto',
+            }}
+          >
+            <CanvasToolbar
+              echartsRef={effectiveRef}
+              onExport={onExport}
+              zoomEnabled={!!capabilities?.supportsZoom && !chartSpec.facet}
+            />
+            <ReactECharts
+              ref={effectiveRef}
+              option={option}
+              opts={opts}
+              onEvents={onEvents}
+              style={{ width: '100%', height: '100%' }}
+              notMerge
+              lazyUpdate={false}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Bottom status bar */}

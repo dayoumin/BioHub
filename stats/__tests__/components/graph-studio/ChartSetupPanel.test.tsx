@@ -7,12 +7,15 @@ import type { DataPackage, GraphProject } from '@/types/graph-studio';
 import type { StyleTemplate } from '@/lib/graph-studio/style-template-storage';
 
 const loadTemplatesMock = vi.hoisted(() => vi.fn<() => StyleTemplate[]>(() => []));
-const deleteTemplateMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@/lib/graph-studio/style-template-storage', () => ({
-  loadTemplates: () => loadTemplatesMock(),
-  deleteTemplate: (...args: unknown[]) => deleteTemplateMock(...args),
-}));
+vi.mock('@/lib/graph-studio/style-template-storage', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/graph-studio/style-template-storage')>(
+    '@/lib/graph-studio/style-template-storage',
+  );
+  return {
+    ...actual,
+    loadTemplates: () => loadTemplatesMock(),
+  };
+});
 
 function makeDataPackage(): DataPackage {
   return {
@@ -51,7 +54,7 @@ function makeProject(): GraphProject {
       },
       style: { preset: 'default' },
       annotations: [],
-      exportConfig: { format: 'png', dpi: 96 },
+      exportConfig: { format: 'svg', dpi: 96, transparentBackground: true },
     },
     dataPackageId: 'pkg-1',
     createdAt: '2026-04-14T00:00:00.000Z',
@@ -63,7 +66,6 @@ describe('ChartSetupPanel', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     loadTemplatesMock.mockReturnValue([]);
-    deleteTemplateMock.mockReset();
     localStorage.clear();
     act(() => {
       useGraphStudioStore.getState().resetAll();
@@ -80,6 +82,8 @@ describe('ChartSetupPanel', () => {
     render(<ChartSetupPanel />);
 
     await user.click(screen.getByTestId('chart-setup-preset-ieee'));
+    expect(screen.getByTestId('chart-setup-preset-ieee')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('chart-setup-preset-default')).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByTestId('chart-setup-create-btn'));
 
     const state = useGraphStudioStore.getState();
@@ -91,11 +95,12 @@ describe('ChartSetupPanel', () => {
     expect(state.historyIndex).toBe(0);
   });
 
-  it('applies template selection, runs real normalization, and preserves the current project binding on create', async () => {
+  it('applies template selection, preserves existing export-only settings, and keeps the current project binding', async () => {
     const user = userEvent.setup();
     const template: StyleTemplate = {
       id: 'tmpl-1',
       name: 'Journal Template',
+      category: 'journal',
       style: {
         preset: 'science',
         font: { family: 'Times New Roman, serif' },
@@ -103,7 +108,6 @@ describe('ChartSetupPanel', () => {
         showSampleCounts: true,
       },
       exportConfig: {
-        format: 'svg',
         dpi: 600,
         physicalWidth: 85,
       },
@@ -121,6 +125,8 @@ describe('ChartSetupPanel', () => {
 
     await user.click(screen.getByTestId('chart-setup-type-scatter'));
     await user.click(screen.getByTestId('chart-setup-template-tmpl-1'));
+    expect(screen.getByTestId('chart-setup-template-tmpl-1')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('chart-setup-preset-science')).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByTestId('chart-setup-create-btn'));
 
     const state = useGraphStudioStore.getState();
@@ -130,10 +136,102 @@ describe('ChartSetupPanel', () => {
     expect(state.chartSpec?.style.preset).toBe('science');
     expect(state.chartSpec?.style.showDataLabels).toBeUndefined();
     expect(state.chartSpec?.style.showSampleCounts).toBeUndefined();
-    expect(state.chartSpec?.exportConfig).toMatchObject({
+    expect(state.chartSpec?.exportConfig).toEqual({
       format: 'svg',
       dpi: 600,
       physicalWidth: 85,
+      transparentBackground: true,
     });
+  });
+
+  it('re-hydrates the matching template when reopening setup from an existing chart', async () => {
+    const user = userEvent.setup();
+    const template: StyleTemplate = {
+      id: 'tmpl-match',
+      name: 'Matching Template',
+      category: 'journal',
+      style: {
+        preset: 'science',
+        font: { family: 'Times New Roman, serif' },
+      },
+      exportConfig: {
+        dpi: 600,
+        physicalWidth: 85,
+      },
+      createdAt: '2026-04-14T00:00:00.000Z',
+      updatedAt: '2026-04-14T00:00:00.000Z',
+    };
+    loadTemplatesMock.mockReturnValue([template]);
+
+    const matchingProject: GraphProject = {
+      ...makeProject(),
+      chartSpec: {
+        ...makeProject().chartSpec,
+        style: { ...template.style },
+        exportConfig: {
+          format: 'png',
+          dpi: 600,
+          physicalWidth: 85,
+        },
+      },
+    };
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(matchingProject, makeDataPackage());
+      useGraphStudioStore.getState().goToSetup();
+    });
+
+    render(<ChartSetupPanel />);
+
+    expect(screen.getByTestId('chart-setup-template-tmpl-match')).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByTestId('chart-setup-create-btn'));
+
+    const state = useGraphStudioStore.getState();
+    expect(state.chartSpec?.style).toMatchObject({
+      preset: 'science',
+      font: { family: 'Times New Roman, serif' },
+    });
+    expect(state.chartSpec?.exportConfig).toMatchObject({
+      format: 'png',
+      dpi: 600,
+      physicalWidth: 85,
+    });
+  });
+
+  it('resets preset state when the selected template disappears from storage', async () => {
+    const user = userEvent.setup();
+    const template: StyleTemplate = {
+      id: 'tmpl-2',
+      name: 'Institution Template',
+      category: 'institution',
+      style: { preset: 'science' },
+      exportConfig: { dpi: 300 },
+      createdAt: '2026-04-14T00:00:00.000Z',
+      updatedAt: '2026-04-14T00:00:00.000Z',
+    };
+    loadTemplatesMock.mockReturnValue([template]);
+
+    act(() => {
+      useGraphStudioStore.getState().loadDataOnly(makeDataPackage());
+    });
+
+    render(<ChartSetupPanel />);
+
+    await user.click(screen.getByTestId('chart-setup-template-tmpl-2'));
+
+    expect(screen.getByTestId('chart-setup-template-tmpl-2')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('chart-setup-preset-default')).toHaveAttribute('aria-pressed', 'false');
+
+    loadTemplatesMock.mockReturnValue([]);
+    act(() => {
+      window.dispatchEvent(new CustomEvent('graph-studio-style-templates-changed', {
+        detail: ['tmpl-2'],
+      }));
+    });
+
+    expect(screen.queryByTestId('chart-setup-template-tmpl-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chart-setup-preset-default')).toHaveClass('text-primary');
+    expect(screen.getByTestId('chart-setup-preset-default')).toHaveAttribute('aria-pressed', 'true');
   });
 });

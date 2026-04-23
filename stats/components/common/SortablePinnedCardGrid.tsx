@@ -129,7 +129,7 @@ export function SortablePinnedCardGrid<T extends SortablePinnedItem>({
     <section className="space-y-3" data-testid={dataTestId}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-2">
-          <Star className="mt-0.5 h-3.5 w-3.5 fill-current" style={accentStyle} />
+          <Star className="mt-0.5 h-3.5 w-3.5 fill-current text-muted-foreground/45" style={accentStyle} />
           <div>
             <h2 className="text-base font-semibold text-foreground/90">{title}</h2>
             <p className="mt-1 text-xs text-muted-foreground/70">{description}</p>

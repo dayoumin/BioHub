@@ -210,18 +210,16 @@ describe('G2-1-C: 수평 막대 orientation', () => {
     const spec = makeBarSpec({ orientation: 'horizontal' });
     const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
     const series = (option.series as Record<string, unknown>[])[0];
-    const encode = series.encode as Record<string, string>;
-    expect(encode.x).toBe('value');  // yField
-    expect(encode.y).toBe('group');  // xField
+    const data = series.data as Array<[number, string]>;
+    expect(data[0]).toEqual([10, 'A']);
   });
 
   test('수직 막대 → series encode.x = xField, encode.y = yField', () => {
     const spec = makeBarSpec();
     const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
     const series = (option.series as Record<string, unknown>[])[0];
-    const encode = series.encode as Record<string, string>;
-    expect(encode.x).toBe('group');  // xField
-    expect(encode.y).toBe('value');  // yField
+    const data = series.data as Array<[string, number]>;
+    expect(data[0]).toEqual(['A', 10]);
   });
 
   test('grouped-bar + horizontal → xAxis value, yAxis category', () => {

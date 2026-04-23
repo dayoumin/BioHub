@@ -92,10 +92,12 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
     if (!results) return null
     const maxAbsVal = Math.max(
       ...results.effectSizes.map(Math.abs),
+      ...results.studyCiLower.map(Math.abs),
+      ...results.studyCiUpper.map(Math.abs),
       Math.abs(results.ci[0]),
       Math.abs(results.ci[1]),
     )
-    const range = maxAbsVal * 1.3
+    const range = maxAbsVal > 0 ? maxAbsVal * 1.3 : 1
     return { range }
   }, [results])
 
@@ -252,7 +254,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
                       />
                     </div>
                     <span className="w-20 text-right flex-shrink-0 tabular-nums">
-                      {formatNumber(es)} [{formatNumber(ciLo)}, {formatNumber(ciHi)}]
+                      {formatNumber(weight, 1)}%
                     </span>
                   </div>
                 )
@@ -288,7 +290,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
                   </div>
                 </div>
                 <span className="w-20 text-right flex-shrink-0 tabular-nums font-semibold">
-                  {formatNumber(results.pooledEffect)} [{formatNumber(results.ci[0])}, {formatNumber(results.ci[1])}]
+                  100.0%
                 </span>
               </div>
             </div>

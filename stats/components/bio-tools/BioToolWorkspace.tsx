@@ -4,8 +4,6 @@ import { Suspense, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ChevronLeft, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { LAYOUT } from '@/components/common/card-styles'
 import { getBioToolWithMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { getBioToolEntry, type BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 import { BIO_TOOLS } from '@/lib/bio-tools/bio-tool-registry'
@@ -13,11 +11,9 @@ import { TOOL_COMPONENTS } from './tools'
 import { BioToolsHub } from './BioToolsHub'
 import { BioToolSidebar } from './BioToolSidebar'
 import {
-  BIO_BG_TINT,
   BIO_SUBNAV_SURFACE,
   BIO_ICON_COLOR,
   BIO_ACCENT_TEXT,
-  BIO_LAYOUT,
 } from './bio-styles'
 
 function ToolLoadingSkeleton(): React.ReactElement {
@@ -58,12 +54,12 @@ export function BioToolWorkspace(): React.ReactElement {
   const isToolActive = !!(tool && Icon && ToolComponent)
 
   return (
-    <div className="flex flex-col h-full min-h-0" style={BIO_BG_TINT}>
-      {/* 도구 헤더 — 뒤로가기 + 도구 칩 리스트 */}
-      {isToolActive && (
-        <div className={cn(BIO_LAYOUT.contentPaddingX, 'mt-6 shrink-0')}>
-          <div className="flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex w-full items-center gap-2">
+    <div className="mx-auto flex max-w-[1300px] gap-6 px-4 py-8">
+      <div className="min-w-0 flex-1">
+        {/* 도구 헤더 — 뒤로가기 + 도구 칩 리스트 */}
+        {isToolActive && (
+          <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
               <Link
                 href="/bio-tools"
                 scroll={false}
@@ -72,7 +68,7 @@ export function BioToolWorkspace(): React.ReactElement {
               >
                 <ChevronLeft className="h-4.5 w-4.5" />
               </Link>
-              <div className="flex flex-1 overflow-x-auto whitespace-nowrap gap-1 pb-1 -mb-1 scrollbar-hide">
+              <div className="flex overflow-x-auto whitespace-nowrap gap-1 pb-1 -mb-1 scrollbar-hide">
                 {BIO_TOOLS.map(t => {
                   const isActive = t.id === toolId
                   const ToolIcon = t.icon
@@ -99,35 +95,23 @@ export function BioToolWorkspace(): React.ReactElement {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 본문 + 히스토리 사이드바 */}
-      <div className="flex flex-1 gap-6 overflow-y-auto">
-        <div className={cn(
-          'min-w-0 flex-1',
-          BIO_LAYOUT.contentPaddingX,
-          BIO_LAYOUT.contentPaddingY,
-        )}>
-          {!toolId || !tool || !meta || !ToolComponent ? (
-            <div className={LAYOUT.maxWidth}>
-              <BioToolsHub onSelectTool={handleSelectTool} />
-            </div>
-          ) : (
-            <div className={BIO_LAYOUT.toolContentMaxWidth}>
-              <Suspense fallback={<ToolLoadingSkeleton />}>
-                <ToolComponent key={`${toolId}-${historyId ?? ''}`} tool={tool} meta={meta} initialEntry={initialEntry} />
-              </Suspense>
-            </div>
-          )}
-        </div>
-        {/* 도구 활성 시 우측 히스토리 사이드바 */}
-        {isToolActive && (
-          <div className={BIO_LAYOUT.contentPaddingY}>
-            <BioToolSidebar toolId={toolId} onLoadHistory={handleLoadHistory} />
+        {!toolId || !tool || !meta || !ToolComponent ? (
+          <BioToolsHub onSelectTool={handleSelectTool} />
+        ) : (
+          <div className="mx-auto max-w-4xl">
+            <Suspense fallback={<ToolLoadingSkeleton />}>
+              <ToolComponent key={`${toolId}-${historyId ?? ''}`} tool={tool} meta={meta} initialEntry={initialEntry} />
+            </Suspense>
           </div>
         )}
       </div>
+
+      {/* 도구 활성 시 우측 히스토리 사이드바 */}
+      {isToolActive && (
+        <BioToolSidebar toolId={toolId} onLoadHistory={handleLoadHistory} />
+      )}
     </div>
   )
 }

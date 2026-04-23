@@ -109,6 +109,7 @@ const trendlineSchema = z.object({
   color: z.string().optional(),
   strokeDash: z.array(z.number()).optional(),
   showEquation: z.boolean().optional(),
+  fittedPoints: z.array(z.tuple([z.number(), z.number()])).min(2).optional(),
 }).strict();
 
 const significanceMarkSchema = z.object({

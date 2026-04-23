@@ -178,7 +178,6 @@ export default function GeneticsHome(): React.ReactElement {
           <GeneticsToolCard tool={tool} accentStyle={GENETICS_ACCENT_TEXT} dragHandle={dragHandle} />
         )}
         getItemLabel={(tool) => tool.title}
-        accentStyle={GENETICS_ACCENT_TEXT}
         dataTestId="genetics-pinned-section"
       />
 

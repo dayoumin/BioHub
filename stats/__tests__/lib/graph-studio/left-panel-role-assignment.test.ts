@@ -446,7 +446,7 @@ describe('스토어 통합 — assignRole → updateChartSpec', () => {
 
     const state = useGraphStudioStore.getState()
     expect(state.chartSpec?.encoding.x.field).toBe('region')
-    expect(state.chartSpec?.encoding.color).toEqual({ field: 'rank', type: 'ordinal' })
+    expect(state.chartSpec?.encoding.color).toBeUndefined()
     expect(state.chartSpec?.encoding.y2).toEqual({ field: 'height', type: 'quantitative' })
     expect(state.specHistory).toHaveLength(4) // initial + 3 changes
   })
