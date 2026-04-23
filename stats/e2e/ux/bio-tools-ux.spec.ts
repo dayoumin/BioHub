@@ -62,9 +62,7 @@ test.describe('@phase4 @important Bio-Tools UX', () => {
   })
 
   test('TC-4B.1.3: pinned tools stay above recent tools after reload', async ({ page }) => {
-    await page.goto('/bio-tools', { waitUntil: 'domcontentloaded', timeout: 60_000 })
-
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       window.localStorage.setItem(
         'biohub-pinned-bio-tools',
         JSON.stringify({
@@ -72,9 +70,24 @@ test.describe('@phase4 @important Bio-Tools UX', () => {
           version: 0,
         }),
       )
+      window.localStorage.setItem(
+        'biohub:bio-tools:history',
+        JSON.stringify([
+          {
+            id: 'bio-meta-analysis-e2e',
+            toolId: 'meta-analysis',
+            toolNameEn: 'Meta-Analysis',
+            toolNameKo: '메타분석',
+            csvFileName: 'meta-analysis-example.csv',
+            columnConfig: {},
+            results: {},
+            createdAt: Date.now(),
+          },
+        ]),
+      )
     })
 
-    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.goto('/bio-tools', { waitUntil: 'domcontentloaded', timeout: 60_000 })
 
     const pinnedSection = page.locator('[data-testid="bio-tools-pinned-section"]')
     await expect(pinnedSection).toBeVisible({ timeout: 15_000 })

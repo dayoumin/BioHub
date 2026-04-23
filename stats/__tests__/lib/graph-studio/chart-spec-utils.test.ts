@@ -702,4 +702,30 @@ describe('chartSpecSchema export format validation', () => {
 
     expect(chartSpecSchema.safeParse(spec).success).toBe(false);
   });
+
+  it('accepts persisted trendline fitted points', () => {
+    const spec = {
+      ...makeBaseSpec(),
+      chartType: 'scatter' as const,
+      trendline: {
+        type: 'linear' as const,
+        fittedPoints: [[1, 2], [2, 4]] as Array<[number, number]>,
+      },
+    };
+
+    expect(chartSpecSchema.safeParse(spec).success).toBe(true);
+  });
+
+  it('rejects undersized persisted trendline fitted points', () => {
+    const spec = {
+      ...makeBaseSpec(),
+      chartType: 'scatter' as const,
+      trendline: {
+        type: 'linear' as const,
+        fittedPoints: [[1, 2]] as Array<[number, number]>,
+      },
+    };
+
+    expect(chartSpecSchema.safeParse(spec).success).toBe(false);
+  });
 });

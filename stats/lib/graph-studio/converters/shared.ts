@@ -448,14 +448,16 @@ export function buildLinearTrendlineSeries(
   style: StyleConfig,
   seriesName: string,
 ): Record<string, unknown> | null {
-  const sourcePoints = trendline.fittedPoints?.length
-    ? [...trendline.fittedPoints].sort((left, right) => left[0] - right[0])
-    : points;
+  const fittedPoints = trendline.fittedPoints
+    ?.filter(([x, y]) => !isNaN(x) && !isNaN(y))
+    .sort((left, right) => left[0] - right[0]);
+  const hasUsableFittedPoints = (fittedPoints?.length ?? 0) >= 2;
+  const sourcePoints = hasUsableFittedPoints ? fittedPoints ?? [] : points;
   const valid = sourcePoints.filter(([x, y]) => !isNaN(x) && !isNaN(y));
   const reg = computeLinearRegression(valid);
   if (!reg) return null;
 
-  const lineData: [number, number][] = trendline.fittedPoints?.length
+  const lineData: [number, number][] = hasUsableFittedPoints
     ? valid
     : (() => {
       let xMin = Infinity, xMax = -Infinity;
@@ -638,7 +640,7 @@ const TITLE_BOTTOM_PADDING = 10;
 const TOP_LEGEND_GRID_DEFAULT_PERCENT = 12;
 const TOP_LEGEND_WITH_TITLE_GRID_DEFAULT_PERCENT = 20;
 const TITLE_ONLY_GRID_DEFAULT_PERCENT = 14;
-const BASE_GRID_TOP_PERCENT = 6;
+const BASE_GRID_TOP_PERCENT = 8;
 const GRID_TOP_HEIGHT_ESTIMATE_PX = 200;
 const TOP_LEGEND_GRID_GUARD_RATIO = 0.18;
 const LEGEND_ROW_ESTIMATE_PX = 12;
@@ -687,12 +689,12 @@ export function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOpt
     textStyle: { fontFamily: style.fontFamily, fontSize: style.fontSize },
     grid: {
       containLabel: true,
-      left: hasLeftLegend ? '16%' : '8%',
-      right: hasRightLegend ? '16%' : '5%',
+      left: hasLeftLegend ? '16%' : '10%',
+      right: hasRightLegend ? '16%' : '7%',
       top: resolveGridTop(spec, style, hasTopLegend),
       bottom: hasBottomLegend
-        ? (needsExtraBottomRoom ? '20%' : '16%')
-        : (needsExtraBottomRoom ? '16%' : '10%'),
+        ? (needsExtraBottomRoom ? '22%' : '18%')
+        : (needsExtraBottomRoom ? '18%' : '12%'),
     },
     tooltip: { trigger: 'axis' as const },
   };
@@ -840,6 +842,29 @@ export function buildBarLabel(
     position: spec.orientation === 'horizontal' ? 'right' : 'top',
     fontFamily: style.fontFamily,
     fontSize: style.labelSize,
+  };
+}
+
+const SINGLE_BAR_MAX_WIDTH = 88;
+const GROUPED_BAR_MAX_WIDTH = 44;
+const HORIZONTAL_BAR_MAX_WIDTH = 32;
+
+export function buildBarSeriesLayout(
+  spec: ChartSpec,
+  mode: 'single' | 'grouped' = 'single',
+  renderOrientation: 'auto' | 'vertical' | 'horizontal' = 'auto',
+): Record<string, unknown> {
+  const isHorizontal = renderOrientation === 'horizontal' ||
+    (renderOrientation === 'auto' && spec.orientation === 'horizontal');
+  const maxWidth = isHorizontal
+    ? HORIZONTAL_BAR_MAX_WIDTH
+    : mode === 'grouped'
+      ? GROUPED_BAR_MAX_WIDTH
+      : SINGLE_BAR_MAX_WIDTH;
+
+  return {
+    barMaxWidth: maxWidth,
+    barCategoryGap: mode === 'grouped' ? '36%' : '48%',
   };
 }
 

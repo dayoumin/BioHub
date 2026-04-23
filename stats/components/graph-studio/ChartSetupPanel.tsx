@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Database, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Database, Sparkles } from 'lucide-react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import {
   createAutoConfiguredChartSpec,
@@ -26,7 +26,12 @@ import {
   normalizeChartSpecForEditorRules,
 } from '@/lib/graph-studio/editor-actions';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
-import { loadTemplates, deleteTemplate } from '@/lib/graph-studio/style-template-storage';
+import {
+  GRAPH_STYLE_TEMPLATES_CHANGED_EVENT,
+  loadTemplates,
+  STYLE_TEMPLATE_CATEGORY_LABELS,
+  templateMatchesChartSpec,
+} from '@/lib/graph-studio/style-template-storage';
 import { StepIndicator } from '@/components/graph-studio/StepIndicator';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -38,6 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys';
 import type { ChartType, ColumnMeta, StylePreset } from '@/types/graph-studio';
 import type { StyleTemplate } from '@/lib/graph-studio/style-template-storage';
 
@@ -153,6 +159,27 @@ export function ChartSetupPanel(): React.ReactElement {
   // ── 스타일 템플릿 ─────────────────────────────────────
   const [templates, setTemplates] = useState<StyleTemplate[]>(() => loadTemplates());
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(storePendingTemplateId);
+  const matchingPreviousTemplateId = useMemo(() => {
+    if (!previousSpec) return null;
+    return templates.find((template) => templateMatchesChartSpec(template, previousSpec))?.id ?? null;
+  }, [previousSpec, templates]);
+  const refreshTemplates = useCallback(() => {
+    setTemplates(loadTemplates());
+  }, []);
+
+  useEffect(() => {
+    refreshTemplates();
+    const handleStorage = (event: StorageEvent): void => {
+      if (event.key !== null && event.key !== STORAGE_KEYS.graphStudio.styleTemplates) return;
+      refreshTemplates();
+    };
+    window.addEventListener(GRAPH_STYLE_TEMPLATES_CHANGED_EVENT, refreshTemplates);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener(GRAPH_STYLE_TEMPLATES_CHANGED_EVENT, refreshTemplates);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [refreshTemplates]);
 
   // Step 1에서 미리 선택한 템플릿이 있으면 프리셋도 동기화 + 스토어에서 소비
   useEffect(() => {
@@ -163,26 +190,31 @@ export function ChartSetupPanel(): React.ReactElement {
       setSelectedPreset(tmpl.style.preset);
     }
     setPendingTemplateId(null);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount 시 1회만
+  }, [setPendingTemplateId, storePendingTemplateId, templates]);
+
+  useEffect(() => {
+    if (storePendingTemplateId !== null) return;
+    if (selectedTemplateId !== null) return;
+    if (matchingPreviousTemplateId === null) return;
+
+    const tmpl = templates.find(template => template.id === matchingPreviousTemplateId);
+    if (!tmpl) return;
+
+    setSelectedTemplateId(tmpl.id);
+    setSelectedPreset(tmpl.style.preset);
+  }, [matchingPreviousTemplateId, selectedTemplateId, setSelectedPreset, storePendingTemplateId, templates]);
+
+  useEffect(() => {
+    if (selectedTemplateId === null) return;
+    if (templates.some(template => template.id === selectedTemplateId)) return;
+    setSelectedTemplateId(null);
+    setSelectedPreset('default');
+  }, [selectedTemplateId, templates]);
 
   const handleSelectTemplate = useCallback((template: StyleTemplate) => {
     setSelectedTemplateId(template.id);
     setSelectedPreset(template.style.preset);
   }, []);
-
-  const handleDeleteTemplate = useCallback((id: string) => {
-    const tmpl = templates.find(t => t.id === id);
-    if (!window.confirm(`"${tmpl?.name ?? '템플릿'}" 을(를) 삭제하시겠습니까?`)) return;
-    try {
-      deleteTemplate(id);
-    } catch {
-      // 삭제 실패 — 극히 드묾, 무시
-    }
-    setTemplates(loadTemplates());
-    if (selectedTemplateId === id) {
-      setSelectedTemplateId(null);
-    }
-  }, [selectedTemplateId, templates]);
 
   // 차트 유형 변경 시 필드 자동 업데이트
   const handleChartTypeSelect = useCallback((type: ChartType) => {
@@ -241,6 +273,8 @@ export function ChartSetupPanel(): React.ReactElement {
       yField,
       columns,
     );
+    const preservedExportConfig = previousSpec?.exportConfig ?? spec.exportConfig;
+    spec.exportConfig = { ...preservedExportConfig };
 
     // 스타일 적용: 템플릿 > 프리셋
     const selectedTemplate = selectedTemplateId
@@ -249,7 +283,19 @@ export function ChartSetupPanel(): React.ReactElement {
 
     if (selectedTemplate) {
       spec.style = { ...selectedTemplate.style };
-      spec.exportConfig = { ...selectedTemplate.exportConfig };
+      spec.exportConfig = {
+        format: preservedExportConfig.format,
+        dpi: selectedTemplate.exportConfig.dpi,
+        ...(preservedExportConfig.transparentBackground !== undefined && {
+          transparentBackground: preservedExportConfig.transparentBackground,
+        }),
+        ...(selectedTemplate.exportConfig.physicalWidth !== undefined && {
+          physicalWidth: selectedTemplate.exportConfig.physicalWidth,
+        }),
+        ...(selectedTemplate.exportConfig.physicalHeight !== undefined && {
+          physicalHeight: selectedTemplate.exportConfig.physicalHeight,
+        }),
+      };
     } else if (selectedPreset !== 'default') {
       spec.style = { ...STYLE_PRESETS[selectedPreset] };
     }
@@ -267,7 +313,7 @@ export function ChartSetupPanel(): React.ReactElement {
     loadDataPackageWithSpec(dataPackage, normalizedSpec, {
       preserveCurrentProject: currentProjectId !== null,
     });
-  }, [dataPackage, selectedType, xField, yField, colorField, selectedPreset, selectedTemplateId, templates, columns, loadDataPackageWithSpec, currentProjectId]);
+  }, [dataPackage, selectedType, xField, yField, colorField, selectedPreset, selectedTemplateId, templates, columns, loadDataPackageWithSpec, currentProjectId, previousSpec]);
 
   // ── "뒤로" ───────────────────────────────────────────
   const handleBack = useCallback(() => {
@@ -317,6 +363,90 @@ export function ChartSetupPanel(): React.ReactElement {
           </div>
         </div>
       )}
+
+      {/* 스타일 시작점 */}
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label className="text-sm font-semibold">스타일 시작점</Label>
+          <p className="text-xs text-muted-foreground">
+            먼저 템플릿으로 전체 톤을 고르고, 없으면 빠른 프리셋으로 시작하세요.
+          </p>
+        </div>
+
+        {templates.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">내 템플릿</p>
+            <div className="grid grid-cols-2 gap-2">
+              {templates.map(tmpl => {
+                const isActive = selectedTemplateId === tmpl.id;
+                const categoryLabel = STYLE_TEMPLATE_CATEGORY_LABELS[tmpl.category];
+                const fontInfo = tmpl.style.font?.family ?? 'Arial';
+                const dpiInfo = `${tmpl.exportConfig.dpi}dpi`;
+                const sizeInfo =
+                  tmpl.exportConfig.physicalWidth && tmpl.exportConfig.physicalHeight
+                    ? `${tmpl.exportConfig.physicalWidth}×${tmpl.exportConfig.physicalHeight}mm`
+                    : null;
+                return (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => handleSelectTemplate(tmpl)}
+                    aria-pressed={isActive}
+                    className={cn(
+                      'flex min-w-0 flex-col items-start gap-1 rounded-2xl border p-3 text-left text-xs transition-all',
+                      isActive
+                        ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                        : 'border-border bg-background hover:border-primary/50 hover:bg-primary/5',
+                    )}
+                    data-testid={`chart-setup-template-${tmpl.id}`}
+                  >
+                    <span className="font-medium truncate w-full">{tmpl.name}</span>
+                    <span className={cn('leading-tight', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
+                      {categoryLabel} · {tmpl.style.preset} · {fontInfo} · {dpiInfo}
+                    </span>
+                    {sizeInfo && (
+                      <span className={cn('leading-tight', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
+                        {sizeInfo}
+                      </span>
+                    )}
+                    {isActive && <Check className="mt-1 h-3 w-3" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">빠른 프리셋</p>
+          <div className="grid grid-cols-4 gap-2">
+            {PRESET_OPTIONS.map(preset => {
+              const isActive = selectedPreset === preset.key && !selectedTemplateId;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => { setSelectedPreset(preset.key); setSelectedTemplateId(null); }}
+                  aria-pressed={isActive}
+                  className={cn(
+                    'flex flex-col items-center gap-1 rounded-lg border p-3 text-xs transition-all',
+                    isActive
+                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                      : 'border-border hover:border-primary/50 hover:bg-primary/5',
+                  )}
+                  data-testid={`chart-setup-preset-${preset.key}`}
+                >
+                  <span className="font-medium">{preset.label}</span>
+                  <span className={cn('text-center text-xs leading-tight', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
+                    {preset.desc}
+                  </span>
+                  {isActive && <Check className="mt-0.5 h-3 w-3" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* 차트 유형 선택 */}
       <div className="space-y-3">
@@ -428,80 +558,6 @@ export function ChartSetupPanel(): React.ReactElement {
           )}
         </div>
       </div>
-
-      {/* 학술 스타일 프리셋 */}
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">학술 스타일</Label>
-        <div className="grid grid-cols-4 gap-2">
-          {PRESET_OPTIONS.map(preset => {
-            const isActive = selectedPreset === preset.key && !selectedTemplateId;
-            return (
-              <button
-                key={preset.key}
-                type="button"
-                onClick={() => { setSelectedPreset(preset.key); setSelectedTemplateId(null); }}
-                className={cn(
-                  'flex flex-col items-center gap-1 p-3 rounded-lg border text-xs transition-all',
-                  isActive
-                    ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                    : 'border-border hover:border-primary/50 hover:bg-primary/5',
-                )}
-                data-testid={`chart-setup-preset-${preset.key}`}
-              >
-                <span className="font-medium">{preset.label}</span>
-                <span className={cn('text-xs leading-tight text-center', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
-                  {preset.desc}
-                </span>
-                {isActive && <Check className="h-3 w-3 mt-0.5" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 내 템플릿 (저장된 것이 있을 때만) */}
-      {templates.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold">내 템플릿</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {templates.map(tmpl => {
-              const isActive = selectedTemplateId === tmpl.id;
-              const fontInfo = tmpl.style.font?.family ?? 'Arial';
-              const dpiInfo = `${tmpl.exportConfig.dpi}dpi`;
-              return (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(tmpl)}
-                  className={cn(
-                    'relative flex flex-col items-start gap-0.5 p-3 rounded-lg border text-xs transition-all text-left',
-                    isActive
-                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                      : 'border-border hover:border-primary/50 hover:bg-primary/5',
-                  )}
-                  data-testid={`chart-setup-template-${tmpl.id}`}
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(tmpl.id); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleDeleteTemplate(tmpl.id); } }}
-                    className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                    aria-label={`${tmpl.name} 삭제`}
-                  >
-                    <X className="h-3 w-3" />
-                  </span>
-                  <span className="font-medium pr-4 truncate w-full">{tmpl.name}</span>
-                  <span className={cn('text-xs leading-tight', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
-                    {tmpl.style.preset} · {fontInfo} · {dpiInfo}
-                  </span>
-                  {isActive && <Check className="h-3 w-3 mt-0.5" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* CTA */}
       <Button

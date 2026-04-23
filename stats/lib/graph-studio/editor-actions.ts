@@ -189,13 +189,17 @@ export function normalizeChartSpecForEditorRules(spec: ChartSpec): ChartSpec {
 
   const xColumn = spec.data.columns.find((column) => column.name === spec.encoding.x.field);
   const yColumn = spec.data.columns.find((column) => column.name === spec.encoding.y.field);
+  const canValidateAxisColumns = spec.data.columns.length > 0;
   const hasInvalidAxisTypes =
-    !xColumn ||
-    !yColumn ||
-    !isAxisColumnTypeAllowed(spec.chartType, 'x', xColumn.type) ||
-    !isAxisColumnTypeAllowed(spec.chartType, 'y', yColumn.type) ||
-    spec.encoding.x.type !== xColumn.type ||
-    spec.encoding.y.type !== yColumn.type;
+    canValidateAxisColumns &&
+    (
+      !xColumn ||
+      !yColumn ||
+      !isAxisColumnTypeAllowed(spec.chartType, 'x', xColumn.type) ||
+      !isAxisColumnTypeAllowed(spec.chartType, 'y', yColumn.type) ||
+      spec.encoding.x.type !== xColumn.type ||
+      spec.encoding.y.type !== yColumn.type
+    );
 
   const baseSpec = hasInvalidAxisTypes
     ? changeChartType(spec, spec.chartType)

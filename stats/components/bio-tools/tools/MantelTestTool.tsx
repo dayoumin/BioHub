@@ -12,7 +12,7 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
-import { BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
+import { BIOLOGY_CALLOUT_INFO, BIOLOGY_TABLE_SHELL } from '@/lib/design-tokens/biology'
 import { saveBioToolEntry } from '@/lib/bio-tools/bio-tool-history'
 import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import { cn } from '@/lib/utils'
@@ -23,12 +23,24 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { MantelResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
+function getInitialMantelMethod(value: string | undefined): 'pearson' | 'spearman' {
+  return value === 'spearman' ? 'spearman' : 'pearson'
+}
+
+function formatHistoryDate(timestamp: number): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(timestamp))
+}
+
 const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const initialColumnConfig = initialEntry?.columnConfig
   const [csvDataX, setCsvDataX] = useState<CsvData | null>(null)
   const [csvDataY, setCsvDataY] = useState<CsvData | null>(null)
-  const [siteColX, setSiteColX] = useState<string>('')
-  const [siteColY, setSiteColY] = useState<string>('')
-  const [method, setMethod] = useState<'pearson' | 'spearman'>('pearson')
+  const [siteColX, setSiteColX] = useState<string>(initialColumnConfig?.siteColX ?? '')
+  const [siteColY, setSiteColY] = useState<string>(initialColumnConfig?.siteColY ?? '')
+  const [method, setMethod] = useState<'pearson' | 'spearman'>(getInitialMantelMethod(initialColumnConfig?.method))
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [results, setResults] = useState<MantelResult | null>((initialEntry?.results as MantelResult) ?? null)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +53,8 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }
     setSiteColX(data.headers[0])
     setResults(null)
     setError(null)
+    setIsSaved(false)
+    hasSavedRef.current = false
   }, [])
 
   const handleClearX = useCallback(() => {
@@ -204,6 +218,29 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          {initialEntry && (
+            <div className={BIOLOGY_CALLOUT_INFO}>
+              <div className="mb-3 text-sm font-semibold text-foreground">히스토리에서 복원된 결과</div>
+              <dl className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                <div>
+                  <dt className="mb-1 font-medium text-foreground/70">CSV</dt>
+                  <dd className="font-mono text-foreground">{initialEntry.csvFileName}</dd>
+                </div>
+                <div>
+                  <dt className="mb-1 font-medium text-foreground/70">저장 시각</dt>
+                  <dd>{formatHistoryDate(initialEntry.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt className="mb-1 font-medium text-foreground/70">지점명 열</dt>
+                  <dd>X: {siteColX || '-'} · Y: {siteColY || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="mb-1 font-medium text-foreground/70">상관 방법</dt>
+                  <dd>{results.method === 'pearson' ? 'Pearson' : 'Spearman'}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
           <BioResultSummary
             metrics={[
               { label: 'Mantel r', value: results.r, tooltip: `${results.method === 'pearson' ? 'Pearson' : 'Spearman'} 상관` },

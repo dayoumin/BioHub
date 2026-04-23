@@ -1,22 +1,12 @@
 'use client';
 
-/**
- * 우측 속성 패널 (G5.2)
- *
- * Tabs → Accordion 전환. 데이터·스타일 섹션을 동시에 열 수 있음.
- *
- * alias testid 유지:
- * - graph-studio-side-panel → 루트 div
- * - graph-studio-right-panel → 내부 div
- * - graph-studio-tab-data / graph-studio-tab-style → AccordionTrigger
- */
-
+import { MessageSquareQuote, Palette, Settings2 } from 'lucide-react';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { DataTab } from './panels/DataTab';
 import { StyleTab } from './panels/StyleTab';
 import { AnnotationTab } from './panels/AnnotationTab';
@@ -24,52 +14,68 @@ import { AnnotationTab } from './panels/AnnotationTab';
 export function RightPropertyPanel(): React.ReactElement {
   return (
     <div
-      className="flex flex-col h-full"
+      className="flex h-full flex-col"
       data-testid="graph-studio-side-panel"
     >
-      <div className="flex flex-col h-full overflow-y-auto" data-testid="graph-studio-right-panel">
-        <Accordion
-          type="multiple"
-          defaultValue={['data', 'style']}
-          className="w-full"
-        >
-          <AccordionItem value="data">
-            <AccordionTrigger
-              className="px-3 py-2 text-xs"
+      <Tabs
+        defaultValue="data"
+        className="flex h-full min-h-0 flex-col gap-0"
+      >
+        <div className="sticky top-0 z-10 px-3 py-3 bg-surface-container-low/95 backdrop-blur supports-[backdrop-filter]:bg-surface-container-low/85">
+          <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl bg-surface-container p-1">
+            <TabsTrigger
+              value="data"
+              className="h-9 rounded-xl text-xs"
               data-testid="graph-studio-tab-data"
             >
-              차트 설정
-            </AccordionTrigger>
-            <AccordionContent className="px-3">
-              <DataTab />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="style">
-            <AccordionTrigger
-              className="px-3 py-2 text-xs"
+              <Settings2 className="h-3.5 w-3.5" />
+              설정
+            </TabsTrigger>
+            <TabsTrigger
+              value="style"
+              className="h-9 rounded-xl text-xs"
               data-testid="graph-studio-tab-style"
             >
+              <Palette className="h-3.5 w-3.5" />
               스타일
-            </AccordionTrigger>
-            <AccordionContent className="px-3">
-              <StyleTab />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="annotation">
-            <AccordionTrigger
-              className="px-3 py-2 text-xs"
+            </TabsTrigger>
+            <TabsTrigger
+              value="annotation"
+              className="h-9 rounded-xl text-xs"
               data-testid="graph-studio-tab-annotation"
             >
+              <MessageSquareQuote className="h-3.5 w-3.5" />
               주석
-            </AccordionTrigger>
-            <AccordionContent className="px-3">
-              <AnnotationTab />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </div>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <div className="min-h-0 flex-1 px-3 pb-3" data-testid="graph-studio-right-panel">
+          <TabsContent
+            value="data"
+            forceMount
+            className="mt-0 h-full overflow-y-auto rounded-2xl bg-surface px-3 py-3 data-[state=inactive]:hidden"
+          >
+            <DataTab />
+          </TabsContent>
+
+          <TabsContent
+            value="style"
+            forceMount
+            className="mt-0 h-full overflow-y-auto rounded-2xl bg-surface px-3 py-3 data-[state=inactive]:hidden"
+          >
+            <StyleTab />
+          </TabsContent>
+
+          <TabsContent
+            value="annotation"
+            forceMount
+            className="mt-0 h-full overflow-y-auto rounded-2xl bg-surface px-3 py-3 data-[state=inactive]:hidden"
+          >
+            <AnnotationTab />
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

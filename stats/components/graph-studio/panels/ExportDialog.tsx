@@ -30,7 +30,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
-import { JOURNAL_SIZE_PRESETS, mmToPx } from '@/lib/graph-studio';
+import { JOURNAL_SIZE_PRESETS, STYLE_PRESETS, mmToPx } from '@/lib/graph-studio';
 import type { ExportFormat, ErrorBarSpec } from '@/types/graph-studio';
 import type { MatplotlibExportFormat, MatplotlibStylePreset } from '@/types/matplotlib-export';
 import { DEFAULT_MATPLOTLIB_EXPORT_CONFIG } from '@/types/matplotlib-export';
@@ -91,7 +91,7 @@ interface ExportDialogProps {
 const toInput = (mm: number | undefined): string => (mm !== undefined ? String(mm) : '');
 
 export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElement {
-  const { chartSpec, setExportConfig } = useGraphStudioStore();
+  const { chartSpec, setExportConfig, updateChartSpec } = useGraphStudioStore();
 
   // shadcn Dialog: disabled trigger가 열릴 수 있는 엣지 케이스 방지
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -173,16 +173,27 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
     });
   }, [chartSpec, widthInput, heightInput, mplFormat, mplDpi, mplStyle, exportWithMatplotlib]);
 
-  const handleJournalPreset = useCallback((width: number) => {
+  const handleJournalPreset = useCallback((preset: typeof JOURNAL_SIZE_PRESETS[number]) => {
     if (!chartSpec) return;
-    setWidthInput(String(width));
-    const h = parseFloat(heightInput);
-    setExportConfig({
+    const stylePreset = STYLE_PRESETS[preset.stylePreset];
+    const exportConfig = {
       ...chartSpec.exportConfig,
-      physicalWidth: width,
-      physicalHeight: !isNaN(h) && h > 0 ? h : chartSpec.exportConfig.physicalHeight,
+      dpi: preset.dpi,
+      physicalWidth: preset.width,
+      physicalHeight: preset.height,
+    };
+    setWidthInput(String(preset.width));
+    setHeightInput(String(preset.height));
+    updateChartSpec({
+      ...chartSpec,
+      style: {
+        ...stylePreset,
+        showDataLabels: chartSpec.style.showDataLabels,
+        showSampleCounts: chartSpec.style.showSampleCounts,
+      },
+      exportConfig,
     });
-  }, [chartSpec, heightInput, setExportConfig]);
+  }, [chartSpec, updateChartSpec]);
 
   // ─── 렌더 계산값 (IIFE 대신 호이스팅) ──────────────────────
   const currentFont = chartSpec?.style.font?.family ?? '';
@@ -289,23 +300,27 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
               {/* 저널 프리셋 버튼 */}
               <div className="flex flex-wrap gap-1">
-                {JOURNAL_SIZE_PRESETS.map(({ key, label, width }) => {
-                  const isActive = chartSpec.exportConfig.physicalWidth === width;
+                {JOURNAL_SIZE_PRESETS.map((preset) => {
+                  const isActive =
+                    chartSpec.exportConfig.physicalWidth === preset.width &&
+                    chartSpec.exportConfig.physicalHeight === preset.height &&
+                    chartSpec.exportConfig.dpi === preset.dpi &&
+                    chartSpec.style.preset === preset.stylePreset;
                   return (
                     <button
-                      key={key}
+                      key={preset.key}
                       type="button"
-                      onClick={() => handleJournalPreset(width)}
+                      onClick={() => handleJournalPreset(preset)}
                       className={[
                         'rounded-md px-1.5 py-0.5 text-xs transition-colors',
                         isActive
                           ? 'bg-surface-container-highest font-medium text-primary'
                           : 'bg-surface-container-lowest text-muted-foreground hover:bg-surface-container-high hover:text-foreground',
                       ].join(' ')}
-                      title={`너비 ${width}mm`}
+                      title={`${preset.width} x ${preset.height}mm, ${preset.dpi} DPI, ${preset.stylePreset}`}
                       aria-pressed={isActive}
                     >
-                      {label}
+                      {preset.label}
                     </button>
                   );
                 })}

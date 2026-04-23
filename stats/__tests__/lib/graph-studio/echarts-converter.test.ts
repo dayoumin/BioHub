@@ -67,8 +67,36 @@ describe('bar chart', () => {
 
   it('dataset.source에 rows가 들어간다', () => {
     const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), rows))
-    const dataset = opt.dataset as AnyOption
-    expect(dataset.source).toEqual(rows)
+    const series = opt.series as AnyOption[]
+    expect((opt.dataset as AnyOption).source).toEqual(rows)
+    expect(series[0].data).toEqual([
+      ['A', 10],
+      ['B', 20],
+      ['C', 15],
+    ])
+  })
+
+  it('aggregates duplicate bar categories and keeps tooltip to one item', () => {
+    const duplicateRows = [
+      { group: 'Bream', value: 18.2 },
+      { group: 'Bream', value: 55.3 },
+      { group: 'Bass', value: 10 },
+    ]
+    const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), duplicateRows))
+    const series = opt.series as AnyOption[]
+    const tooltip = opt.tooltip as AnyOption
+    const formatter = tooltip.formatter as (params: unknown) => string
+
+    expect(tooltip.trigger).toBe('item')
+    expect(series[0].data).toEqual([
+      ['Bream', 36.75],
+      ['Bass', 10],
+    ])
+    expect(formatter({
+      name: 'Bream',
+      seriesName: 'value',
+      value: ['Bream', 36.75],
+    })).toContain('36.75')
   })
 
   it('xAxis.type === category', () => {
@@ -95,7 +123,7 @@ describe('bar chart', () => {
       rows,
     ))
     const grid = opt.grid as AnyOption
-    expect(grid.bottom).toBe('16%')
+    expect(grid.bottom).toBe('18%')
   })
 })
 

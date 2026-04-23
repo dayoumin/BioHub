@@ -126,18 +126,25 @@ export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
 //       JKMS (85/175mm), Ann Lab Med (174mm), IEEE (89/190mm)
 
 export const JOURNAL_SIZE_PRESETS = [
-  { key: 'nature-single', label: 'Nature 단일 칼럼', width: 86 },
-  { key: 'nature-double', label: 'Nature 전체 너비', width: 178 },
-  { key: 'cell-single',   label: 'Cell 단일 칼럼',   width: 88 },
-  { key: 'pnas-single',   label: 'PNAS 단일 칼럼',   width: 87 },
-  { key: 'acs-single',    label: 'ACS 단일 칼럼',    width: 84 },
-  { key: 'kci-single',    label: 'KCI 단일 칼럼',    width: 80 },
-  { key: 'jkms-single',   label: 'JKMS 단일 칼럼',   width: 85 },
-  { key: 'jkms-double',   label: 'JKMS 전체 너비',   width: 175 },
-  { key: 'annlabmed',     label: 'Ann Lab Med 전폭',  width: 174 },
-  { key: 'ieee-single',   label: 'IEEE 단일 칼럼',    width: 89 },
-  { key: 'ieee-double',   label: 'IEEE 전체 너비',    width: 190 },
-] as const;
+  { key: 'nature-single', label: 'Nature 단일 칼럼', width: 86, height: 60, dpi: 300, stylePreset: 'science' },
+  { key: 'nature-double', label: 'Nature 전체 너비', width: 178, height: 120, dpi: 300, stylePreset: 'science' },
+  { key: 'cell-single',   label: 'Cell 단일 칼럼',   width: 88, height: 60, dpi: 300, stylePreset: 'science' },
+  { key: 'pnas-single',   label: 'PNAS 단일 칼럼',   width: 87, height: 60, dpi: 300, stylePreset: 'science' },
+  { key: 'acs-single',    label: 'ACS 단일 칼럼',    width: 84, height: 58, dpi: 300, stylePreset: 'science' },
+  { key: 'kci-single',    label: 'KCI 단일 칼럼',    width: 80, height: 55, dpi: 300, stylePreset: 'science' },
+  { key: 'jkms-single',   label: 'JKMS 단일 칼럼',   width: 85, height: 60, dpi: 300, stylePreset: 'science' },
+  { key: 'jkms-double',   label: 'JKMS 전체 너비',   width: 175, height: 120, dpi: 300, stylePreset: 'science' },
+  { key: 'annlabmed',     label: 'Ann Lab Med 전폭',  width: 174, height: 120, dpi: 300, stylePreset: 'science' },
+  { key: 'ieee-single',   label: 'IEEE 단일 칼럼',    width: 89, height: 58, dpi: 300, stylePreset: 'ieee' },
+  { key: 'ieee-double',   label: 'IEEE 전체 너비',    width: 190, height: 120, dpi: 300, stylePreset: 'ieee' },
+] as const satisfies readonly {
+  key: string;
+  label: string;
+  width: number;
+  height: number;
+  dpi: number;
+  stylePreset: StylePreset;
+}[];
 
 export type JournalPresetKey = typeof JOURNAL_SIZE_PRESETS[number]['key'];
 

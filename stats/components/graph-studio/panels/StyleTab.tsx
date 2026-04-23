@@ -7,14 +7,26 @@
  * 모든 상태/핸들러는 useStyleTabLogic 훅에서 관리. (G5.2)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import {
   useStyleTabLogic,
   FONT_OPTIONS,
   PRESET_LIST,
 } from '@/lib/graph-studio/useStyleTabLogic';
-import { saveTemplate } from '@/lib/graph-studio/style-template-storage';
+import {
+  deleteTemplate,
+  GRAPH_STYLE_TEMPLATES_CHANGED_EVENT,
+  loadTemplates,
+  saveTemplate,
+  STYLE_TEMPLATE_CATEGORIES,
+  STYLE_TEMPLATE_CATEGORY_LABELS,
+  templateMatchesChartSpec,
+} from '@/lib/graph-studio/style-template-storage';
+import type {
+  StyleTemplate,
+  StyleTemplateCategory,
+} from '@/lib/graph-studio/style-template-storage';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -26,37 +38,159 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, Save } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Pencil, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { TOAST } from '@/lib/constants/toast-messages';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys';
 
 export function StyleTab(): React.ReactElement {
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
+  const updateChartSpec = useGraphStudioStore(state => state.updateChartSpec);
+  const setExportConfig = useGraphStudioStore(state => state.setExportConfig);
   const logic = useStyleTabLogic();
 
   const [showTemplateInput, setShowTemplateInput] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [templateCategory, setTemplateCategory] = useState<StyleTemplateCategory>('institution');
+  const [templates, setTemplates] = useState<StyleTemplate[]>(() => loadTemplates());
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingTemplateName, setEditingTemplateName] = useState('');
+  const [editingTemplateCategory, setEditingTemplateCategory] = useState<StyleTemplateCategory>('institution');
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
+  const refreshTemplates = useCallback(() => {
+    setTemplates(loadTemplates());
+  }, []);
+
+  useEffect(() => {
+    refreshTemplates();
+    const handleStorage = (event: StorageEvent): void => {
+      if (event.key !== null && event.key !== STORAGE_KEYS.graphStudio.styleTemplates) return;
+      refreshTemplates();
+    };
+    window.addEventListener(GRAPH_STYLE_TEMPLATES_CHANGED_EVENT, refreshTemplates);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener(GRAPH_STYLE_TEMPLATES_CHANGED_EVENT, refreshTemplates);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [refreshTemplates]);
+
+  useEffect(() => {
+    if (editingTemplateId === null) return;
+    if (templates.some((template) => template.id === editingTemplateId)) return;
+    setEditingTemplateId(null);
+    setEditingTemplateName('');
+    setEditingTemplateCategory('institution');
+  }, [editingTemplateId, templates]);
+
+  useEffect(() => {
+    if (templates.length > 0) return;
+    setShowTemplateLibrary(false);
+  }, [templates.length]);
 
   const handleSaveTemplate = useCallback(() => {
     if (!chartSpec || !templateName.trim()) return;
+    const savedName = templateName.trim();
     const now = new Date().toISOString();
+    const nextTemplate: StyleTemplate = {
+      id: `tmpl-${Date.now()}`,
+      name: savedName,
+      category: templateCategory,
+      style: { ...chartSpec.style },
+      exportConfig: {
+        dpi: chartSpec.exportConfig.dpi,
+        ...(chartSpec.exportConfig.physicalWidth !== undefined && { physicalWidth: chartSpec.exportConfig.physicalWidth }),
+        ...(chartSpec.exportConfig.physicalHeight !== undefined && { physicalHeight: chartSpec.exportConfig.physicalHeight }),
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
     try {
-      saveTemplate({
-        id: `tmpl-${Date.now()}`,
-        name: templateName.trim(),
-        style: { ...chartSpec.style },
-        exportConfig: { ...chartSpec.exportConfig },
-        createdAt: now,
-        updatedAt: now,
-      });
-      toast.success(TOAST.graphStudio.templateSaved(templateName.trim()));
+      saveTemplate(nextTemplate);
+      refreshTemplates();
+      toast.success(TOAST.graphStudio.templateSaved(savedName));
     } catch {
       toast.error(TOAST.graphStudio.templateSaveError);
       return;
     }
     setTemplateName('');
+    setTemplateCategory('institution');
     setShowTemplateInput(false);
-  }, [chartSpec, templateName]);
+  }, [chartSpec, refreshTemplates, templateCategory, templateName]);
+
+  const handleApplyTemplate = useCallback((template: StyleTemplate) => {
+    if (!chartSpec) return;
+    setEditingTemplateId(null);
+    updateChartSpec({
+      ...chartSpec,
+      style: { ...template.style },
+    });
+    setExportConfig({
+      format: chartSpec.exportConfig.format,
+      dpi: template.exportConfig.dpi,
+      ...(chartSpec.exportConfig.transparentBackground !== undefined && {
+        transparentBackground: chartSpec.exportConfig.transparentBackground,
+      }),
+      ...(template.exportConfig.physicalWidth !== undefined && {
+        physicalWidth: template.exportConfig.physicalWidth,
+      }),
+      ...(template.exportConfig.physicalHeight !== undefined && {
+        physicalHeight: template.exportConfig.physicalHeight,
+      }),
+    });
+  }, [chartSpec, setExportConfig, updateChartSpec]);
+
+  const handleStartTemplateEdit = useCallback((template: StyleTemplate) => {
+    setEditingTemplateId(template.id);
+    setEditingTemplateName(template.name);
+    setEditingTemplateCategory(template.category);
+  }, []);
+
+  const handleCommitTemplateEdit = useCallback((template: StyleTemplate) => {
+    const savedName = editingTemplateName.trim();
+    if (!savedName) return;
+
+    try {
+      saveTemplate({
+        ...template,
+        name: savedName,
+        category: editingTemplateCategory,
+        updatedAt: new Date().toISOString(),
+      });
+      refreshTemplates();
+      setEditingTemplateId(null);
+      setEditingTemplateName('');
+      setEditingTemplateCategory('institution');
+      toast.success(TOAST.graphStudio.templateSaved(savedName));
+    } catch {
+      toast.error(TOAST.graphStudio.templateSaveError);
+    }
+  }, [editingTemplateCategory, editingTemplateName, refreshTemplates]);
+
+  const handleCancelTemplateEdit = useCallback(() => {
+    setEditingTemplateId(null);
+    setEditingTemplateName('');
+    setEditingTemplateCategory('institution');
+  }, []);
+
+  const handleDeleteTemplate = useCallback((id: string) => {
+    const targetTemplate = templates.find((template) => template.id === id);
+    if (!window.confirm(`"${targetTemplate?.name ?? '템플릿'}" 을(를) 삭제하시겠습니까?`)) {
+      return;
+    }
+    deleteTemplate(id);
+    refreshTemplates();
+    if (editingTemplateId === id) {
+      setEditingTemplateId(null);
+      setEditingTemplateName('');
+      setEditingTemplateCategory('institution');
+    }
+  }, [editingTemplateId, refreshTemplates, templates]);
+
+  const activeTemplate = chartSpec
+    ? templates.find((template) => templateMatchesChartSpec(template, chartSpec)) ?? null
+    : null;
 
   if (!chartSpec || !logic) {
     return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;
@@ -425,10 +559,53 @@ export function StyleTab(): React.ReactElement {
         </div>
       </div>
 
-      {/* 템플릿으로 저장 */}
-      <div className="space-y-1.5 pt-2 border-t border-border">
+      {/* 템플릿 */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">템플릿</Label>
+            <p className="text-[11px] text-muted-foreground">
+              현재 스타일을 저장하거나, 필요할 때 저장된 템플릿을 열어 적용하세요.
+            </p>
+          </div>
+          {templates.length > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() => setShowTemplateLibrary(prev => !prev)}
+              data-testid="style-tab-template-library-toggle"
+            >
+              {showTemplateLibrary ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {showTemplateLibrary ? '관리 닫기' : `관리 보기 (${templates.length})`}
+            </Button>
+          )}
+        </div>
+
+        <div
+          className="rounded-2xl bg-surface-container-low px-3 py-2"
+          data-testid="style-tab-active-template"
+        >
+          {activeTemplate ? (
+            <div className="space-y-0.5">
+              <p className="text-xs font-medium">{activeTemplate.name}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {STYLE_TEMPLATE_CATEGORY_LABELS[activeTemplate.category]} | {activeTemplate.style.preset} | {activeTemplate.exportConfig.dpi} DPI
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              <p className="text-xs font-medium">직접 편집 중</p>
+              <p className="text-[11px] text-muted-foreground">
+                저장된 템플릿과 정확히 일치하지 않는 현재 스타일입니다.
+              </p>
+            </div>
+          )}
+        </div>
+
         {showTemplateInput ? (
-          <div className="flex gap-1.5">
+          <div className="space-y-1.5">
             <Input
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
@@ -438,34 +615,195 @@ export function StyleTab(): React.ReactElement {
               autoFocus
               data-testid="style-tab-template-name-input"
             />
-            <Button
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handleSaveTemplate}
-              disabled={!templateName.trim()}
+            <Label className="text-xs text-muted-foreground">템플릿 분류</Label>
+            <Select
+              value={templateCategory}
+              onValueChange={(value) => setTemplateCategory(value as StyleTemplateCategory)}
             >
-              저장
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
-              onClick={() => { setShowTemplateInput(false); setTemplateName(''); }}
-            >
-              취소
-            </Button>
+              <SelectTrigger
+                className="h-7 text-xs"
+                data-testid="style-tab-template-category-trigger"
+                aria-label="템플릿 분류"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STYLE_TEMPLATE_CATEGORIES.map((value) => (
+                  <SelectItem key={value} value={value} className="text-sm">
+                    {STYLE_TEMPLATE_CATEGORY_LABELS[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-1.5">
+              <Button
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={handleSaveTemplate}
+                disabled={!templateName.trim()}
+              >
+                저장
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => { setShowTemplateInput(false); setTemplateName(''); setTemplateCategory('institution'); }}
+              >
+                취소
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              템플릿에는 스타일, DPI, 출력 크기만 저장됩니다.
+            </p>
           </div>
         ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs gap-1"
-            onClick={() => setShowTemplateInput(true)}
-            data-testid="style-tab-save-template-btn"
-          >
-            <Save className="h-3 w-3" />
-            템플릿으로 저장
-          </Button>
+          <div className="space-y-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs gap-1"
+              onClick={() => setShowTemplateInput(true)}
+              data-testid="style-tab-save-template-btn"
+            >
+              <Save className="h-3 w-3" />
+              현재 스타일 저장
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              템플릿에는 스타일, DPI, 출력 크기만 저장됩니다.
+            </p>
+          </div>
+        )}
+
+        {templates.length > 0 && showTemplateLibrary && (
+          <div className="space-y-1.5 pt-1">
+            {templates.map((template) => {
+              const categoryLabel = STYLE_TEMPLATE_CATEGORY_LABELS[template.category];
+              const isActive = templateMatchesChartSpec(template, chartSpec);
+              const sizeLabel =
+                template.exportConfig.physicalWidth && template.exportConfig.physicalHeight
+                  ? `${template.exportConfig.physicalWidth} x ${template.exportConfig.physicalHeight} mm`
+                  : null;
+              const isEditing = editingTemplateId === template.id;
+
+              return (
+                <div
+                  key={template.id}
+                  className={[
+                    'flex items-start gap-2 rounded-md px-2 py-2',
+                    isActive ? 'bg-surface-container-highest' : 'bg-surface-container-low',
+                  ].join(' ')}
+                  data-testid={`style-tab-template-${template.id}`}
+                >
+                  {isEditing ? (
+                    <>
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <Input
+                          value={editingTemplateName}
+                          onChange={(e) => setEditingTemplateName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleCommitTemplateEdit(template);
+                            }
+                          }}
+                          className="h-7 text-xs"
+                          data-testid={`style-tab-template-edit-name-${template.id}`}
+                        />
+                        <Label className="text-xs text-muted-foreground">템플릿 분류</Label>
+                        <Select
+                          value={editingTemplateCategory}
+                          onValueChange={(value) => setEditingTemplateCategory(value as StyleTemplateCategory)}
+                        >
+                          <SelectTrigger
+                            className="h-7 text-xs"
+                            data-testid={`style-tab-template-edit-category-trigger-${template.id}`}
+                            aria-label={`${template.name} 템플릿 분류`}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STYLE_TEMPLATE_CATEGORIES.map((value) => (
+                              <SelectItem key={value} value={value} className="text-sm">
+                                {STYLE_TEMPLATE_CATEGORY_LABELS[value]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 w-7 px-0"
+                          onClick={() => handleCommitTemplateEdit(template)}
+                          disabled={!editingTemplateName.trim()}
+                          aria-label={`${template.name} 이름 저장`}
+                          data-testid={`style-tab-template-edit-save-${template.id}`}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 px-0"
+                          onClick={handleCancelTemplateEdit}
+                          aria-label={`${template.name} 이름 변경 취소`}
+                          data-testid={`style-tab-template-edit-cancel-${template.id}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => handleApplyTemplate(template)}
+                        data-testid={`style-tab-template-apply-${template.id}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-xs font-medium">{template.name}</div>
+                          <span className="shrink-0 rounded-full bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                            {categoryLabel}
+                          </span>
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {template.style.preset} | {template.exportConfig.dpi} DPI
+                          {sizeLabel ? ` | ${sizeLabel}` : ''}
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 px-0"
+                          onClick={() => handleStartTemplateEdit(template)}
+                          aria-label={`${template.name} 이름 변경`}
+                          data-testid={`style-tab-template-edit-${template.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 px-0"
+                          onClick={() => handleDeleteTemplate(template.id)}
+                          aria-label={`${template.name} 삭제`}
+                          data-testid={`style-tab-template-delete-${template.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
