@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import { ArrowLeft, Eye, PenLine, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlateEditor } from 'platejs/react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -18,6 +19,7 @@ import { reassembleDocument } from '@/lib/research/document-assembler'
 import {
   type ResearchProjectEntityRefsChangedDetail,
   listProjectEntityRefs,
+  loadResearchProject,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } from '@/lib/research/project-storage'
 import { getTabEntry } from '@/lib/research/entity-tab-registry'
@@ -89,6 +91,8 @@ interface DocumentEditorProps {
 // ── 자동 저장 딜레이 ──
 
 const AUTOSAVE_DELAY = 1500
+const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
+const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
 
 export default function DocumentEditor({
   documentId,
@@ -118,6 +122,11 @@ export default function DocumentEditor({
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
+  const currentProject = useMemo(
+    () => (doc ? loadResearchProject(doc.projectId) : null),
+    [doc],
+  )
+  const isScratchProject = (currentProject?.tags ?? []).includes(SCRATCH_PROJECT_TAG)
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
   const editor = usePlateEditor({
@@ -270,6 +279,24 @@ export default function DocumentEditor({
         ? `figure:${initialFigureId}`
         : null
   }, [initialFigureId, initialTableId])
+
+  useEffect(() => {
+    if (!doc || typeof window === 'undefined') {
+      return
+    }
+
+    const toastKey = `${LOCAL_STORAGE_TOAST_KEY_PREFIX}:${doc.id}`
+    if (window.sessionStorage.getItem(toastKey) === 'shown') {
+      return
+    }
+
+    toast.info('이 문서는 로컬에 자동 저장됩니다', {
+      description: isScratchProject
+        ? '현재는 임시 작업공간 문서입니다. 필요하면 프로젝트 관리에서 정식 연구과제로 정리할 수 있습니다.'
+        : '현재 브라우저의 로컬 저장소에 보관됩니다.',
+    })
+    window.sessionStorage.setItem(toastKey, 'shown')
+  }, [doc, isScratchProject])
 
   useEffect(() => {
     latestCitationsRef.current = citations
@@ -1090,6 +1117,29 @@ export default function DocumentEditor({
           </Button>
         </div>
       </div>
+
+      {isScratchProject && (
+        <div className="shrink-0 border-b bg-surface-container-low px-4 py-3">
+          <div className="flex flex-col gap-3 rounded-xl bg-surface-container px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                현재 문서는 임시 작업공간에 저장 중입니다.
+              </p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                내용은 이 브라우저의 로컬 저장소에만 보관됩니다. 계속 사용할 문서라면 프로젝트 관리에서 연구과제를 정리해 두는 편이 안전합니다.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/projects')}
+            >
+              프로젝트 관리 열기
+            </Button>
+          </div>
+        </div>
+      )}
 
       {needsReassemble && (
         <div className="shrink-0 px-4 py-3 bg-surface-container-low">

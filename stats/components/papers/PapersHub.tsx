@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   FileText, Plus, BarChart3, Table2, ArrowRight, Clock,
-  BookOpen, FileOutput, PenTool, Package,
+  BookOpen, FileOutput, PenTool, Package, HardDriveDownload, Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -48,6 +48,8 @@ import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { toast } from 'sonner'
 import StartWritingButton from './StartWritingButton'
 import WritingEntrySurface from './WritingEntrySurface'
+
+const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 
 // ── 프리셋 라벨 매핑 ──
 
@@ -153,7 +155,7 @@ function PackageCard({ pkg, onClick }: PackageCardProps): React.ReactElement {
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-sm truncate">{pkg.overview.title || '제목 없는 패키지'}</p>
         <p className="text-xs text-muted-foreground truncate">
-          v{pkg.version} · {pkg.items.filter(item => item.included).length}개 항목 포함
+          AI 입력용 · v{pkg.version} · {pkg.items.filter(item => item.included).length}개 항목 포함
         </p>
       </div>
       <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
@@ -235,12 +237,21 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
   const { analysisHistory } = useHistoryStore()
   const setShowHub = useModeStore(s => s.setShowHub)
   const activeProject = useResearchProjectStore(selectActiveProject)
+  const projects = useResearchProjectStore(s => s.projects)
+  const createProject = useResearchProjectStore(s => s.createProject)
+  const setActiveProject = useResearchProjectStore(s => s.setActiveProject)
   const [documents, setDocuments] = useState<DocumentBlueprint[]>([])
   const [packages, setPackages] = useState<PaperPackage[]>([])
   const [assemblyOpen, setAssemblyOpen] = useState(false)
   const [writingSources, setWritingSources] = useState<ResolvedEntity[]>([])
   const [creatingWritingEntityId, setCreatingWritingEntityId] = useState<string | null>(null)
   const [isCreatingBlankDocument, setIsCreatingBlankDocument] = useState(false)
+
+  useEffect(() => {
+    useHistoryStore.getState().loadHistoryFromDB().catch((error: unknown) => {
+      console.error('[PapersHub] failed to load analysis history:', error)
+    })
+  }, [])
 
   const reloadWritingSources = useCallback(async (projectId: string): Promise<void> => {
     try {
@@ -376,6 +387,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
   }, [activeProject, reloadWritingSources])
 
   const draftHistories = analysisHistory
+    .filter((history) => !activeProject || history.projectId === activeProject.id)
     .filter(h => h.results !== null)
     .slice(0, 6)
 
@@ -396,16 +408,36 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
   }, [onOpenDocument])
 
   const handleCreateBlankDocument = useCallback(async () => {
-    if (!activeProject || isCreatingBlankDocument) {
+    if (isCreatingBlankDocument) {
       return
     }
 
     setIsCreatingBlankDocument(true)
     try {
+      let targetProject = activeProject
+      if (!targetProject) {
+        const existingScratchProject = projects.find((project) => (
+          project.status === 'active'
+          && (project.tags ?? []).includes(SCRATCH_PROJECT_TAG)
+        ))
+
+        targetProject = existingScratchProject ?? createProject('자료 작성 임시 공간', {
+          description: '프로젝트 선택 없이 바로 작성할 때 사용하는 로컬 임시 작업공간',
+          primaryDomain: 'general',
+          tags: [SCRATCH_PROJECT_TAG],
+          presentation: {
+            emoji: '📝',
+            color: 'slate',
+          },
+        })
+
+        setActiveProject(targetProject.id)
+      }
+
       const document = await startWritingSession({
         mode: 'manual-blank',
-        projectId: activeProject.id,
-        title: `${activeProject.name} 새 문서`,
+        projectId: targetProject.id,
+        title: `${targetProject.name} 새 문서`,
       })
       onOpenDocument(document.id)
     } catch (error) {
@@ -414,7 +446,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
     } finally {
       setIsCreatingBlankDocument(false)
     }
-  }, [activeProject, isCreatingBlankDocument, onOpenDocument])
+  }, [activeProject, createProject, isCreatingBlankDocument, onOpenDocument, projects, setActiveProject])
 
   const handleCreateWritingFromEntity = useCallback(async (entity: ResolvedEntity) => {
     if (!activeProject || creatingWritingEntityId) {
@@ -446,7 +478,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           <p className="text-muted-foreground mt-1">
             {activeProject
               ? `${activeProject.presentation?.emoji ?? ''} ${activeProject.name}`
-              : '프로젝트를 선택하면 문서를 만들 수 있습니다'}
+              : '바로 편집기를 열어 초안을 작성하고, 내용은 이 기기에 로컬 저장됩니다'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -457,7 +489,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
               className="gap-2"
             >
               <Package className="w-4 h-4" />
-              AI 패키지 조립
+              AI 입력 패키지
             </Button>
           )}
           <TooltipProvider>
@@ -468,16 +500,15 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                     onClick={() => {
                       void handleCreateBlankDocument()
                     }}
-                    disabled={!activeProject}
                     pending={isCreatingBlankDocument}
                     label="새 문서"
-                    pendingLabel="빈 문서 생성 중..."
+                    pendingLabel={!activeProject ? '임시 작업공간 준비 중...' : '빈 문서 생성 중...'}
                     className="gap-2"
                   />
                 </span>
               </TooltipTrigger>
               {!activeProject && (
-                <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
+                <TooltipContent>임시 작업공간을 만들고 바로 편집기를 엽니다</TooltipContent>
               )}
             </Tooltip>
           </TooltipProvider>
@@ -504,6 +535,41 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         </div>
       </div>
 
+      {!activeProject && (
+        <Card className="border-dashed bg-surface-container-low">
+          <CardContent className="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Sparkles className="h-4 w-4 text-primary" />
+                지금 바로 작성 시작
+              </div>
+              <p className="text-sm text-muted-foreground">
+                `새 문서`를 누르면 즉시 편집 화면이 열립니다. 임시 작업공간이 자동으로 만들어지고 문서는 브라우저 로컬에만 저장됩니다.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
+                  <PenTool className="h-3.5 w-3.5" />
+                  바로 편집 시작
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
+                  <HardDriveDownload className="h-3.5 w-3.5" />
+                  이 기기 로컬 저장
+                </span>
+              </div>
+            </div>
+            <StartWritingButton
+              onClick={() => {
+                void handleCreateBlankDocument()
+              }}
+              pending={isCreatingBlankDocument}
+              label="새 문서로 바로 시작"
+              pendingLabel="임시 작업공간 준비 중..."
+              className="gap-2"
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* 문서 목록 */}
       {activeProject && documents.length > 0 && (
         <section className="space-y-3">
@@ -527,8 +593,11 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         <section className="space-y-3">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Package className="w-5 h-5" />
-            패키지
+            AI 입력 패키지
           </h2>
+          <p className="text-sm text-muted-foreground">
+            자료 작성 문서와 별도로, 외부 AI에 전달할 입력 묶음을 관리합니다.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {packages.map(pkg => (
               <PackageCard
@@ -588,21 +657,6 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         />
       )}
 
-      {/* 프로젝트 미선택 가드 */}
-      {!activeProject && (
-        <Card>
-          <CardContent className="flex flex-col items-center py-10">
-            <BookOpen className="w-10 h-10 text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground text-sm mb-1">
-              프로젝트를 먼저 선택하세요
-            </p>
-            <p className="text-xs text-muted-foreground/60">
-              좌측 사이드바에서 프로젝트를 선택하면 문서를 만들 수 있습니다
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* 기능 소개 */}
       <section className="space-y-3">
         <h2 className="text-lg font-bold flex items-center gap-2">
@@ -642,7 +696,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
             ))}
           </div>
         </section>
-      ) : (
+      ) : activeProject ? (
         <EmptyState
           icon={FileText}
           title="아직 분석 결과가 없습니다"
@@ -655,7 +709,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
             </Button>
           }
         />
-      )}
+      ) : null}
 
       {/* 조립 다이얼로그 */}
       {activeProject && (

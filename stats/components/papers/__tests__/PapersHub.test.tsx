@@ -4,6 +4,11 @@ import PapersHub from '../PapersHub'
 const shared = vi.hoisted(() => ({
   routerPush: vi.fn(),
   setShowHub: vi.fn(),
+  loadHistoryFromDB: vi.fn(),
+  activeProject: { id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' } } as { id: string; name: string; presentation?: { emoji?: string } } | null,
+  projects: [{ id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' }, status: 'active', tags: [] }] as Array<{ id: string; name: string; presentation?: { emoji?: string }; status: string; tags?: string[] }>,
+  createProject: vi.fn(),
+  setActiveProject: vi.fn(),
   loadDocumentBlueprints: vi.fn(),
   listPackages: vi.fn(),
   listProjectEntityRefs: vi.fn(),
@@ -18,12 +23,27 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/stores/history-store', () => ({
-  useHistoryStore: () => ({ analysisHistory: [] }),
+  useHistoryStore: Object.assign(
+    () => ({ analysisHistory: [] }),
+    {
+      getState: () => ({
+        loadHistoryFromDB: shared.loadHistoryFromDB,
+      }),
+    },
+  ),
 }))
 
 vi.mock('@/lib/stores/research-project-store', () => ({
-  useResearchProjectStore: (selector: (state: { activeProject: { id: string; name: string; presentation?: { emoji?: string } } | null }) => unknown) => selector({
-    activeProject: { id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' } },
+  useResearchProjectStore: (selector: (state: {
+    activeProject: { id: string; name: string; presentation?: { emoji?: string } } | null
+    projects: Array<{ id: string; name: string; presentation?: { emoji?: string }; status: string; tags?: string[] }>
+    createProject: typeof shared.createProject
+    setActiveProject: typeof shared.setActiveProject
+  }) => unknown) => selector({
+    activeProject: shared.activeProject,
+    projects: shared.projects,
+    createProject: shared.createProject,
+    setActiveProject: shared.setActiveProject,
   }),
   selectActiveProject: (state: { activeProject: { id: string; name: string; presentation?: { emoji?: string } } | null }) => state.activeProject,
 }))
@@ -77,6 +97,11 @@ describe('PapersHub', () => {
   beforeEach(() => {
     shared.routerPush.mockReset()
     shared.setShowHub.mockReset()
+    shared.loadHistoryFromDB.mockReset()
+    shared.activeProject = { id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' } }
+    shared.projects = [{ id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' }, status: 'active', tags: [] }]
+    shared.createProject.mockReset()
+    shared.setActiveProject.mockReset()
     shared.loadDocumentBlueprints.mockReset()
     shared.listPackages.mockReset()
     shared.listProjectEntityRefs.mockReset()
@@ -84,6 +109,14 @@ describe('PapersHub', () => {
     shared.resolveEntities.mockReset()
     shared.createDocumentWritingSession.mockReset()
     shared.startWritingSession.mockReset()
+    shared.loadHistoryFromDB.mockResolvedValue(undefined)
+    shared.createProject.mockImplementation((name: string) => ({
+      id: 'scratch-1',
+      name,
+      presentation: { emoji: '📝' },
+      status: 'active',
+      tags: ['system:papers-scratch'],
+    }))
 
     shared.loadDocumentBlueprints.mockResolvedValue([])
     shared.listPackages.mockReturnValue([])
@@ -124,7 +157,9 @@ describe('PapersHub', () => {
   it('starts a manual blank writing session from the hero action', async () => {
     const onOpenDocument = vi.fn()
 
-    render(<PapersHub onOpenDocument={onOpenDocument} />)
+    render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'AI 입력 패키지' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
 
@@ -136,6 +171,43 @@ describe('PapersHub', () => {
       })
       expect(onOpenDocument).toHaveBeenCalledWith('doc-blank')
     })
+  })
+
+  it('creates a scratch project and opens a blank document when no active project exists', async () => {
+    const onOpenDocument = vi.fn()
+    shared.activeProject = null
+    shared.projects = []
+
+    render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: '새 문서로 바로 시작' })).toBeInTheDocument()
+    expect(screen.getByText('바로 편집 시작')).toBeInTheDocument()
+    expect(screen.getByText('이 기기 로컬 저장')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
+
+    await waitFor(() => {
+      expect(shared.createProject).toHaveBeenCalledWith('자료 작성 임시 공간', expect.objectContaining({
+        tags: ['system:papers-scratch'],
+      }))
+      expect(shared.setActiveProject).toHaveBeenCalledWith('scratch-1')
+      expect(shared.startWritingSession).toHaveBeenCalledWith({
+        mode: 'manual-blank',
+        projectId: 'scratch-1',
+        title: '자료 작성 임시 공간 새 문서',
+      })
+      expect(onOpenDocument).toHaveBeenCalledWith('doc-blank')
+    })
+  })
+
+  it('opens a new AI input package from the hero action', async () => {
+    const onOpenPackage = vi.fn()
+
+    render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={onOpenPackage} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 입력 패키지' }))
+
+    expect(onOpenPackage).toHaveBeenCalledWith('new', 'proj-1')
   })
 
   it('shows bio/genetics quick-start cards and opens a writing session', async () => {

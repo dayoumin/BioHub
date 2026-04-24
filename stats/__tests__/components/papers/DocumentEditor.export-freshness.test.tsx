@@ -134,6 +134,7 @@ vi.mock('@/lib/research/document-writing-orchestrator', () => ({
 vi.mock('@/lib/research/project-storage', () => ({
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
   listProjectEntityRefs: () => mockListProjectEntityRefs(),
+  loadResearchProject: () => null,
 }))
 
 vi.mock('@/lib/stores/history-store', () => ({

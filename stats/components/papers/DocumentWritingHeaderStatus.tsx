@@ -1,6 +1,6 @@
 'use client'
 
-import { RefreshCw } from 'lucide-react'
+import { HardDriveDownload, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { DocumentWritingStatus } from '@/lib/research/document-blueprint-types'
@@ -20,6 +20,10 @@ export default function DocumentWritingHeaderStatus({
 }: DocumentWritingHeaderStatusProps): React.ReactElement {
   return (
     <>
+      <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
+        <HardDriveDownload className="mr-1 h-3 w-3" />
+        로컬 자동 저장
+      </Badge>
       <Badge variant="outline" className="text-[10px]">
         {saveStatus === 'saved' && '저장됨'}
         {saveStatus === 'saving' && '저장 중...'}
