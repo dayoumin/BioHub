@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.11",
+  "version": "1.44.12",
   "lastUpdated": "2026-04-24",
   "sources": [
     "stats/__tests__/",
@@ -1454,6 +1454,11 @@
       "error": "\"Cannot read property of undefined\" 에러",
       "cause": "모킹되지 않은 의존성 호출",
       "solution": "jest.mock()으로 의존성 모킹:\n\njest.mock('@/lib/api');\nconst mockFetchData = fetchData as jest.MockedFunction<typeof fetchData>;\nmockFetchData.mockResolvedValue([]);"
+    },
+    {
+      "error": "\"No \\\"...\\\" export is defined on the mock\" 에러",
+      "cause": "컴포넌트가 사용하는 모듈 export가 늘어났는데 vi.mock 반환 객체가 이전 형태로 남아 있음",
+      "solution": "새 export를 mock에도 같이 추가하거나 importOriginal로 부분 mock을 구성한다:\n\nvi.mock('@/lib/research/project-storage', async (importOriginal) => {\n  const actual = await importOriginal();\n  return {\n    ...actual,\n    listProjectEntityRefs: vi.fn(),\n    loadResearchProject: vi.fn(() => null),\n  };\n});"
     }
   ]
 }
