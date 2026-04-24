@@ -107,6 +107,39 @@ describe('editor actions', () => {
     expect(invalidColor.colorField).toBe('none');
   });
 
+  it('setup field selection honors preferredXY only when it matches the chart type contract', () => {
+    const scatterDefaults = getDefaultSetupFieldSelection(
+      [
+        { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: ['A', 'B'], hasNull: false },
+        { name: 'length_cm', type: 'quantitative', uniqueCount: 3, sampleValues: ['10', '20'], hasNull: false },
+        { name: 'weight_g', type: 'quantitative', uniqueCount: 3, sampleValues: ['100', '200'], hasNull: false },
+        { name: 'year', type: 'temporal', uniqueCount: 3, sampleValues: ['2022', '2023'], hasNull: false },
+      ],
+      'scatter',
+      { x: 'length_cm', y: 'weight_g' },
+    );
+    expect(scatterDefaults).toEqual({
+      xField: 'length_cm',
+      yField: 'weight_g',
+      colorField: 'none',
+    });
+
+    const barDefaults = getDefaultSetupFieldSelection(
+      [
+        { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: ['A', 'B'], hasNull: false },
+        { name: 'length_cm', type: 'quantitative', uniqueCount: 3, sampleValues: ['10', '20'], hasNull: false },
+        { name: 'weight_g', type: 'quantitative', uniqueCount: 3, sampleValues: ['100', '200'], hasNull: false },
+      ],
+      'bar',
+      { x: 'length_cm', y: 'weight_g' },
+    );
+    expect(barDefaults).toEqual({
+      xField: 'species',
+      yField: 'weight_g',
+      colorField: 'none',
+    });
+  });
+
   it('rejects invalid axis assignments for quantitative-only charts', () => {
     expect(isAxisColumnTypeAllowed('scatter', 'x', 'nominal')).toBe(false);
     expect(isAxisColumnTypeAllowed('scatter', 'y', 'ordinal')).toBe(false);

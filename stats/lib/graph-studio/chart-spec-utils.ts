@@ -398,6 +398,55 @@ export function selectXYFields(
   return { xField, yField };
 }
 
+function isPreferredXAxisCompatible(
+  columnType: ColumnMeta['type'],
+  suggestedXType: ColumnMeta['type'],
+): boolean {
+  if (suggestedXType === 'nominal' || suggestedXType === 'ordinal') {
+    return columnType === 'nominal' || columnType === 'ordinal';
+  }
+
+  return columnType === suggestedXType;
+}
+
+function resolvePreferredXYFields(
+  columns: ColumnMeta[],
+  hints: { suggestedXType: ColumnMeta['type'] },
+  preferredXY?: DataPackage['preferredXY'],
+): { xField: string; yField: string } | null {
+  if (!preferredXY) {
+    return null;
+  }
+
+  const xColumn = columns.find((column) => column.name === preferredXY.x);
+  const yColumn = columns.find((column) => column.name === preferredXY.y);
+  if (!xColumn || !yColumn || xColumn.name === yColumn.name) {
+    return null;
+  }
+
+  if (!isPreferredXAxisCompatible(xColumn.type, hints.suggestedXType)) {
+    return null;
+  }
+
+  if (yColumn.type !== 'quantitative') {
+    return null;
+  }
+
+  return {
+    xField: xColumn.name,
+    yField: yColumn.name,
+  };
+}
+
+export function resolveXYFields(
+  columns: ColumnMeta[],
+  hints: { suggestedXType: ColumnMeta['type'] },
+  preferredXY?: DataPackage['preferredXY'],
+): { xField: string; yField: string } {
+  return resolvePreferredXYFields(columns, hints, preferredXY)
+    ?? selectXYFields(columns, hints);
+}
+
 function scoreReadableCategoryCount(uniqueCount: number): number {
   if (uniqueCount <= 1) return -8;
   if (uniqueCount <= 6) return 8;
@@ -557,7 +606,7 @@ export function autoCreateChartSpec(
 ): ChartSpec {
   const columns = inferColumnMeta(data);
   const chartType = suggestChartType(columns);
-  const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
+  const { xField, yField } = resolveXYFields(columns, CHART_TYPE_HINTS[chartType]);
   return createAutoConfiguredChartSpec(sourceId, chartType, xField, yField, columns);
 }
 
@@ -607,7 +656,7 @@ export function columnsToRows(
  */
 export function createChartSpecFromDataPackage(pkg: DataPackage): ChartSpec {
   const chartType = suggestChartType(pkg.columns);
-  const { xField, yField } = selectXYFields(pkg.columns, CHART_TYPE_HINTS[chartType]);
+  const { xField, yField } = resolveXYFields(pkg.columns, CHART_TYPE_HINTS[chartType], pkg.preferredXY);
   return createAutoConfiguredChartSpec(pkg.id, chartType, xField, yField, pkg.columns);
 }
 

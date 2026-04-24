@@ -1389,6 +1389,19 @@
   ],
   "graphStudioPatterns": [
     {
+      "name": "preferredXY 기반 기본 축 선택 테스트",
+      "purpose": "DataPackage.preferredXY가 있을 때만 setup 기본값과 chart type 전환이 이를 따르고, 차트 계약과 맞지 않으면 안전하게 fallback하는지 고정",
+      "code": "import { describe, expect, it } from 'vitest';\nimport { getDefaultSetupFieldSelection } from '@/lib/graph-studio/editor-actions';\n\nconst columns = [\n  { name: 'species', type: 'nominal', uniqueCount: 3, sampleValues: ['A', 'B'], hasNull: false },\n  { name: 'length_cm', type: 'quantitative', uniqueCount: 3, sampleValues: ['10', '20'], hasNull: false },\n  { name: 'weight_g', type: 'quantitative', uniqueCount: 3, sampleValues: ['100', '200'], hasNull: false },\n];\n\ndescribe('preferredXY defaults', () => {\n  it('scatter에서는 preferredXY를 그대로 사용한다', () => {\n    expect(getDefaultSetupFieldSelection(columns, 'scatter', { x: 'length_cm', y: 'weight_g' })).toEqual({\n      xField: 'length_cm',\n      yField: 'weight_g',\n      colorField: 'none',\n    });\n  });\n\n  it('bar 계약과 맞지 않으면 nominal x + quantitative y로 fallback한다', () => {\n    expect(getDefaultSetupFieldSelection(columns, 'bar', { x: 'length_cm', y: 'weight_g' })).toEqual({\n      xField: 'species',\n      yField: 'weight_g',\n      colorField: 'none',\n    });\n  });\n});",
+      "keywords": [
+        "preferredXY",
+        "Graph Studio",
+        "DataPackage",
+        "getDefaultSetupFieldSelection",
+        "resolveXYFields",
+        "fallback"
+      ]
+    },
+    {
       "name": "KM/ROC 생존분석 차트 렌더링 (G3-A)",
       "purpose": "km-curve/roc-curve ECharts 옵션 구조를 단언하여 G3-A 생존분석 회귀 방지",
       "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport type { ChartSpec } from '@/types/graph-studio';\n\nfunction makeKmSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {\n  return {\n    chartType: 'km-curve',\n    xField: 'time', yField: 'survival', colorField: 'group',\n    title: 'KM Curve', ...overrides,\n  };\n}\n\nconst kmRows = [\n  { time: 0, survival: 1.0, ciLo: 1.0, ciHi: 1.0, group: 'A' },\n  { time: 12, survival: 0.8, ciLo: 0.6, ciHi: 0.95, group: 'A' },\n];\n\ntest('km-curve: step line + CI areaStyle', () => {\n  const option = chartSpecToECharts(makeKmSpec(), kmRows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  const mainLine = series.find(s => s.step === 'end');\n  expect(mainLine).toBeDefined();\n  const area = series.find(s => (s.areaStyle as Record<string, unknown>)?.opacity > 0);\n  expect(area).toBeDefined();\n});\n\ntest('roc-curve: AUC graphic text 포함', () => {\n  const rocSpec: ChartSpec = { chartType: 'roc-curve', xField: 'fpr', yField: 'tpr', title: 'ROC' };\n  const rocRows = [{ fpr: 0.0, tpr: 0.0 }, { fpr: 0.3, tpr: 0.8 }, { fpr: 1.0, tpr: 1.0 }];\n  const option = chartSpecToECharts(rocSpec, rocRows) as Record<string, unknown>;\n  const graphic = option.graphic as unknown[];\n  expect(Array.isArray(graphic)).toBe(true);\n  const aucText = (graphic as Record<string, unknown>[]).find(g => String(g.type) === 'text');\n  expect(aucText).toBeDefined();\n});",

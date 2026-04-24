@@ -10,7 +10,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { createAutoConfiguredChartSpec, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
+import { createAutoConfiguredChartSpec, resolveXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import {
   assignFieldRole,
@@ -124,7 +124,7 @@ export function LeftDataPanel(): React.ReactElement {
       // 기존 chartSpec에서 스타일 보존
       const existingSpec = chartSpec;
       const chartType = existingSpec?.chartType ?? 'bar';
-      const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
+      const { xField, yField } = resolveXYFields(columns, CHART_TYPE_HINTS[chartType], pkg.preferredXY);
       const newSpec = createAutoConfiguredChartSpec(pkg.id, chartType, xField, yField, columns);
 
       if (existingSpec) {

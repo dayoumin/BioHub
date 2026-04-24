@@ -89,6 +89,10 @@ function buildSamplePackage(sourceId: string): DataPackage {
     label: '어류 성장 샘플 (Bass · Bream · Carp)',
     columns: _SAMPLE_COLUMNS,
     data: _SAMPLE_DATA,
+    preferredXY: {
+      x: 'length_cm',
+      y: 'weight_g',
+    },
     createdAt: new Date().toISOString(),
   };
 }

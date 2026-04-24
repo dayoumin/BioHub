@@ -15,7 +15,6 @@ import { ArrowLeft, ArrowRight, Check, Database, Sparkles } from 'lucide-react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import {
   createAutoConfiguredChartSpec,
-  selectXYFields,
   suggestChartType,
 } from '@/lib/graph-studio/chart-spec-utils';
 import { CHART_TYPE_HINTS, STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
@@ -136,8 +135,8 @@ export function ChartSetupPanel(): React.ReactElement {
     if (columns.length === 0) {
       return { xField: '', yField: '', colorField: 'none' };
     }
-    return getDefaultSetupFieldSelection(columns, selectedType);
-  }, [columns, selectedType]);
+    return getDefaultSetupFieldSelection(columns, selectedType, dataPackage?.preferredXY);
+  }, [columns, dataPackage?.preferredXY, selectedType]);
 
   // previousSpec 필드 복원: 같은 데이터이므로 이전 인코딩 필드가 현재 컬럼에 있으면 사용
   const colNames = useMemo(() => new Set(columns.map(c => c.name)), [columns]);
@@ -219,11 +218,11 @@ export function ChartSetupPanel(): React.ReactElement {
   // 차트 유형 변경 시 필드 자동 업데이트
   const handleChartTypeSelect = useCallback((type: ChartType) => {
     setSelectedType(type);
-    const nextSelection = getDefaultSetupFieldSelection(columns, type);
+    const nextSelection = getDefaultSetupFieldSelection(columns, type, dataPackage?.preferredXY);
     setXField(nextSelection.xField);
     setYField(nextSelection.yField);
     setColorField(nextSelection.colorField);
-  }, [columns]);
+  }, [columns, dataPackage?.preferredXY]);
 
   const handleXFieldChange = useCallback((value: string) => {
     const nextSelection = assignSetupFieldSelection(

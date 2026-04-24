@@ -66,6 +66,10 @@ function buildSamplePackage(sourceId: string): DataPackage {
     label: '어류 성장 샘플 (Bass · Bream · Carp)',
     columns: SAMPLE_COLUMNS,
     data: SAMPLE_DATA,
+    preferredXY: {
+      x: 'length_cm',
+      y: 'weight_g',
+    },
     lineageMode: 'manual',
     createdAt: new Date().toISOString(),
   };
@@ -218,6 +222,15 @@ describe('loadDataPackageWithSpec 스토어 액션', () => {
     expect(chartSpec?.chartType).toBe('line');
     expect(chartSpec?.encoding.x.field).toBe('year');
     expect(chartSpec?.encoding.x.type).toBe('temporal');
+  });
+
+  it('샘플 패키지는 preferredXY 메타를 함께 보존한다', () => {
+    const pkg = buildSamplePackage('test-preferred-xy');
+
+    expect(pkg.preferredXY).toEqual({
+      x: 'length_cm',
+      y: 'weight_g',
+    });
   });
 
   it('specHistory 초기화 확인 (historyIndex=0, 길이=1)', () => {

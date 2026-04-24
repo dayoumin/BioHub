@@ -2,7 +2,7 @@ import type { ChartSpec, DataType } from '@/types/graph-studio';
 import type { ChartType } from '@/types/graph-studio';
 import { CHART_TYPE_HINTS } from './chart-spec-defaults';
 import { getChartCapabilities } from './chart-capabilities';
-import { selectXYFields } from './chart-spec-utils';
+import { resolveXYFields } from './chart-spec-utils';
 
 export type FieldRoleAssignment = 'x' | 'y' | 'color' | 'facet' | 'y2';
 
@@ -153,7 +153,7 @@ export function unassignFieldRole(spec: ChartSpec, field: string): ChartSpec | n
 export function changeChartType(spec: ChartSpec, nextChartType: ChartType): ChartSpec {
   const hint = CHART_TYPE_HINTS[nextChartType];
   const columns = spec.data.columns;
-  const { xField, yField } = selectXYFields(columns, hint);
+  const { xField, yField } = resolveXYFields(columns, hint);
   const xColumn = columns.find((column) => column.name === xField);
   const yColumn = columns.find((column) => column.name === yField);
   const { color: previousColor, y2: previousY2, ...baseEncoding } = spec.encoding;
@@ -259,8 +259,9 @@ export function normalizeChartSpecForEditorRules(spec: ChartSpec): ChartSpec {
 export function getDefaultSetupFieldSelection(
   columns: ChartSpec['data']['columns'],
   chartType: ChartType,
+  preferredXY?: { x: string; y: string },
 ): SetupFieldSelection {
-  const fields = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
+  const fields = resolveXYFields(columns, CHART_TYPE_HINTS[chartType], preferredXY);
   return {
     xField: fields.xField,
     yField: fields.yField,
