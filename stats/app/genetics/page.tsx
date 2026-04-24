@@ -11,6 +11,7 @@ import {
   GENETICS_HUB_ACTIVE_CARD_STYLE,
   GENETICS_HUB_PANEL_STYLE,
 } from '@/lib/design-tokens/genetics'
+import { filterReadyTools } from '@/lib/genetics/filter-ready-tools'
 import { usePinnedGeneticsToolsStore } from '@/lib/genetics/pinned-tools-store'
 import { cn } from '@/lib/utils'
 
@@ -147,16 +148,12 @@ export default function GeneticsHome(): React.ReactElement {
   )
 
   const pinnedTools = useMemo(
-    () => pinnedIds
-      .map((toolId) => TOOL_MAP[toolId])
-      .filter((tool): tool is Tool => Boolean(tool) && tool.ready),
+    () => filterReadyTools(pinnedIds, TOOL_MAP),
     [pinnedIds],
   )
 
   const selectedTools = useMemo(
-    () => selectedCategory.toolIds
-      .map((toolId) => TOOL_MAP[toolId])
-      .filter((tool): tool is Tool => Boolean(tool) && tool.ready),
+    () => filterReadyTools(selectedCategory.toolIds, TOOL_MAP),
     [selectedCategory],
   )
 

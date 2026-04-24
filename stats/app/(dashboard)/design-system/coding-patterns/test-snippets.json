@@ -1256,16 +1256,28 @@
       "name": "Pure Math / Utility Function Tests",
       "description": "순수 수치 함수 검증 패턴 — 부동소수점 근사 허용 오차, 단조성, 도메인 에러",
       "patterns": [
-        {
-          "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
-          "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
-          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
+    {
+      "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
+      "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
+      "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
           "keywords": [
             "toBeCloseTo",
             "toBeGreaterThanOrEqual",
             "toBeLessThanOrEqual",
             "precision",
             "G*Power"
+          ]
+        },
+        {
+          "name": "존재 + ready 조건 필터 유틸 테스트",
+          "purpose": "id 배열과 toolMap에서 undefined 항목과 ready=false 항목을 함께 제거하는 공용 helper를 간단한 fixture로 고정",
+          "code": "import { describe, expect, it } from 'vitest';\nimport { filterReadyTools } from '@/lib/genetics/filter-ready-tools';\n\ninterface TestTool {\n  id: string;\n  title: string;\n  ready: boolean;\n}\n\ndescribe('filterReadyTools', () => {\n  it('존재하고 ready=true인 도구만 남긴다', () => {\n    const toolMap: Readonly<Record<string, TestTool | undefined>> = {\n      a: { id: 'a', title: 'Alpha', ready: true },\n      b: { id: 'b', title: 'Beta', ready: false },\n    };\n\n    expect(filterReadyTools(['a', 'missing', 'b'], toolMap)).toEqual([\n      { id: 'a', title: 'Alpha', ready: true },\n    ]);\n  });\n});",
+          "keywords": [
+            "utility test",
+            "filter helper",
+            "ready flag",
+            "undefined guard",
+            "fixture map"
           ]
         },
         {
