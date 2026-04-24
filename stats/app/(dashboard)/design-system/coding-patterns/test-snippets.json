@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.44.9",
-  "lastUpdated": "2026-04-21",
+  "version": "1.44.10",
+  "lastUpdated": "2026-04-24",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -416,7 +416,7 @@
         {
           "name": "Execution summary locale propagation 테스트",
           "purpose": "buildAnalysisExecutionContext와 Step 4 카드가 동일한 domain 기반 fallback label/value를 사용하는지 고정",
-          "code": "import { render, screen } from '@testing-library/react';\nimport { describe, it, expect } from 'vitest';\nimport { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution';\n\nit('generic domain에서 실행 설정 요약을 영어 fallback copy로 렌더한다', () => {\n  const result = buildAnalysisExecutionContext({\n    analysisOptions: {\n      alpha: 0.05,\n      showAssumptions: false,\n      showEffectSize: false,\n      methodSettings: { postHoc: 'games-howell', welch: true },\n    },\n    methodRequirements: getMethodRequirements('one-way-anova'),\n    selectedMethodId: 'one-way-anova',\n    variableMapping: { dependentVar: 'score', groupVar: 'group' },\n    presentationDomain: 'generic',\n  });\n\n  expect(result.executionSettingEntries).toEqual(expect.arrayContaining([\n    { key: 'postHoc', label: 'Post-hoc method', value: 'Games-Howell' },\n    { key: 'welch', label: 'Execution mode', value: 'Welch ANOVA' },\n    { key: 'showAssumptions', label: 'Assumption checks', value: 'Skipped' },\n  ]));\n});",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { describe, it, expect } from 'vitest';\nimport { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution';\n\nit('generic domain에서 실행 설정 요약을 영어 fallback copy로 렌더한다', () => {\n  const result = buildAnalysisExecutionContext({\n    analysisOptions: {\n      alpha: 0.05,\n      showAssumptions: false,\n      showEffectSize: false,\n      methodSettings: { postHoc: 'games-howell', welch: true },\n    },\n    methodRequirements: getMethodRequirements('one-way-anova'),\n    selectedMethodId: 'one-way-anova',\n    variableMapping: { dependentVar: 'score', groupVar: 'group' },\n    presentationDomain: 'generic',\n  });\n\n  expect(result.executionSettingEntries).toEqual(expect.arrayContaining([\n    { key: 'postHoc', label: 'Post-hoc method', value: 'Games-Howell' },\n    { key: 'welch', label: 'Homogeneity handling', value: 'Welch ANOVA' },\n    { key: 'showAssumptions', label: 'Assumption checks', value: 'Skipped' },\n  ]));\n});",
           "keywords": [
             "buildAnalysisExecutionContext",
             "execution summary",
