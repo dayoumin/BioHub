@@ -22,7 +22,7 @@ import type { ECharts, EChartsOption } from 'echarts';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { chartSpecToECharts, columnsToRows } from '@/lib/graph-studio';
+import { chartSpecToECharts, columnsToRows, mmToPx } from '@/lib/graph-studio';
 import { CHART_DATA_LIMITS } from '@/lib/graph-studio/chart-data-guard';
 import { getChartCapabilities } from '@/lib/graph-studio/chart-capabilities';
 import { TOAST } from '@/lib/constants/toast-messages';
@@ -60,9 +60,18 @@ function clampPreviewAspectRatio(value: number): number {
 export function resolvePreviewCanvasSize(exportConfig: ExportConfig): PreviewCanvasSize {
   const physicalWidth = exportConfig.physicalWidth;
   const physicalHeight = exportConfig.physicalHeight;
-  const aspectRatio = physicalWidth !== undefined && physicalHeight !== undefined
-    ? clampPreviewAspectRatio(physicalWidth / physicalHeight)
-    : DEFAULT_PREVIEW_ASPECT_RATIO;
+  const targetWidthPx = physicalWidth !== undefined ? mmToPx(physicalWidth, exportConfig.dpi) : undefined;
+  const targetHeightPx = physicalHeight !== undefined ? mmToPx(physicalHeight, exportConfig.dpi) : undefined;
+
+  let aspectRatio = DEFAULT_PREVIEW_ASPECT_RATIO;
+  if (targetWidthPx !== undefined && targetHeightPx !== undefined) {
+    aspectRatio = targetWidthPx / targetHeightPx;
+  } else if (targetWidthPx !== undefined) {
+    aspectRatio = targetWidthPx / DEFAULT_PREVIEW_HEIGHT_PX;
+  } else if (targetHeightPx !== undefined) {
+    aspectRatio = DEFAULT_PREVIEW_WIDTH_PX / targetHeightPx;
+  }
+  aspectRatio = clampPreviewAspectRatio(aspectRatio);
 
   if (aspectRatio >= DEFAULT_PREVIEW_ASPECT_RATIO) {
     return {

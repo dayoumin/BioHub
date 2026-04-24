@@ -164,7 +164,29 @@ describe('SIM-1B: ChartPreview fixed canvas sizing', () => {
     });
   });
 
-  it('journal presets define physical size, DPI, and graph style together', () => {
+  it('reflects width-only export sizing by deriving aspect from the preserved preview height', () => {
+    expect(resolvePreviewCanvasSize({
+      format: 'png',
+      dpi: 300,
+      physicalWidth: 86,
+    })).toEqual({
+      width: 960,
+      height: 567,
+    });
+  });
+
+  it('reflects height-only export sizing by deriving aspect from the preserved preview width', () => {
+    expect(resolvePreviewCanvasSize({
+      format: 'png',
+      dpi: 300,
+      physicalHeight: 60,
+    })).toEqual({
+      width: 812,
+      height: 600,
+    });
+  });
+
+  it('journal presets define physical size and DPI without enforcing preview style changes', () => {
     const nature = JOURNAL_SIZE_PRESETS.find((preset) => preset.key === 'nature-single');
     const ieee = JOURNAL_SIZE_PRESETS.find((preset) => preset.key === 'ieee-single');
 
@@ -172,13 +194,11 @@ describe('SIM-1B: ChartPreview fixed canvas sizing', () => {
       width: 86,
       height: 60,
       dpi: 300,
-      stylePreset: 'science',
     });
     expect(ieee).toMatchObject({
       width: 89,
       height: 58,
       dpi: 300,
-      stylePreset: 'ieee',
     });
   });
 });

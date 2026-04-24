@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback, useRef, useState } from 'react'
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import { BioCsvUpload, type CsvData } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -34,6 +35,20 @@ function formatHistoryDate(timestamp: number): string {
   }).format(new Date(timestamp))
 }
 
+function resetFreshAnalysisState(
+  setResults: Dispatch<SetStateAction<MantelResult | null>>,
+  setError: Dispatch<SetStateAction<string | null>>,
+  setIsSaved: Dispatch<SetStateAction<boolean>>,
+  setIsRestoredHistoryVisible: Dispatch<SetStateAction<boolean>>,
+  hasSavedRef: MutableRefObject<boolean>,
+): void {
+  setResults(null)
+  setError(null)
+  setIsSaved(false)
+  setIsRestoredHistoryVisible(false)
+  hasSavedRef.current = false
+}
+
 const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const initialColumnConfig = initialEntry?.columnConfig
   const [csvDataX, setCsvDataX] = useState<CsvData | null>(null)
@@ -45,43 +60,32 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }
   const [results, setResults] = useState<MantelResult | null>((initialEntry?.results as MantelResult) ?? null)
   const [error, setError] = useState<string | null>(null)
   const [isSaved, setIsSaved] = useState(!!initialEntry?.results)
+  const [isRestoredHistoryVisible, setIsRestoredHistoryVisible] = useState(!!initialEntry?.results)
   const resultsRef = useScrollToResults(results)
   const hasSavedRef = useRef(!!initialEntry?.results)
 
   const handleDataLoadedX = useCallback((data: CsvData) => {
     setCsvDataX(data)
     setSiteColX(data.headers[0])
-    setResults(null)
-    setError(null)
-    setIsSaved(false)
-    hasSavedRef.current = false
+    resetFreshAnalysisState(setResults, setError, setIsSaved, setIsRestoredHistoryVisible, hasSavedRef)
   }, [])
 
   const handleClearX = useCallback(() => {
     setCsvDataX(null)
     setSiteColX('')
-    setResults(null)
-    setError(null)
-    setIsSaved(false)
-    hasSavedRef.current = false
+    resetFreshAnalysisState(setResults, setError, setIsSaved, setIsRestoredHistoryVisible, hasSavedRef)
   }, [])
 
   const handleDataLoadedY = useCallback((data: CsvData) => {
     setCsvDataY(data)
     setSiteColY(data.headers[0])
-    setResults(null)
-    setError(null)
-    setIsSaved(false)
-    hasSavedRef.current = false
+    resetFreshAnalysisState(setResults, setError, setIsSaved, setIsRestoredHistoryVisible, hasSavedRef)
   }, [])
 
   const handleClearY = useCallback(() => {
     setCsvDataY(null)
     setSiteColY('')
-    setResults(null)
-    setError(null)
-    setIsSaved(false)
-    hasSavedRef.current = false
+    resetFreshAnalysisState(setResults, setError, setIsSaved, setIsRestoredHistoryVisible, hasSavedRef)
   }, [])
 
   const handleAnalyze = useCallback(async () => {
@@ -120,6 +124,7 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }
       )
       setResults(result)
       setIsSaved(false)
+      setIsRestoredHistoryVisible(false)
       hasSavedRef.current = false
     } catch (err) {
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
@@ -218,7 +223,7 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta, initialEntry }
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
-          {initialEntry && (
+          {initialEntry && isRestoredHistoryVisible && (
             <div className={BIOLOGY_CALLOUT_INFO}>
               <div className="mb-3 text-sm font-semibold text-foreground">히스토리에서 복원된 결과</div>
               <dl className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">

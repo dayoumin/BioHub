@@ -449,7 +449,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     // ── chartSpec ──
 
     setChartSpec: (spec) => {
-      const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
+      const sanitizedSpec = normalizeStoreChartSpec(spec);
       set({
         chartSpec: sanitizedSpec,
         specHistory: [sanitizedSpec],
@@ -460,7 +460,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     updateChartSpec: (spec) => {
       const { specHistory, historyIndex } = get();
-      const sanitizedSpec = sanitizeChartSpecForRenderer(spec);
+      const sanitizedSpec = normalizeStoreChartSpec(spec);
       // 현재 위치 이후의 히스토리 제거 (새 분기)
       const newHistory = specHistory.slice(0, historyIndex + 1);
       newHistory.push(sanitizedSpec);
@@ -537,7 +537,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     restorePreviousChartSpec: () => {
       const { previousChartSpec } = get();
       if (!previousChartSpec) return;
-      const sanitizedSpec = sanitizeChartSpecForRenderer(previousChartSpec);
+      const sanitizedSpec = normalizeStoreChartSpec(previousChartSpec);
       set({
         chartSpec: sanitizedSpec,
         specHistory: [sanitizedSpec],
@@ -617,7 +617,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         sourceSchema: lineage.sourceSchema,
         sourceSnapshot: lineage.sourceSnapshot,
         chartSpec: sanitizedChartSpec,
-        dataPackageId: dataPackage?.id ?? '',
+        dataPackageId: resolvedDataPackageId,
         createdAt: currentProject?.createdAt ?? now,
         updatedAt: now,
       };

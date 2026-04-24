@@ -143,12 +143,16 @@ function SectionContent({
 function WarningCallout({
   section,
   prefersReducedMotion,
+  t,
 }: {
   section: InterpretationSection
   prefersReducedMotion: boolean
+  t: TerminologyDictionary
 }): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const isLong = section.content.length > 120
+  const showMoreLabel = t.results.ai.showMore ?? '더 보기'
+  const collapseLabel = t.results.ai.collapse ?? '접기'
 
   return (
     <motion.div
@@ -178,7 +182,7 @@ function WarningCallout({
               className="text-xs text-warning/80 hover:text-warning mt-1 flex items-center gap-0.5"
             >
               <ChevronDown className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} />
-              {expanded ? '접기' : '더 보기'}
+              {expanded ? collapseLabel : showMoreLabel}
             </button>
           )}
         </div>
@@ -308,6 +312,11 @@ export function AiInterpretationCard({
   const hasDetail = !!parsedInterpretation?.detail
   const resolvedIdleDescription = t.results.ai.idleDescription
   const resolvedRequestButtonLabel = t.results.ai.requestButton
+  const resolvedReinterpretLabel = t.results.ai.reinterpret ?? '다시 해석'
+  const resolvedShowAllLabel = t.results.ai.showAll ?? '전체 보기'
+  const resolvedCollapseAllLabel = t.results.ai.collapseAll ?? '전체 접기'
+  const resolvedRetryLabel = t.results.ai.retry ?? '다시 시도'
+  const resolvedRetryExhaustedLabel = t.results.ai.retryExhausted ?? '재시도 횟수를 모두 사용했습니다.'
   return (
     <div className="space-y-2" data-testid="ai-interpretation-section" ref={containerRef}>
       <AnimatePresence mode="wait">
@@ -383,7 +392,7 @@ export function AiInterpretationCard({
                   {!isInterpreting && (
                     <Button variant="outline" size="sm" onClick={onReinterpret} className="text-xs h-7 px-2 gap-1">
                       <RefreshCw className="w-3 h-3" />
-                      {t.results.ai.reinterpret}
+                      {resolvedReinterpretLabel}
                     </Button>
                   )}
                 </div>
@@ -419,7 +428,7 @@ export function AiInterpretationCard({
                       )}
                     >
                       <List className="w-3 h-3" />
-                      {showAll ? '접기' : '전체 보기'}
+                      {showAll ? resolvedCollapseAllLabel : resolvedShowAllLabel}
                     </Button>
                   </div>
                 )}
@@ -465,7 +474,7 @@ export function AiInterpretationCard({
 
                 {/* --- 4. 주의사항 (Warning) --- */}
                 {warningSections.map(section => (
-                  <WarningCallout key={section.key} section={section} prefersReducedMotion={prefersReducedMotion} />
+                  <WarningCallout key={section.key} section={section} prefersReducedMotion={prefersReducedMotion} t={t} />
                 ))}
 
                 {/* --- 5. 추가 분석 제안 (CTA) --- */}
@@ -487,19 +496,19 @@ export function AiInterpretationCard({
       {/* === 에러 상태 === */}
       {interpretError && (
         isRetryExhausted ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              {t.results.ai.retryExhausted}
-            </AlertDescription>
-          </Alert>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                {resolvedRetryExhaustedLabel}
+              </AlertDescription>
+            </Alert>
         ) : (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
               {interpretError}
               <Button variant="ghost" size="sm" onClick={onReinterpret} className="ml-2 text-xs h-6 px-2">
-                {t.results.ai.retry}
+                {resolvedRetryLabel}
               </Button>
             </AlertDescription>
           </Alert>

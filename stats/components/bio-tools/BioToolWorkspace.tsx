@@ -58,8 +58,8 @@ export function BioToolWorkspace(): React.ReactElement {
       <div className="min-w-0 flex-1">
         {/* 도구 헤더 — 뒤로가기 + 도구 칩 리스트 */}
         {isToolActive && (
-          <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
+          <div className="mb-6 flex min-w-0 flex-col gap-4 overflow-hidden rounded-[1.5rem] bg-surface-container-low/70 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-2">
               <Link
                 href="/bio-tools"
                 scroll={false}
@@ -68,7 +68,10 @@ export function BioToolWorkspace(): React.ReactElement {
               >
                 <ChevronLeft className="h-4.5 w-4.5" />
               </Link>
-              <div className="flex overflow-x-auto whitespace-nowrap gap-1 pb-1 -mb-1 scrollbar-hide">
+              <div
+                data-testid="bio-tools-active-chip-row"
+                className="scrollbar-hide -mb-1 flex min-w-0 flex-1 gap-1 overflow-x-auto pb-1 whitespace-nowrap"
+              >
                 {BIO_TOOLS.map(t => {
                   const isActive = t.id === toolId
                   const ToolIcon = t.icon

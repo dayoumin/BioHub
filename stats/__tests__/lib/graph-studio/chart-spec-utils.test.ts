@@ -8,6 +8,7 @@ import {
   createAutoConfiguredChartSpec,
   createChartSpecFromDataPackage,
   inferColumnMeta,
+  resolveXYFields,
   selectAutoColorField,
   sanitizeChartSpecForRenderer,
   selectXYFields,
@@ -345,6 +346,97 @@ describe('selectXYFields', () => {
 
     expect(xField).toBe('dose');
     expect(yField).toBe('signal');
+  });
+});
+
+describe('resolveXYFields', () => {
+  const quantitative = (name: string): ColumnMeta => ({
+    name,
+    type: 'quantitative',
+    uniqueCount: 10,
+    sampleValues: [],
+    hasNull: false,
+  });
+
+  const nominal = (name: string): ColumnMeta => ({
+    name,
+    type: 'nominal',
+    uniqueCount: 5,
+    sampleValues: [],
+    hasNull: false,
+  });
+
+  const temporal = (name: string): ColumnMeta => ({
+    name,
+    type: 'temporal',
+    uniqueCount: 10,
+    sampleValues: [],
+    hasNull: false,
+  });
+
+  it('uses preferredXY when it matches the current chart hint', () => {
+    const fields = resolveXYFields(
+      [
+        nominal('species'),
+        quantitative('length_cm'),
+        quantitative('weight_g'),
+        temporal('year'),
+      ],
+      CHART_TYPE_HINTS.scatter,
+      { x: 'length_cm', y: 'weight_g' },
+    );
+
+    expect(fields).toEqual({ xField: 'length_cm', yField: 'weight_g' });
+  });
+
+  it('ignores incompatible preferredXY when the chart expects nominal x', () => {
+    const fields = resolveXYFields(
+      [
+        nominal('species'),
+        quantitative('length_cm'),
+        quantitative('weight_g'),
+      ],
+      CHART_TYPE_HINTS.bar,
+      { x: 'length_cm', y: 'weight_g' },
+    );
+
+    expect(fields).toEqual({ xField: 'species', yField: 'weight_g' });
+  });
+
+  it('ignores incompatible preferredXY when the chart expects temporal x', () => {
+    const fields = resolveXYFields(
+      [
+        nominal('species'),
+        quantitative('length_cm'),
+        quantitative('weight_g'),
+        temporal('year'),
+      ],
+      CHART_TYPE_HINTS.line,
+      { x: 'length_cm', y: 'weight_g' },
+    );
+
+    expect(fields).toEqual({ xField: 'year', yField: 'weight_g' });
+  });
+
+  it('createChartSpecFromDataPackage honors preferredXY before heuristic axis selection', () => {
+    const spec = createChartSpecFromDataPackage(makeDataPackage({
+      columns: [
+        quantitative('dose'),
+        quantitative('response'),
+      ],
+      data: {
+        dose: [1, 2, 3],
+        response: [10, 20, 30],
+      },
+      preferredXY: {
+        x: 'response',
+        y: 'dose',
+      },
+    }));
+
+    expect(spec.chartType).toBe('scatter');
+    expect(spec.encoding.x.field).toBe('response');
+    expect(spec.encoding.y.field).toBe('dose');
   });
 });
 
@@ -716,7 +808,7 @@ describe('chartSpecSchema export format validation', () => {
     expect(chartSpecSchema.safeParse(spec).success).toBe(true);
   });
 
-  it('rejects undersized persisted trendline fitted points', () => {
+  it('drops undersized persisted trendline fitted points during validation', () => {
     const spec = {
       ...makeBaseSpec(),
       chartType: 'scatter' as const,
@@ -726,6 +818,11 @@ describe('chartSpecSchema export format validation', () => {
       },
     };
 
-    expect(chartSpecSchema.safeParse(spec).success).toBe(false);
+    const parsed = chartSpecSchema.safeParse(spec);
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.trendline?.fittedPoints).toBeUndefined();
+    }
   });
 });

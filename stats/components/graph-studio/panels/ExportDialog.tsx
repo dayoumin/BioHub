@@ -30,7 +30,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
-import { JOURNAL_SIZE_PRESETS, STYLE_PRESETS, mmToPx } from '@/lib/graph-studio';
+import { JOURNAL_SIZE_PRESETS, mmToPx } from '@/lib/graph-studio';
 import type { ExportFormat, ErrorBarSpec } from '@/types/graph-studio';
 import type { MatplotlibExportFormat, MatplotlibStylePreset } from '@/types/matplotlib-export';
 import { DEFAULT_MATPLOTLIB_EXPORT_CONFIG } from '@/types/matplotlib-export';
@@ -91,7 +91,7 @@ interface ExportDialogProps {
 const toInput = (mm: number | undefined): string => (mm !== undefined ? String(mm) : '');
 
 export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElement {
-  const { chartSpec, setExportConfig, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, setExportConfig } = useGraphStudioStore();
 
   // shadcn Dialog: disabled trigger가 열릴 수 있는 엣지 케이스 방지
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -175,7 +175,6 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
   const handleJournalPreset = useCallback((preset: typeof JOURNAL_SIZE_PRESETS[number]) => {
     if (!chartSpec) return;
-    const stylePreset = STYLE_PRESETS[preset.stylePreset];
     const exportConfig = {
       ...chartSpec.exportConfig,
       dpi: preset.dpi,
@@ -184,16 +183,8 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
     };
     setWidthInput(String(preset.width));
     setHeightInput(String(preset.height));
-    updateChartSpec({
-      ...chartSpec,
-      style: {
-        ...stylePreset,
-        showDataLabels: chartSpec.style.showDataLabels,
-        showSampleCounts: chartSpec.style.showSampleCounts,
-      },
-      exportConfig,
-    });
-  }, [chartSpec, updateChartSpec]);
+    setExportConfig(exportConfig);
+  }, [chartSpec, setExportConfig]);
 
   // ─── 렌더 계산값 (IIFE 대신 호이스팅) ──────────────────────
   const currentFont = chartSpec?.style.font?.family ?? '';
@@ -304,8 +295,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
                   const isActive =
                     chartSpec.exportConfig.physicalWidth === preset.width &&
                     chartSpec.exportConfig.physicalHeight === preset.height &&
-                    chartSpec.exportConfig.dpi === preset.dpi &&
-                    chartSpec.style.preset === preset.stylePreset;
+                    chartSpec.exportConfig.dpi === preset.dpi;
                   return (
                     <button
                       key={preset.key}

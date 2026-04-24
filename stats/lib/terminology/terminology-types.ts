@@ -1033,6 +1033,10 @@ export interface ResultsText {
     defaultError: string
     retryExhausted: string
     draftCta: string
+    showAll: string
+    collapseAll: string
+    showMore: string
+    collapse: string
   }
   /** 섹션 라벨 */
   sections: {
@@ -1047,11 +1051,20 @@ export interface ResultsText {
   }
   /** 메타데이터 라벨 */
   metadata: {
+    methodLabel: string
     file: string
+    fileBadge: (name: string) => string
     data: string
     variables: string
     rowsCols: (rows: number, cols: number) => string
     analysisTime: string
+    copyApaAriaLabel: string
+    customImplementation: string
+    rValidated: string
+    customImplementationTooltip: string
+    computedWithLib: (lib: string) => string
+    rCrossValidationLre: (lre: string) => string
+    optionsLabel: string
   }
   /** 액션 버튼 */
   buttons: {
@@ -1062,6 +1075,8 @@ export interface ResultsText {
     copied: string
     copy: string
     copyStatsTable: string
+    exportR: string
+    exportPython: string
     saveTemplate: string
     reanalyze: string
     newAnalysis: string
@@ -1165,6 +1180,27 @@ export interface ResultsText {
       confirm: string
       cancel: string
     }
+  }
+  /** 결과 액션 패널 */
+  actionPanel: {
+    title: string
+    description: string
+    continueTitle: string
+    continueDescription: string
+    restartTitle: string
+    restartDescription: string
+    toolsEyebrow: string
+    toolsTitle: string
+    toolsDescription: string
+    graphStudio: string
+  }
+  /** 결과 화면 컨텍스트 패널 */
+  contextPanels: {
+    historyViewTitle: string
+    historyViewDescription: string
+    documentsTitle: string
+    documentsDescription: string
+    moreDocuments: (count: number) => string
   }
 }
 

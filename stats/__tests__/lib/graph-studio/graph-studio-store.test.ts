@@ -1047,6 +1047,23 @@ describe('saveCurrentProject', () => {
     expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 'research-project-2' }))
   })
 
+  it('save reuses currentProject.dataPackageId when no data package is attached', () => {
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject')
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject({
+          id: 'persisted-project',
+          dataPackageId: 'pkg-fallback',
+        }),
+      )
+      useGraphStudioStore.getState().saveCurrentProject('Saved Without Package')
+    })
+
+    expect(saveSpy).toHaveBeenLastCalledWith(expect.objectContaining({ dataPackageId: 'pkg-fallback' }))
+    expect(useGraphStudioStore.getState().currentProject?.dataPackageId).toBe('pkg-fallback')
+  })
+
   it('relinked dataPackage가 있으면 기존 analysisId 대신 새 canonical lineage를 저장한다', () => {
     const saveSpy = vi.spyOn(projectStorage, 'saveProject')
     const currentProject = makeProject({

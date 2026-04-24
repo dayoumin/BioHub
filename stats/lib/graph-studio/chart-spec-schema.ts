@@ -104,12 +104,23 @@ const errorBarSchema = z.object({
   value: z.number().positive().optional(),
 }).strict();
 
+const trendlineFittedPointsSchema = z.preprocess(
+  (value: unknown) => {
+    if (!Array.isArray(value)) {
+      return value;
+    }
+
+    return value.length >= 2 ? value : undefined;
+  },
+  z.array(z.tuple([z.number(), z.number()])).min(2).optional(),
+);
+
 const trendlineSchema = z.object({
   type: z.enum(['linear']),
   color: z.string().optional(),
   strokeDash: z.array(z.number()).optional(),
   showEquation: z.boolean().optional(),
-  fittedPoints: z.array(z.tuple([z.number(), z.number()])).min(2).optional(),
+  fittedPoints: trendlineFittedPointsSchema,
 }).strict();
 
 const significanceMarkSchema = z.object({
@@ -320,6 +331,10 @@ export const dataPackageSchema = z.object({
   label: z.string().min(1),
   columns: z.array(columnMetaSchema).min(1),
   data: z.record(z.string(), z.array(z.unknown())),
+  preferredXY: z.object({
+    x: z.string().min(1),
+    y: z.string().min(1),
+  }).optional(),
   projectId: z.string().optional(),
   analysisContext: analysisContextSchema.optional(),
   // Deprecated compatibility field. Canonical provenance lives in sourceRefs/lineageMode.

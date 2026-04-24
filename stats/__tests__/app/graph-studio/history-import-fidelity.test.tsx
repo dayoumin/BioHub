@@ -136,6 +136,16 @@ vi.mock('@/hooks/use-terminology', () => ({
         reanalyzeReady: 'Ready',
         reanalyzeMethod: (name: string) => name,
       },
+      contextPanels: {
+        historyViewTitle: 'History view',
+        historyViewDescription: 'Viewing a saved result.',
+        documentsTitle: 'Documents',
+        documentsDescription: 'Used in documents.',
+        moreDocuments: (count: number) => `+${count} more`,
+      },
+      actionPanel: {
+        graphStudio: 'Graph Studio',
+      },
     },
   }),
 }))
