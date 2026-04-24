@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.12",
+  "version": "1.44.13",
   "lastUpdated": "2026-04-24",
   "sources": [
     "stats/__tests__/",
@@ -346,6 +346,19 @@
             "DOCX export",
             "idle editor",
             "freshness"
+          ]
+        },
+        {
+          "name": "Restored result project ownership gating test",
+          "purpose": "복원된 분석 결과가 active project가 아니라 history entry의 owning project와 실제 project entity ref를 기준으로 문서 작성 버튼과 usage를 노출하는지 고정",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep';\n\nit('uses the restored result project and hides document writing for unlinked results', async () => {\n  mockUseResultsHistory.mockReturnValue({\n    currentHistoryId: 'history-1',\n    currentHistoryProjectId: 'project-owned',\n  });\n  mockListProjectEntityRefs.mockImplementation((projectId: string) =>\n    projectId === 'project-owned'\n      ? [{ entityKind: 'analysis', entityId: 'history-1' }]\n      : [],\n  );\n\n  render(<ResultsActionStep results={results} />);\n\n  expect(await screen.findByText('project-owned linked document')).toBeInTheDocument();\n  expect(screen.getByRole('button', { name: /write from document/i })).toBeEnabled();\n\n  mockListProjectEntityRefs.mockReturnValue([]);\n  render(<ResultsActionStep results={results} />);\n  expect(screen.getByRole('button', { name: /write from document/i })).toBeDisabled();\n});",
+          "keywords": [
+            "ResultsActionStep",
+            "history restore",
+            "project ownership",
+            "entity ref gate",
+            "document writing",
+            "regression"
           ]
         },
         {
@@ -1334,6 +1347,11 @@
           "name": "overwrite 방지 시나리오",
           "description": "auto 계산 후 수동 입력 → auto 필드 변경 없으면 값 유지 확인.",
           "code": "test('자동 계산 후 수동 입력 유지', () => {\n  const sim = createSim()\n  sim.handleField1('10'); sim.handleField2('20')\n  expect(sim.source).toBe('auto')\n  sim.handleManual('0.5')    // manual override\n  expect(sim.value).toBe('0.5')\n  expect(sim.source).toBe('manual')\n  // no field change → value stays\n  expect(sim.value).toBe('0.5')\n})"
+        },
+        {
+          "name": "jobId rotation invalidates stale writing run",
+          "description": "takeover/retry 시 새 jobId를 발급해 이전 patch completion이 stale로 떨어지고, user-owned section과 flushed snapshot이 우선되는지 시뮬레이션.",
+          "code": "function interruptWriting(jobId: string, owner: 'ai' | 'user') {\n  return {\n    writingState: { status: 'completed' as const, jobId: `${jobId}-next` },\n    section: { generatedBy: owner },\n  }\n}\n\ntest('takeover rotates job id before stale completion returns', () => {\n  const before = { writingState: { status: 'drafting' as const, jobId: 'job-1' }, section: { generatedBy: 'ai' as const } }\n  const after = interruptWriting(before.writingState.jobId, 'user')\n\n  expect(after.writingState.jobId).not.toBe(before.writingState.jobId)\n  expect(after.writingState.status).toBe('completed')\n  expect(after.section.generatedBy).toBe('user')\n})"
         }
       ]
     },
