@@ -49,7 +49,7 @@ describe('findDocumentSourceUsages', () => {
     storageMocks.listProjectEntityRefs.mockReset()
   })
 
-  it('deduplicates overlapping section and nested provenance into one section destination', () => {
+  it('preserves multiple artifact-level usages within the same section', () => {
     const documents = [
       makeDocument({
         sections: [
@@ -76,6 +76,7 @@ describe('findDocumentSourceUsages', () => {
                 label: 'Figure 1',
                 caption: 'Bar chart',
                 relatedAnalysisId: 'hist_1',
+                relatedAnalysisLabel: 't-test',
               },
             ],
           },
@@ -92,6 +93,15 @@ describe('findDocumentSourceUsages', () => {
         kind: 'table',
         label: 'Table 1',
         artifactId: 'table_1',
+      }),
+      expect.objectContaining({
+        documentId: 'doc-1',
+        sectionId: 'results',
+        kind: 'figure',
+        label: 'Figure 1',
+        sourceKind: 'analysis',
+        sourceLabel: 't-test',
+        artifactId: 'figure_1',
       }),
     ])
   })

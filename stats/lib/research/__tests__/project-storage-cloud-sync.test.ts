@@ -66,7 +66,7 @@ describe('project-storage cloud sync', () => {
     expect(listResearchProjects()).toEqual(hydrated)
   })
 
-  it('does not reinsert pending unlinks and preserves local refs that are absent from cloud detail', async () => {
+  it('does not reinsert pending unlinks and converges local refs that are absent from cloud detail', async () => {
     const {
       hydrateProjectRefsFromCloud,
       listProjectEntityRefs,
@@ -111,14 +111,7 @@ describe('project-storage cloud sync', () => {
 
     await hydrateProjectRefsFromCloud('proj-1')
 
-    expect(listProjectEntityRefs('proj-1')).toEqual([
-      expect.objectContaining({
-        projectId: 'proj-1',
-        entityKind: 'analysis',
-        entityId: 'analysis-1',
-        label: 'Local analysis',
-      }),
-    ])
+    expect(listProjectEntityRefs('proj-1')).toEqual([])
   })
 
   it('keeps a local ref while its cloud link is still pending', async () => {
@@ -205,8 +198,8 @@ describe('project-storage cloud sync', () => {
               label: 'Remote ANOVA',
             },
           ],
-          createdAt: '2026-04-22T00:00:00.000Z',
-          updatedAt: '2026-04-22T00:00:00.000Z',
+          createdAt: '2099-04-22T00:00:00.000Z',
+          updatedAt: '2099-04-22T00:00:00.000Z',
         },
       ],
     })
@@ -221,6 +214,68 @@ describe('project-storage cloud sync', () => {
           expect.objectContaining({
             targetKind: 'analysis',
             targetId: 'analysis-remote',
+          }),
+        ],
+      }),
+    ])
+  })
+
+  it('keeps the newer local ref when a hydrated cloud snapshot is older', async () => {
+    const {
+      hydrateProjectRefsFromCloud,
+      listProjectEntityRefs,
+      upsertProjectEntityRef,
+    } = await import('../project-storage')
+
+    upsertProjectEntityRef({
+      projectId: 'proj-1',
+      entityKind: 'draft',
+      entityId: 'doc-1',
+      label: 'Local draft',
+      provenanceEdges: [
+        {
+          role: 'uses',
+          targetKind: 'analysis',
+          targetId: 'analysis-local',
+          label: 'Local lineage',
+        },
+      ],
+    })
+    await Promise.resolve()
+
+    projectCloudMocks.fetchCloudProjectDetail.mockResolvedValue({
+      project: null,
+      entities: [
+        {
+          id: 'remote-pref-1',
+          projectId: 'proj-1',
+          entityKind: 'draft',
+          entityId: 'doc-1',
+          label: 'Older cloud draft',
+          provenanceEdges: [
+            {
+              role: 'uses',
+              targetKind: 'analysis',
+              targetId: 'analysis-remote',
+              label: 'Older lineage',
+            },
+          ],
+          createdAt: '2026-04-01T00:00:00.000Z',
+          updatedAt: '2026-04-01T00:00:00.000Z',
+        },
+      ],
+    })
+
+    await hydrateProjectRefsFromCloud('proj-1')
+
+    expect(listProjectEntityRefs('proj-1')).toEqual([
+      expect.objectContaining({
+        entityKind: 'draft',
+        entityId: 'doc-1',
+        label: 'Local draft',
+        provenanceEdges: [
+          expect.objectContaining({
+            targetId: 'analysis-local',
           }),
         ],
       }),

@@ -71,6 +71,11 @@ import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   type DocumentBlueprintsChangedDetail,
 } from '@/lib/research/document-blueprint-storage'
+import {
+  listProjectEntityRefs,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+  type ResearchProjectEntityRefsChangedDetail,
+} from '@/lib/research/project-storage'
 import { DraftContextEditor } from './DraftContextEditor'
 import StartWritingButton from '@/components/papers/StartWritingButton'
 import WritingEntrySurface from '@/components/papers/WritingEntrySurface'
@@ -104,6 +109,38 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     t.results.contextPanels.documentsDescription ?? 'Open a linked document to review the referenced section.'
   const moreDocumentsLabel =
     t.results.contextPanels.moreDocuments ?? ((count: number): string => `+${count}`)
+  const writingTitle = t.results.contextPanels.writingTitle ?? 'Write a document'
+  const writingActionLabel = t.results.contextPanels.writingAction ?? 'Write from result'
+  const writingPendingLabel = t.results.contextPanels.writingPending ?? 'Creating document...'
+  const writingUntitledResult = t.results.contextPanels.writingUntitledResult ?? 'Analysis result'
+  const writingDescriptionNoProject =
+    t.results.contextPanels.writingDescriptionNoProject
+    ?? 'Select a project first to connect this saved result directly to a document draft.'
+  const writingDescriptionUnsaved =
+    t.results.contextPanels.writingDescriptionUnsaved
+    ?? 'You can only start a document from saved results. Save this result first.'
+  const writingDescriptionUnlinked =
+    t.results.contextPanels.writingDescriptionUnlinked
+    ?? 'This saved result is not linked to the current project, so document drafting is unavailable here.'
+  const writingEmptyReady =
+    t.results.contextPanels.writingEmptyReady
+    ?? 'No document uses this result yet. You can create a draft now.'
+  const writingEmptyUnsaved =
+    t.results.contextPanels.writingEmptyUnsaved
+    ?? 'Save the current result first to create a document draft from this screen.'
+  const writingEmptyUnlinked =
+    t.results.contextPanels.writingEmptyUnlinked
+    ?? 'Link this saved result to the project before creating a document draft from here.'
+  const writingRequireProjectError =
+    t.results.contextPanels.writingRequireProjectError ?? 'Select a project before creating a document.'
+  const writingRequireSavedResultError =
+    t.results.contextPanels.writingRequireSavedResultError ?? 'You can only start a document from saved results.'
+  const writingRequireLinkedResultError =
+    t.results.contextPanels.writingRequireLinkedResultError
+    ?? 'This saved result must be linked to the project before creating a document.'
+  const writingCreateError = t.results.contextPanels.writingCreateError ?? 'Failed to create document.'
+  const writingDraftTitle =
+    t.results.contextPanels.writingDraftTitle ?? ((methodName: string): string => `${methodName} draft`)
 
   // Reduced motion
   const prefersReducedMotion = useReducedMotion()
@@ -118,6 +155,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const activeProject = useResearchProjectStore(selectActiveProject)
   const [resultTimestamp] = useState(() => new Date())
   const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([])
+  const [projectRefsVersion, setProjectRefsVersion] = useState(0)
 
   // AI 해석 (커스텀 훅으로 캡슐화)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
@@ -345,6 +383,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const {
     currentHistoryId,
     historyEntries,
+    currentHistoryProjectId,
     historyResultView,
     isSaved,
     isSavingToHistory,
@@ -381,22 +420,75 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setFollowUpMessages,
     t,
   })
+  const resolvedDocumentProjectId = currentHistoryProjectId ?? activeProject?.id ?? null
+  const isHistoryLinkedToResolvedProject = useMemo(() => {
+    if (!resolvedDocumentProjectId || !currentHistoryId) {
+      return false
+    }
+
+    return listProjectEntityRefs(resolvedDocumentProjectId).some(
+      (entityRef) => entityRef.entityKind === 'analysis' && entityRef.entityId === currentHistoryId,
+    )
+  }, [currentHistoryId, projectRefsVersion, resolvedDocumentProjectId])
+  const canCreateWritingDocument = Boolean(
+    resolvedDocumentProjectId && currentHistoryId && isHistoryLinkedToResolvedProject,
+  )
+  const writingEntryDescription = !resolvedDocumentProjectId
+    ? writingDescriptionNoProject
+    : !currentHistoryId
+      ? writingDescriptionUnsaved
+      : !isHistoryLinkedToResolvedProject
+        ? writingDescriptionUnlinked
+        : documentsDescription
+  const writingEmptyDescription = !currentHistoryId
+    ? writingEmptyUnsaved
+    : !isHistoryLinkedToResolvedProject
+      ? writingEmptyUnlinked
+      : writingEmptyReady
+
+  useEffect((): (() => void) => {
+    const handleProjectRefsChanged = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        setProjectRefsVersion((value) => value + 1)
+        return
+      }
+
+      const detail = event.detail as ResearchProjectEntityRefsChangedDetail | undefined
+      if (
+        !detail
+        || (resolvedDocumentProjectId !== null && detail.projectIds.includes(resolvedDocumentProjectId))
+        || (currentHistoryId !== null && detail.entityIds.includes(currentHistoryId))
+      ) {
+        setProjectRefsVersion((value) => value + 1)
+      }
+    }
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsChanged)
+    return () => {
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsChanged)
+    }
+  }, [currentHistoryId, resolvedDocumentProjectId])
+
   const handleCreateWritingDocument = useCallback(async () => {
     if (isCreatingDocument) return
-    if (!activeProject?.id) {
-      toast.error('프로젝트를 먼저 선택해야 문서를 만들 수 있습니다.')
+    if (!resolvedDocumentProjectId) {
+      toast.error(writingRequireProjectError)
       return
     }
     if (!currentHistoryId) {
-      toast.error('저장된 분석 결과에서만 문서를 시작할 수 있습니다.')
+      toast.error(writingRequireSavedResultError)
+      return
+    }
+    if (!isHistoryLinkedToResolvedProject) {
+      toast.error(writingRequireLinkedResultError)
       return
     }
 
     setIsCreatingDocument(true)
     try {
       const document = await createDocumentWritingSession({
-        projectId: activeProject.id,
-        title: `${selectedMethod?.name ?? '분석 결과'} 문서 초안`,
+        projectId: resolvedDocumentProjectId,
+        title: writingDraftTitle(selectedMethod?.name ?? writingUntitledResult),
         sourceEntityIds: {
           analysisIds: [currentHistoryId],
         },
@@ -404,11 +496,24 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       router.push(buildDocumentEditorUrl(document.id))
     } catch (error) {
       console.error('[ResultsActionStep] failed to create writing document:', error)
-      toast.error('문서 생성에 실패했습니다.')
+      toast.error(writingCreateError)
     } finally {
       setIsCreatingDocument(false)
     }
-  }, [activeProject?.id, currentHistoryId, isCreatingDocument, router, selectedMethod?.name])
+  }, [
+    currentHistoryId,
+    isCreatingDocument,
+    isHistoryLinkedToResolvedProject,
+    resolvedDocumentProjectId,
+    router,
+    selectedMethod?.name,
+    writingCreateError,
+    writingDraftTitle,
+    writingRequireLinkedResultError,
+    writingRequireProjectError,
+    writingRequireSavedResultError,
+    writingUntitledResult,
+  ])
   const documentUsageRequestSeqRef = useRef(0)
 
   const reloadDocumentUsages = useCallback(() => {
@@ -422,7 +527,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
     void loadDocumentSourceUsages(
       currentHistoryId,
-      activeProject?.id ? { projectId: activeProject.id, sourceKind: 'analysis' } : { sourceKind: 'analysis' },
+      resolvedDocumentProjectId
+        ? { projectId: resolvedDocumentProjectId, sourceKind: 'analysis' }
+        : { sourceKind: 'analysis' },
     )
       .then((usages) => {
         if (documentUsageRequestSeqRef.current === requestSeq) {
@@ -434,7 +541,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           setDocumentUsages([])
         }
       })
-  }, [activeProject?.id, currentHistoryId])
+  }, [currentHistoryId, resolvedDocumentProjectId])
 
   useEffect(() => {
     reloadDocumentUsages()
@@ -447,7 +554,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         return
       }
       const detail = event.detail as DocumentBlueprintsChangedDetail | undefined
-      if (activeProject?.id && detail && detail.projectId !== activeProject.id) {
+      if (resolvedDocumentProjectId && detail && detail.projectId !== resolvedDocumentProjectId) {
         return
       }
       void reloadDocumentUsages()
@@ -457,7 +564,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     return () => {
       window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged)
     }
-  }, [activeProject?.id, reloadDocumentUsages])
+  }, [reloadDocumentUsages, resolvedDocumentProjectId])
 
   const {
     handleReanalyze,
@@ -668,20 +775,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <Card className="border-0 bg-surface-container-low shadow-none">
           <CardContent className="px-4 py-3">
             <WritingEntrySurface
-              title="문서 작성"
-              description={!activeProject?.id
-                ? '프로젝트를 먼저 선택하면 저장된 분석 결과를 바로 문서 초안으로 연결할 수 있습니다.'
-                : !currentHistoryId
-                  ? '저장된 분석 결과에서만 문서를 시작할 수 있습니다. 먼저 결과를 저장하세요.'
-                  : documentsDescription}
+              title={writingTitle}
+              description={writingEntryDescription}
               action={(
                 <StartWritingButton
-                  label="문서에서 작성"
-                  pendingLabel="문서 생성 중..."
+                  label={writingActionLabel}
+                  pendingLabel={writingPendingLabel}
                   onClick={() => {
                     void handleCreateWritingDocument()
                   }}
-                  disabled={!activeProject?.id || !currentHistoryId}
+                  disabled={!canCreateWritingDocument}
                   pending={isCreatingDocument}
                   testId="paper-document-btn"
                   icon={FileText}
@@ -718,9 +821,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {currentHistoryId
-                    ? '아직 이 결과를 사용하는 문서가 없습니다. 지금 바로 초안을 만들 수 있습니다.'
-                    : '먼저 현재 결과를 저장하면 이 화면에서 바로 문서 초안을 만들 수 있습니다.'}
+                  {writingEmptyDescription}
                 </p>
               )}
             </WritingEntrySurface>

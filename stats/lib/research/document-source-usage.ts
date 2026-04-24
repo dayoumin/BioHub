@@ -41,39 +41,58 @@ export function findDocumentSourceUsages(
 
   for (const document of sortDocuments(documents)) {
     for (const section of document.sections) {
-      const matchingSourceRef = section.sourceRefs.find(
+      const matchingSourceRefs = section.sourceRefs.filter(
         (sourceRef) => (
           getDocumentSourceId(sourceRef) === sourceId
           && (!options?.sourceKind || sourceRef.kind === options.sourceKind)
         ),
       )
-      const matchingTable = (section.tables ?? []).find(
+      const matchingTables = (section.tables ?? []).filter(
         (table) => (
           table.sourceAnalysisId === sourceId
           && (!options?.sourceKind || options.sourceKind === 'analysis')
         ),
       )
-      const matchingFigure = (section.figures ?? []).find(
-        (figure) => (
-          (
-            figure.entityId === sourceId
-            && (!options?.sourceKind || options.sourceKind === 'figure')
-          )
-          || (
-            figure.relatedAnalysisId === sourceId
-            && (!options?.sourceKind || options.sourceKind === 'analysis')
-          )
-        ),
-      )
-      const hasSectionMatch = matchingSourceRef !== undefined
+      const matchingFigureUsages: DocumentSourceUsage[] = (section.figures ?? []).flatMap((figure): DocumentSourceUsage[] => {
+        if (figure.entityId === sourceId && (!options?.sourceKind || options.sourceKind === 'figure')) {
+          const matchingFigureSourceRef = matchingSourceRefs.find((sourceRef) => sourceRef.kind === 'figure')
+          return [{
+            documentId: document.id,
+            documentTitle: document.title,
+            sectionId: section.id,
+            sectionTitle: section.title,
+            kind: 'figure' as const,
+            label: figure.label,
+            sourceKind: 'figure' as const,
+            sourceLabel: matchingFigureSourceRef?.label ?? figure.label,
+            artifactId: figure.entityId,
+          }]
+        }
 
-      if (!matchingTable && !matchingFigure && !hasSectionMatch) {
+        if (figure.relatedAnalysisId === sourceId && (!options?.sourceKind || options.sourceKind === 'analysis')) {
+          const matchingAnalysisSourceRef = matchingSourceRefs.find((sourceRef) => sourceRef.kind === 'analysis')
+          return [{
+            documentId: document.id,
+            documentTitle: document.title,
+            sectionId: section.id,
+            sectionTitle: section.title,
+            kind: 'figure' as const,
+            label: figure.label,
+            sourceKind: 'analysis' as const,
+            sourceLabel: matchingAnalysisSourceRef?.label ?? figure.relatedAnalysisLabel,
+            artifactId: figure.entityId,
+          }]
+        }
+
+        return []
+      })
+
+      if (matchingTables.length === 0 && matchingFigureUsages.length === 0 && matchingSourceRefs.length === 0) {
         continue
       }
 
-      let usage: DocumentSourceUsage
-      if (matchingTable) {
-        usage = {
+      for (const matchingTable of matchingTables) {
+        const usage: DocumentSourceUsage = {
           documentId: document.id,
           documentTitle: document.title,
           sectionId: section.id,
@@ -84,36 +103,41 @@ export function findDocumentSourceUsages(
           sourceLabel: matchingTable.sourceAnalysisLabel,
           artifactId: matchingTable.id,
         }
-      } else if (matchingFigure) {
-        usage = {
-          documentId: document.id,
-          documentTitle: document.title,
-          sectionId: section.id,
-          sectionTitle: section.title,
-          kind: 'figure',
-          label: matchingFigure.label,
-          sourceKind: 'figure',
-          sourceLabel: matchingSourceRef?.label ?? matchingFigure.label,
-          artifactId: matchingFigure.entityId,
-        }
-      } else {
-        usage = {
-          documentId: document.id,
-          documentTitle: document.title,
-          sectionId: section.id,
-          sectionTitle: section.title,
-          kind: 'section',
-          label: section.title,
-          sourceKind: getSourceRefKind(matchingSourceRef),
-          sourceLabel: matchingSourceRef?.label,
-        }
+        usages.set(buildUsageKey(usage), usage)
       }
 
-      usages.set(`${document.id}:${section.id}`, usage)
+      for (const usage of matchingFigureUsages) {
+        usages.set(buildUsageKey(usage), usage)
+      }
+
+      if (matchingTables.length === 0 && matchingFigureUsages.length === 0) {
+        for (const matchingSourceRef of matchingSourceRefs) {
+          const usage: DocumentSourceUsage = {
+            documentId: document.id,
+            documentTitle: document.title,
+            sectionId: section.id,
+            sectionTitle: section.title,
+            kind: 'section',
+            label: section.title,
+            sourceKind: getSourceRefKind(matchingSourceRef),
+            sourceLabel: matchingSourceRef.label,
+          }
+          usages.set(buildUsageKey(usage), usage)
+        }
+      }
     }
   }
 
   return Array.from(usages.values())
+}
+
+function buildUsageKey(usage: DocumentSourceUsage): string {
+  return [
+    usage.documentId,
+    usage.sectionId,
+    usage.kind,
+    usage.artifactId ?? usage.sourceKind ?? usage.label,
+  ].join(':')
 }
 
 function getSourceRefKind(sourceRef: DocumentSourceRef | undefined): DocumentSourceKind | undefined {

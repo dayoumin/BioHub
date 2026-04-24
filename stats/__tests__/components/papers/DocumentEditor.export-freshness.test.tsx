@@ -27,6 +27,8 @@ const {
   mockSetValue,
   mockLoadBioToolHistory,
   mockLoadGeneticsHistory,
+  BIO_HISTORY_CHANGE_EVENT,
+  GENETICS_HISTORY_CHANGE_EVENT,
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
@@ -46,6 +48,8 @@ const {
   mockSetValue: vi.fn(),
   mockLoadBioToolHistory: vi.fn<() => BioToolHistoryEntry[]>(() => []),
   mockLoadGeneticsHistory: vi.fn<() => GeneticsHistoryEntry[]>(() => []),
+  BIO_HISTORY_CHANGE_EVENT: 'bio-tools-history-changed',
+  GENETICS_HISTORY_CHANGE_EVENT: 'genetics-history-changed',
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT: 'research-project-citations-changed',
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
@@ -155,11 +159,13 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/genetics/analysis-history', () => ({
+  HISTORY_CHANGE_EVENT: GENETICS_HISTORY_CHANGE_EVENT,
   loadAnalysisHistory: () => [],
   loadGeneticsHistory: () => mockLoadGeneticsHistory(),
 }))
 
 vi.mock('@/lib/bio-tools/bio-tool-history', () => ({
+  BIO_HISTORY_CHANGE_EVENT,
   loadBioToolHistory: () => mockLoadBioToolHistory(),
 }))
 
@@ -366,7 +372,9 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
+    expect(savedDocument.writingState?.status).toBe('completed')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
+    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
   })
 
   it('lets the user stop automatic writing from the section banner', async () => {
@@ -406,7 +414,51 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
+    expect(savedDocument.writingState?.status).toBe('completed')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
+    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
+  })
+
+  it('flushes pending editor changes before retrying a failed writing job', async () => {
+    const user = userEvent.setup()
+
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('초안 내용', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '초안 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+      writingState: {
+        status: 'failed',
+        jobId: 'job_failed',
+        errorMessage: 'failed',
+        sectionStates: {
+          results: {
+            status: 'failed',
+            jobId: 'job_failed',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('작성 실패')
+    await user.click(screen.getByTestId('paper-plate-editor'))
+    await user.click(screen.getByRole('button', { name: '재시도' }))
+
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+      expect(mockRetryDocumentWriting).toHaveBeenCalledWith('doc-1')
+    })
+
+    const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
+    expect(savedDocument.sections[0]?.content).toBe('serialized editor content')
   })
 
   it('flushes pending editor content before manual reassemble', async () => {
@@ -464,6 +516,64 @@ describe('DocumentEditor export freshness', () => {
     await waitFor(() => {
       expect(mockListCitationsByProject).toHaveBeenCalledTimes(2)
       expect(screen.getByText('Citations: 1')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '재조립 필요' })).toBeInTheDocument()
+    })
+  })
+
+  it('marks supplementary documents for reassembly when bio-tool history changes', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('보조 결과 링크 확인', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '보조 결과 링크 확인',
+          sourceRefs: [
+            createDocumentSourceRef('supplementary', 'bio-1', { label: 'Fst 분석' }),
+          ],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      window.dispatchEvent(new Event(BIO_HISTORY_CHANGE_EVENT))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '재조립 필요' })).toBeInTheDocument()
+    })
+  })
+
+  it('marks supplementary documents for reassembly when genetics history changes', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('보조 결과 링크 확인', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '보조 결과 링크 확인',
+          sourceRefs: [
+            createDocumentSourceRef('supplementary', 'protein-1', { label: '단백질 해석' }),
+          ],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      window.dispatchEvent(new Event(GENETICS_HISTORY_CHANGE_EVENT))
+    })
+
+    await waitFor(() => {
       expect(screen.getByRole('button', { name: '재조립 필요' })).toBeInTheDocument()
     })
   })

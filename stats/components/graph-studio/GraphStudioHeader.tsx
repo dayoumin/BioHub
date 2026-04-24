@@ -19,6 +19,11 @@ import { loadDocumentSourceUsages } from '@/lib/research/document-source-usage';
 import { buildDocumentEditorUrl } from '@/lib/research/source-navigation';
 import { createDocumentWritingSession } from '@/lib/research/document-writing-session';
 import {
+  listProjectEntityRefs,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+  type ResearchProjectEntityRefsChangedDetail,
+} from '@/lib/research/project-storage';
+import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 } from '@/lib/research/document-blueprint-storage';
 import {
@@ -71,12 +76,18 @@ export function GraphStudioHeader({
   const [isCreatingDocument, setIsCreatingDocument] = useState(false);
   const [dismissedRelinkWarningKey, setDismissedRelinkWarningKey] = useState<string | null>(null);
   const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([]);
+  const [, setProjectRefsVersion] = useState(0);
   const documentUsageRequestSeqRef = useRef(0);
   const resolvedResearchProjectId = currentProject?.projectId ?? linkedResearchProjectId ?? null;
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
   const currentProjectId = currentProject?.id ?? null;
+  const isFigureLinkedToResolvedResearchProject = currentProjectId !== null
+    && resolvedResearchProjectId !== null
+    && listProjectEntityRefs(resolvedResearchProjectId).some((entityRef) => (
+      entityRef.entityKind === 'figure' && entityRef.entityId === currentProjectId
+    ));
   const visibleUsages = documentUsages.slice(0, 2);
   const relinkWarningKey = relinkWarning
     ? JSON.stringify({
@@ -158,6 +169,31 @@ export function GraphStudioHeader({
     };
   }, [resolvedResearchProjectId, reloadDocumentUsages]);
 
+  useEffect((): (() => void) => {
+    const handleProjectRefsChanged = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        setProjectRefsVersion((value) => value + 1);
+        void reloadDocumentUsages();
+        return;
+      }
+
+      const detail = event.detail as ResearchProjectEntityRefsChangedDetail | undefined;
+      if (
+        !detail
+        || (resolvedResearchProjectId !== null && detail.projectIds.includes(resolvedResearchProjectId))
+        || (currentProjectId !== null && detail.entityIds.includes(currentProjectId))
+      ) {
+        setProjectRefsVersion((value) => value + 1);
+        void reloadDocumentUsages();
+      }
+    };
+
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsChanged);
+    return () => {
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsChanged);
+    };
+  }, [currentProjectId, reloadDocumentUsages, resolvedResearchProjectId]);
+
   const handleNewChart = useCallback(() => {
     const hasUnsavedSession = chartSpec !== null && (currentProject === null || historyIndex > 0);
     if (hasUnsavedSession) {
@@ -223,6 +259,10 @@ export function GraphStudioHeader({
       toast.error('저장된 그래프에서만 문서를 시작할 수 있습니다.');
       return;
     }
+    if (!isFigureLinkedToResolvedResearchProject) {
+      toast.error('현재 그래프가 연결된 연구 프로젝트 자료로 등록되어 있지 않습니다.');
+      return;
+    }
 
     setIsCreatingDocument(true);
     try {
@@ -240,7 +280,14 @@ export function GraphStudioHeader({
     } finally {
       setIsCreatingDocument(false);
     }
-  }, [currentProject?.name, currentProjectId, isCreatingDocument, resolvedResearchProjectId, router]);
+  }, [
+    currentProject?.name,
+    currentProjectId,
+    isCreatingDocument,
+    isFigureLinkedToResolvedResearchProject,
+    resolvedResearchProjectId,
+    router,
+  ]);
 
   return (
     <>
@@ -326,7 +373,7 @@ export function GraphStudioHeader({
             AI
           </Button>
         )}
-        {chartSpec && currentProjectId && resolvedResearchProjectId && (
+        {chartSpec && currentProjectId && resolvedResearchProjectId && isFigureLinkedToResolvedResearchProject && (
           <StartWritingButton
             label="자료 작성"
             pendingLabel="문서 생성 중..."
@@ -343,7 +390,7 @@ export function GraphStudioHeader({
         )}
         {visibleUsages.map((usage) => (
           <Button
-            key={`${usage.documentId}:${usage.sectionId}`}
+            key={`${usage.documentId}:${usage.sectionId}:${usage.kind}:${usage.artifactId ?? usage.sourceKind ?? usage.label}`}
             variant="ghost"
             size="sm"
             onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {

@@ -499,6 +499,30 @@ async function failDocumentWriting(documentId: string, jobId: string, message: s
   })
 }
 
+async function restartDocumentWritingState(
+  documentId: string,
+  jobId: string,
+  now: string,
+): Promise<DocumentBlueprint | null> {
+  return mutateDocumentWithRetry(documentId, (document) => {
+    let restartedDocument = updateDocumentWritingState(document, 'collecting', {
+      jobId,
+      startedAt: now,
+      updatedAt: now,
+      errorMessage: undefined,
+    })
+
+    for (const sectionId of ['methods', 'results'] as const) {
+      restartedDocument = updateDocumentSectionWritingState(restartedDocument, sectionId, 'drafting', {
+        jobId,
+        updatedAt: now,
+      })
+    }
+
+    return restartedDocument
+  })
+}
+
 async function runDocumentWriting(documentId: string): Promise<DocumentBlueprint | null> {
   const document = await loadDocumentBlueprint(documentId)
   if (!document) {
@@ -563,7 +587,14 @@ async function runDocumentWriting(documentId: string): Promise<DocumentBlueprint
       return null
     }
     const message = error instanceof Error ? error.message : '문서 초안 생성에 실패했습니다.'
-    await failDocumentWriting(documentId, jobId, message)
+    try {
+      await failDocumentWriting(documentId, jobId, message)
+    } catch (failError) {
+      if (failError instanceof DocumentWritingJobStaleError) {
+        return null
+      }
+      throw failError
+    }
     return null
   }
 }
@@ -590,30 +621,12 @@ export function retryDocumentWriting(documentId: string): Promise<DocumentBluepr
   }
 
   const restartJob = (async (): Promise<DocumentBlueprint | null> => {
-    const currentDocument = await loadDocumentBlueprint(documentId)
-    if (!currentDocument) {
-      return null
-    }
-
     const nextJobId = generateId('docjob')
     const now = new Date().toISOString()
-    let restartedDocument = updateDocumentWritingState(currentDocument, 'collecting', {
-      jobId: nextJobId,
-      startedAt: now,
-      updatedAt: now,
-      errorMessage: undefined,
-    })
-
-    for (const sectionId of ['methods', 'results'] as const) {
-      restartedDocument = updateDocumentSectionWritingState(restartedDocument, sectionId, 'drafting', {
-        jobId: nextJobId,
-        updatedAt: now,
-      })
+    const restartedDocument = await restartDocumentWritingState(documentId, nextJobId, now)
+    if (!restartedDocument) {
+      return null
     }
-
-    await saveDocumentBlueprint(restartedDocument, {
-      expectedUpdatedAt: currentDocument.updatedAt,
-    })
 
     return runDocumentWriting(documentId)
   })()

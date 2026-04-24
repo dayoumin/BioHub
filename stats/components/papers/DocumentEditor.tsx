@@ -29,7 +29,7 @@ import {
   GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects as listGraphProjects,
 } from '@/lib/graph-studio/project-storage'
-import { loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
+import { BIO_HISTORY_CHANGE_EVENT, loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
 import type {
   BoldHistoryEntry,
   PhylogenyHistoryEntry,
@@ -38,7 +38,11 @@ import type {
   SimilarityHistoryEntry,
   TranslationHistoryEntry,
 } from '@/lib/genetics/analysis-history'
-import { loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
+import {
+  HISTORY_CHANGE_EVENT as GENETICS_HISTORY_CHANGE_EVENT,
+  loadAnalysisHistory,
+  loadGeneticsHistory,
+} from '@/lib/genetics/analysis-history'
 import {
   convertPaperTable,
   buildFigureRef,
@@ -75,6 +79,7 @@ import SectionWritingBanner from './SectionWritingBanner'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
+import { generateId } from '@/lib/utils/generate-id'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -93,6 +98,16 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+
+function documentHasSupplementarySources(document: DocumentBlueprint | null): boolean {
+  if (!document) {
+    return false
+  }
+
+  return document.sections.some((section) => (
+    (section.sourceRefs ?? []).some((sourceRef) => sourceRef.kind === 'supplementary')
+  ))
+}
 
 export default function DocumentEditor({
   documentId,
@@ -119,6 +134,7 @@ export default function DocumentEditor({
   const pendingSaveRevisionRef = useRef<number | null>(null)
   const lastSavedUpdatedAtRef = useRef<string | null>(null)
   const hasLocalChangesRef = useRef(false)
+  const documentConflictRef = useRef<DocumentBlueprint | null>(null)
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
@@ -161,6 +177,7 @@ export default function DocumentEditor({
     pendingSaveRevisionRef.current = null
     latestScheduledSaveRevisionRef.current = 0
     setDocumentConflict(null)
+    documentConflictRef.current = null
     setSaveStatus('saved')
 
     if (loaded.sections.length === 0) {
@@ -186,6 +203,7 @@ export default function DocumentEditor({
     }
     pendingSaveRevisionRef.current = null
     setDocumentConflict(latestDocument)
+    documentConflictRef.current = latestDocument
     setSaveStatus('conflict')
   }, [])
 
@@ -445,14 +463,25 @@ export default function DocumentEditor({
       void reloadCitations(currentProjectId)
     }
 
+    const handleSupplementaryHistoryChange = (): void => {
+      if (!documentHasSupplementarySources(docRef.current)) {
+        return
+      }
+      setNeedsReassemble(true)
+    }
+
     window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
     window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
     window.addEventListener(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, handleCitationChange)
+    window.addEventListener(BIO_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
+    window.addEventListener(GENETICS_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
 
     return (): void => {
       window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
       window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
       window.removeEventListener(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, handleCitationChange)
+      window.removeEventListener(BIO_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
+      window.removeEventListener(GENETICS_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
     }
   }, [reloadCitations])
 
@@ -461,6 +490,7 @@ export default function DocumentEditor({
     pendingDocRef.current = updated
     hasLocalChangesRef.current = true
     setDocumentConflict(null)
+    documentConflictRef.current = null
     const revision = latestScheduledSaveRevisionRef.current + 1
     latestScheduledSaveRevisionRef.current = revision
     pendingSaveRevisionRef.current = revision
@@ -476,6 +506,7 @@ export default function DocumentEditor({
     pendingDocRef.current = updated
     hasLocalChangesRef.current = true
     setDocumentConflict(null)
+    documentConflictRef.current = null
     const revision = latestScheduledSaveRevisionRef.current + 1
     latestScheduledSaveRevisionRef.current = revision
     pendingSaveRevisionRef.current = revision
@@ -517,62 +548,97 @@ export default function DocumentEditor({
     return sectionStatus === 'drafting'
   }, [])
 
+  const interruptDocumentWriting = useCallback((
+    document: DocumentBlueprint,
+    sectionId: string,
+    options: {
+      message: string
+      plateValue?: unknown
+    },
+  ): DocumentBlueprint => {
+    const interruptedAt = new Date().toISOString()
+    const previousJobId = document.writingState?.jobId
+    const interruptionJobId = generateId('docjob')
+
+    const nextSections = document.sections.map((section) => (
+      section.id === sectionId
+        ? {
+            ...section,
+            plateValue: options.plateValue ?? section.plateValue,
+            generatedBy: 'user' as const,
+          }
+        : section
+    ))
+
+    let updatedDocument: DocumentBlueprint = {
+      ...document,
+      sections: nextSections,
+      updatedAt: interruptedAt,
+    }
+
+    updatedDocument = {
+      ...updatedDocument,
+      writingState: {
+        ...updatedDocument.writingState,
+        status: 'completed',
+        jobId: interruptionJobId,
+        startedAt: updatedDocument.writingState?.startedAt,
+        updatedAt: interruptedAt,
+        errorMessage: undefined,
+        sectionStates: {
+          ...(updatedDocument.writingState?.sectionStates ?? {}),
+        },
+      },
+    }
+
+    for (const section of document.sections) {
+      const currentStatus = document.writingState?.sectionStates[section.id]?.status
+      const currentJobId = document.writingState?.sectionStates[section.id]?.jobId ?? previousJobId
+      const shouldInterruptSection = (
+        section.id === sectionId
+        || (currentStatus === 'drafting' && currentJobId === previousJobId)
+      )
+
+      if (!shouldInterruptSection) {
+        continue
+      }
+
+      updatedDocument = updateDocumentSectionWritingState(updatedDocument, section.id, 'skipped', {
+        jobId: interruptionJobId,
+        updatedAt: interruptedAt,
+        message: section.id === sectionId
+          ? options.message
+          : '사용자가 자동 작성을 중단했습니다.',
+      })
+    }
+
+    return updatedDocument
+  }, [])
+
   const takeSectionOwnershipForEditing = useCallback((sectionId: string, plateValue: unknown): void => {
     setDoc((prev) => {
       if (!prev) {
         return prev
       }
-
-      const nextSections = prev.sections.map((section) => (
-        section.id === sectionId
-          ? {
-              ...section,
-              plateValue,
-              generatedBy: 'user' as const,
-            }
-          : section
-      ))
-
-      const updatedBase: DocumentBlueprint = {
-        ...prev,
-        sections: nextSections,
-        updatedAt: new Date().toISOString(),
-      }
-      const updated = updateDocumentSectionWritingState(updatedBase, sectionId, 'skipped', {
+      const updated = interruptDocumentWriting(prev, sectionId, {
         message: '사용자 편집이 시작되어 자동 초안을 중단했습니다.',
+        plateValue,
       })
       scheduleImmediateSave(updated)
       return updated
     })
-  }, [scheduleImmediateSave])
+  }, [interruptDocumentWriting, scheduleImmediateSave])
 
   const skipSectionWriting = useCallback((sectionId: string, message: string): void => {
     setDoc((prev) => {
       if (!prev) {
         return prev
       }
-
-      const nextSections = prev.sections.map((section) => (
-        section.id === sectionId
-          ? {
-              ...section,
-              generatedBy: 'user' as const,
-            }
-          : section
-      ))
-
-      const updatedBase: DocumentBlueprint = {
-        ...prev,
-        sections: nextSections,
-        updatedAt: new Date().toISOString(),
-      }
-      const updated = updateDocumentSectionWritingState(updatedBase, sectionId, 'skipped', {
-        message,
-      })
+      const updated = interruptDocumentWriting(prev, sectionId, { message })
       scheduleImmediateSave(updated)
       return updated
     })
-  }, [scheduleImmediateSave])
+  }, [interruptDocumentWriting, scheduleImmediateSave])
 
   const reassembleCurrentDocument = useCallback((baseDoc?: DocumentBlueprint): DocumentBlueprint | null => {
     const targetDoc = baseDoc ?? docRef.current
@@ -669,6 +735,25 @@ export default function DocumentEditor({
       return null
     }
   }, [editor, scheduleSave])
+
+  const flushPendingWrites = useCallback(async (): Promise<void> => {
+    flushSerialize()
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+
+    const pendingDoc = pendingDocRef.current
+    const pendingRevision = pendingSaveRevisionRef.current
+
+    if (pendingDoc && pendingRevision !== null) {
+      await queueDocumentSave(pendingDoc, pendingRevision)
+      return
+    }
+
+    await saveQueueRef.current.catch(() => undefined)
+  }, [flushSerialize, queueDocumentSave])
 
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
@@ -931,12 +1016,33 @@ export default function DocumentEditor({
         return null
     }
   }, [activeSectionWritingState?.status])
-  const handleRetryWriting = useCallback((): void => {
+  const handleRetryWriting = useCallback(async (): Promise<void> => {
     if (!doc) {
       return
     }
-    void retryDocumentWriting(doc.id)
-  }, [doc])
+    if (documentConflictRef.current) {
+      return
+    }
+
+    try {
+      await flushPendingWrites()
+    } catch (error) {
+      console.error('[DocumentEditor] failed to flush local changes before retry:', error)
+      toast.error('문서 재시도를 준비하지 못했습니다.')
+      return
+    }
+
+    if (documentConflictRef.current || pendingSaveRevisionRef.current !== null) {
+      return
+    }
+
+    try {
+      await retryDocumentWriting(doc.id)
+    } catch (error) {
+      console.error('[DocumentEditor] failed to retry writing:', error)
+      toast.error('문서 재시도에 실패했습니다.')
+    }
+  }, [doc, flushPendingWrites])
   const activeSectionSourceLinks = useMemo(() => {
     if (!doc || !activeSection) return []
 

@@ -1201,6 +1201,21 @@ export interface ResultsText {
     documentsTitle: string
     documentsDescription: string
     moreDocuments: (count: number) => string
+    writingTitle: string
+    writingAction: string
+    writingPending: string
+    writingUntitledResult: string
+    writingDescriptionNoProject: string
+    writingDescriptionUnsaved: string
+    writingDescriptionUnlinked: string
+    writingEmptyReady: string
+    writingEmptyUnsaved: string
+    writingEmptyUnlinked: string
+    writingRequireProjectError: string
+    writingRequireSavedResultError: string
+    writingRequireLinkedResultError: string
+    writingCreateError: string
+    writingDraftTitle: (methodName: string) => string
   }
 }
 

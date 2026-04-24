@@ -25,16 +25,20 @@ const {
   isCodeExportAvailableMock,
   loadDocumentSourceUsagesMock,
   createDocumentWritingSessionMock,
+  listProjectEntityRefsMock,
   routerPushMock,
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
   generateSummaryTextMock: vi.fn(),
   exportCodeFromAnalysisMock: vi.fn(),
   isCodeExportAvailableMock: vi.fn(),
   loadDocumentSourceUsagesMock: vi.fn(),
   createDocumentWritingSessionMock: vi.fn(),
+  listProjectEntityRefsMock: vi.fn(),
   routerPushMock: vi.fn(),
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
 }))
 
 vi.mock('@/lib/hooks/useReducedMotion', () => ({
@@ -141,6 +145,21 @@ vi.mock('@/hooks/use-terminology', () => ({
         documentsTitle: '이 결과를 사용하는 문서',
         documentsDescription: 'desc',
         moreDocuments: (count: number) => `+${count}`,
+        writingTitle: '문서 작성',
+        writingAction: '문서에서 작성',
+        writingPending: '문서 생성 중...',
+        writingUntitledResult: '분석 결과',
+        writingDescriptionNoProject: '프로젝트를 먼저 선택하면 저장된 분석 결과를 바로 문서 초안으로 연결할 수 있습니다.',
+        writingDescriptionUnsaved: '저장된 분석 결과에서만 문서를 시작할 수 있습니다. 먼저 결과를 저장하세요.',
+        writingDescriptionUnlinked: '이 저장 결과가 현재 프로젝트에 연결되어 있지 않아 여기서는 문서를 시작할 수 없습니다.',
+        writingEmptyReady: '아직 이 결과를 사용하는 문서가 없습니다. 지금 바로 초안을 만들 수 있습니다.',
+        writingEmptyUnsaved: '먼저 현재 결과를 저장하면 이 화면에서 바로 문서 초안을 만들 수 있습니다.',
+        writingEmptyUnlinked: '이 저장 결과를 프로젝트에 연결한 뒤 이 화면에서 문서 초안을 시작할 수 있습니다.',
+        writingRequireProjectError: '프로젝트를 먼저 선택해야 문서를 만들 수 있습니다.',
+        writingRequireSavedResultError: '저장된 분석 결과에서만 문서를 시작할 수 있습니다.',
+        writingRequireLinkedResultError: '이 저장 결과가 프로젝트에 연결되어 있어야 문서를 만들 수 있습니다.',
+        writingCreateError: '문서 생성에 실패했습니다.',
+        writingDraftTitle: (methodName: string) => `${methodName} 문서 초안`,
       },
       followUp: {
         errorMessage: 'follow-up-error',
@@ -300,6 +319,11 @@ vi.mock('@/lib/research/document-blueprint-storage', () => ({
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 }))
 
+vi.mock('@/lib/research/project-storage', () => ({
+  listProjectEntityRefs: (...args: unknown[]) => listProjectEntityRefsMock(...args),
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+}))
+
 const RESULTS: AnalysisResult = {
   method: 'Independent Samples t-Test',
   pValue: 0.03,
@@ -318,6 +342,19 @@ describe('ResultsActionStep action wiring', () => {
     loadDocumentSourceUsagesMock.mockResolvedValue([])
     createDocumentWritingSessionMock.mockReset()
     createDocumentWritingSessionMock.mockResolvedValue({ id: 'doc-created' })
+    listProjectEntityRefsMock.mockReset()
+    listProjectEntityRefsMock.mockImplementation((projectId?: string) => (
+      projectId === 'project-1'
+        ? [{
+            id: 'pref-1',
+            projectId: 'project-1',
+            entityKind: 'analysis',
+            entityId: 'history-1',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          }]
+        : []
+    ))
     routerPushMock.mockReset()
 
     Object.defineProperty(globalThis, 'ClipboardItem', {
@@ -449,6 +486,60 @@ describe('ResultsActionStep action wiring', () => {
     expect(routerPushMock).toHaveBeenCalledWith('/papers?doc=doc-created')
   })
 
+  it('uses the restored result project for document usage and document creation', async () => {
+    listProjectEntityRefsMock.mockImplementation((projectId?: string) => (
+      projectId === 'project-restored'
+        ? [{
+            id: 'pref-restored',
+            projectId: 'project-restored',
+            entityKind: 'analysis',
+            entityId: 'history-1',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          }]
+        : []
+    ))
+
+    act(() => {
+      useHistoryStore.setState((state) => ({
+        ...state,
+        analysisHistory: [{
+          id: 'history-1',
+          timestamp: new Date('2026-01-01T00:00:00.000Z'),
+          name: 'Saved result',
+          projectId: 'project-restored',
+          purpose: '',
+          method: null,
+          dataFileName: 'test.csv',
+          dataRowCount: 1,
+          results: {},
+        }],
+      }))
+    })
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    await waitFor(() => {
+      expect(loadDocumentSourceUsagesMock).toHaveBeenCalledWith('history-1', {
+        projectId: 'project-restored',
+        sourceKind: 'analysis',
+      })
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('paper-document-btn'))
+    })
+
+    expect(createDocumentWritingSessionMock).toHaveBeenCalledWith({
+      projectId: 'project-restored',
+      title: 'Independent Samples t-Test 문서 초안',
+      sourceEntityIds: {
+        analysisIds: ['history-1'],
+      },
+    })
+  })
+
   it('shows a disabled writing surface until the result is saved', async () => {
     useHistoryStore.getState().setCurrentHistoryId(null)
 
@@ -456,6 +547,33 @@ describe('ResultsActionStep action wiring', () => {
     render(<ResultsActionStep results={RESULTS} />)
 
     expect(screen.getByText('저장된 분석 결과에서만 문서를 시작할 수 있습니다. 먼저 결과를 저장하세요.')).toBeInTheDocument()
+    expect(screen.getByTestId('paper-document-btn')).toBeDisabled()
+  })
+
+  it('disables writing when the saved result is not linked into the resolved project refs', async () => {
+    act(() => {
+      useHistoryStore.setState((state) => ({
+        ...state,
+        analysisHistory: [{
+          id: 'history-1',
+          timestamp: new Date('2026-01-01T00:00:00.000Z'),
+          name: 'Saved result',
+          projectId: 'project-restored',
+          purpose: '',
+          method: null,
+          dataFileName: 'test.csv',
+          dataRowCount: 1,
+          results: {},
+        }],
+      }))
+    })
+    listProjectEntityRefsMock.mockReturnValue([])
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    expect(screen.getByText('이 저장 결과가 현재 프로젝트에 연결되어 있지 않아 여기서는 문서를 시작할 수 없습니다.')).toBeInTheDocument()
+    expect(screen.getByText('이 저장 결과를 프로젝트에 연결한 뒤 이 화면에서 문서 초안을 시작할 수 있습니다.')).toBeInTheDocument()
     expect(screen.getByTestId('paper-document-btn')).toBeDisabled()
   })
 

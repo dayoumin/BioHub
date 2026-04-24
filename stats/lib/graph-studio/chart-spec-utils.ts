@@ -201,7 +201,7 @@ export function applyAndValidatePatches(
   const result = chartSpecSchema.safeParse(patched);
 
   if (result.success) {
-    return { success: true, spec: patched };
+    return { success: true, spec: result.data };
   }
 
   const error = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');

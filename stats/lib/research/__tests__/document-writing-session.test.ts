@@ -78,6 +78,20 @@ describe('createDocumentWritingSession', () => {
         label: 'Shannon diversity — sample.csv',
         provenanceEdges: [],
       },
+      {
+        projectId: 'proj_1',
+        entityKind: 'bio-tool-result',
+        entityId: 'shared_1',
+        label: 'Shared bio result',
+        provenanceEdges: [],
+      },
+      {
+        projectId: 'proj_1',
+        entityKind: 'protein-result',
+        entityId: 'shared_1',
+        label: 'Shared protein result',
+        provenanceEdges: [],
+      },
     ])
     mockGetAllHistory.mockResolvedValue([
       { id: 'analysis_1', name: 'ANOVA', method: { name: 'ANOVA' } },
@@ -203,6 +217,16 @@ describe('createDocumentWritingSession', () => {
     expect(resultsSection?.sourceRefs).toEqual([
       { kind: 'supplementary', sourceId: 'bio_1', label: 'Shannon diversity — sample.csv' },
     ])
+  })
+
+  it('rejects ambiguous supplementary entity ids instead of binding multiple kinds', async () => {
+    await expect(createDocumentWritingSession({
+      projectId: 'proj_1',
+      title: '보조 결과 문서',
+      sourceEntityIds: {
+        entityIds: ['shared_1'],
+      },
+    })).rejects.toThrow('선택한 결과를 문서 초안 자료로 연결하지 못했습니다.')
   })
 
   it('retries an existing document when retry mode is requested', async () => {

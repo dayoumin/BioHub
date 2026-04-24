@@ -23,12 +23,16 @@ const {
   mockRouterPush,
   mockLoadDocumentSourceUsages,
   mockCreateDocumentWritingSession,
+  mockListProjectEntityRefs,
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
   mockRouterPush: vi.fn(),
   mockLoadDocumentSourceUsages: vi.fn(),
   mockCreateDocumentWritingSession: vi.fn(),
+  mockListProjectEntityRefs: vi.fn(),
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
 }))
 
 vi.mock('@/components/graph-studio/panels/ExportDialog', () => ({
@@ -53,6 +57,11 @@ vi.mock('@/lib/research/document-writing-session', () => ({
 
 vi.mock('@/lib/research/document-blueprint-storage', () => ({
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+}))
+
+vi.mock('@/lib/research/project-storage', () => ({
+  listProjectEntityRefs: (projectId?: string) => mockListProjectEntityRefs(projectId),
+  RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 }))
 
 function makeSpec(title = 'Test Chart'): ChartSpec {
@@ -92,6 +101,12 @@ describe('GraphStudioHeader', () => {
     mockLoadDocumentSourceUsages.mockResolvedValue([])
     mockCreateDocumentWritingSession.mockReset()
     mockCreateDocumentWritingSession.mockResolvedValue({ id: 'doc-created' })
+    mockListProjectEntityRefs.mockReset()
+    mockListProjectEntityRefs.mockImplementation((projectId?: string) => (
+      projectId
+        ? [{ entityKind: 'figure', entityId: 'project-1' }]
+        : []
+    ))
     act(() => {
       useGraphStudioStore.getState().resetAll()
     })
@@ -363,6 +378,31 @@ describe('GraphStudioHeader', () => {
 
     expect(await screen.findByRole('button', { name: '논문 초안' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '보고서' })).toBeInTheDocument()
+    expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(2)
+  })
+
+  it('refreshes write availability and usages when project entity refs are relinked', async () => {
+    const spec = makeSpec()
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject(spec))
+    })
+
+    render(<GraphStudioHeader />)
+
+    expect(screen.getByTestId('graph-studio-write-doc')).toBeInTheDocument()
+
+    mockListProjectEntityRefs.mockImplementation(() => [])
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, {
+        detail: { projectIds: ['research-project-1'], entityIds: ['project-1'] },
+      }))
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('graph-studio-write-doc')).not.toBeInTheDocument()
+    })
     expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(2)
   })
 

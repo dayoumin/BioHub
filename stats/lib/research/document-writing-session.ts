@@ -75,6 +75,28 @@ function buildSelectedEntityRefs(
   const figureIds = new Set(sourceEntityIds?.figureIds ?? [])
   const entityIds = new Set(sourceEntityIds?.entityIds ?? [])
   const hasFilter = analysisIds.size > 0 || figureIds.size > 0 || entityIds.size > 0
+  const supplementaryRefsById = new Map<string, ProjectEntityRef[]>()
+
+  for (const entityRef of entityRefs) {
+    if (
+      entityRef.entityKind !== 'analysis'
+      && entityRef.entityKind !== 'figure'
+      && entityIds.has(entityRef.entityId)
+    ) {
+      const existingRefs = supplementaryRefsById.get(entityRef.entityId)
+      if (existingRefs) {
+        existingRefs.push(entityRef)
+      } else {
+        supplementaryRefsById.set(entityRef.entityId, [entityRef])
+      }
+    }
+  }
+
+  const unambiguousSupplementaryKeys = new Set(
+    Array.from(supplementaryRefsById.values())
+      .filter((refs) => refs.length === 1)
+      .map(([entityRef]) => `${entityRef.entityKind}:${entityRef.entityId}`),
+  )
 
   return entityRefs.filter((entityRef) => {
     if (!hasFilter) {
@@ -89,7 +111,7 @@ function buildSelectedEntityRefs(
       return figureIds.has(entityRef.entityId)
     }
 
-    return entityIds.has(entityRef.entityId)
+    return unambiguousSupplementaryKeys.has(`${entityRef.entityKind}:${entityRef.entityId}`)
   })
 }
 

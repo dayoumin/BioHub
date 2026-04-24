@@ -78,6 +78,7 @@ vi.mock('@/lib/statistics/result-converter', () => ({
 
 import { ensureDocumentWriting, retryDocumentWriting } from '../document-writing-orchestrator'
 import { createDocumentSourceRef } from '../document-blueprint-types'
+import { DocumentBlueprintConflictError } from '../document-blueprint-storage'
 
 function makeDocument(overrides: Partial<DocumentBlueprint> = {}): DocumentBlueprint {
   const now = '2026-04-24T00:00:00.000Z'
@@ -494,6 +495,74 @@ describe('document writing orchestrator', () => {
     const recovered = await retryDocumentWriting('doc_1')
     expect(recovered?.writingState?.status).toBe('completed')
     expect(recovered?.sections.find((section) => section.id === 'methods')?.content).toContain('방법 초안')
+  })
+
+  it('retries restart state updates when retry hits a document conflict', async () => {
+    const saveError = new Error('save failed')
+    let saveAttempt = 0
+    let retryConflictInjected = false
+
+    mockSaveDocumentBlueprint.mockImplementation(async (document: DocumentBlueprint) => {
+      saveAttempt += 1
+      if (saveAttempt === 1) {
+        throw saveError
+      }
+      if (!retryConflictInjected && document.writingState?.status === 'collecting' && document.writingState.jobId !== 'job_1') {
+        retryConflictInjected = true
+        currentDocument = {
+          ...currentDocument,
+          updatedAt: new Date(Date.parse(currentDocument.updatedAt) + 1000).toISOString(),
+        }
+        throw new DocumentBlueprintConflictError(currentDocument)
+      }
+      currentDocument = {
+        ...document,
+        updatedAt: new Date(Date.parse(currentDocument.updatedAt) + 1000).toISOString(),
+      }
+      return currentDocument
+    })
+
+    await ensureDocumentWriting('doc_1')
+    expect(currentDocument.writingState?.status).toBe('failed')
+
+    const recovered = await retryDocumentWriting('doc_1')
+
+    expect(recovered?.writingState?.status).toBe('completed')
+    expect(retryConflictInjected).toBe(true)
+  })
+
+  it('treats stale failure persistence as a no-op when a newer retry supersedes the run', async () => {
+    let saveAttempt = 0
+    mockSaveDocumentBlueprint.mockImplementation(async (document: DocumentBlueprint) => {
+      saveAttempt += 1
+      if (saveAttempt === 1) {
+        throw new Error('save failed')
+      }
+      currentDocument = {
+        ...document,
+        updatedAt: new Date(Date.parse(currentDocument.updatedAt) + 1000).toISOString(),
+      }
+      return currentDocument
+    })
+    mockLoadDocumentBlueprint.mockImplementation(async () => {
+      if (saveAttempt >= 1) {
+        return {
+          ...currentDocument,
+          writingState: {
+            ...currentDocument.writingState,
+            status: 'collecting',
+            jobId: 'job_newer',
+            sectionStates: {
+              methods: { status: 'drafting', jobId: 'job_newer' },
+              results: { status: 'drafting', jobId: 'job_newer' },
+            },
+          },
+        }
+      }
+      return currentDocument
+    })
+
+    await expect(ensureDocumentWriting('doc_1')).resolves.toBeNull()
   })
 
   it('reuses the in-flight job when retry is requested before the current run settles', async () => {

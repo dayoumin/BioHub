@@ -14,10 +14,11 @@ import {
   type DocumentSourceRef,
 } from './document-blueprint-types'
 import {
+  listProjectEntityRefs,
   upsertProjectEntityRef,
   removeProjectEntityRef,
 } from './project-storage'
-import type { ProjectProvenanceEdge } from '@/lib/types/research'
+import type { ProjectEntityRef, ProjectProvenanceEdge } from '@/lib/types/research'
 import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
 import {
   emitCrossTabCustomEvent,
@@ -118,6 +119,40 @@ function buildDraftProvenanceEdges(blueprint: DocumentBlueprint): ProjectProvena
   return Array.from(edges.values())
 }
 
+function findDraftEntityRef(projectId: string, documentId: string): ProjectEntityRef | null {
+  return listProjectEntityRefs(projectId).find(
+    (ref) => ref.entityKind === 'draft' && ref.entityId === documentId,
+  ) ?? null
+}
+
+function restoreDraftEntityRef(snapshot: ProjectEntityRef | null): void {
+  if (!snapshot) {
+    return
+  }
+
+  upsertProjectEntityRef({
+    projectId: snapshot.projectId,
+    entityKind: snapshot.entityKind,
+    entityId: snapshot.entityId,
+    label: snapshot.label,
+    order: snapshot.order,
+    provenanceEdges: snapshot.provenanceEdges,
+  })
+}
+
+async function rollbackSavedDocument(
+  db: IDBDatabase,
+  documentId: string,
+  previousDocument: DocumentBlueprint | undefined,
+): Promise<void> {
+  if (previousDocument) {
+    await txPut(db, STORE_NAME, previousDocument)
+    return
+  }
+
+  await txDelete(db, STORE_NAME, documentId)
+}
+
 // ── 공개 API ──
 
 /**
@@ -136,6 +171,7 @@ export async function saveDocumentBlueprint(
     : { ...blueprint, updatedAt: new Date().toISOString() }
 
   const existing = await txGet<DocumentBlueprint>(db, STORE_NAME, blueprint.id)
+  const previousDraftRef = findDraftEntityRef(blueprint.projectId, blueprint.id)
   if (
     existing &&
     options?.expectedUpdatedAt &&
@@ -146,13 +182,33 @@ export async function saveDocumentBlueprint(
 
   await txPut(db, STORE_NAME, toSave)
 
-  upsertProjectEntityRef({
-    projectId: blueprint.projectId,
-    entityKind: 'draft',
-    entityId: blueprint.id,
-    label: blueprint.title,
-    provenanceEdges: buildDraftProvenanceEdges(toSave),
-  })
+  try {
+    upsertProjectEntityRef({
+      projectId: blueprint.projectId,
+      entityKind: 'draft',
+      entityId: blueprint.id,
+      label: blueprint.title,
+      provenanceEdges: buildDraftProvenanceEdges(toSave),
+    })
+  } catch (error) {
+    try {
+      await rollbackSavedDocument(db, blueprint.id, existing)
+    } catch (rollbackError) {
+      console.error('[document-blueprint-storage] Failed to rollback document save:', rollbackError)
+    }
+
+    try {
+      if (previousDraftRef) {
+        restoreDraftEntityRef(previousDraftRef)
+      } else {
+        removeProjectEntityRef(blueprint.projectId, 'draft', blueprint.id)
+      }
+    } catch (rollbackError) {
+      console.error('[document-blueprint-storage] Failed to rollback draft entity ref:', rollbackError)
+    }
+
+    throw error
+  }
   notifyDocumentBlueprintsChanged({
     projectId: blueprint.projectId,
     documentId: blueprint.id,
@@ -170,9 +226,29 @@ export async function deleteDocumentBlueprint(
   projectId: string,
 ): Promise<void> {
   const db = await openDB()
+  const existing = await txGet<DocumentBlueprint>(db, STORE_NAME, id)
+  const previousDraftRef = findDraftEntityRef(projectId, id)
   await txDelete(db, STORE_NAME, id)
 
-  removeProjectEntityRef(projectId, 'draft', id)
+  try {
+    removeProjectEntityRef(projectId, 'draft', id)
+  } catch (error) {
+    try {
+      if (existing) {
+        await txPut(db, STORE_NAME, existing)
+      }
+    } catch (rollbackError) {
+      console.error('[document-blueprint-storage] Failed to rollback document delete:', rollbackError)
+    }
+
+    try {
+      restoreDraftEntityRef(previousDraftRef)
+    } catch (rollbackError) {
+      console.error('[document-blueprint-storage] Failed to restore draft entity ref:', rollbackError)
+    }
+
+    throw error
+  }
   notifyDocumentBlueprintsChanged({
     projectId,
     documentId: id,

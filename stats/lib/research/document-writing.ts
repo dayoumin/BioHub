@@ -103,23 +103,13 @@ function mergeDocumentTables(
     return currentTables ? [...currentTables] : undefined
   }
 
-  const merged = new Map<string, DocumentTable>()
-  for (const table of currentTables ?? []) {
+  return nextTables.map((table) => {
     const id = table.id ?? buildDocumentTableId(table)
-    merged.set(id, {
+    return {
       ...table,
       id,
-    })
-  }
-  for (const table of nextTables) {
-    const id = table.id ?? buildDocumentTableId(table)
-    merged.set(id, {
-      ...table,
-      id,
-    })
-  }
-
-  return Array.from(merged.values())
+    }
+  })
 }
 
 function mergeDocumentFigures(
@@ -130,15 +120,7 @@ function mergeDocumentFigures(
     return currentFigures ? [...currentFigures] : undefined
   }
 
-  const merged = new Map<string, FigureRef>()
-  for (const figure of currentFigures ?? []) {
-    merged.set(figure.entityId, figure)
-  }
-  for (const figure of nextFigures) {
-    merged.set(figure.entityId, figure)
-  }
-
-  return Array.from(merged.values())
+  return [...nextFigures]
 }
 
 export function mergeDocumentSectionPatch(
@@ -153,7 +135,7 @@ export function mergeDocumentSectionPatch(
     content: preserveBody ? section.content : (patch.content ?? section.content),
     plateValue: preserveBody ? section.plateValue : (patch.plateValue ?? section.plateValue),
     sourceRefs: patch.sourceRefs
-      ? dedupeSourceRefs([...(section.sourceRefs ?? []), ...patch.sourceRefs])
+      ? dedupeSourceRefs(patch.sourceRefs)
       : section.sourceRefs,
     tables: mergeDocumentTables(section.tables, patch.tables),
     figures: mergeDocumentFigures(section.figures, patch.figures),

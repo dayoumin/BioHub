@@ -143,6 +143,9 @@ describe('document-writing helpers', () => {
       ...makeDocument().sections[0]!,
       content: '기존 방법',
       plateValue: [{ type: 'p', children: [{ text: 'old' }] }],
+      sourceRefs: [
+        createDocumentSourceRef('analysis', 'hist_legacy'),
+      ],
       tables: [
         {
           id: 'table_existing',
@@ -190,11 +193,11 @@ describe('document-writing helpers', () => {
       generatedBy: 'llm',
     })
 
-    expect(merged.content).toBe('새 방법')
-    expect(merged.plateValue).toEqual([{ type: 'p', children: [{ text: 'new' }] }])
-    expect(merged.sourceRefs).toEqual([
-      createDocumentSourceRef('analysis', 'hist_1'),
-      createDocumentSourceRef('figure', 'figure_2', { label: '새 그림' }),
+      expect(merged.content).toBe('새 방법')
+      expect(merged.plateValue).toEqual([{ type: 'p', children: [{ text: 'new' }] }])
+      expect(merged.sourceRefs).toEqual([
+        createDocumentSourceRef('analysis', 'hist_1'),
+        createDocumentSourceRef('figure', 'figure_2', { label: '새 그림' }),
     ])
     expect(merged.tables).toEqual([
       {
@@ -217,5 +220,43 @@ describe('document-writing helpers', () => {
       },
     ])
     expect(merged.generatedBy).toBe('llm')
+  })
+
+  it('drops obsolete structured artifacts when a new automatic patch removes them', () => {
+    const methods = {
+      ...makeDocument().sections[0]!,
+      sourceRefs: [
+        createDocumentSourceRef('analysis', 'hist_old'),
+      ],
+      tables: [
+        {
+          id: 'table_old',
+          caption: '이전 표',
+          headers: ['A'],
+          rows: [['1']],
+        },
+      ],
+      figures: [
+        {
+          entityId: 'figure_old',
+          label: 'Old Figure',
+          caption: '이전 그림',
+        },
+      ],
+    }
+
+    const merged = mergeDocumentSectionPatch(methods, {
+      sourceRefs: [
+        createDocumentSourceRef('analysis', 'hist_new'),
+      ],
+      tables: [],
+      figures: [],
+    })
+
+    expect(merged.sourceRefs).toEqual([
+      createDocumentSourceRef('analysis', 'hist_new'),
+    ])
+    expect(merged.tables).toEqual([])
+    expect(merged.figures).toEqual([])
   })
 })
