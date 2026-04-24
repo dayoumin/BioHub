@@ -10,7 +10,7 @@ import {
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { TOAST } from '@/lib/constants/toast-messages'
 import { cn } from '@/lib/utils'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
@@ -93,7 +93,6 @@ export function ResultsHeroCard({
   t,
 }: ResultsHeroCardProps): React.ReactElement {
   const resolvedPresentationLanguage = isEnglishLanguage(presentationLanguage) ? 'en' : 'ko'
-  const isEnglishPresentation = resolvedPresentationLanguage === 'en'
   const resolvedMethodId = methodId ?? statisticalResult.testName
   const methodEntry = resolvedMethodId ? STATISTICAL_METHODS[resolvedMethodId] : null
   const validationMeta = resolvedMethodId ? VALIDATION_METADATA[resolvedMethodId] : undefined
@@ -115,62 +114,63 @@ export function ResultsHeroCard({
   const highlightAsSuccess = showBinaryConclusion ? isSignificant : true
 
   return (
-    <motion.div
-      data-testid="results-main-card"
-      variants={prefersReducedMotion ? undefined : heroRevealVariants}
-      initial={prefersReducedMotion ? undefined : 'hidden'}
-      animate={prefersReducedMotion ? undefined : 'visible'}
-    >
-      <Card className={cn(
-        "overflow-hidden rounded-xl border border-border/40",
-        isSignificant || !showBinaryConclusion
-          ? "bg-surface-container-lowest"
-          : "bg-surface-container-low"
-      )}>
-        <CardContent className="px-4 py-3.5">
-          <div className={cn(
-            'mb-3 rounded-lg px-3 py-2',
-            !assumptionsPassed
-              ? 'bg-warning-bg/60'
-              : highlightAsSuccess
-                ? 'bg-success-bg/50'
-                : 'bg-muted/60'
-          )}>
-            <p className={cn(
-              'text-base font-semibold leading-snug',
-              !assumptionsPassed ? 'text-warning-foreground' :
-                highlightAsSuccess ? 'text-success' : 'text-muted-foreground'
-            )}>
-              {!assumptionsPassed
-                ? t.results.conclusion.assumptionWarning
-                : !showBinaryConclusion
-                  ? (statisticalResult.interpretation?.split('.')[0] || statisticalResult.description || t.results.conclusion.analysisComplete)
-                  : isSignificant
-                    ? t.results.conclusion.significant
-                    : t.results.conclusion.notSignificant
-              }
-            </p>
-          </div>
-
-          {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
-          <div className="flex items-center gap-3 flex-wrap">
+    <TooltipProvider>
+      <motion.div
+        data-testid="results-main-card"
+        variants={prefersReducedMotion ? undefined : heroRevealVariants}
+        initial={prefersReducedMotion ? undefined : 'hidden'}
+        animate={prefersReducedMotion ? undefined : 'visible'}
+      >
+        <Card className={cn(
+          "overflow-hidden rounded-xl border border-border/40",
+          isSignificant || !showBinaryConclusion
+            ? "bg-surface-container-lowest"
+            : "bg-surface-container-low"
+        )}>
+          <CardContent className="px-4 py-3.5">
             <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-              !assumptionsPassed ? "bg-warning-bg" :
-                highlightAsSuccess ? "bg-success-bg" : "bg-muted"
+              'mb-3 rounded-lg px-3 py-2',
+              !assumptionsPassed
+                ? 'bg-warning-bg/60'
+                : highlightAsSuccess
+                  ? 'bg-success-bg/50'
+                  : 'bg-muted/60'
             )}>
-              {!assumptionsPassed ? (
-                <AlertCircle className="w-4 h-4 text-warning" />
-              ) : highlightAsSuccess ? (
-                <CheckCircle2 className="w-4 h-4 text-success" />
-              ) : (
-                <XCircle className="w-4 h-4 text-muted-foreground" />
-              )}
+              <p className={cn(
+                'text-base font-semibold leading-snug',
+                !assumptionsPassed ? 'text-warning-foreground' :
+                  highlightAsSuccess ? 'text-success' : 'text-muted-foreground'
+              )}>
+                {!assumptionsPassed
+                  ? t.results.conclusion.assumptionWarning
+                  : !showBinaryConclusion
+                    ? (statisticalResult.interpretation?.split('.')[0] || statisticalResult.description || t.results.conclusion.analysisComplete)
+                    : isSignificant
+                      ? t.results.conclusion.significant
+                      : t.results.conclusion.notSignificant
+                }
+              </p>
             </div>
+
+            {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                !assumptionsPassed ? "bg-warning-bg" :
+                  highlightAsSuccess ? "bg-success-bg" : "bg-muted"
+              )}>
+                {!assumptionsPassed ? (
+                  <AlertCircle className="w-4 h-4 text-warning" />
+                ) : highlightAsSuccess ? (
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
 
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                {isEnglishPresentation ? 'Method' : '분석 방법'}
+                {t.results.metadata.methodLabel}
               </p>
               <p className="truncate text-sm font-semibold text-foreground">{statisticalResult.testName}</p>
             </div>
@@ -190,18 +190,22 @@ export function ResultsHeroCard({
               </Tooltip>
             )}
 
-            {/* 타임스탬프 (우측 밀기) */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-[10px] text-muted-foreground/40 font-mono tabular-nums cursor-help ml-auto flex-shrink-0">
-                  {resultTimestamp.toLocaleString(getLocaleForLanguage(resolvedPresentationLanguage), {
-                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                  })}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="left">{t.results.metadata.analysisTime}</TooltipContent>
-            </Tooltip>
-          </div>
+              {/* 타임스탬프 (우측 밀기) */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="ml-auto flex-shrink-0 cursor-help text-[10px] font-mono tabular-nums text-muted-foreground/40"
+                    aria-label={t.results.metadata.analysisTime}
+                  >
+                    {resultTimestamp.toLocaleString(getLocaleForLanguage(resolvedPresentationLanguage), {
+                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    })}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left">{t.results.metadata.analysisTime}</TooltipContent>
+              </Tooltip>
+            </div>
 
           {/* 2행: APA + 메타데이터 */}
           {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables || validationMeta) && (
@@ -217,7 +221,7 @@ export function ResultsHeroCard({
                         void navigator.clipboard.writeText(apaFormat)
                         toast.success(TOAST.clipboard.copySuccess)
                       }}
-                      aria-label={isEnglishPresentation ? 'Copy APA' : 'APA 복사'}
+                      aria-label={t.results.metadata.copyApaAriaLabel}
                     >
                       <Copy className="w-3 h-3" />
                     </button>
@@ -233,7 +237,7 @@ export function ResultsHeroCard({
                   {uploadedFileName && (
                     <Badge variant="outline" className="max-w-full bg-background/70 text-[11px] font-normal" title={uploadedFileName}>
                       <span className="truncate">
-                        {isEnglishPresentation ? `File · ${uploadedFileName}` : `파일 · ${uploadedFileName}`}
+                        {t.results.metadata.fileBadge(uploadedFileName)}
                       </span>
                     </Badge>
                   )}
@@ -257,31 +261,29 @@ export function ResultsHeroCard({
                 {validationMeta && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="inline-flex items-center gap-2 text-[11px] text-muted-foreground/70 cursor-help">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 cursor-help text-[11px] text-muted-foreground/70"
+                        aria-label={t.results.metadata.rValidated}
+                      >
                         <Badge variant="outline" className="border-border/50 bg-background/70 text-[11px] font-normal">
                           {validationMeta.isCustomImpl
-                            ? (isEnglishPresentation ? 'Custom implementation' : '자체 구현')
+                            ? t.results.metadata.customImplementation
                             : validationMeta.pythonLib}
                         </Badge>
                         <Badge variant="outline" className="border-border/50 bg-background/70 text-[11px] font-normal">
-                          {isEnglishPresentation ? 'R validated' : 'R 검증 완료'}
+                          {t.results.metadata.rValidated}
                         </Badge>
-                      </div>
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs text-xs">
                       <p>
                         {validationMeta.isCustomImpl
-                          ? (isEnglishPresentation
-                            ? 'Custom implementation (Pyodide library constraint)'
-                            : '자체 구현 (Pyodide 라이브러리 제약)')
-                          : (isEnglishPresentation
-                            ? `Computed with ${validationMeta.pythonLib}`
-                            : `${validationMeta.pythonLib} 기반 계산`)}
+                          ? t.results.metadata.customImplementationTooltip
+                          : t.results.metadata.computedWithLib(validationMeta.pythonLib)}
                       </p>
                       <p className="text-muted-foreground">
-                        {isEnglishPresentation ? 'R cross-validation precision LRE ' : 'R 교차검증 정밀도 LRE '}
-                        {validationMeta.lre.toFixed(1)}
-                        {' / 15.0'}
+                        {t.results.metadata.rCrossValidationLre(validationMeta.lre.toFixed(1))}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -290,7 +292,7 @@ export function ResultsHeroCard({
                 {heroOptionEntries.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 bg-surface-container/25 rounded-md px-2 py-1.5" data-testid="analysis-options-badges">
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 self-start pt-[3px]">
-                      {isEnglishPresentation ? 'Options' : '옵션'}
+                      {t.results.metadata.optionsLabel}
                     </span>
                     {heroOptionEntries.map((entry) => (
                       <Badge
@@ -307,8 +309,9 @@ export function ResultsHeroCard({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </TooltipProvider>
   )
 }

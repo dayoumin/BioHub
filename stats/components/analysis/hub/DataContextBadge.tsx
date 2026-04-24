@@ -9,6 +9,8 @@
 
 import { useState, useCallback } from 'react'
 import { FileSpreadsheet, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { useTerminology } from '@/hooks/use-terminology'
+import { isEnglishLanguage } from '@/lib/preferences'
 import { cn } from '@/lib/utils'
 import { useHubChatStore } from '@/lib/stores/hub-chat-store'
 
@@ -18,6 +20,8 @@ interface DataContextBadgeProps {
 
 export function DataContextBadge({ onClear }: DataContextBadgeProps) {
   const dataContext = useHubChatStore((s) => s.dataContext)
+  const t = useTerminology()
+  const isEnglish = isEnglishLanguage(t.language)
   const [isExpanded, setIsExpanded] = useState(false)
 
   const toggleExpand = useCallback(() => {
@@ -40,12 +44,16 @@ export function DataContextBadge({ onClear }: DataContextBadgeProps) {
         <button
           onClick={toggleExpand}
           aria-expanded={isExpanded}
-          aria-label="데이터 상세정보 펼치기"
+          aria-label={isEnglish ? 'Toggle data details' : '데이터 상세정보 펼치기'}
           className="flex items-center gap-1 text-foreground hover:text-primary transition-colors min-w-0"
         >
           <span className="truncate font-medium">{dataContext.fileName}</span>
           <span className="text-muted-foreground shrink-0">
-            ({dataContext.totalRows}행 x {dataContext.columnCount}열)
+            (
+            {isEnglish
+              ? `${dataContext.totalRows} rows x ${dataContext.columnCount} columns`
+              : `${dataContext.totalRows}행 x ${dataContext.columnCount}열`}
+            )
           </span>
           {isExpanded ? (
             <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -58,8 +66,8 @@ export function DataContextBadge({ onClear }: DataContextBadgeProps) {
         <button
           onClick={onClear}
           className="ml-auto p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-          aria-label="데이터 제거"
-          title="데이터 제거"
+          aria-label={isEnglish ? 'Remove data' : '데이터 제거'}
+          title={isEnglish ? 'Remove data' : '데이터 제거'}
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -70,13 +78,13 @@ export function DataContextBadge({ onClear }: DataContextBadgeProps) {
         <div className="mt-1 px-3 py-2 rounded-lg border border-border bg-muted/20 text-xs space-y-1">
           {dataContext.numericColumns.length > 0 && (
             <p>
-              <span className="text-muted-foreground">수치형:</span>{' '}
+              <span className="text-muted-foreground">{isEnglish ? 'Numeric:' : '수치형:'}</span>{' '}
               <span className="text-foreground">{dataContext.numericColumns.join(', ')}</span>
             </p>
           )}
           {dataContext.categoricalColumns.length > 0 && (
             <p>
-              <span className="text-muted-foreground">범주형:</span>{' '}
+              <span className="text-muted-foreground">{isEnglish ? 'Categorical:' : '범주형:'}</span>{' '}
               <span className="text-foreground">{dataContext.categoricalColumns.join(', ')}</span>
             </p>
           )}

@@ -78,13 +78,13 @@ export function ResultsActionButtons({
   const newAnalysisConfirm = t.results.confirm?.newAnalysis ?? {
     title: t.results.buttons.newAnalysis,
     description: '',
-    cancel: '취소',
+    cancel: t.results.exportDialog.cancel,
     confirm: t.results.buttons.newAnalysis,
   }
   const changeMethodConfirm = t.results.confirm?.changeMethod ?? {
     title: t.results.buttons.changeMethod,
     description: '',
-    cancel: '취소',
+    cancel: t.results.exportDialog.cancel,
     confirm: t.results.buttons.changeMethod,
   }
 
@@ -94,19 +94,19 @@ export function ResultsActionButtons({
       <div className="rounded-2xl border border-border/50 bg-surface-container-lowest px-4 py-4" data-testid="action-buttons">
         <div className="space-y-4">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">다음 작업</p>
+            <p className="text-sm font-semibold text-foreground">{t.results.actionPanel.title}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              지금 결과를 다듬을지, 새 분석 흐름을 시작할지 선택할 수 있습니다.
+              {t.results.actionPanel.description}
             </p>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
             <div className="rounded-xl border border-border/50 bg-background/70 px-4 py-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-                현재 결과 이어서
+                {t.results.actionPanel.continueTitle}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                같은 데이터와 방법을 유지한 채 변수나 설정을 조정합니다.
+                {t.results.actionPanel.continueDescription}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {showBackToVariables ? (
@@ -135,10 +135,10 @@ export function ResultsActionButtons({
 
             <div className="rounded-xl border border-border/50 bg-surface-container-low/40 px-4 py-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-                새 흐름 시작
+                {t.results.actionPanel.restartTitle}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                현재 결과와 분리해서 새 데이터나 새 분석 목적부터 다시 시작합니다.
+                {t.results.actionPanel.restartDescription}
               </p>
               <Button
                 variant="default"
@@ -155,10 +155,10 @@ export function ResultsActionButtons({
 
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/70 px-4 py-3">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">보조 도구</p>
-              <p className="mt-1 text-sm font-medium text-foreground">추가 작업</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">{t.results.actionPanel.toolsEyebrow}</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{t.results.actionPanel.toolsTitle}</p>
               <p className="text-xs text-muted-foreground">
-                방법 변경, 템플릿 저장, Graph Studio 이동
+                {t.results.actionPanel.toolsDescription}
               </p>
             </div>
 
@@ -186,7 +186,7 @@ export function ResultsActionButtons({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onOpenGraphStudio} data-testid="open-graph-studio-btn">
                   <BarChart3 className="w-4 h-4 mr-2" />
-                  Graph Studio
+                  {t.results.actionPanel.graphStudio}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -235,15 +235,15 @@ export function ResultsActionButtons({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="docx" id="export-docx" />
-                  <Label htmlFor="export-docx">Word (.docx)</Label>
+                  <Label htmlFor="export-docx">{t.results.buttons.exportDocx}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="xlsx" id="export-xlsx" />
-                  <Label htmlFor="export-xlsx">Excel (.xlsx)</Label>
+                  <Label htmlFor="export-xlsx">{t.results.buttons.exportExcel}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="html" id="export-html" />
-                  <Label htmlFor="export-html">HTML (.html)</Label>
+                  <Label htmlFor="export-html">{t.results.buttons.exportHtml}</Label>
                 </div>
               </RadioGroup>
             </div>

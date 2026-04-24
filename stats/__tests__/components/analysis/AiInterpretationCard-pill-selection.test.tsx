@@ -63,13 +63,42 @@ const minimalT = {
     ai: {
       label: 'AI 해석',
       loading: '로딩 중...',
+      idleDescription: '대기 중',
+      requestButton: '생성',
+      detailedLabel: '상세 해석',
       reinterpret: '다시 해석',
       retry: '다시 시도',
       retryExhausted: '재시도 횟수 초과',
       defaultError: '오류',
+      draftCta: '초안 작성',
+      showAll: '전체 보기',
+      collapseAll: '접기',
+      showMore: '더 보기',
+      collapse: '접기',
     },
   },
 } as never // TerminologyDictionary의 나머지 필드는 이 테스트에서 접근하지 않음
+
+const minimalEnglishT = {
+  results: {
+    ai: {
+      label: 'AI Interpretation',
+      loading: 'Loading...',
+      idleDescription: 'Waiting',
+      requestButton: 'Generate',
+      detailedLabel: 'Detailed Interpretation',
+      reinterpret: 'Re-interpret',
+      retry: 'Retry',
+      retryExhausted: 'Retry exhausted',
+      defaultError: 'Error',
+      draftCta: 'Draft',
+      showAll: 'View all',
+      collapseAll: 'Collapse',
+      showMore: 'Read more',
+      collapse: 'Collapse',
+    },
+  },
+} as never
 
 interface RenderProps {
   parsedInterpretation: { summary: string; detail: string | null } | null
@@ -292,5 +321,30 @@ describe('AiInterpretationCard — pill 자동 선택', () => {
     // ★ 핵심 검증: "전체 보기" 상태가 유지 → "접기" 버튼이 보임
     const collapseBtn = screen.queryAllByRole('button').find(btn => btn.textContent?.includes('접기'))
     expect(collapseBtn).toBeDefined()
+  })
+
+  it('영어 terminology를 주면 전체 보기/경고 토글도 영어로 렌더된다', () => {
+    const ref = createRef<HTMLDivElement>()
+    const warningDetail = makeDetail([
+      { heading: '통계량 해석', content: 'Result summary.' },
+      { heading: '주의할 점', content: 'A'.repeat(140) },
+    ])
+
+    render(
+      <AiInterpretationCard
+        parsedInterpretation={{ summary: 'Summary.', detail: warningDetail }}
+        isInterpreting={false}
+        interpretationModel="test-model"
+        interpretError={null}
+        prefersReducedMotion
+        onReinterpret={vi.fn()}
+        containerRef={ref}
+        phase={4}
+        t={minimalEnglishT}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /View all/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Read more/i })).toBeInTheDocument()
   })
 })

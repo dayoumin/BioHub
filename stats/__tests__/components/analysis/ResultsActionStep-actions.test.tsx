@@ -94,6 +94,8 @@ vi.mock('@/hooks/use-terminology', () => ({
         exportDocx: 'DOCX',
         exportExcel: 'Excel',
         exportHtml: 'HTML',
+        exportR: 'R Script (.R)',
+        exportPython: 'Python (.py)',
         exportWithOptions: '옵션 포함 내보내기',
         viewSummary: '요약 보기',
         resultsSummary: '결과 요약',
@@ -127,6 +129,16 @@ vi.mock('@/hooks/use-terminology', () => ({
       ai: {
         defaultError: 'ai-error',
         draftCta: 'draft',
+      },
+      actionPanel: {
+        graphStudio: 'Graph Studio',
+      },
+      contextPanels: {
+        historyViewTitle: '히스토리 결과 보기',
+        historyViewDescription: 'desc',
+        documentsTitle: '이 결과를 사용하는 문서',
+        documentsDescription: 'desc',
+        moreDocuments: (count: number) => `+${count}`,
       },
       followUp: {
         errorMessage: 'follow-up-error',

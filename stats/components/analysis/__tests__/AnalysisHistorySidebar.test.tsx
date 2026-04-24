@@ -59,6 +59,18 @@ const mockHistoryItem = {
   },
 }
 
+const mockHistoryStoreState = {
+  analysisHistory: [mockHistoryItem.data],
+  currentHistoryId: null as string | null,
+  deleteFromHistory: deleteFromHistoryMock,
+  loadSettingsFromHistory: loadSettingsFromHistoryMock,
+  renameHistory: renameHistoryMock,
+  setCurrentHistoryId: setCurrentHistoryIdMock,
+  setLoadedAiInterpretation: setLoadedAiInterpretationMock,
+  setLoadedInterpretationChat: setLoadedInterpretationChatMock,
+  setLoadedPaperDraft: setLoadedPaperDraftMock,
+}
+
 vi.mock('@/components/common/UnifiedHistorySidebar', () => ({
   UnifiedHistorySidebar: ({
     items,
@@ -113,17 +125,7 @@ vi.mock('@/lib/utils/history-adapters', () => ({
 }))
 
 vi.mock('@/lib/stores/history-store', () => ({
-  useHistoryStore: (selector: (state: object) => unknown) => selector({
-    analysisHistory: [mockHistoryItem.data],
-    currentHistoryId: null,
-    deleteFromHistory: deleteFromHistoryMock,
-    loadSettingsFromHistory: loadSettingsFromHistoryMock,
-    renameHistory: renameHistoryMock,
-    setCurrentHistoryId: setCurrentHistoryIdMock,
-    setLoadedAiInterpretation: setLoadedAiInterpretationMock,
-    setLoadedInterpretationChat: setLoadedInterpretationChatMock,
-    setLoadedPaperDraft: setLoadedPaperDraftMock,
-  }),
+  useHistoryStore: (selector: (state: typeof mockHistoryStoreState) => unknown) => selector(mockHistoryStoreState),
 }))
 
 vi.mock('@/lib/stores/store-orchestration', () => ({
@@ -206,6 +208,18 @@ vi.mock('@/lib/utils/logger', () => ({
 describe('AnalysisHistorySidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockHistoryStoreState.currentHistoryId = null
+    mockHistoryItem.data.name = 'One Sample T-Test'
+    mockHistoryItem.data.purpose = '평균 비교'
+    mockHistoryItem.data.dataFileName = 'sample.csv'
+    mockHistoryItem.data.method = {
+      id: 'one-sample-t',
+      name: 'One-Sample t-Test',
+      category: 't-test',
+    }
+    mockHistoryItem.data.results = {
+      pValue: 0.008,
+    }
   })
 
   it('분석 기록을 선택하면 기록을 복원하고 허브를 닫는다', async () => {
@@ -284,5 +298,29 @@ describe('AnalysisHistorySidebar', () => {
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith('Rename error')
     })
+  })
+
+  it('현재 선택된 항목은 현재 배지와 p-value를 함께 노출한다', () => {
+    mockHistoryStoreState.currentHistoryId = 'history-1'
+
+    render(<AnalysisHistorySidebar />)
+
+    expect(screen.getByText('Current')).toBeInTheDocument()
+    expect(screen.getByText('p=0.0080')).toBeInTheDocument()
+    expect(screen.getByText('평균 비교 · One-Sample t-Test · sample.csv')).toBeInTheDocument()
+  })
+
+  it('분석 이름과 메서드명이 같으면 메타 라인에서 메서드 중복을 제거한다', () => {
+    mockHistoryItem.data.name = 'One-Sample t-Test'
+    mockHistoryItem.data.method = {
+      id: 'one-sample-t',
+      name: 'One-Sample t-Test',
+      category: 't-test',
+    }
+
+    render(<AnalysisHistorySidebar />)
+
+    expect(screen.getByText('평균 비교 · sample.csv')).toBeInTheDocument()
+    expect(screen.queryByText('평균 비교 · One-Sample t-Test · sample.csv')).not.toBeInTheDocument()
   })
 })

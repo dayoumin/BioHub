@@ -10,6 +10,8 @@
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useTerminology } from '@/hooks/use-terminology'
+import { isEnglishLanguage } from '@/lib/preferences'
 import { cn } from '@/lib/utils'
 import type { SlotConfig, AcceptedType } from './slot-configs'
 
@@ -85,6 +87,8 @@ export function LiveDataSummary({
   columns,
   className,
 }: LiveDataSummaryProps) {
+  const t = useTerminology()
+  const isEnglish = isEnglishLanguage(t.language)
   // Build variable summaries from current assignments
   const summaries = useMemo((): VariableSummary[] => {
     const result: VariableSummary[] = []
@@ -124,20 +128,20 @@ export function LiveDataSummary({
     >
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          데이터 요약
+          {isEnglish ? 'Data summary' : '데이터 요약'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
         {/* Total N */}
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">전체 표본</span>
+          <span className="text-muted-foreground">{isEnglish ? 'Total samples' : '전체 표본'}</span>
           <span className="font-mono tabular-nums font-semibold">{data.length}</span>
         </div>
 
         {/* No assignments yet */}
         {!hasAssignments && (
           <p className="text-xs text-muted-foreground/60 py-2 text-center">
-            변수를 배치하면 요약이 표시됩니다
+            {isEnglish ? 'Assign variables to see a live summary' : '변수를 배치하면 요약이 표시됩니다'}
           </p>
         )}
 
@@ -160,16 +164,18 @@ export function LiveDataSummary({
                         : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800',
                     )}
                   >
-                    {s.type === 'numeric' ? '연속' : '범주'}
+                    {s.type === 'numeric'
+                      ? (isEnglish ? 'Numeric' : '연속')
+                      : (isEnglish ? 'Categorical' : '범주')}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                   <span>
-                    유효 <span className="font-mono tabular-nums font-medium text-foreground">{s.validN}</span>
+                    {isEnglish ? 'Valid' : '유효'} <span className="font-mono tabular-nums font-medium text-foreground">{s.validN}</span>
                   </span>
                   {s.missingN > 0 && (
                     <span className="text-warning">
-                      결측 <span className="font-mono tabular-nums font-medium">{s.missingN}</span>
+                      {isEnglish ? 'Missing' : '결측'} <span className="font-mono tabular-nums font-medium">{s.missingN}</span>
                     </span>
                   )}
                 </div>
@@ -182,7 +188,7 @@ export function LiveDataSummary({
         {groupCounts.length > 0 && (
           <div className="space-y-1.5 pt-1 border-t border-border/20">
             <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              그룹별 n
+              {isEnglish ? 'Group counts' : '그룹별 n'}
             </span>
             <div className="space-y-0.5">
               {groupCounts.map(g => (

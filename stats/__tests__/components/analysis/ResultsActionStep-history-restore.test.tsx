@@ -120,16 +120,24 @@ vi.mock('@/hooks/use-terminology', () => ({
         diagnostics: '', caution: '', recommendations: '', warnings: '', alternatives: '',
       },
       metadata: {
-        file: '파일: ', data: '데이터: ', variables: '변수: ',
+        methodLabel: '분석 방법',
+        file: '파일: ', fileBadge: (name: string) => `파일 · ${name}`, data: '데이터: ', variables: '변수: ',
         rowsCols: (r: number, c: number) => `${r}행 × ${c}열`,
         analysisTime: '',
+        copyApaAriaLabel: 'APA 복사',
+        customImplementation: '자체 구현',
+        rValidated: 'R 검증 완료',
+        customImplementationTooltip: '',
+        computedWithLib: (lib: string) => `${lib} 기반 계산`,
+        rCrossValidationLre: (lre: string) => `LRE ${lre}`,
+        optionsLabel: '옵션',
       },
       buttons: {
         saved: '저장됨', save: '저장', generating: '생성중...', pdf: 'PDF',
         copied: '복사됨', copy: '복사', saveTemplate: '템플릿',
         reanalyze: '재분석', newAnalysis: '새 분석',
         export: '내보내기', exporting: '내보내는 중...', exportDocx: '', exportExcel: '',
-        exportHtml: '', exportWithOptions: '', backToVariables: '',
+        exportHtml: '', exportR: '', exportPython: '', exportWithOptions: '', backToVariables: '',
       },
       save: {
         defaultName: (d: string) => `분석 ${d}`, promptMessage: '',
@@ -167,6 +175,16 @@ vi.mock('@/hooks/use-terminology', () => ({
       confirm: {
         newAnalysis: { title: '', description: '', confirm: '', cancel: '' },
         changeMethod: { title: '', description: '', confirm: '', cancel: '' },
+      },
+      actionPanel: {
+        graphStudio: 'Graph Studio',
+      },
+      contextPanels: {
+        historyViewTitle: '',
+        historyViewDescription: '',
+        documentsTitle: '',
+        documentsDescription: '',
+        moreDocuments: (count: number) => `+${count}`,
       },
     },
   }),

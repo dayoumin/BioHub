@@ -44,6 +44,14 @@ export interface ResultsStatsCardsProps {
         copied: string
         copyStatsTable: string
       }
+      clipboard: {
+        itemHeader: string
+        valueHeader: string
+        statistic: (name: string) => string
+        df: string
+        effectSize: string
+        confidenceInterval: string
+      }
       toast: {
         copySuccess: string
         copyError: string
@@ -98,20 +106,20 @@ export function ResultsStatsCards({
     ]
 
     const plainText = [
-      '통계표',
+      t.results.buttons.copyStatsTable,
       ...rows.map(row => `${row.label}\t${row.value}`),
       statisticalResult.df !== undefined
-        ? `df\t${Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}`
+        ? `${t.results.clipboard.df}\t${Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}`
         : null,
     ].filter(Boolean).join('\n')
 
     const html = [
       '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px">',
-      '<thead><tr style="background:#f3f4f6"><th>항목</th><th>값</th></tr></thead>',
+      `<thead><tr style="background:#f3f4f6"><th>${t.results.clipboard.itemHeader}</th><th>${t.results.clipboard.valueHeader}</th></tr></thead>`,
       '<tbody>',
       ...rows.map(row => `<tr><td>${row.label}</td><td>${row.value}</td></tr>`),
       statisticalResult.df !== undefined
-        ? `<tr><td>df</td><td>${Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}</td></tr>`
+        ? `<tr><td>${t.results.clipboard.df}</td><td>${Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}</td></tr>`
         : '',
       '</tbody>',
       '</table>',

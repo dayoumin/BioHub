@@ -77,10 +77,10 @@ describe('pickHeroOptionEntries', () => {
     expect(pickHeroOptionEntries(entries, methodRequirements)).toEqual([])
   })
 
-  it('hides localized generic-domain defaults with the same comparison rule', () => {
+  it('hides localized English defaults with the same comparison rule', () => {
     const entries: ExecutionSettingEntry[] = [
       { key: 'alternative', label: 'Alternative hypothesis', value: 'Two-sided' },
-      { key: 'welch', label: 'Execution mode', value: 'Welch ANOVA' },
+      { key: 'welch', label: 'Homogeneity handling', value: 'Welch ANOVA' },
     ]
     const methodRequirements = {
       settings: {
@@ -93,7 +93,7 @@ describe('pickHeroOptionEntries', () => {
           ],
         },
         welch: {
-          label: '실행 방식',
+          label: '분산 동질성 처리',
           default: true,
           options: [
             { value: false, label: '일반 ANOVA', description: '' },
@@ -103,7 +103,7 @@ describe('pickHeroOptionEntries', () => {
       },
     } as unknown as StatisticalMethodRequirements
 
-    expect(pickHeroOptionEntries(entries, methodRequirements, 'generic')).toEqual([])
+    expect(pickHeroOptionEntries(entries, methodRequirements, 'en')).toEqual([])
   })
 
   it('keeps entries whose value differs from default', () => {

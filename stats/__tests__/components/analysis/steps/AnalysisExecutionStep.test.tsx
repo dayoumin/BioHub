@@ -484,7 +484,7 @@ describe('AnalysisExecutionStep', () => {
 
       expect(screen.getByTestId('execution-setting-alpha')).toHaveTextContent('alpha 0.05')
       expect(screen.getByTestId('execution-setting-postHoc')).toHaveTextContent('사후검정 방법 Games-Howell')
-      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('실행 방식 Welch ANOVA')
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('분산 동질성 처리 Welch ANOVA')
       expect(screen.getByTestId('execution-setting-showAssumptions')).toHaveTextContent('가정 검정 사용')
       expect(screen.getByTestId('execution-setting-showEffectSize')).toHaveTextContent('효과크기 표시')
     })
@@ -509,7 +509,7 @@ describe('AnalysisExecutionStep', () => {
         />
       )
 
-      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('실행 방식 일반 ANOVA')
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('분산 동질성 처리 일반 ANOVA')
     })
 
   it('generic domain에서는 Step 4 카드 요약도 영어 fallback copy를 사용한다', () => {
@@ -538,7 +538,7 @@ describe('AnalysisExecutionStep', () => {
       )
 
       expect(screen.getByTestId('execution-setting-postHoc')).toHaveTextContent('Post-hoc method Games-Howell')
-      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('Execution mode Welch ANOVA')
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('Homogeneity handling Welch ANOVA')
       expect(screen.getByTestId('execution-setting-showAssumptions')).toHaveTextContent('Assumption checks Skipped')
       expect(screen.getByTestId('execution-setting-showEffectSize')).toHaveTextContent('Effect size Hidden')
       expect(screen.getByText('Reviewing settings and running the analysis')).toBeDefined()

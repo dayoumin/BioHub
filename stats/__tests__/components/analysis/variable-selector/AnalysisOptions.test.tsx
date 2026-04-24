@@ -28,6 +28,7 @@ vi.mock('@/lib/stores/analysis-store', () => ({
 function createTerminology(domain: 'aquaculture' | 'generic') {
   return {
     domain,
+    language: domain === 'generic' ? 'en' : 'ko',
     selectorUI: {
       labels: {
         alpha: 'Alpha',
@@ -204,7 +205,7 @@ describe('AnalysisOptionsSection', () => {
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('two-sample-t')} />
     )
 
-    expect(screen.getByText('실행 방식')).toBeInTheDocument()
+    expect(screen.getByText('분산 가정 선택')).toBeInTheDocument()
     expect(screen.getByText('Student t-검정')).toBeInTheDocument()
     expect(screen.getByText('Welch t-검정')).toBeInTheDocument()
     expect(mockSetAnalysisOptions).toHaveBeenCalledWith({
@@ -219,7 +220,7 @@ describe('AnalysisOptionsSection', () => {
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('one-way-anova')} />
     )
 
-    expect(screen.getAllByText('실행 방식').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('분산 동질성 처리').length).toBeGreaterThan(0)
     expect(screen.getByText('일반 ANOVA')).toBeInTheDocument()
     expect(screen.getByText('Welch ANOVA')).toBeInTheDocument()
   })
@@ -231,11 +232,11 @@ describe('AnalysisOptionsSection', () => {
       <AnalysisOptionsSection methodRequirements={getMethodRequirements('two-sample-t')} />
     )
 
-    expect(screen.getByText('Execution mode')).toBeInTheDocument()
+    expect(screen.getByText('Variance assumption')).toBeInTheDocument()
     expect(screen.getByText('Student t-test')).toBeInTheDocument()
     expect(screen.getByText('Welch t-test')).toBeInTheDocument()
-    expect(screen.getByText('Chooses between Student and Welch execution modes.')).toBeInTheDocument()
-    expect(screen.queryByText('실행 방식')).toBeNull()
+    expect(screen.getByText('Chooses whether to use the equal-variance assumption or Welch correction.')).toBeInTheDocument()
+    expect(screen.queryByText('분산 가정 선택')).toBeNull()
     expect(screen.queryByText('Student t-검정')).toBeNull()
   })
 

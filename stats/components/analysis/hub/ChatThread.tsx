@@ -9,7 +9,7 @@
  * - system: 중앙 muted (데이터 로드 알림 등)
  */
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, User, AlertCircle, RefreshCw, Upload, SquarePen, Activity, ArrowRight, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,6 +17,8 @@ import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
 import { VariablePicker } from './VariablePicker'
+import { useTerminology } from '@/hooks/use-terminology'
+import { isEnglishLanguage } from '@/lib/preferences'
 
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import type { DiagnosticReport, MethodRecommendation, AIRecommendation } from '@/types/analysis'
@@ -44,6 +46,26 @@ interface ChatThreadProps {
   onSuggestedMethodSelect?: (report: DiagnosticReport, recommendation: MethodRecommendation) => void
 }
 
+interface ChatThreadCopy {
+  clearChat: string
+  chatLogAriaLabel: string
+  defaultStreamingStatus: string
+  errorTitle: string
+  retry: string
+  diagnosticTitle: string
+  rowsSuffix: string
+  groupsSummary: (count: number, names: string) => string
+  numericVariablesSummary: (count: number) => string
+  normalityLabel: string
+  homogeneityLabel: string
+  assumptionPassed: string
+  assumptionFailed: string
+  startAnalysis: string
+  browseAlternatives: string
+  recommendationFailure: string
+  uploadCta: string
+}
+
 // ===== Animation =====
 
 const bubbleVariants = {
@@ -67,10 +89,53 @@ export function ChatThread({
   onClarificationCancel,
   onSuggestedMethodSelect,
 }: ChatThreadProps) {
+  const t = useTerminology()
+  const isEnglish = isEnglishLanguage(t.language)
   const messages = useHubChatStore((s) => s.messages)
   const isStreaming = useHubChatStore((s) => s.isStreaming)
   const streamingStatus = useHubChatStore((s) => s.streamingStatus)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const copy = useMemo<ChatThreadCopy>(() => (
+    isEnglish
+      ? {
+        clearChat: 'New chat',
+        chatLogAriaLabel: 'Conversation history',
+        defaultStreamingStatus: 'Finding the best analysis approach...',
+        errorTitle: 'Error',
+        retry: 'Retry',
+        diagnosticTitle: 'Diagnostic summary',
+        rowsSuffix: ' rows',
+        groupsSummary: (count, names) => ` · ${count} groups (${names})`,
+        numericVariablesSummary: (count) => ` · ${count} numeric variables`,
+        normalityLabel: 'Normality',
+        homogeneityLabel: 'Homogeneity',
+        assumptionPassed: 'Passed',
+        assumptionFailed: 'Failed',
+        startAnalysis: 'Start analysis',
+        browseAlternatives: 'Browse alternatives',
+        recommendationFailure: 'Failed to generate recommendations. Please try asking again.',
+        uploadCta: 'Upload data for more accurate analysis recommendations',
+      }
+      : {
+        clearChat: '새 대화',
+        chatLogAriaLabel: '대화 기록',
+        defaultStreamingStatus: '분석 방법을 찾고 있습니다...',
+        errorTitle: '오류 발생',
+        retry: '다시 시도',
+        diagnosticTitle: '데이터 진단 결과',
+        rowsSuffix: '행',
+        groupsSummary: (count, names) => ` · ${count}개 그룹 (${names})`,
+        numericVariablesSummary: (count) => ` · 수치변수 ${count}개`,
+        normalityLabel: '정규성',
+        homogeneityLabel: '등분산',
+        assumptionPassed: '충족',
+        assumptionFailed: '미충족',
+        startAnalysis: '분석 시작하기',
+        browseAlternatives: '다른 방법 찾아보기',
+        recommendationFailure: '추천 생성에 실패했습니다. 다시 질문해 주세요.',
+        uploadCta: '데이터를 업로드하면 더 정확한 분석을 추천해 드릴 수 있어요',
+      }
+  ), [isEnglish])
 
   // 새 메시지 추가 시 자동 스크롤
   useEffect(() => {
@@ -97,7 +162,7 @@ export function ChatThread({
             className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground gap-1"
           >
             <SquarePen className="w-3 h-3" />
-            새 대화
+            {copy.clearChat}
           </Button>
         </div>
       )}
@@ -107,7 +172,7 @@ export function ChatThread({
         ref={scrollRef}
         className="max-h-[560px] overflow-y-auto space-y-3 scroll-smooth"
         role="log"
-        aria-label="대화 기록"
+        aria-label={copy.chatLogAriaLabel}
       >
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
@@ -124,6 +189,7 @@ export function ChatThread({
               onVariableConfirm={onVariableConfirm}
               onClarificationCancel={onClarificationCancel}
               onSuggestedMethodSelect={onSuggestedMethodSelect}
+              copy={copy}
             />
           ))}
         </AnimatePresence>
@@ -141,7 +207,7 @@ export function ChatThread({
             <div className="bg-muted/60 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Activity className="w-3.5 h-3.5 animate-pulse text-primary" />
-                {streamingStatus ?? '분석 방법을 찾고 있습니다...'}
+                {streamingStatus ?? copy.defaultStreamingStatus}
               </div>
             </div>
           </motion.div>
@@ -165,6 +231,7 @@ interface MessageBubbleProps {
   onVariableConfirm?: (assignments: NonNullable<AIRecommendation['variableAssignments']>) => void
   onClarificationCancel?: () => void
   onSuggestedMethodSelect?: (report: DiagnosticReport, recommendation: MethodRecommendation) => void
+  copy: ChatThreadCopy
 }
 
 function MessageBubble({
@@ -179,6 +246,7 @@ function MessageBubble({
   onVariableConfirm,
   onClarificationCancel,
   onSuggestedMethodSelect,
+  copy,
 }: MessageBubbleProps) {
   const { role, content, recommendations, isError, suggestUpload, diagnosticReport, diagnosticRecommendation } = message
 
@@ -243,7 +311,7 @@ function MessageBubble({
           {isError && (
             <div className="flex items-center gap-1.5 text-destructive text-xs mb-1">
               <AlertCircle className="w-3.5 h-3.5" />
-              오류 발생
+              {copy.errorTitle}
             </div>
           )}
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
@@ -257,7 +325,7 @@ function MessageBubble({
               onClick={() => onRetry(message.id)}
             >
               <RefreshCw className="w-3 h-3" />
-              다시 시도
+              {copy.retry}
             </Button>
           )}
         </div>
@@ -272,6 +340,7 @@ function MessageBubble({
             onBrowse={diagnosticRecommendation && onAlternativeSearch
               ? () => onAlternativeSearch(diagnosticReport, diagnosticRecommendation)
               : undefined}
+            copy={copy}
           />
         )}
 
@@ -307,7 +376,7 @@ function MessageBubble({
 
         {/* 데이터 업로드 유도 CTA — 인라인 파일 선택 우선, fallback은 Step 1 이동 */}
         {suggestUpload && (onFileSelected || onUploadClick) && (
-          <UploadCta onFileSelected={onFileSelected} onUploadClick={onUploadClick} />
+          <UploadCta copy={copy} onFileSelected={onFileSelected} onUploadClick={onUploadClick} />
         )}
       </div>
     </motion.div>
@@ -320,23 +389,24 @@ interface DiagnosticReportCardProps {
   report: DiagnosticReport
   onStart?: () => void
   onBrowse?: () => void
+  copy: ChatThreadCopy
 }
 
-function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCardProps) {
+function DiagnosticReportCard({ report, onStart, onBrowse, copy }: DiagnosticReportCardProps) {
   const { basicStats, assumptions } = report
 
   return (
     <div className="bg-muted/40 rounded-xl p-3 space-y-2 text-xs">
       <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
         <Activity className="w-3.5 h-3.5 text-primary" />
-        데이터 진단 결과
+        {copy.diagnosticTitle}
       </div>
 
       {/* 기초통계 */}
       <div className="text-muted-foreground">
-        {basicStats.totalRows}행
-        {basicStats.groups?.length ? ` · ${basicStats.groups.length}개 그룹 (${basicStats.groups.map(g => g.name).join(', ')})` : ''}
-        {basicStats.numericSummaries.length > 0 && ` · 수치변수 ${basicStats.numericSummaries.length}개`}
+        {basicStats.totalRows}{copy.rowsSuffix}
+        {basicStats.groups?.length ? copy.groupsSummary(basicStats.groups.length, basicStats.groups.map(g => g.name).join(', ')) : ''}
+        {basicStats.numericSummaries.length > 0 && copy.numericVariablesSummary(basicStats.numericSummaries.length)}
       </div>
 
       {/* 가정 검정 */}
@@ -344,7 +414,7 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className={assumptions.normality.overallPassed ? 'stat-significant' : 'stat-non-significant'}>
-              정규성: {assumptions.normality.overallPassed ? '충족' : '미충족'}
+              {copy.normalityLabel}: {assumptions.normality.overallPassed ? copy.assumptionPassed : copy.assumptionFailed}
             </span>
             {assumptions.normality.groups.length <= 4 && (
               <span className="text-muted-foreground">
@@ -355,7 +425,7 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
           {assumptions.homogeneity && (
             <div>
               <span className={assumptions.homogeneity.levene.equalVariance ? 'stat-significant' : 'stat-non-significant'}>
-                등분산: {assumptions.homogeneity.levene.equalVariance ? '충족' : '미충족'}
+                {copy.homogeneityLabel}: {assumptions.homogeneity.levene.equalVariance ? copy.assumptionPassed : copy.assumptionFailed}
               </span>
               <span className="text-muted-foreground ml-1">
                 (Levene p={assumptions.homogeneity.levene.pValue.toFixed(3)})
@@ -375,7 +445,7 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
               className="h-8 px-3 text-xs gap-1.5"
               onClick={onStart}
             >
-              분석 시작하기
+              {copy.startAnalysis}
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           )}
@@ -387,7 +457,7 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
               onClick={onBrowse}
             >
               <List className="w-3.5 h-3.5" />
-              다른 방법 찾아보기
+              {copy.browseAlternatives}
             </Button>
           )}
         </div>
@@ -396,7 +466,7 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
       {/* 추천 실패 시 안내 — 데이터는 정상이고 LLM 추천만 실패한 경우 */}
       {!onStart && !onBrowse && (
         <p className="text-muted-foreground pt-1">
-          추천 생성에 실패했습니다. 다시 질문해 주세요.
+          {copy.recommendationFailure}
         </p>
       )}
     </div>
@@ -405,7 +475,15 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
 
 // ===== Upload CTA (inline file picker) =====
 
-function UploadCta({ onFileSelected, onUploadClick }: { onFileSelected?: (file: File) => void; onUploadClick?: () => void }) {
+function UploadCta({
+  copy,
+  onFileSelected,
+  onUploadClick,
+}: {
+  copy: ChatThreadCopy
+  onFileSelected?: (file: File) => void
+  onUploadClick?: () => void
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClick = useCallback(() => {
@@ -435,7 +513,7 @@ function UploadCta({ onFileSelected, onUploadClick }: { onFileSelected?: (file: 
         )}
       >
         <Upload className="w-3.5 h-3.5" />
-        데이터를 업로드하면 더 정확한 분석을 추천해 드릴 수 있어요
+        {copy.uploadCta}
       </button>
       <input
         ref={fileInputRef}
