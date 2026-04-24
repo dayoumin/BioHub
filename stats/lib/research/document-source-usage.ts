@@ -1,4 +1,9 @@
-import { getDocumentSourceId, type DocumentBlueprint } from './document-blueprint-types'
+import {
+  getDocumentSourceId,
+  type DocumentBlueprint,
+  type DocumentSourceKind,
+  type DocumentSourceRef,
+} from './document-blueprint-types'
 import {
   loadAllDocumentBlueprints,
   loadDocumentBlueprints,
@@ -12,7 +17,13 @@ export interface DocumentSourceUsage {
   sectionTitle: string
   kind: 'section' | 'table' | 'figure'
   label: string
+  sourceKind?: DocumentSourceKind
+  sourceLabel?: string
   artifactId?: string
+}
+
+interface FindDocumentSourceUsagesOptions {
+  sourceKind?: DocumentSourceKind
 }
 
 function sortDocuments(documents: DocumentBlueprint[]): DocumentBlueprint[] {
@@ -24,20 +35,37 @@ function sortDocuments(documents: DocumentBlueprint[]): DocumentBlueprint[] {
 export function findDocumentSourceUsages(
   documents: DocumentBlueprint[],
   sourceId: string,
+  options?: FindDocumentSourceUsagesOptions,
 ): DocumentSourceUsage[] {
   const usages = new Map<string, DocumentSourceUsage>()
 
   for (const document of sortDocuments(documents)) {
     for (const section of document.sections) {
+      const matchingSourceRef = section.sourceRefs.find(
+        (sourceRef) => (
+          getDocumentSourceId(sourceRef) === sourceId
+          && (!options?.sourceKind || sourceRef.kind === options.sourceKind)
+        ),
+      )
       const matchingTable = (section.tables ?? []).find(
-        (table) => table.sourceAnalysisId === sourceId,
+        (table) => (
+          table.sourceAnalysisId === sourceId
+          && (!options?.sourceKind || options.sourceKind === 'analysis')
+        ),
       )
       const matchingFigure = (section.figures ?? []).find(
-        (figure) => figure.entityId === sourceId || figure.relatedAnalysisId === sourceId,
+        (figure) => (
+          (
+            figure.entityId === sourceId
+            && (!options?.sourceKind || options.sourceKind === 'figure')
+          )
+          || (
+            figure.relatedAnalysisId === sourceId
+            && (!options?.sourceKind || options.sourceKind === 'analysis')
+          )
+        ),
       )
-      const hasSectionMatch = section.sourceRefs.some(
-        (sourceRef) => getDocumentSourceId(sourceRef) === sourceId,
-      )
+      const hasSectionMatch = matchingSourceRef !== undefined
 
       if (!matchingTable && !matchingFigure && !hasSectionMatch) {
         continue
@@ -52,6 +80,8 @@ export function findDocumentSourceUsages(
           sectionTitle: section.title,
           kind: 'table',
           label: matchingTable.caption || section.title,
+          sourceKind: 'analysis',
+          sourceLabel: matchingTable.sourceAnalysisLabel,
           artifactId: matchingTable.id,
         }
       } else if (matchingFigure) {
@@ -62,6 +92,8 @@ export function findDocumentSourceUsages(
           sectionTitle: section.title,
           kind: 'figure',
           label: matchingFigure.label,
+          sourceKind: 'figure',
+          sourceLabel: matchingSourceRef?.label ?? matchingFigure.label,
           artifactId: matchingFigure.entityId,
         }
       } else {
@@ -72,6 +104,8 @@ export function findDocumentSourceUsages(
           sectionTitle: section.title,
           kind: 'section',
           label: section.title,
+          sourceKind: getSourceRefKind(matchingSourceRef),
+          sourceLabel: matchingSourceRef?.label,
         }
       }
 
@@ -82,13 +116,19 @@ export function findDocumentSourceUsages(
   return Array.from(usages.values())
 }
 
+function getSourceRefKind(sourceRef: DocumentSourceRef | undefined): DocumentSourceKind | undefined {
+  return sourceRef?.kind
+}
+
 export async function loadDocumentSourceUsages(
   sourceId: string,
-  options?: { projectId?: string },
+  options?: { projectId?: string; sourceKind?: DocumentSourceKind },
 ): Promise<DocumentSourceUsage[]> {
   if (!options?.projectId) {
     const documents = await loadAllDocumentBlueprints()
-    return findDocumentSourceUsages(documents, sourceId)
+    return findDocumentSourceUsages(documents, sourceId, {
+      sourceKind: options?.sourceKind,
+    })
   }
 
   const [documents, projectEntityRefs] = await Promise.all([
@@ -102,6 +142,7 @@ export async function loadDocumentSourceUsages(
         ref.entityKind === 'draft'
         && (ref.provenanceEdges ?? []).some((edge) => (
           (edge.targetKind === 'analysis' || edge.targetKind === 'figure')
+          && (!options.sourceKind || edge.targetKind === options.sourceKind)
           && edge.targetId === sourceId
         ))
       ))
@@ -112,5 +153,7 @@ export async function loadDocumentSourceUsages(
     ? documents.filter((document) => draftDocumentIds.has(document.id))
     : documents
 
-  return findDocumentSourceUsages(candidateDocuments, sourceId)
+  return findDocumentSourceUsages(candidateDocuments, sourceId, {
+    sourceKind: options.sourceKind,
+  })
 }

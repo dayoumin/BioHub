@@ -18,10 +18,16 @@ import {
   loadTabSettings,
   getTabEntry,
 } from '@/lib/research/entity-tab-registry'
+import { buildDocumentEditorUrl } from '@/lib/research/source-navigation'
+import {
+  canCreateDocumentWritingSessionForEntityKind,
+  createDocumentWritingSession,
+} from '@/lib/research/document-writing-session'
 import type { ProjectEntityKind } from '@/lib/types/research'
 import type { ResolvedEntity } from '@/lib/research/entity-resolver'
 import { EntityListItem } from './EntityListItem'
 import { ReportComposer } from './ReportComposer'
+import { toast } from 'sonner'
 
 type SortMode = 'newest' | 'name'
 type PeriodFilter = 'all' | '1w' | '1m' | '3m'
@@ -48,6 +54,7 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
   const [period, setPeriod] = useState<PeriodFilter>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [reportOpen, setReportOpen] = useState(false)
+  const [creatingWritingEntityId, setCreatingWritingEntityId] = useState<string | null>(null)
 
   const [tabSettings] = useState(() => loadTabSettings())
 
@@ -160,6 +167,35 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
     [entities, selectedIds],
   )
 
+  const handleCreateWriting = useCallback(async (entity: ResolvedEntity) => {
+    if (!entity.loaded) {
+      toast.error('원본 결과를 찾을 수 없어 문서를 만들 수 없습니다.')
+      return
+    }
+    if (creatingWritingEntityId) {
+      return
+    }
+
+    setCreatingWritingEntityId(entity.ref.entityId)
+    try {
+      const document = await createDocumentWritingSession({
+        projectId,
+        title: `${entity.summary.title} 문서 초안`,
+        sourceEntityIds: entity.ref.entityKind === 'analysis'
+          ? { analysisIds: [entity.ref.entityId] }
+          : entity.ref.entityKind === 'figure'
+            ? { figureIds: [entity.ref.entityId] }
+            : { entityIds: [entity.ref.entityId] },
+      })
+      onNavigate(buildDocumentEditorUrl(document.id))
+    } catch (error) {
+      console.error('[EntityBrowser] failed to create writing document:', error)
+      toast.error('문서 생성에 실패했습니다.')
+    } finally {
+      setCreatingWritingEntityId(null)
+    }
+  }, [creatingWritingEntityId, onNavigate, projectId])
+
   return (
     <div>
       {/* 탭 */}
@@ -257,6 +293,12 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
                 onToggleSelect={() => handleToggleSelect(entity.ref.id)}
                 onNavigate={onNavigate}
                 onUnlink={() => onUnlink(entity)}
+                onCreateWriting={canCreateDocumentWritingSessionForEntityKind(entity.ref.entityKind)
+                  ? () => {
+                      void handleCreateWriting(entity)
+                    }
+                  : undefined}
+                isCreatingWriting={creatingWritingEntityId === entity.ref.entityId}
               />
             ))}
           </div>

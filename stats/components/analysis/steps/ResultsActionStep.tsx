@@ -66,11 +66,14 @@ import {
 import type { DocumentSourceUsage } from '@/lib/research/document-source-usage'
 import { loadDocumentSourceUsages } from '@/lib/research/document-source-usage'
 import { buildDocumentEditorUrl } from '@/lib/research/source-navigation'
+import { createDocumentWritingSession } from '@/lib/research/document-writing-session'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   type DocumentBlueprintsChangedDetail,
 } from '@/lib/research/document-blueprint-storage'
 import { DraftContextEditor } from './DraftContextEditor'
+import StartWritingButton from '@/components/papers/StartWritingButton'
+import WritingEntrySurface from '@/components/papers/WritingEntrySurface'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 
@@ -111,6 +114,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
+  const [isCreatingDocument, setIsCreatingDocument] = useState(false)
   const activeProject = useResearchProjectStore(selectActiveProject)
   const [resultTimestamp] = useState(() => new Date())
   const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([])
@@ -377,6 +381,34 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setFollowUpMessages,
     t,
   })
+  const handleCreateWritingDocument = useCallback(async () => {
+    if (isCreatingDocument) return
+    if (!activeProject?.id) {
+      toast.error('프로젝트를 먼저 선택해야 문서를 만들 수 있습니다.')
+      return
+    }
+    if (!currentHistoryId) {
+      toast.error('저장된 분석 결과에서만 문서를 시작할 수 있습니다.')
+      return
+    }
+
+    setIsCreatingDocument(true)
+    try {
+      const document = await createDocumentWritingSession({
+        projectId: activeProject.id,
+        title: `${selectedMethod?.name ?? '분석 결과'} 문서 초안`,
+        sourceEntityIds: {
+          analysisIds: [currentHistoryId],
+        },
+      })
+      router.push(buildDocumentEditorUrl(document.id))
+    } catch (error) {
+      console.error('[ResultsActionStep] failed to create writing document:', error)
+      toast.error('문서 생성에 실패했습니다.')
+    } finally {
+      setIsCreatingDocument(false)
+    }
+  }, [activeProject?.id, currentHistoryId, isCreatingDocument, router, selectedMethod?.name])
   const documentUsageRequestSeqRef = useRef(0)
 
   const reloadDocumentUsages = useCallback(() => {
@@ -390,7 +422,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
     void loadDocumentSourceUsages(
       currentHistoryId,
-      activeProject?.id ? { projectId: activeProject.id } : undefined,
+      activeProject?.id ? { projectId: activeProject.id, sourceKind: 'analysis' } : { sourceKind: 'analysis' },
     )
       .then((usages) => {
         if (documentUsageRequestSeqRef.current === requestSeq) {
@@ -633,42 +665,67 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </Card>
         )}
 
-        {currentHistoryId && documentUsages.length > 0 && (
-          <Card className="border-0 bg-surface-container-low shadow-none">
-            <CardContent className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold tracking-tight text-foreground">{documentsTitle}</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {documentsDescription}
+        <Card className="border-0 bg-surface-container-low shadow-none">
+          <CardContent className="px-4 py-3">
+            <WritingEntrySurface
+              title="문서 작성"
+              description={!activeProject?.id
+                ? '프로젝트를 먼저 선택하면 저장된 분석 결과를 바로 문서 초안으로 연결할 수 있습니다.'
+                : !currentHistoryId
+                  ? '저장된 분석 결과에서만 문서를 시작할 수 있습니다. 먼저 결과를 저장하세요.'
+                  : documentsDescription}
+              action={(
+                <StartWritingButton
+                  label="문서에서 작성"
+                  pendingLabel="문서 생성 중..."
+                  onClick={() => {
+                    void handleCreateWritingDocument()
+                  }}
+                  disabled={!activeProject?.id || !currentHistoryId}
+                  pending={isCreatingDocument}
+                  testId="paper-document-btn"
+                  icon={FileText}
+                  size="sm"
+                  className="h-9 px-3 gap-1.5 shadow-none"
+                />
+              )}
+            >
+              {currentHistoryId && documentUsages.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="w-full text-sm font-semibold tracking-tight text-foreground">{documentsTitle}</p>
+                  {documentUsages.slice(0, 3).map((usage) => (
+                    <Button
+                      key={`${usage.documentId}:${usage.kind}:${usage.label}`}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-3"
+                      onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {
+                        sectionId: usage.sectionId,
+                        tableId: usage.kind === 'table' ? usage.artifactId : undefined,
+                        figureId: usage.kind === 'figure' ? usage.artifactId : undefined,
+                      }))}
+                      title={`${usage.documentTitle} · ${usage.sectionTitle}`}
+                    >
+                      {usage.documentTitle} · {usage.label}
+                    </Button>
+                  ))}
+                  {documentUsages.length > 3 && (
+                    <span className="text-xs text-muted-foreground">
+                      {moreDocumentsLabel(documentUsages.length - 3)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {currentHistoryId
+                    ? '아직 이 결과를 사용하는 문서가 없습니다. 지금 바로 초안을 만들 수 있습니다.'
+                    : '먼저 현재 결과를 저장하면 이 화면에서 바로 문서 초안을 만들 수 있습니다.'}
                 </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {documentUsages.slice(0, 3).map((usage) => (
-                  <Button
-                    key={`${usage.documentId}:${usage.kind}:${usage.label}`}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3"
-                    onClick={() => router.push(buildDocumentEditorUrl(usage.documentId, {
-                      sectionId: usage.sectionId,
-                      tableId: usage.kind === 'table' ? usage.artifactId : undefined,
-                      figureId: usage.kind === 'figure' ? usage.artifactId : undefined,
-                    }))}
-                    title={`${usage.documentTitle} · ${usage.sectionTitle}`}
-                  >
-                    {usage.documentTitle} · {usage.label}
-                  </Button>
-                ))}
-                {documentUsages.length > 3 && (
-                  <span className="text-xs text-muted-foreground">
-                    {moreDocumentsLabel(documentUsages.length - 3)}
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )}
+            </WritingEntrySurface>
+          </CardContent>
+        </Card>
 
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard

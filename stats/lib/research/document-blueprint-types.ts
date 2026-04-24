@@ -13,7 +13,22 @@ import { getGraphProjectAnalysisSourceRefs } from '@/lib/graph-studio/project-li
 
 export type DocumentPreset = 'paper' | 'report' | 'custom'
 
-export type DocumentSourceKind = 'analysis' | 'figure' | 'unknown'
+export type DocumentSourceKind = 'analysis' | 'figure' | 'supplementary'
+
+export type DocumentWritingStatus =
+  | 'idle'
+  | 'collecting'
+  | 'drafting'
+  | 'patching'
+  | 'completed'
+  | 'failed'
+
+export type DocumentWritingSectionStatus =
+  | 'idle'
+  | 'drafting'
+  | 'patched'
+  | 'skipped'
+  | 'failed'
 
 export interface DocumentSourceRef {
   kind: DocumentSourceKind
@@ -21,7 +36,11 @@ export interface DocumentSourceRef {
   label?: string
 }
 
-export type LegacyDocumentSourceRef = string | DocumentSourceRef
+export type LegacyDocumentSourceRef = string | DocumentSourceRef | {
+  kind?: DocumentSourceKind | 'unknown'
+  sourceId: string
+  label?: string
+}
 
 // ── 표 ──
 
@@ -64,6 +83,22 @@ export interface DocumentSection {
   generatedBy: 'template' | 'llm' | 'user'
 }
 
+export interface DocumentWritingSectionState {
+  status: DocumentWritingSectionStatus
+  jobId?: string
+  updatedAt?: string
+  message?: string
+}
+
+export interface DocumentWritingState {
+  status: DocumentWritingStatus
+  jobId?: string
+  startedAt?: string
+  updatedAt?: string
+  errorMessage?: string
+  sectionStates: Record<string, DocumentWritingSectionState>
+}
+
 // ── 메타데이터 ──
 
 export interface PaperMetadata {
@@ -90,8 +125,22 @@ export interface DocumentBlueprint {
   language: 'ko' | 'en'
   sections: DocumentSection[]
   metadata: DocumentMetadata
+  writingState?: DocumentWritingState
   createdAt: string
   updatedAt: string
+}
+
+export function normalizeDocumentWritingState(
+  writingState: DocumentBlueprint['writingState'],
+): DocumentWritingState {
+  return {
+    status: writingState?.status ?? 'idle',
+    jobId: writingState?.jobId,
+    startedAt: writingState?.startedAt,
+    updatedAt: writingState?.updatedAt,
+    errorMessage: writingState?.errorMessage,
+    sectionStates: { ...(writingState?.sectionStates ?? {}) },
+  }
 }
 
 function hashDocumentArtifact(value: string): string {
@@ -135,10 +184,10 @@ export function normalizeDocumentSourceRef(
   ref: LegacyDocumentSourceRef,
 ): DocumentSourceRef {
   if (typeof ref === 'string') {
-    return createDocumentSourceRef('unknown', ref)
+    return createDocumentSourceRef('supplementary', ref)
   }
   return {
-    kind: ref.kind ?? 'unknown',
+    kind: ref.kind === 'unknown' || !ref.kind ? 'supplementary' : ref.kind,
     sourceId: ref.sourceId,
     label: ref.label,
   }
@@ -151,6 +200,7 @@ export function getDocumentSourceId(ref: LegacyDocumentSourceRef): string {
 export function normalizeDocumentBlueprint(document: DocumentBlueprint): DocumentBlueprint {
   return {
     ...document,
+    writingState: normalizeDocumentWritingState(document.writingState),
     sections: document.sections.map((section) => ({
       ...section,
       sourceRefs: (section.sourceRefs ?? []).map((ref) => normalizeDocumentSourceRef(ref as LegacyDocumentSourceRef)),

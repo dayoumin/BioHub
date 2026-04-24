@@ -22,10 +22,12 @@ function createDeferred<T>(): {
 const {
   mockRouterPush,
   mockLoadDocumentSourceUsages,
+  mockCreateDocumentWritingSession,
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
   mockRouterPush: vi.fn(),
   mockLoadDocumentSourceUsages: vi.fn(),
+  mockCreateDocumentWritingSession: vi.fn(),
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
 }))
 
@@ -43,6 +45,10 @@ vi.mock('@/lib/research/document-source-usage', () => ({
   loadDocumentSourceUsages: (sourceId: string, options?: { projectId?: string }) => (
     mockLoadDocumentSourceUsages(sourceId, options)
   ),
+}))
+
+vi.mock('@/lib/research/document-writing-session', () => ({
+  createDocumentWritingSession: (...args: unknown[]) => mockCreateDocumentWritingSession(...args),
 }))
 
 vi.mock('@/lib/research/document-blueprint-storage', () => ({
@@ -84,6 +90,8 @@ describe('GraphStudioHeader', () => {
     mockRouterPush.mockReset()
     mockLoadDocumentSourceUsages.mockReset()
     mockLoadDocumentSourceUsages.mockResolvedValue([])
+    mockCreateDocumentWritingSession.mockReset()
+    mockCreateDocumentWritingSession.mockResolvedValue({ id: 'doc-created' })
     act(() => {
       useGraphStudioStore.getState().resetAll()
     })
@@ -148,6 +156,34 @@ describe('GraphStudioHeader', () => {
     expect(saveButton).toHaveTextContent('저장 중...')
   })
 
+  it('hides the writing button until the graph is saved as a project', () => {
+    act(() => {
+      useGraphStudioStore.getState().setChartSpec(makeSpec())
+    })
+
+    render(<GraphStudioHeader />)
+
+    expect(screen.queryByTestId('graph-studio-write-doc')).not.toBeInTheDocument()
+  })
+
+  it('hides the writing button when no research project is resolved', () => {
+    const spec = makeSpec()
+
+    act(() => {
+      useGraphStudioStore.getState().setProject({
+        ...makeProject(spec),
+        projectId: undefined,
+      })
+      useGraphStudioStore.setState({
+        linkedResearchProjectId: null,
+      })
+    })
+
+    render(<GraphStudioHeader />)
+
+    expect(screen.queryByTestId('graph-studio-write-doc')).not.toBeInTheDocument()
+  })
+
   it('asks for confirmation before saving when a relink mismatch warning is active', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()
@@ -206,8 +242,86 @@ describe('GraphStudioHeader', () => {
 
     await user.click(await screen.findByRole('button', { name: '논문 초안' }))
 
-    expect(mockLoadDocumentSourceUsages).toHaveBeenCalledWith('project-1', { projectId: 'research-project-1' })
+    expect(mockLoadDocumentSourceUsages).toHaveBeenCalledWith('project-1', {
+      projectId: 'research-project-1',
+      sourceKind: 'figure',
+    })
     expect(mockRouterPush).toHaveBeenCalledWith('/papers?doc=doc-1&section=results&figure=project-1')
+  })
+
+  it('creates a new writing document from the current saved graph', async () => {
+    const user = userEvent.setup()
+    const spec = makeSpec()
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject(spec))
+    })
+
+    render(<GraphStudioHeader />)
+
+    await user.click(screen.getByTestId('graph-studio-write-doc'))
+
+    expect(mockCreateDocumentWritingSession).toHaveBeenCalledWith({
+      projectId: 'research-project-1',
+      title: 'Saved Chart 문서 초안',
+      sourceEntityIds: {
+        figureIds: ['project-1'],
+      },
+    })
+    expect(mockRouterPush).toHaveBeenCalledWith('/papers?doc=doc-created')
+  })
+
+  it('uses the resolved research-project id consistently for usage lookup and document creation', async () => {
+    const user = userEvent.setup()
+    const spec = makeSpec()
+
+    act(() => {
+      useGraphStudioStore.getState().setProject({
+        ...makeProject(spec),
+        projectId: undefined,
+      })
+      useGraphStudioStore.setState({
+        linkedResearchProjectId: 'linked-project-1',
+      })
+    })
+
+    render(<GraphStudioHeader />)
+
+    await waitFor(() => {
+      expect(mockLoadDocumentSourceUsages).toHaveBeenCalledWith('project-1', {
+        projectId: 'linked-project-1',
+        sourceKind: 'figure',
+      })
+    })
+
+    await user.click(screen.getByTestId('graph-studio-write-doc'))
+
+    expect(mockCreateDocumentWritingSession).toHaveBeenCalledWith({
+      projectId: 'linked-project-1',
+      title: 'Saved Chart 문서 초안',
+      sourceEntityIds: {
+        figureIds: ['project-1'],
+      },
+    })
+  })
+
+  it('clears the pending state and does not navigate when graph writing document creation fails', async () => {
+    const user = userEvent.setup()
+    const spec = makeSpec()
+    mockCreateDocumentWritingSession.mockRejectedValueOnce(new Error('boom'))
+
+    act(() => {
+      useGraphStudioStore.getState().setProject(makeProject(spec))
+    })
+
+    render(<GraphStudioHeader />)
+
+    await user.click(screen.getByTestId('graph-studio-write-doc'))
+
+    await waitFor(() => {
+      expect(mockRouterPush).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: '자료 작성' })).toBeInTheDocument()
+    })
   })
 
   it('reloads document usages when papers change and shows explicit destinations', async () => {

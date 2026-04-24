@@ -6,6 +6,92 @@
 - [x] Papers 문서 편집기 후속 보강: 문서 전환 직후 reassemble/export 타이밍 케이스와 citation 로딩 레이스 회귀 테스트 추가 (`a3d73407`, 2026-04-13)
 - [x] PackageBuilder Step 2 자동 수집 후속 점검: same-tab entity/graph 변경 시 기존 item 재수집 정책과 사용자 수동 편집 충돌 여부 검토 (`a3d73407`, 2026-04-13)
 
+### 자료 작성 플로우 재설계 점검 (2026-04-24)
+- [ ] **목표 UX 확정**: 통계 / Graph Studio / Bio-Tools / 유전적 분석 결과 화면에서 `자료 작성` 클릭 시, 문서가 즉시 생성되고 `DocumentEditor`로 바로 진입하며 상단 또는 섹션 헤더에 `작성 중...` 상태가 보여야 한다.
+- [ ] **현재 플로우 분리 문제 해소**: `ResultsActionStep`의 `결과 요약` 시트, `PapersHub`의 `새 문서`, `ReportComposer`, `PackageBuilder`가 서로 다른 작성 흐름으로 분리되어 있는 상태를 정리하고, 사용자 관점의 단일 진입 흐름을 정의한다.
+- [ ] **1차 범위 고정**: 1차 구현은 통계 결과 + Graph Studio를 대상으로 하고, 문서 skeleton 생성 → 에디터 자동 진입 → section별 초안 반영 → 완료/실패 상태 표시까지를 MVP로 확정한다.
+- [ ] **2차 범위 고정**: Bio-Tools와 유전적 분석(`blast/protein/seq-stats/similarity/phylogeny/bold/translation`)은 공통 `DocumentSourceBundle` 설계 후 확장한다. 1차 구현에 generic fallback만 얹고 전용 writer는 2차로 미룰지 결정한다.
+- [ ] **세션 상태 모델 설계**: `idle -> collecting -> drafting -> patching -> done | failed` 수준의 문서 작성 job/state machine을 추가하고, `DocumentEditor`가 이를 구독해 상태를 노출하도록 한다.
+- [ ] **문서 우선 생성 원칙 채택**: AI/템플릿 생성이 끝난 뒤 문서를 여는 방식이 아니라, 빈 `DocumentBlueprint`를 먼저 만들고 편집기로 이동한 뒤 초안을 patch하는 구조로 고정한다.
+- [ ] **섹션 patch 계약 정의**: Methods / Results / Figure caption / Discussion 등 어떤 섹션이 자동 생성 대상인지, section별 overwrite 규칙과 `generatedBy: template | llm | user` 보존 정책을 명확히 한다.
+- [ ] **기존 사용자 편집 보존**: 재실행 / 재조립 / 후속 결과 반영 시 사용자가 직접 수정한 문단, 표, figure link가 덮어써지지 않도록 section 단위 merge 계약과 conflict UX를 설계한다.
+- [ ] **작성 중 UI 점검**: 전역 배너, section skeleton, 진행 단계 텍스트, 실패 시 retry CTA, 완료 후 상태 배지 등 작성 상태를 에디터 내에서 충분히 보여주는지 점검한다.
+- [ ] **스트리밍 vs 배치 결정**: 초안을 문단 단위로 스트리밍할지, section 완성본 단위 patch로 반영할지 결정한다. 1차는 section 단위 patch가 구현 복잡도 대비 안전한지 검토한다.
+- [ ] **통계 초안 생성기 역할 정리**: 현재 `generatePaperDraft()`는 템플릿 기반 즉시 생성 + `discussion: null` 구조이므로, 이를 문서 작성 파이프라인의 초기 writer로 재사용할지, 별도 writer adapter를 둘지 결정한다.
+- [ ] **Graph Studio 연결 규칙 정리**: figure source, related analysis, pattern summary, chart image/export provenance가 문서 figure ref와 어떻게 연결되는지 정의하고, 그래프 수정 후 문서 갱신 정책도 정한다.
+- [ ] **Bio-Tools 결과 정규화**: `bio-tool-result`가 현재는 summary 수준만 제공하므로, 도구별 결과 표/해석/그래프 메타를 문서 작성에 넘길 최소 contract를 정의한다.
+- [ ] **유전적 분석 결과 정규화**: `blast-result` 외에 `protein-result`, `seq-stats-result`, `similarity-result`, `phylogeny-result`, `bold-result`, `translation-result`를 문서 작성용 구조화 데이터로 승격할지와 우선순위를 정한다.
+- [ ] **프로젝트 문서 조립기 역할 재정의**: `DocumentAssemblyDialog`는 현재 프로젝트 결과를 조립하는 skeleton generator에 가깝다. AI 작성 세션의 entrypoint로 승격할지, 프로젝트 기반 bulk assembly 전용으로 유지할지 결정한다.
+- [ ] **ReportComposer 역할 제한**: `ReportComposer`는 클립보드/HTML 내보내기용 빠른 요약 도구로 제한하고, 본격 문서 작성 UX와 혼동되지 않도록 라벨과 진입점을 재검토한다.
+- [ ] **PackageBuilder 역할 제한**: `AI 패키지 조립`은 외부 LLM 입력 패키지 제작 워크플로우로 남기고, 일반 사용자의 즉시 자료 작성 흐름과 분리된다는 점을 UI/정보 구조에서 명확히 한다.
+- [ ] **저장/히스토리 연동 점검**: 작성 도중 문서 autosave, 결과 히스토리 link, 문서 source usage, 프로젝트 entity ref 생성/삭제, 재접속 복원 경로를 end-to-end로 점검한다.
+- [ ] **오류/복구 시나리오 점검**: source 누락, graph relink warning, draft generation 실패, 문서 conflict, partial section failure, history restore 후 재작성 같은 복구 시나리오를 명시적으로 설계한다.
+- [ ] **테스트 전략 확정**: 최소 L1/L2 범위로 `문서 생성 직후 에디터 진입`, `작성 중 상태 표시`, `section patch 반영`, `user-edit 보존`, `graph/bio/genetics source 연결`, `failure + retry`를 회귀 테스트로 고정한다.
+- [ ] **성공 기준 명문화**: 사용자가 어떤 결과 화면에서 시작하든 3초 내 편집기가 열리고, 작성 진행 상태를 볼 수 있으며, 초안이 눈앞에서 채워지고, 수동 편집이 안전하게 보존되는 것을 자료 작성 기능의 완료 기준으로 삼는다.
+
+### 자료 작성 편집기 플랫폼 결정 기준 (2026-04-24)
+- [ ] **기본 방침 고정**: 1차 자료 작성 재설계는 `Plate 유지`를 기본안으로 진행한다. 현재 `DocumentEditor`/`PlateEditor`/공용 editor UI/수식 요소/테스트가 이미 Plate 기반이므로, 편집기 교체보다 문서 상태 모델 통합을 우선한다.
+- [ ] **Plate 유지 적합성 검증**: 다음 1차 요구를 Plate 위에서 해결 가능한지 확인한다. `문서 자동 진입`, `문서 레벨 작성 상태`, `section patch`, `표/수식 유지`, `user edit 보존`, `autosave + conflict 처리`.
+- [ ] **문서 상태 모델 우선 원칙**: 편집기 엔진 부족으로 오해하지 않도록, 현재 핵심 문제를 `paperDraft`와 `DocumentBlueprint` 파이프라인 분리로 명시한다. 엔진 변경 없이 해결 가능한 범위를 먼저 닫는다.
+- [ ] **Plate 유지 시 필수 점검**: `DocumentSection.generatedBy`, section별 patch 규칙, Plate value 직렬화/복원, markdown/html/docx export 정합성, equation/table node 보존, editor remount 없이 background patch 반영 가능 여부를 점검한다.
+- [ ] **Plate 유지 시 UX 점검**: `작성 중...`, `반영 완료`, `실패`, `재시도` 상태를 에디터 헤더/섹션 수준에서 표현할 때 Plate selection/focus를 깨지 않는지 확인한다.
+- [ ] **Plate 유지 시 테스트 점검**: `DocumentEditor.export-freshness.test.tsx` 기반으로 background patch, user edit 후 patch skip/merge, conflict, section reorder 없는 incremental update 회귀 테스트를 추가한다.
+- [ ] **Tiptap 재평가 트리거 정의**: 아래 조건 중 2개 이상이 실제 요구로 들어오면 Tiptap 전환 검토를 다시 연다. `실시간 협업`, `댓글/제안 모드`, `강한 문서 schema 제약`, `Notion/Google Docs 급 장기 문서 제품화`, `HTML/Markdown/DOCX round-trip 정합성 강화`.
+- [ ] **Tiptap 스파이크 범위 정의**: 재평가 시에는 전면 전환이 아니라 `Methods + Results + Table + Equation + background AI patch`만 포함한 최소 spike를 별도 브랜치에서 검증한다. 현 본선 구현과 섞지 않는다.
+- [ ] **Lexical / ProseMirror 제외 근거 고정**: 현 단계에서는 `Lexical`은 low-level 구현 비용, `ProseMirror 직접 사용`은 프레임워크 구축 비용이 커서 채택 후보에서 제외한다. Plate 또는 Tiptap만 비교 대상으로 유지한다.
+- [ ] **최종 성공 기준**: 편집기 플랫폼 결정의 성공 기준은 “자료 작성 1차 MVP를 가장 짧은 시간 안에 안정적으로 출시하는가”로 둔다. 미래 잠재력보다 현재 통합 비용과 제품 진행 속도를 우선한다.
+
+### 자료 작성 1차 구현 명세 (Plate 유지안, 2026-04-24)
+- [ ] 공통 모듈/공통 컴포넌트/registry 확장 전략 계획 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md)
+- [ ] agent 리뷰 반영 핵심 계약 정리: 상태/저장/동시성 계약, `DocumentSection` merge matrix, `NormalizedWritingSource`, `manualBlank/sourceBoundDraft` entry mode, Phase 0 테스트 게이트를 위 계획 문서 기준으로 고정
+- [ ] 상태/저장/동시성 계약 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md)
+- [ ] `DocumentSection` merge matrix 문서: [`stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md`](stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md)
+- [ ] **Step 1. 구현 명세 고정**: 1차 구현 범위를 `analysis + figure + blast/protein`, 진입점은 `ResultsActionStep + GraphStudioHeader`, 산출물은 `DocumentBlueprint`, 편집기는 `DocumentEditor(Plate)`로 고정한다.
+- [ ] **Step 1-A. 변경 파일 목록 고정**
+  - `stats/lib/research/document-blueprint-types.ts`
+  - `stats/lib/research/document-blueprint-storage.ts`
+  - `stats/components/papers/DocumentEditor.tsx`
+  - `stats/components/analysis/steps/ResultsActionStep.tsx`
+  - `stats/components/graph-studio/GraphStudioHeader.tsx`
+  - `stats/lib/research/document-assembler.ts`
+  - `stats/__tests__/components/papers/DocumentEditor.export-freshness.test.tsx`
+  - 신규 최소 테스트 2~3개
+- [ ] **Step 1-B. 1차 비포함 범위 명시**: 실시간 협업, 댓글/제안모드, 완전한 bio-tools writer, seq-stats/similarity/phylogeny/bold/translation 전용 writer, Tiptap 전환 spike는 1차 구현에서 제외한다.
+- [ ] **Step 2. 문서 상태 모델 확정**: `DocumentBlueprint`에 문서 레벨 작성 상태와 섹션 레벨 상태를 추가한다. 최소 후보: `writingState`, `writingJob`, `sectionStatuses`.
+- [ ] **Step 2-A. 상태 전이 정의**: 문서 레벨은 `idle -> collecting -> drafting -> patching -> completed | failed`, 섹션 레벨은 `idle -> drafting -> patched | skipped | failed`로 고정한다.
+- [ ] **Step 2-B. 저장 계약 정의**: 작성 상태도 문서 본문과 함께 IndexedDB에 저장하고, `loadDocumentBlueprint()` 시 normalize default를 적용한다. cross-tab 이벤트는 기존 `saved` 이벤트를 재사용한다.
+- [ ] **Step 2-C. 충돌 정책 정의**: `updatedAt` 기반 optimistic conflict는 유지하되, 1차에서는 문서 전체 conflict만 처리하고 섹션별 충돌 병합은 하지 않는다.
+- [ ] **Step 3. 진입점 통합 설계**
+  - `ResultsActionStep`: 기존 `결과 요약` CTA를 `문서에서 작성` 시작점으로 승격할지 결정
+  - `GraphStudioHeader`: 기존 문서 링크 옆에 `자료 작성` CTA 추가
+  - `/papers`: 문서 허브 역할 유지, 결과/그래프에서 직접 생성된 문서를 열 수 있어야 함
+- [ ] **Step 3-A. 생성 경로 정의**: 클릭 즉시 빈 `DocumentBlueprint`를 만들고 `?doc=`로 이동한 뒤 background drafting을 시작한다.
+- [ ] **Step 3-B. source binding 정의**: 통계는 `historyId`, 그래프는 `graph project id`를 문서 source/provenance에 즉시 연결한다.
+- [ ] **Step 4. section patch / merge 정책 확정**
+  - patch 단위는 `DocumentSection`
+  - 1차는 `Methods`, `Results`, `Figure caption/figures`만 자동 patch
+  - `Discussion`은 보류 또는 placeholder
+- [ ] **Step 4-A. user edit 보존 정책**: 사용자가 손댄 섹션은 1차에서 본문 patch를 skip하고, structured sidecar(`tables`, `figures`, `sourceRefs`)만 보수적으로 병합한다.
+- [ ] **Step 4-B. patch 적용 규칙**: 섹션 상태가 `patched`여도 신규 결과가 오면 같은 job 내 재patch는 허용하고, 다른 job이면 명시적 재작성 액션 전까지 자동 재patch하지 않는다.
+- [ ] **Step 4-C. 실패 규칙**: 일부 섹션 실패는 문서 전체 실패로 올리지 않고 `sectionStatuses[sectionId].status='failed'` + 문서 레벨 `patching` 또는 `failed`로 노출한다.
+- [ ] **Step 5. 테스트 명세 확정**
+  - 결과 화면에서 문서 생성 후 에디터 진입
+  - 문서 레벨 `작성 중` 상태 표시
+  - 섹션 patch 반영 후 상태 전이
+  - user edit 있는 섹션 patch skip
+  - background patch 중 conflict / retry
+- [ ] **Step 5-A. 최소 구현 테스트 세트**
+  - `DocumentEditor` 상태 배지/patch 회귀
+  - `document-blueprint-types` normalize/unit 테스트
+  - 진입점 helper 또는 생성 workflow 테스트 1건
+- [ ] **Step 6. 1차 구현 순서**
+  1. 타입/normalize/storage 스캐폴딩
+  2. `DocumentEditor` 상태 UI
+  3. 문서 생성 helper
+  4. `ResultsActionStep` 진입 연결
+  5. `GraphStudioHeader` 진입 연결
+  6. background patch + 테스트
+
 ### Graph Studio scoring follow-up (2026-04-14, 커밋 `9ae32a41` 후속)
 - [x] **[P1] 기본 차트 타입 휴리스틱 재검토**: 샘플 데이터(`species`/`length_cm`/`weight_g`/`year`)에서 scatter를 기본값으로 선택하도록 `suggestChartType()` 기준을 정리하고 `ChartSetupPanel.defaultType`도 같은 경로를 사용하도록 통일. (`chart-spec-utils.ts`, `ChartSetupPanel.tsx`, `chart-spec-utils.test.ts`, 2026-04-14)
 - [x] **[P1] Auto-color 인코딩 entry point 불일치**: `line`/`scatter` 기본 spec 생성 경로를 `createAutoConfiguredChartSpec()`로 공용화하여 `ChartSetupPanel`, `LeftDataPanel`, `ResultsActionStep`, `use-open-in-graph-studio`, `autoCreateChartSpec`, `createChartSpecFromDataPackage`가 같은 auto-color 규칙을 사용하도록 정리. (`chart-spec-utils.ts`, `ChartSetupPanel.tsx`, `LeftDataPanel.tsx`, `ResultsActionStep.tsx`, `use-open-in-graph-studio.ts`, `chart-spec-utils.test.ts`, 2026-04-14)
@@ -15,15 +101,15 @@
 - [x] **[P2] Y scorer CATEGORY suppression symmetry**: Y축 quantitative scorer는 category-hinted numeric id도 계속 강하게 배제하는 비대칭 설계를 유지하되, 그 의도를 코드 주석과 회귀 테스트로 명시. (`chart-spec-utils.ts`, `chart-spec-utils.test.ts`, 2026-04-14)
 - [x] **[P3] `code`/`index` ID-like 토큰 완화**: 일반 `code`/`index` 토큰을 `ID_LIKE_TOKENS`에서 제거하고, 실제 row-id 성격의 standalone `index`/`row index`만 예외적으로 유지. `treatment_code`, `site_code`, `group_index` 같은 도메인 컬럼이 과감점되지 않도록 테스트로 고정. (`chart-spec-heuristics.ts`, `chart-spec-utils.test.ts`, 2026-04-14)
 - [x] **[P3] `converters/shared.ts:678` `base.title.top: 8` 하드코딩**: `buildBaseOption()`도 `TITLE_TOP` 상수를 재사용하도록 정리해 title/legend offset 계산의 single source of truth를 유지. (`converters/shared.ts`, 2026-04-14)
-- [ ] **[P3] 샘플 데이터 preferredXY override**: 어류 생태 샘플(`species`/`length_cm`/`weight_g`/`year`)에서 `length-weight relationship`이 흔한 분석 축이지만 현재 글로벌 RESPONSE_LIKE 스코어가 `weight`를 우선시 → `length_cm`이 Y로 잡히지 않음. 제품 샘플로 계속 쓸 데이터면 CSV 메타에 `preferredXY: { x: 'length_cm', y: 'weight_g' }` 필드 추가 또는 analysis adapter에서 명시하는 방식이 더 안정적 (글로벌 weight 우선은 유지).
+- [x] **[P3] 샘플 데이터 preferredXY override**: 어류 생태 샘플(`species`/`length_cm`/`weight_g`/`year`)에 `preferredXY: { x: 'length_cm', y: 'weight_g' }`를 추가하고, `DataPackage` → Step 1 기본 생성 → Step 2 기본 선택 → 데이터 교체 경로가 공통 `resolveXYFields()`를 사용하도록 정리. (`graph-studio.ts`, `chart-spec-schema.ts`, `chart-spec-utils.ts`, `editor-actions.ts`, `ChartSetupPanel.tsx`, `LeftDataPanel.tsx`, `DataUploadPanel.tsx`, 관련 테스트, 2026-04-21)
 - [x] **[P3] Legend-title 오프셋 CI 검증 — Playwright screenshot diff**: Graph Studio 전용 visual regression spec로 `title 있음` × `titleSize 기본/24+` × `top/bottom legend` × compact desktop viewport 4개 baseline을 추가. 현재 UI title control이 single-line input이라 multiline title은 사용자 경로로 재현 불가하며, 현 baseline은 실제 편집 경로에서 발생 가능한 레이아웃 회귀를 우선 고정한다. (`graph-studio-visual-regression.spec.ts`, `selectors.ts`, `DataTab.tsx`, `StyleTab.tsx`, 2026-04-14)
 - [x] **[P1] Legend orient schema drift 방지**: `legend-orients.ts`의 `LEGEND_ORIENTS` / top-bottom subsets를 schema와 converter가 공용으로 사용하도록 정리. (`legend-orients.ts`, `chart-spec-schema.ts`, `converters/shared.ts`, 2026-04-14)
 - [x] **[P2] 토큰 사전 + 유니코드 tokenizer 분리**: 5종 토큰 사전과 `normalizeFieldName()`/ID 판정을 `stats/lib/graph-studio/chart-spec-heuristics.ts`로 분리하고, `chart-spec-utils.ts`는 scoring만 담당하도록 정리. (`chart-spec-heuristics.ts`, `chart-spec-utils.ts`, `chart-spec-heuristics.test.ts`, `chart-spec-utils.test.ts`, 2026-04-14)
 - [x] **[P2] `selectXYFields → selectAutoColorField` 통합 테스트 (완료 `e18a6e4a` 이후)**: 통합 케이스 2건으로 보강 완료. `xField=treatment_id` 선택 후 auto-color가 species로 빠지는 시나리오와, `length_cm + weight_g + species`에서 X=species / Y=weight_g / color=null(species=X이므로 제외) 경로를 함께 고정. (`chart-spec-utils.test.ts`, 2026-04-14)
 - [x] **[P2] `legend.top(px)` vs `grid.top(%)` 산술 guard**: `buildBaseOption`에서 상단 범례+큰 제목 조합일 때 `grid.top` 최소 퍼센트를 runtime으로 끌어올리는 guard를 추가. (`converters/shared.ts`, `echarts-converter.test.ts`, 2026-04-14)
-- [ ] **[P3] `components/common/index.ts` barrel 갱신 (완료 `SortablePinnedCardGrid`)**: 추가됨. 이후 `common/` 신규 컴포넌트는 barrel 동기 필수.
+- [x] **[P3] `components/common/index.ts` barrel 갱신 (완료 `SortablePinnedCardGrid`)**: `SortablePinnedCardGrid` export 확인. 이후 `common/` 신규 컴포넌트는 barrel 동기 필수. (2026-04-21 재확인)
 - [ ] **[P3] `MAX_PINNED_TOOLS` 팩토리 파라미터화**: `createPinnedToolsStore(persistKey)` — 현재 6 하드코딩. 미래 다른 한도(e.g., favorite analyses 10개)가 생길 때 `createPinnedToolsStore(persistKey, { maxItems = 6 } = {})`로 확장. 지금 선제 구현 불필요 — YAGNI.
-- [ ] **[P3] `app/genetics/page.tsx` `tool.ready` 필터 회귀 테스트**: L203, L210의 `.filter((tool): tool is Tool => Boolean(tool) && tool.ready)` 필터가 load-bearing (미래 `ready: false` 추가 시 tool 숨김). 현재 모든 tool이 `ready: true`라 필터 효과 없어 테스트 미작성. 페이지 전체 mock 비용 과함 → 필터 로직만 pure 함수로 추출(`filterReadyTools(ids, map)`)한 뒤 단위 테스트 추가하는 방식이 저비용.
+- [x] **[P3] `app/genetics/page.tsx` `tool.ready` 필터 회귀 테스트**: `filterReadyTools(ids, map)` helper로 추출하고 missing/`ready:false` 경로를 단위 테스트로 고정. (`filter-ready-tools.ts`, `filter-ready-tools.test.ts`, `app/genetics/page.tsx`, 2026-04-21)
 - [ ] **[P3] Bisect quirk — `e18a6e4a`**: barrel이 `analysisVizTypeToChartType` 재-export하지만 이 symbol은 `b94b7bb2`에서야 `chart-spec-utils.ts`에 추가됨. 해당 SHA에서 fresh checkout + tsc 시 실패. 원인: 내 barrel 커밋 staging 시 다른 세션 uncommitted 변경도 함께 포함됨. 실용상 main은 정상, bisect 특수 케이스만 영향. history rewrite 불필요.
 - [x] **[P3] CLAUDE.md Graph Studio 토큰 휴리스틱 섹션**: 5종 토큰 사전(ID/CATEGORY/TIME/RESPONSE/PREDICTOR), `normalizeFieldName()` 유니코드/camelCase 규칙, X/Y scorer 비대칭, auto-color exclusion 규칙, 회귀 테스트 파일을 `CLAUDE.md`에 문서화. (`CLAUDE.md`, 2026-04-14)
 - [x] **[P2] `patternSummary` Textarea readonly 전환 + 자동 생성 라벨**: [PackageBuilder.tsx:238-244](stats/components/papers/PackageBuilder.tsx#L238-L244) Textarea가 편집 가능이지만 [PackageBuilder.tsx:451](stats/components/papers/PackageBuilder.tsx#L451) refresh 시 자동 생성본으로 덮어써짐 → silent data loss. 커밋 `685c19fe`에서 저자가 의도적으로 "자동 파생 필드"로 재정의했으므로 UI 계약도 동기화 필요. `readOnly` prop + 레이블 "📊 분석 결과 기반 자동 생성" 추가. 사용자 커스텀 워딩은 최종 DOCX export에서 수행. 구현 ~10줄 + refresh-preservation 테스트 1건 업데이트. (완료 2026-04-20)
@@ -47,6 +133,14 @@
 - [x] 분석 유형별(통계 메서드별) 기본 시각화 컴포넌트 매핑 일관성 확보 (`b94b7bb2`, 2026-04-14 analysisVizTypeToChartType + adapter 우선 priority + AnalysisVizType union)
 - [ ] 사용자 언어(질문 기반)가 통계 엄밀함을 해치는지 확인하고 문구 미세 조정 및 모니터링 *(부분 — terminology 인프라 구축, 자동 검증 lint 없음)*
   - [x] `language(ko/en)` + `domain(aquaculture/generic)` 분리 인프라, cross-combo resolver, guided flow ownership 정리, Settings 모달 언어/도메인 전환 UI 연결 및 조합 회귀 테스트 보강 (2026-04-21)
+  - [x] Hub `ChatThread`의 진단 카드/업로드 CTA/에러 재시도 copy를 language-aware fallback으로 정리하고 영어 렌더 회귀 추가 (`ChatThread.tsx`, `ChatThread.test.tsx`, 2026-04-21)
+  - [x] `LiveDataSummary`의 데이터 요약/빈 상태/유형 배지/group count copy를 language-aware fallback으로 정리하고 영어 렌더 회귀 추가 (`LiveDataSummary.tsx`, `LiveDataSummary.test.tsx`, 2026-04-21)
+  - [x] Hub `DataContextBadge`의 행/열 메타, 확장/제거 aria, 변수 유형 라벨을 language-aware fallback으로 정리하고 영어 렌더 회귀 추가 (`DataContextBadge.tsx`, `DataContextBadge.test.tsx`, 2026-04-21)
+  - [x] `AiInterpretationCard`의 `전체 보기` / `접기` / `더 보기` 토글을 terminology로 이관하고 영어 렌더 회귀 테스트 추가 (`AiInterpretationCard.tsx`, `AiInterpretationCard-pill-selection.test.tsx`, `terminology-types.ts`, `generic.ts`, `aquaculture.ts`, 2026-04-23)
+  - [x] `ResultsActionButtons`의 액션 패널 설명/보조 도구 copy와 export format 라벨을 terminology로 이관하고 영어 렌더 테스트 추가 (`ResultsActionButtons.tsx`, `ResultsActionButtons.localization.test.tsx`, `terminology-types.ts`, `generic.ts`, `aquaculture.ts`, 2026-04-23)
+  - [x] `ResultsStatsCards`의 통계표 복사 plain text / HTML 헤더를 clipboard terminology로 통일 (`ResultsStatsCards.tsx`, 2026-04-23)
+  - [x] `ResultsHeroCard`의 메서드 라벨 / APA 복사 aria / 파일 배지 / 검증 메타 / 옵션 라벨을 terminology로 이관하고 영어 렌더 테스트 추가 (`ResultsHeroCard.tsx`, `ResultsHeroCard.localization.test.tsx`, `terminology-types.ts`, `generic.ts`, `aquaculture.ts`, 2026-04-23)
+  - [x] `ResultsActionStep`의 히스토리 결과/문서 사용처 배너와 코드 export 라벨을 terminology로 이관하고 관련 테스트 목업을 동기화 (`ResultsActionStep.tsx`, `ResultsActionStep*.test.tsx`, `terminology-types.ts`, `generic.ts`, `aquaculture.ts`, 2026-04-23)
 - [x] **ResultsActionStep 훅 추출**: `useResultsCopyExport`, `useResultsHistory`, `useResultsNavigation`, `useResultsPaperDraft`로 분리하고 액션/훅 테스트까지 보강. (`be77c7a5`, `dfa36cc9`, 2026-04-20)
 
 ## 2. StatisticalExecutor 留덉씠洹몃젅?댁뀡 諛??뚯꽌 踰꾧렇 ?닿껐 (B2)
@@ -165,11 +259,11 @@
 
 ### 사전 존재 이슈 (본 세션 스코프 외)
 - [x] Method-ID canonicalization drift — AES만 정규화, VSS/ResultsActionStep은 raw id. `useCanonicalSelectedMethod` 공유 hook 추출 (`use-canonical-selected-method.ts`, `VariableSelectionStep.tsx`, `ResultsActionStep.tsx`, `AnalysisExecutionStep.tsx`, `method-registry.ts`, 2026-04-20)
-- [ ] `variable-requirements` 라벨 워딩 재검토 — "등분산 가정 등분산 가정", "Welch ANOVA 표준 ANOVA" 중복/모순, option vs setting 라벨 분리 UX 결정 필요
+- [x] `variable-requirements` 라벨 워딩 재검토 — `equalVar`/`welch` 설정 라벨을 option variant와 분리 (`분산 가정 선택`, `분산 동질성 처리`), Step 3/4 formatter 회귀 통과 (2026-04-21)
 ## 8. Statistics UI Polish Follow-up (2026-04-10)
 
 - [ ] 모바일 해상도에서 Hub hero, 빠른 분석 pills, 보조 도구 카드 밀도 재점검 *(모바일 보류 — 배포 후)*
-- [ ] 결과 화면 우측 히스토리 사이드바 정보 밀도와 액션 노출 수준 재조정 *(부분 — `685c19fe` 액션 재배치, 내보내기 더보기 메뉴 연결 완료 2026-04-14 `useAnalysisExport` 훅 추출)*
+- [x] 결과 화면 우측 히스토리 사이드바 정보 밀도와 액션 노출 수준 재조정 *(행당 메타를 2줄로 압축하고, 현재 항목에서는 상태 배지/더보기 액션을 항상 노출하도록 정리 — `AnalysisHistorySidebar.tsx`, `AnalysisHistorySidebar.test.tsx`, 2026-04-23)*
 - [x] 결과 화면 Hero 메타 영역에서 메서드별 중요 정보 우선순위 재정의 (`7b83b1cd`, 2026-04-10 ResultsHeroCard.tsx 96→52줄 + methodEntry 분기)
 - [ ] AI 해석 카드의 섹션 pill/전체 보기 동작을 모바일과 긴 텍스트 기준으로 추가 검토 *(모바일 보류 — 배포 후)*
 - [x] Data Exploration Step에서 업로드 교체 상태와 경고 배너의 시각적 우선순위 재검토 (`500dc963`, 2026-04-12)

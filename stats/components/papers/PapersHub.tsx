@@ -14,7 +14,16 @@ import { useHistoryStore } from '@/lib/stores/history-store'
 import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import { loadAndRestoreHistory } from '@/lib/stores/store-orchestration'
 import { useModeStore } from '@/lib/stores/mode-store'
-import { loadDocumentBlueprints } from '@/lib/research/document-blueprint-storage'
+import {
+  loadEntityHistories,
+  resolveEntities,
+  listProjectEntityRefs,
+  type ResolvedEntity,
+} from '@/lib/research'
+import {
+  DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  loadDocumentBlueprints,
+} from '@/lib/research/document-blueprint-storage'
 import {
   listPackages,
   PAPER_PACKAGES_CHANGED_EVENT,
@@ -23,10 +32,22 @@ import {
 import { PRESET_REGISTRY } from '@/lib/research/document-preset-registry'
 import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
 import type { PaperPackage } from '@/lib/research/paper-package-types'
+import {
+  canCreateDocumentWritingSessionForEntityKind,
+  createDocumentWritingSession,
+  startWritingSession,
+} from '@/lib/research/document-writing-session'
+import { BIO_HISTORY_CHANGE_EVENT } from '@/lib/bio-tools/bio-tool-history'
+import { HISTORY_CHANGE_EVENT as GENETICS_HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
+import { RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT } from '@/lib/research/project-storage'
 import DocumentAssemblyDialog from './DocumentAssemblyDialog'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/common/EmptyState'
+import { getTabEntry } from '@/lib/research/entity-tab-registry'
+import { toast } from 'sonner'
+import StartWritingButton from './StartWritingButton'
+import WritingEntrySurface from './WritingEntrySurface'
 
 // ── 프리셋 라벨 매핑 ──
 
@@ -143,6 +164,42 @@ function PackageCard({ pkg, onClick }: PackageCardProps): React.ReactElement {
   )
 }
 
+interface WritingSourceCardProps {
+  entity: ResolvedEntity
+  onClick: () => void
+  disabled?: boolean
+}
+
+function WritingSourceCard({ entity, onClick, disabled = false }: WritingSourceCardProps): React.ReactElement {
+  const tabEntry = getTabEntry(entity.ref.entityKind)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
+        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
+      )}
+    >
+      <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
+        <span className="text-sm">{tabEntry?.icon ?? '📎'}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-sm truncate">{entity.summary.title}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {entity.summary.subtitle ?? tabEntry?.label ?? entity.ref.entityKind}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+        <Clock className="w-3 h-3" />
+        {entity.summary.date}
+      </div>
+    </button>
+  )
+}
+
 // ── 기능 소개 ──
 
 const FEATURES = [
@@ -181,12 +238,41 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
   const [documents, setDocuments] = useState<DocumentBlueprint[]>([])
   const [packages, setPackages] = useState<PaperPackage[]>([])
   const [assemblyOpen, setAssemblyOpen] = useState(false)
+  const [writingSources, setWritingSources] = useState<ResolvedEntity[]>([])
+  const [creatingWritingEntityId, setCreatingWritingEntityId] = useState<string | null>(null)
+  const [isCreatingBlankDocument, setIsCreatingBlankDocument] = useState(false)
+
+  const reloadWritingSources = useCallback(async (projectId: string): Promise<void> => {
+    try {
+      const refs = listProjectEntityRefs(projectId).filter((ref) => (
+        ref.entityKind !== 'analysis'
+        && ref.entityKind !== 'figure'
+        && canCreateDocumentWritingSessionForEntityKind(ref.entityKind)
+      ))
+
+      if (refs.length === 0) {
+        setWritingSources([])
+        return
+      }
+
+      const resolved = resolveEntities(refs, await loadEntityHistories(refs))
+        .filter((entity) => entity.loaded)
+        .sort((left, right) => right.summary.timestamp - left.summary.timestamp)
+        .slice(0, 4)
+
+      setWritingSources(resolved)
+    } catch (error) {
+      console.error('[PapersHub] failed to load writing sources:', error)
+      setWritingSources([])
+    }
+  }, [])
 
   // 문서 목록 로드
   useEffect(() => {
     if (!activeProject) {
       setDocuments([])
       setPackages([])
+      setWritingSources([])
       return
     }
 
@@ -218,6 +304,77 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
     }
   }, [activeProject])
 
+  useEffect(() => {
+    if (!activeProject) {
+      setWritingSources([])
+      return
+    }
+
+    let cancelled = false
+
+    const loadWritingSources = async (): Promise<void> => {
+      await reloadWritingSources(activeProject.id)
+      if (cancelled) {
+        return
+      }
+    }
+
+    void loadWritingSources()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeProject, reloadWritingSources])
+
+  useEffect(() => {
+    if (!activeProject) {
+      return
+    }
+
+    const reloadCurrentProject = (): void => {
+      void reloadWritingSources(activeProject.id)
+    }
+
+    const handleDocumentChange = (event: Event): void => {
+      if (
+        event instanceof CustomEvent
+        && typeof event.detail === 'object'
+        && event.detail !== null
+        && 'projectId' in event.detail
+        && event.detail.projectId !== activeProject.id
+      ) {
+        return
+      }
+      reloadCurrentProject()
+    }
+
+    const handleProjectRefsChange = (event: Event): void => {
+      if (
+        event instanceof CustomEvent
+        && typeof event.detail === 'object'
+        && event.detail !== null
+        && 'projectIds' in event.detail
+        && Array.isArray(event.detail.projectIds)
+        && !event.detail.projectIds.includes(activeProject.id)
+      ) {
+        return
+      }
+      reloadCurrentProject()
+    }
+
+    window.addEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentChange)
+    window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsChange)
+    window.addEventListener(BIO_HISTORY_CHANGE_EVENT, reloadCurrentProject)
+    window.addEventListener(GENETICS_HISTORY_CHANGE_EVENT, reloadCurrentProject)
+
+    return (): void => {
+      window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentChange)
+      window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleProjectRefsChange)
+      window.removeEventListener(BIO_HISTORY_CHANGE_EVENT, reloadCurrentProject)
+      window.removeEventListener(GENETICS_HISTORY_CHANGE_EVENT, reloadCurrentProject)
+    }
+  }, [activeProject, reloadWritingSources])
+
   const draftHistories = analysisHistory
     .filter(h => h.results !== null)
     .slice(0, 6)
@@ -237,6 +394,48 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
     setAssemblyOpen(false)
     onOpenDocument(doc.id)
   }, [onOpenDocument])
+
+  const handleCreateBlankDocument = useCallback(async () => {
+    if (!activeProject || isCreatingBlankDocument) {
+      return
+    }
+
+    setIsCreatingBlankDocument(true)
+    try {
+      const document = await startWritingSession({
+        mode: 'manual-blank',
+        projectId: activeProject.id,
+        title: `${activeProject.name} 새 문서`,
+      })
+      onOpenDocument(document.id)
+    } catch (error) {
+      console.error('[PapersHub] failed to create blank writing document:', error)
+      toast.error('빈 문서 생성에 실패했습니다.')
+    } finally {
+      setIsCreatingBlankDocument(false)
+    }
+  }, [activeProject, isCreatingBlankDocument, onOpenDocument])
+
+  const handleCreateWritingFromEntity = useCallback(async (entity: ResolvedEntity) => {
+    if (!activeProject || creatingWritingEntityId) {
+      return
+    }
+
+    setCreatingWritingEntityId(entity.ref.entityId)
+    try {
+      const document = await createDocumentWritingSession({
+        projectId: activeProject.id,
+        title: `${entity.summary.title} 문서 초안`,
+        sourceEntityIds: { entityIds: [entity.ref.entityId] },
+      })
+      onOpenDocument(document.id)
+    } catch (error) {
+      console.error('[PapersHub] failed to create writing document:', error)
+      toast.error('문서 생성에 실패했습니다.')
+    } finally {
+      setCreatingWritingEntityId(null)
+    }
+  }, [activeProject, creatingWritingEntityId, onOpenDocument])
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 space-y-10">
@@ -265,13 +464,35 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
             <Tooltip>
               <TooltipTrigger asChild>
                 <span tabIndex={!activeProject ? 0 : undefined}>
+                  <StartWritingButton
+                    onClick={() => {
+                      void handleCreateBlankDocument()
+                    }}
+                    disabled={!activeProject}
+                    pending={isCreatingBlankDocument}
+                    label="새 문서"
+                    pendingLabel="빈 문서 생성 중..."
+                    className="gap-2"
+                  />
+                </span>
+              </TooltipTrigger>
+              {!activeProject && (
+                <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!activeProject ? 0 : undefined}>
                   <Button
+                    variant="outline"
                     onClick={() => setAssemblyOpen(true)}
                     disabled={!activeProject}
                     className="gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    새 문서
+                    프로젝트 조립
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -320,6 +541,26 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         </section>
       )}
 
+      {activeProject && writingSources.length > 0 && (
+        <WritingEntrySurface
+          title="바이오·유전 결과에서 바로 작성"
+          description="프로젝트에 저장된 bio-tools와 유전 분석 결과를 바로 문서 초안으로 연결합니다"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {writingSources.map((entity) => (
+              <WritingSourceCard
+                key={entity.ref.id}
+                entity={entity}
+                onClick={() => {
+                  void handleCreateWritingFromEntity(entity)
+                }}
+                disabled={creatingWritingEntityId === entity.ref.entityId}
+              />
+            ))}
+          </div>
+        </WritingEntrySurface>
+      )}
+
       {/* 빈 문서 목록 — 프로젝트 선택 + 문서 0개 */}
       {activeProject && documents.length === 0 && (
         <EmptyState
@@ -328,10 +569,21 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           description="분석 결과를 조립하여 논문 초안을 만들어 보세요"
           variant="inline"
           action={
-            <Button onClick={() => setAssemblyOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              첫 문서 만들기
-            </Button>
+            <div className="flex items-center gap-2">
+              <StartWritingButton
+                onClick={() => {
+                  void handleCreateBlankDocument()
+                }}
+                pending={isCreatingBlankDocument}
+                label="첫 문서 만들기"
+                pendingLabel="빈 문서 생성 중..."
+                className="gap-2"
+              />
+              <Button variant="outline" onClick={() => setAssemblyOpen(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                프로젝트 조립
+              </Button>
+            </div>
           }
         />
       )}

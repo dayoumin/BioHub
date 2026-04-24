@@ -366,10 +366,96 @@ describe('assembleDocument', () => {
     const doc = assembleDocument(BASE_OPTIONS, sources)
     const results = doc.sections.find(s => s.id === 'results')
 
-    expect(results?.content).toContain('BLAST')
+    expect(results?.content).toContain('### 보조 결과')
     expect(results?.content).toContain('Sample-A')
     expect(results?.content).toContain('Paralichthys olivaceus')
     expect(results?.content).toContain('99.5%')
+    expect(results?.sourceRefs).toContainEqual(
+      createDocumentSourceRef('supplementary', 'blast_1'),
+    )
+  })
+
+  it('should include non-BLAST supplementary results through the shared registry contract', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({
+          entityId: 'protein_1',
+          entityKind: 'protein-result',
+          label: 'HBB protein summary',
+        }),
+        makeEntityRef({
+          id: 'pref_seq_1',
+          entityId: 'seq_1',
+          entityKind: 'seq-stats-result',
+          label: 'COI sequence statistics',
+        }),
+      ],
+      allHistory: [],
+      allGraphProjects: [],
+      proteinHistory: [
+        {
+          id: 'protein_1',
+          type: 'protein',
+          analysisName: 'HBB protein summary',
+          sequenceLength: 146,
+          molecularWeight: 16000,
+          isoelectricPoint: 6.82,
+          isStable: true,
+          accession: 'P68871',
+          createdAt: Date.now(),
+          reportMarkdown: '# HBB protein summary\n\n## Stability\n\nStable globin profile.',
+        },
+      ],
+      seqStatsHistory: [
+        {
+          id: 'seq_1',
+          type: 'seq-stats',
+          analysisName: 'COI sequence statistics',
+          sequenceCount: 12,
+          meanLength: 642,
+          overallGcContent: 46.1,
+          createdAt: Date.now(),
+        },
+      ],
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find((section) => section.id === 'results')
+
+    expect(results?.content).toContain('### 보조 결과')
+    expect(results?.content).toContain('#### HBB protein summary')
+    expect(results?.content).toContain('Stable globin profile.')
+    expect(results?.content).toContain('COI sequence statistics')
+    expect(results?.content).toContain('12 seq')
+    expect(results?.sourceRefs).toEqual([
+      createDocumentSourceRef('supplementary', 'protein_1', {
+        label: 'HBB protein summary',
+      }),
+      createDocumentSourceRef('supplementary', 'seq_1', {
+        label: 'COI sequence statistics',
+      }),
+    ])
+  })
+
+  it('skips unresolved supplementary entities instead of emitting fallback document content', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({
+          entityId: 'protein_missing',
+          entityKind: 'protein-result',
+          label: 'Missing protein',
+        }),
+      ],
+      allHistory: [],
+      allGraphProjects: [],
+      proteinHistory: [],
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find((section) => section.id === 'results')
+
+    expect(results?.content).toBe('')
+    expect(results?.sourceRefs).toEqual([])
   })
 
   it('should store metadata and authors', () => {
@@ -616,7 +702,7 @@ describe('reassembleDocument', () => {
               ...s,
               content: '사용자가 정리한 결과 요약입니다.',
               generatedBy: 'user' as const,
-              sourceRefs: [createDocumentSourceRef('unknown', 'stale-ref')],
+              sourceRefs: [createDocumentSourceRef('supplementary', 'stale-ref')],
               tables: undefined,
               figures: [{
                 entityId: 'gp_1',
@@ -661,6 +747,83 @@ describe('reassembleDocument', () => {
     expect(results?.sourceRefs.map(getDocumentSourceId)).toEqual(['hist_1', 'gp_1', 'stale-ref'])
     expect(results?.tables?.[0]?.caption).toBe('Table 9. 갱신된 표')
     expect(results?.figures?.[0]?.caption).toBe('Updated Box Plot (box)')
+  })
+
+  it('upgrades legacy supplementary refs to typed refs without duplication during reassemble', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
+      ],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [],
+    }
+
+    const original = assembleDocument(BASE_OPTIONS, sources)
+    const edited = {
+      ...original,
+      sections: original.sections.map((section) => (
+        section.id === 'results'
+          ? {
+              ...section,
+              sourceRefs: [
+                { kind: 'unknown', sourceId: 'hist_1', label: 'Legacy analysis ref' },
+              ] as unknown as typeof section.sourceRefs,
+              generatedBy: 'user' as const,
+            }
+          : section
+      )),
+    }
+
+    const reassembled = reassembleDocument(edited, sources)
+    const results = reassembled.sections.find((section) => section.id === 'results')
+
+    expect(results?.sourceRefs).toEqual([
+      createDocumentSourceRef('analysis', 'hist_1', { label: '독립표본 t-검정' }),
+    ])
+  })
+
+  it('drops stale template supplementary lineage when fresh assembly no longer resolves the source', () => {
+    const original = assembleDocument(BASE_OPTIONS, {
+      entityRefs: [
+        makeEntityRef({
+          entityId: 'protein_1',
+          entityKind: 'protein-result',
+          label: 'HBB protein summary',
+        }),
+      ],
+      allHistory: [],
+      allGraphProjects: [],
+      proteinHistory: [
+        {
+          id: 'protein_1',
+          type: 'protein',
+          analysisName: 'HBB protein summary',
+          sequenceLength: 146,
+          molecularWeight: 16000,
+          isoelectricPoint: 6.82,
+          isStable: true,
+          createdAt: Date.now(),
+          reportMarkdown: '# HBB protein summary\n\n## Stability\n\nStable globin profile.',
+        },
+      ],
+    })
+
+    const reassembled = reassembleDocument(original, {
+      entityRefs: [
+        makeEntityRef({
+          entityId: 'protein_1',
+          entityKind: 'protein-result',
+          label: 'HBB protein summary',
+        }),
+      ],
+      allHistory: [],
+      allGraphProjects: [],
+      proteinHistory: [],
+    })
+    const results = reassembled.sections.find((section) => section.id === 'results')
+
+    expect(results?.content).toBe('')
+    expect(results?.sourceRefs).toEqual([])
   })
 
   it('preserves user-inserted sidecars while refreshing template-derived structured content', () => {

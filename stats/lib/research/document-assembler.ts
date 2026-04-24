@@ -12,9 +12,19 @@ import type { ProjectEntityRef } from '@biohub/types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { BlastEntryLike } from './entity-resolver'
 import type { CitationRecord } from './citation-types'
+import type { BioToolHistoryEntry } from '@/lib/bio-tools'
 import { citationKey } from './citation-types'
 import { buildCitationString } from './citation-apa-formatter'
 import { generateFigurePatternSummary } from './paper-package-assembler'
+import type {
+  BarcodingHistoryEntry,
+  BoldHistoryEntry,
+  PhylogenyHistoryEntry,
+  ProteinHistoryEntry,
+  SeqStatsHistoryEntry,
+  SimilarityHistoryEntry,
+  TranslationHistoryEntry,
+} from '@/lib/genetics'
 import type {
   DocumentBlueprint,
   DocumentPreset,
@@ -31,8 +41,17 @@ import {
   createDocumentSourceRef,
   getGraphPrimaryAnalysisId,
   generateDocumentId,
+  normalizeDocumentBlueprint,
+  normalizeDocumentWritingState,
 } from './document-blueprint-types'
 import { createEmptySections } from './document-preset-registry'
+import {
+  buildSupplementaryWritingSourceMaps,
+  createNormalizedSupplementaryWritingSource,
+  getWritingSectionHeading,
+  hasSupplementaryWritingSourceSnapshot,
+  writeNormalizedSourceBlock,
+} from './document-writing-source-registry'
 
 // ── 데이터 로더 인터페이스 (테스트 용이성) ──
 
@@ -44,7 +63,15 @@ export interface AssemblerDataSources {
   /** 전체 Graph Studio 프로젝트 */
   allGraphProjects: GraphProject[]
   /** genetics 히스토리 (BLAST 결과 조립용, entity-loader blastHistory) */
-  blastHistory?: BlastEntryLike[]
+  blastHistory?: BlastEntryLike[] | BarcodingHistoryEntry[]
+  /** supplementary entity 정규화용 history snapshot */
+  bioToolHistory?: BioToolHistoryEntry[]
+  proteinHistory?: ProteinHistoryEntry[]
+  seqStatsHistory?: SeqStatsHistoryEntry[]
+  similarityHistory?: SimilarityHistoryEntry[]
+  phylogenyHistory?: PhylogenyHistoryEntry[]
+  boldHistory?: BoldHistoryEntry[]
+  translationHistory?: TranslationHistoryEntry[]
   /** 프로젝트에 저장된 인용 목록 */
   citations?: CitationRecord[]
 }
@@ -113,12 +140,18 @@ function mergeDocumentSourceRefs(
   const merged = new Map<string, DocumentSourceRef>()
   for (const ref of refs) {
     const key = `${ref.kind}:${ref.sourceId}`
-    const existing = merged.get(key)
-    if (!existing) {
-      merged.set(key, ref)
+    const hasTypedRefForSourceId = Array.from(merged.keys()).some((existingKey) => (
+      existingKey !== `supplementary:${ref.sourceId}`
+      && existingKey.endsWith(`:${ref.sourceId}`)
+    ))
+
+    if (ref.kind === 'supplementary' && hasTypedRefForSourceId) {
       continue
     }
-    if (existing.kind === 'unknown' && ref.kind !== 'unknown') {
+    if (ref.kind !== 'supplementary') {
+      merged.delete(`supplementary:${ref.sourceId}`)
+    }
+    if (!merged.has(key)) {
       merged.set(key, ref)
     }
   }
@@ -201,43 +234,62 @@ function mergeResults(
   return { content: parts.join('\n\n'), tables, figureRefs }
 }
 
-function mergeBlastResults(
+function collectSupplementaryEntityRefs(entityRefs: ProjectEntityRef[]): ProjectEntityRef[] {
+  return entityRefs.filter((ref) => ref.entityKind !== 'analysis' && ref.entityKind !== 'figure')
+}
+
+function mergeSupplementaryResults(
   entityRefs: ProjectEntityRef[],
-  blastHistory: BlastEntryLike[],
-): string {
-  const blastIds = new Set(
-    entityRefs
-      .filter(ref => ref.entityKind === 'blast-result')
-      .map(ref => ref.entityId),
-  )
-  if (blastIds.size === 0) return ''
-
-  const blastRecords = blastHistory.filter(h => blastIds.has(h.id))
-  const parts: string[] = []
-
-  for (const entry of blastRecords) {
-    const rd = entry.resultData
-    if (!rd) continue
-
-    const description = rd.description ?? ''
-    const topHits = rd.topHits ?? []
-
-    const lines = [`### BLAST: ${entry.sampleName}`, '', description]
-
-    if (topHits.length > 0) {
-      lines.push('')
-      lines.push('| Species | Identity | Accession |')
-      lines.push('|---------|----------|-----------|')
-      for (const hit of topHits.slice(0, 5)) {
-        const pct = hit.identity > 1 ? hit.identity : hit.identity * 100
-        lines.push(`| ${hit.species} | ${pct.toFixed(1)}% | ${hit.accession} |`)
-      }
-    }
-
-    parts.push(lines.join('\n'))
+  language: 'ko' | 'en',
+  sources: AssemblerDataSources,
+): { content: string; sourceRefs: DocumentSourceRef[] } {
+  const supplementaryEntityRefs = collectSupplementaryEntityRefs(entityRefs)
+  if (supplementaryEntityRefs.length === 0) {
+    return { content: '', sourceRefs: [] }
   }
 
-  return parts.join('\n\n')
+  const supplementaryMaps = buildSupplementaryWritingSourceMaps({
+    bioToolHistory: sources.bioToolHistory,
+    blastHistory: sources.blastHistory as BarcodingHistoryEntry[] | undefined,
+    proteinHistory: sources.proteinHistory,
+    seqStatsHistory: sources.seqStatsHistory,
+    similarityHistory: sources.similarityHistory,
+    phylogenyHistory: sources.phylogenyHistory,
+    boldHistory: sources.boldHistory,
+    translationHistory: sources.translationHistory,
+  })
+
+  const lines: string[] = [getWritingSectionHeading('supplementary', { language }), '']
+  const sourceRefs: DocumentSourceRef[] = []
+
+  for (const entityRef of supplementaryEntityRefs) {
+    if (!hasSupplementaryWritingSourceSnapshot(entityRef, supplementaryMaps)) {
+      continue
+    }
+    const sourceRef = createDocumentSourceRef('supplementary', entityRef.entityId, {
+      label: entityRef.label,
+    })
+    const source = createNormalizedSupplementaryWritingSource({
+      entityRef,
+      sourceRef,
+      language,
+      maps: supplementaryMaps,
+    })
+    const block = writeNormalizedSourceBlock(source, 'supplementary', { language })
+    if (block?.trim()) {
+      lines.push(block)
+      sourceRefs.push(sourceRef)
+    }
+  }
+
+  if (sourceRefs.length === 0) {
+    return { content: '', sourceRefs: [] }
+  }
+
+  return {
+    content: lines.join('\n'),
+    sourceRefs,
+  }
 }
 
 /** References 섹션 텍스트 = 사용자 인용 + 소프트웨어 인용 */
@@ -297,6 +349,7 @@ export function assembleDocument(
 
   const projectHistory = filterProjectHistory(sources.entityRefs, sources.allHistory)
   const projectFigures = filterProjectFigures(sources.entityRefs, sources.allGraphProjects)
+  const supplementaryResults = mergeSupplementaryResults(sources.entityRefs, language, sources)
 
   // Methods 섹션 채우기
   const methodsSection = sections.find(s => s.id === 'methods')
@@ -322,9 +375,7 @@ export function assembleDocument(
       language,
     )
 
-    // BLAST 결과 추가
-    const blastContent = mergeBlastResults(sources.entityRefs, sources.blastHistory ?? [])
-    const fullContent = [content, blastContent].filter(Boolean).join('\n\n')
+    const fullContent = [content, supplementaryResults.content].filter(Boolean).join('\n\n')
 
     if (fullContent) {
       resultsSection.content = fullContent
@@ -336,6 +387,7 @@ export function assembleDocument(
         ...projectFigures.map((gp) => createDocumentSourceRef('figure', gp.id, {
           label: gp.name,
         })),
+        ...supplementaryResults.sourceRefs,
       ])
     }
     if (tables.length > 0) resultsSection.tables = tables
@@ -360,6 +412,7 @@ export function assembleDocument(
     language,
     sections,
     metadata: metadata ?? {},
+    writingState: normalizeDocumentWritingState(undefined),
     createdAt: now,
     updatedAt: now,
   }
@@ -375,14 +428,15 @@ export function reassembleDocument(
   existing: DocumentBlueprint,
   sources: AssemblerDataSources,
 ): DocumentBlueprint {
+  const normalizedExisting = normalizeDocumentBlueprint(existing)
   const freshSections = assembleDocument(
     {
-      projectId: existing.projectId,
-      preset: existing.preset,
-      language: existing.language,
-      title: existing.title,
-      authors: existing.authors,
-      metadata: existing.metadata,
+      projectId: normalizedExisting.projectId,
+      preset: normalizedExisting.preset,
+      language: normalizedExisting.language,
+      title: normalizedExisting.title,
+      authors: normalizedExisting.authors,
+      metadata: normalizedExisting.metadata,
     },
     sources,
   ).sections
@@ -436,9 +490,18 @@ export function reassembleDocument(
 
     const tables = mergeTables(freshSection.tables, existingSection.tables)
     const figures = mergeFigures(freshSection.figures, existingSection.figures)
+    const preservedExistingSourceRefs = existingSection.sourceRefs.filter((sourceRef) => (
+      sourceRef.kind !== 'supplementary'
+      || existingSection.generatedBy !== 'template'
+      || freshSection.sourceRefs.some((freshSourceRef) => (
+        freshSourceRef.kind === sourceRef.kind
+        && freshSourceRef.sourceId === sourceRef.sourceId
+      ))
+    ))
+
     const preservedSourceRefs = mergeDocumentSourceRefs([
       ...freshSection.sourceRefs,
-      ...existingSection.sourceRefs,
+      ...preservedExistingSourceRefs,
       ...(tables ?? []).flatMap((table) => (
         table.sourceAnalysisId
           ? [createDocumentSourceRef('analysis', table.sourceAnalysisId, {
@@ -461,7 +524,7 @@ export function reassembleDocument(
     }
   }
 
-  const merged: DocumentSection[] = existing.sections.map(existingSection => {
+  const merged: DocumentSection[] = normalizedExisting.sections.map(existingSection => {
     const fresh = freshSections.find(s => s.id === existingSection.id)
 
     // 사용자 작성 또는 LLM 생성 섹션은 본문을 보존하되 구조화 메타는 최신화
@@ -478,11 +541,11 @@ export function reassembleDocument(
   })
 
   const nowMs = Date.now()
-  const existingMs = new Date(existing.updatedAt).getTime()
+  const existingMs = new Date(normalizedExisting.updatedAt).getTime()
   const updatedAt = new Date(Math.max(nowMs, existingMs + 1)).toISOString()
 
   return {
-    ...existing,
+    ...normalizedExisting,
     sections: merged,
     updatedAt,
   }

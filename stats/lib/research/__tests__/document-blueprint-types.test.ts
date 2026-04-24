@@ -10,7 +10,10 @@ import {
   buildFigureRef,
   getGraphPrimaryAnalysisId,
   generateDocumentId,
+  normalizeDocumentBlueprint,
+  createDocumentSourceRef,
 } from '../document-blueprint-types'
+import type { DocumentBlueprint } from '../document-blueprint-types'
 import type { PaperTable } from '@/lib/services/paper-draft/paper-types'
 import type { GraphProject } from '@/types/graph-studio'
 
@@ -200,5 +203,109 @@ describe('generateDocumentId', () => {
   it('should generate unique IDs', () => {
     const ids = new Set(Array.from({ length: 20 }, () => generateDocumentId()))
     expect(ids.size).toBe(20)
+  })
+})
+
+describe('normalizeDocumentBlueprint', () => {
+  it('should provide a default idle writing state for legacy documents', () => {
+    const now = new Date().toISOString()
+    const normalized = normalizeDocumentBlueprint({
+      id: 'doc_1',
+      projectId: 'proj_1',
+      preset: 'paper',
+      title: 'Legacy document',
+      language: 'ko',
+      metadata: {},
+      createdAt: now,
+      updatedAt: now,
+      sections: [{
+        id: 'results',
+        title: '결과',
+        content: '본문',
+        sourceRefs: [createDocumentSourceRef('analysis', 'hist_1')],
+        editable: true,
+        generatedBy: 'template',
+      }],
+    })
+
+    expect(normalized.writingState).toEqual({
+      status: 'idle',
+      jobId: undefined,
+      startedAt: undefined,
+      updatedAt: undefined,
+      errorMessage: undefined,
+      sectionStates: {},
+    })
+  })
+
+  it('should preserve existing writing state fields', () => {
+    const now = new Date().toISOString()
+    const normalized = normalizeDocumentBlueprint({
+      id: 'doc_2',
+      projectId: 'proj_1',
+      preset: 'paper',
+      title: 'Drafting document',
+      language: 'ko',
+      metadata: {},
+      createdAt: now,
+      updatedAt: now,
+      writingState: {
+        status: 'patching',
+        jobId: 'job_1',
+        startedAt: now,
+        updatedAt: now,
+        errorMessage: undefined,
+        sectionStates: {
+          results: {
+            status: 'patched',
+            jobId: 'job_1',
+            updatedAt: now,
+          },
+        },
+      },
+      sections: [{
+        id: 'results',
+        title: '결과',
+        content: '본문',
+        sourceRefs: [],
+        editable: true,
+        generatedBy: 'llm',
+      }],
+    })
+
+    expect(normalized.writingState?.status).toBe('patching')
+    expect(normalized.writingState?.jobId).toBe('job_1')
+    expect(normalized.writingState?.sectionStates.results?.status).toBe('patched')
+  })
+
+  it('should normalize legacy unknown and string source refs into supplementary refs', () => {
+    const now = new Date().toISOString()
+    const legacyDocument = {
+      id: 'doc_3',
+      projectId: 'proj_1',
+      preset: 'paper',
+      title: 'Legacy supplementary document',
+      language: 'ko',
+      metadata: {},
+      createdAt: now,
+      updatedAt: now,
+      sections: [{
+        id: 'results',
+        title: '결과',
+        content: '본문',
+        sourceRefs: [
+          { kind: 'unknown', sourceId: 'legacy_1', label: 'Legacy ref' },
+          'legacy_2',
+        ],
+        editable: true,
+        generatedBy: 'template',
+      }],
+    } as unknown as DocumentBlueprint
+    const normalized = normalizeDocumentBlueprint(legacyDocument)
+
+    expect(normalized.sections[0]?.sourceRefs).toEqual([
+      { kind: 'supplementary', sourceId: 'legacy_1', label: 'Legacy ref' },
+      { kind: 'supplementary', sourceId: 'legacy_2', label: undefined },
+    ])
   })
 })

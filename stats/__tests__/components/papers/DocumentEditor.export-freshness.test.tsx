@@ -2,6 +2,8 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DocumentEditor from '@/components/papers/DocumentEditor'
+import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
+import type { GeneticsHistoryEntry } from '@/lib/genetics/analysis-history'
 import {
   createDocumentSourceRef,
   type DocumentBlueprint,
@@ -17,10 +19,14 @@ const {
   mockListCitationsByProject,
   mockListProjectEntityRefs,
   mockListGraphProjects,
+  mockEnsureDocumentWriting,
+  mockRetryDocumentWriting,
   mockRouterPush,
   mockSerialize,
   mockDeserialize,
   mockSetValue,
+  mockLoadBioToolHistory,
+  mockLoadGeneticsHistory,
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
@@ -32,10 +38,14 @@ const {
   mockListCitationsByProject: vi.fn<(projectId: string) => Promise<CitationRecord[]>>(),
   mockListProjectEntityRefs: vi.fn(),
   mockListGraphProjects: vi.fn(),
+  mockEnsureDocumentWriting: vi.fn(async (_documentId: string) => null),
+  mockRetryDocumentWriting: vi.fn(async (_documentId: string) => null),
   mockRouterPush: vi.fn(),
   mockSerialize: vi.fn(() => 'serialized editor content'),
   mockDeserialize: vi.fn(() => [{ type: 'p', children: [{ text: 'loaded nodes' }] }]),
   mockSetValue: vi.fn(),
+  mockLoadBioToolHistory: vi.fn<() => BioToolHistoryEntry[]>(() => []),
+  mockLoadGeneticsHistory: vi.fn<() => GeneticsHistoryEntry[]>(() => []),
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT: 'research-project-citations-changed',
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
@@ -116,6 +126,11 @@ vi.mock('@/lib/research/document-assembler', () => ({
     mockReassembleDocument(document),
 }))
 
+vi.mock('@/lib/research/document-writing-orchestrator', () => ({
+  ensureDocumentWriting: (documentId: string) => mockEnsureDocumentWriting(documentId),
+  retryDocumentWriting: (documentId: string) => mockRetryDocumentWriting(documentId),
+}))
+
 vi.mock('@/lib/research/project-storage', () => ({
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
   listProjectEntityRefs: () => mockListProjectEntityRefs(),
@@ -140,6 +155,11 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/genetics/analysis-history', () => ({
   loadAnalysisHistory: () => [],
+  loadGeneticsHistory: () => mockLoadGeneticsHistory(),
+}))
+
+vi.mock('@/lib/bio-tools/bio-tool-history', () => ({
+  loadBioToolHistory: () => mockLoadBioToolHistory(),
 }))
 
 vi.mock('@/lib/research/citation-storage', () => ({
@@ -175,6 +195,10 @@ function makeDocument(
     metadata: {},
     createdAt: now,
     updatedAt: now,
+    writingState: {
+      status: 'idle',
+      sectionStates: {},
+    },
     sections: [
       {
         id: 'results',
@@ -206,15 +230,21 @@ describe('DocumentEditor export freshness', () => {
     mockListCitationsByProject.mockReset()
     mockListProjectEntityRefs.mockReset()
     mockListGraphProjects.mockReset()
+    mockEnsureDocumentWriting.mockClear()
+    mockRetryDocumentWriting.mockClear()
     mockRouterPush.mockReset()
     mockSerialize.mockClear()
     mockDeserialize.mockClear()
     mockSetValue.mockClear()
+    mockLoadBioToolHistory.mockReset()
+    mockLoadGeneticsHistory.mockReset()
 
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('이전 내용'))
     mockListCitationsByProject.mockResolvedValue([])
     mockListProjectEntityRefs.mockReturnValue([])
     mockListGraphProjects.mockReturnValue([])
+    mockLoadBioToolHistory.mockReturnValue([])
+    mockLoadGeneticsHistory.mockReturnValue([])
     mockReassembleDocument.mockImplementation((doc: DocumentBlueprint) => ({
       ...doc,
       updatedAt: '2026-04-13T00:00:00.000Z',
@@ -254,6 +284,128 @@ describe('DocumentEditor export freshness', () => {
 
     expect(mockReassembleDocument).toHaveBeenCalledTimes(1)
     expect(mockSerialize).not.toHaveBeenCalled()
+  })
+
+  it('shows document and section drafting badges when writing state exists', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('초안 내용', {
+      writingState: {
+        status: 'drafting',
+        jobId: 'job_1',
+        sectionStates: {
+          results: {
+            status: 'drafting',
+            jobId: 'job_1',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('초안 작성 중')
+    expect(screen.getByText('섹션 작성 중')).toBeInTheDocument()
+  })
+
+  it('starts background writing when a collecting document is opened', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('초안 내용', {
+      writingState: {
+        status: 'collecting',
+        jobId: 'job_collecting',
+        sectionStates: {
+          methods: {
+            status: 'drafting',
+            jobId: 'job_collecting',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    expect(await screen.findByText('자료 수집 중')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(mockEnsureDocumentWriting).toHaveBeenCalledWith('doc-1')
+    })
+  })
+
+  it('immediately saves section ownership when the user edits during drafting', async () => {
+    const user = userEvent.setup()
+
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('초안 내용', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '초안 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+      writingState: {
+        status: 'drafting',
+        jobId: 'job_1',
+        sectionStates: {
+          results: {
+            status: 'drafting',
+            jobId: 'job_1',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('초안 작성 중')
+    await user.click(screen.getByTestId('paper-plate-editor'))
+
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+    })
+
+    const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
+    expect(savedDocument.sections[0]?.generatedBy).toBe('user')
+    expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
+  })
+
+  it('lets the user stop automatic writing from the section banner', async () => {
+    const user = userEvent.setup()
+
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('초안 내용', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '초안 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+      writingState: {
+        status: 'drafting',
+        jobId: 'job_1',
+        sectionStates: {
+          results: {
+            status: 'drafting',
+            jobId: 'job_1',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    expect(await screen.findByText('이 섹션은 자동으로 작성 중입니다.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '자동 작성 중단' }))
+
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+    })
+
+    const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
+    expect(savedDocument.sections[0]?.generatedBy).toBe('user')
+    expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
   })
 
   it('flushes pending editor content before manual reassemble', async () => {
@@ -445,6 +597,76 @@ describe('DocumentEditor export freshness', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: '통계 열기' })[0]!)
     expect(mockRouterPush).toHaveBeenCalledWith('/?history=analysis-1')
+  })
+
+  it('shows supplementary source actions for linked bio and genetics results', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('보조 결과 링크 확인', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '보조 결과 링크 확인',
+          sourceRefs: [
+            createDocumentSourceRef('supplementary', 'bio-1', { label: 'Fst 분석' }),
+            createDocumentSourceRef('supplementary', 'protein-1', { label: '단백질 해석' }),
+          ],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListProjectEntityRefs.mockReturnValue([
+      { entityKind: 'bio-tool-result', entityId: 'bio-1', label: 'Fst 분석' },
+      { entityKind: 'protein-result', entityId: 'protein-1', label: '단백질 해석' },
+    ])
+    mockLoadBioToolHistory.mockReturnValue([
+      { id: 'bio-1', toolId: 'fst', toolNameEn: 'Fst', toolNameKo: 'Fst', csvFileName: 'fst.csv', columnConfig: {}, results: {}, createdAt: Date.now() },
+    ])
+    mockLoadGeneticsHistory.mockReturnValue([
+      { id: 'protein-1', type: 'protein', analysisName: '단백질 해석', sequenceLength: 146, molecularWeight: 16000, isoelectricPoint: 6.8, isStable: true, createdAt: Date.now() },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getByRole('button', { name: /Bio-Tools.*Fst 분석/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /단백질 해석.*단백질 해석/i })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Bio-Tools.*Fst 분석/i }))
+    expect(mockRouterPush).toHaveBeenCalledWith('/bio-tools?tool=fst&history=bio-1')
+
+    await userEvent.click(screen.getByRole('button', { name: /단백질 해석.*단백질 해석/i }))
+    expect(mockRouterPush).toHaveBeenCalledWith('/genetics/protein?history=protein-1')
+  })
+
+  it('keeps supplementary source actions visible even when project entity refs are stale', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('보조 결과 fallback', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '보조 결과 fallback',
+          sourceRefs: [
+            createDocumentSourceRef('supplementary', 'protein-1', { label: '단백질 해석' }),
+          ],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListProjectEntityRefs.mockReturnValue([])
+    mockLoadGeneticsHistory.mockReturnValue([
+      { id: 'protein-1', type: 'protein', analysisName: '단백질 해석', sequenceLength: 146, molecularWeight: 16000, isoelectricPoint: 6.8, isStable: true, createdAt: Date.now() },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    const link = screen.getByRole('button', { name: /단백질 해석.*단백질 해석/i })
+    expect(link).toBeInTheDocument()
+
+    await userEvent.click(link)
+    expect(mockRouterPush).toHaveBeenCalledWith('/genetics/protein?history=protein-1')
   })
 
   it('opens the section requested from the document route', async () => {

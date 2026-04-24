@@ -20,26 +20,39 @@ import {
   listProjectEntityRefs,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } from '@/lib/research/project-storage'
+import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import {
   type GraphProjectsChangedDetail,
   GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects as listGraphProjects,
 } from '@/lib/graph-studio/project-storage'
-import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
+import { loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
+import type {
+  BoldHistoryEntry,
+  PhylogenyHistoryEntry,
+  ProteinHistoryEntry,
+  SeqStatsHistoryEntry,
+  SimilarityHistoryEntry,
+  TranslationHistoryEntry,
+} from '@/lib/genetics/analysis-history'
+import { loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
 import {
   convertPaperTable,
   buildFigureRef,
   createDocumentSourceRef,
   getGraphPrimaryAnalysisId,
   getDocumentSourceId,
+  type DocumentWritingSectionStatus,
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
+import { ensureDocumentWriting, retryDocumentWriting } from '@/lib/research/document-writing-orchestrator'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import {
   buildAnalysisHistoryUrl,
   buildGraphStudioProjectUrl,
+  buildProjectEntityNavigationUrl,
 } from '@/lib/research/source-navigation'
 import type { CitationRecord } from '@/lib/research/citation-types'
 import {
@@ -55,8 +68,11 @@ import PlateEditor from './PlateEditor'
 import DocumentSectionList from './DocumentSectionList'
 import MaterialPalette from './MaterialPalette'
 import DocumentExportBar from './DocumentExportBar'
+import DocumentWritingHeaderStatus from './DocumentWritingHeaderStatus'
+import SectionWritingBanner from './SectionWritingBanner'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
+import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -259,6 +275,18 @@ export default function DocumentEditor({
     latestCitationsRef.current = citations
   }, [citations])
 
+  useEffect(() => {
+    if (!doc || hasLocalChangesRef.current) {
+      return
+    }
+
+    if (!['collecting', 'drafting', 'patching'].includes(doc.writingState?.status ?? 'idle')) {
+      return
+    }
+
+    void ensureDocumentWriting(doc.id)
+  }, [doc])
+
   useEffect((): (() => void) => {
     const handleDocumentChange = (event: Event): void => {
       if (!(event instanceof CustomEvent)) {
@@ -416,6 +444,22 @@ export default function DocumentEditor({
     }, AUTOSAVE_DELAY)
   }, [queueDocumentSave])
 
+  const scheduleImmediateSave = useCallback((updated: DocumentBlueprint) => {
+    docRef.current = updated
+    pendingDocRef.current = updated
+    hasLocalChangesRef.current = true
+    setDocumentConflict(null)
+    const revision = latestScheduledSaveRevisionRef.current + 1
+    latestScheduledSaveRevisionRef.current = revision
+    pendingSaveRevisionRef.current = revision
+    setSaveStatus('unsaved')
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    void queueDocumentSave(updated, revision)
+  }, [queueDocumentSave])
+
   const updateSection = useCallback((sectionId: string, updates: Partial<DocumentSection>) => {
     setDoc(prev => {
       if (!prev) return prev
@@ -428,6 +472,81 @@ export default function DocumentEditor({
     })
   }, [scheduleSave])
 
+  const shouldTakeOwnershipForWritingSection = useCallback((sectionId: string): boolean => {
+    const currentDoc = docRef.current
+    if (!currentDoc) {
+      return false
+    }
+    if (!['collecting', 'drafting', 'patching'].includes(currentDoc.writingState?.status ?? 'idle')) {
+      return false
+    }
+
+    const section = currentDoc.sections.find((item) => item.id === sectionId)
+    if (!section || section.generatedBy === 'user') {
+      return false
+    }
+
+    const sectionStatus = currentDoc.writingState?.sectionStates[sectionId]?.status
+    return sectionStatus === 'drafting'
+  }, [])
+
+  const takeSectionOwnershipForEditing = useCallback((sectionId: string, plateValue: unknown): void => {
+    setDoc((prev) => {
+      if (!prev) {
+        return prev
+      }
+
+      const nextSections = prev.sections.map((section) => (
+        section.id === sectionId
+          ? {
+              ...section,
+              plateValue,
+              generatedBy: 'user' as const,
+            }
+          : section
+      ))
+
+      const updatedBase: DocumentBlueprint = {
+        ...prev,
+        sections: nextSections,
+        updatedAt: new Date().toISOString(),
+      }
+      const updated = updateDocumentSectionWritingState(updatedBase, sectionId, 'skipped', {
+        message: '사용자 편집이 시작되어 자동 초안을 중단했습니다.',
+      })
+      scheduleImmediateSave(updated)
+      return updated
+    })
+  }, [scheduleImmediateSave])
+
+  const skipSectionWriting = useCallback((sectionId: string, message: string): void => {
+    setDoc((prev) => {
+      if (!prev) {
+        return prev
+      }
+
+      const nextSections = prev.sections.map((section) => (
+        section.id === sectionId
+          ? {
+              ...section,
+              generatedBy: 'user' as const,
+            }
+          : section
+      ))
+
+      const updatedBase: DocumentBlueprint = {
+        ...prev,
+        sections: nextSections,
+        updatedAt: new Date().toISOString(),
+      }
+      const updated = updateDocumentSectionWritingState(updatedBase, sectionId, 'skipped', {
+        message,
+      })
+      scheduleImmediateSave(updated)
+      return updated
+    })
+  }, [scheduleImmediateSave])
+
   const reassembleCurrentDocument = useCallback((baseDoc?: DocumentBlueprint): DocumentBlueprint | null => {
     const targetDoc = baseDoc ?? docRef.current
     if (!targetDoc) return null
@@ -435,12 +554,20 @@ export default function DocumentEditor({
     const entityRefs = listProjectEntityRefs(targetDoc.projectId)
     const allGraphProjects = listGraphProjects()
     const blastHistory = loadAnalysisHistory()
+    const bioToolHistory = loadBioToolHistory()
 
     const reassembled = reassembleDocument(targetDoc, {
       entityRefs,
       allHistory: analysisHistory as unknown as HistoryRecord[],
       allGraphProjects,
       blastHistory,
+      bioToolHistory,
+      proteinHistory: loadGeneticsHistory('protein') as ProteinHistoryEntry[],
+      seqStatsHistory: loadGeneticsHistory('seq-stats') as SeqStatsHistoryEntry[],
+      similarityHistory: loadGeneticsHistory('similarity') as SimilarityHistoryEntry[],
+      phylogenyHistory: loadGeneticsHistory('phylogeny') as PhylogenyHistoryEntry[],
+      boldHistory: loadGeneticsHistory('bold') as BoldHistoryEntry[],
+      translationHistory: loadGeneticsHistory('translation') as TranslationHistoryEntry[],
       citations: latestCitationsRef.current,
     })
     setDoc(reassembled)
@@ -520,7 +647,11 @@ export default function DocumentEditor({
   const handlePlateChange = useCallback(() => {
     if (!activeSectionId) return
     const plateValue = editor.children
-    updateSection(activeSectionId, { plateValue, generatedBy: 'user' })
+    if (shouldTakeOwnershipForWritingSection(activeSectionId)) {
+      takeSectionOwnershipForEditing(activeSectionId, plateValue)
+    } else {
+      updateSection(activeSectionId, { plateValue, generatedBy: 'user' })
+    }
 
     pendingSerializeSectionRef.current = activeSectionId
     if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
@@ -537,7 +668,22 @@ export default function DocumentEditor({
         // serialize 실패 시 무시
       }
     }, 500)
-  }, [editor, updateSection])
+  }, [editor, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
+
+  const handleTakeSectionOwnership = useCallback((): void => {
+    if (!activeSectionId) {
+      return
+    }
+    setPreviewMode(false)
+    takeSectionOwnershipForEditing(activeSectionId, editor.children)
+  }, [activeSectionId, editor.children, takeSectionOwnershipForEditing])
+
+  const handleCancelSectionWriting = useCallback((): void => {
+    if (!activeSectionId) {
+      return
+    }
+    skipSectionWriting(activeSectionId, '사용자가 자동 작성을 중단했습니다.')
+  }, [activeSectionId, skipSectionWriting])
 
   // 섹션 전환 시 Plate 에디터에 content 로드
   const loadedSectionRef = useRef<string | null>(null)
@@ -724,18 +870,93 @@ export default function DocumentEditor({
   }, [])
 
   const activeSection = doc?.sections.find((section) => section.id === activeSectionId) ?? null
+  const documentWritingState = doc?.writingState
+  const activeSectionWritingState = activeSection
+    ? documentWritingState?.sectionStates[activeSection.id]
+    : undefined
+  const writingStatusLabel = useMemo((): string | null => {
+    switch (documentWritingState?.status) {
+      case 'collecting':
+        return '자료 수집 중'
+      case 'drafting':
+        return '초안 작성 중'
+      case 'patching':
+        return '문서 반영 중'
+      case 'completed':
+        return '작성 완료'
+      case 'failed':
+        return '작성 실패'
+      default:
+        return null
+    }
+  }, [documentWritingState?.status])
+  const sectionWritingStatusLabel = useMemo((): string | null => {
+    switch (activeSectionWritingState?.status as DocumentWritingSectionStatus | undefined) {
+      case 'drafting':
+        return '섹션 작성 중'
+      case 'patched':
+        return '섹션 반영 완료'
+      case 'skipped':
+        return '섹션 보존'
+      case 'failed':
+        return '섹션 반영 실패'
+      default:
+        return null
+    }
+  }, [activeSectionWritingState?.status])
+  const handleRetryWriting = useCallback((): void => {
+    if (!doc) {
+      return
+    }
+    void retryDocumentWriting(doc.id)
+  }, [doc])
   const activeSectionSourceLinks = useMemo(() => {
     if (!doc || !activeSection) return []
 
     const projectRefs = listProjectEntityRefs(doc.projectId)
-    const refKindByEntityId = new Map(projectRefs.map((ref) => [ref.entityId, ref.entityKind]))
+    const refByEntityId = new Map(projectRefs.map((ref) => [ref.entityId, ref] as const))
     const historyById = new Map(analysisHistory.map((record) => [record.id, record]))
     const graphById = new Map(listGraphProjects().map((graph) => [graph.id, graph]))
-    const links = new Map<string, { key: string; label: string; href: string; kind: 'analysis' | 'figure' }>()
+    const bioToolById = new Map(loadBioToolHistory().map((entry) => [entry.id, entry] as const))
+    const geneticsById = new Map(loadGeneticsHistory().map((entry) => [entry.id, entry] as const))
+    const links = new Map<string, {
+      key: string
+      label: string
+      href: string
+      kind: 'analysis' | 'figure' | 'supplementary'
+      kindLabel: string
+    }>()
+
+    const inferSupplementaryEntityKind = (sourceId: string): typeof projectRefs[number]['entityKind'] | null => {
+      if (bioToolById.has(sourceId)) {
+        return 'bio-tool-result'
+      }
+      const geneticsEntry = geneticsById.get(sourceId)
+      if (!geneticsEntry) {
+        return null
+      }
+      switch (geneticsEntry.type) {
+        case 'seq-stats':
+          return 'seq-stats-result'
+        case 'similarity':
+          return 'similarity-result'
+        case 'phylogeny':
+          return 'phylogeny-result'
+        case 'bold':
+          return 'bold-result'
+        case 'translation':
+          return 'translation-result'
+        case 'protein':
+          return 'protein-result'
+        default:
+          return 'blast-result'
+      }
+    }
 
     for (const sourceRef of activeSection.sourceRefs) {
       const sourceId = getDocumentSourceId(sourceRef)
-      const entityKind = refKindByEntityId.get(sourceId)
+      const entityRef = refByEntityId.get(sourceId)
+      const entityKind = entityRef?.entityKind ?? inferSupplementaryEntityKind(sourceId)
       if (entityKind === 'analysis' || historyById.has(sourceId)) {
         const record = historyById.get(sourceId)
         links.set(`analysis:${sourceId}`, {
@@ -743,6 +964,7 @@ export default function DocumentEditor({
           label: record?.method?.name ?? record?.name ?? '원본 분석',
           href: buildAnalysisHistoryUrl(sourceId),
           kind: 'analysis',
+          kindLabel: '통계',
         })
         continue
       }
@@ -754,6 +976,33 @@ export default function DocumentEditor({
           label: graph?.name ?? 'Graph Studio',
           href: buildGraphStudioProjectUrl(sourceId),
           kind: 'figure',
+          kindLabel: '그래프',
+        })
+        continue
+      }
+
+      if (entityKind) {
+        const bioToolEntry = bioToolById.get(sourceId)
+        const geneticsEntry = geneticsById.get(sourceId)
+        const href = buildProjectEntityNavigationUrl(entityKind, sourceId, {
+          bioToolId: bioToolEntry?.toolId,
+        })
+        if (!href) {
+          continue
+        }
+        const tabEntry = getTabEntry(entityKind)
+        const entryLabel = geneticsEntry && 'analysisName' in geneticsEntry
+          ? geneticsEntry.analysisName
+          : geneticsEntry && 'sampleName' in geneticsEntry
+            ? geneticsEntry.sampleName
+            : bioToolEntry?.toolNameKo ?? bioToolEntry?.toolNameEn
+
+        links.set(`supplementary:${sourceId}`, {
+          key: `supplementary:${sourceId}`,
+          label: sourceRef.label ?? entityRef?.label ?? entryLabel ?? sourceId,
+          href,
+          kind: 'supplementary',
+          kindLabel: tabEntry?.label ?? '보조 결과',
         })
       }
     }
@@ -805,12 +1054,12 @@ export default function DocumentEditor({
         </Button>
         <Separator orientation="vertical" className="h-5" />
         <h1 className="text-sm font-semibold truncate flex-1">{doc.title}</h1>
-        <Badge variant="outline" className="text-[10px]">
-          {saveStatus === 'saved' && '저장됨'}
-          {saveStatus === 'saving' && '저장 중...'}
-          {saveStatus === 'unsaved' && '변경됨'}
-          {saveStatus === 'conflict' && '충돌'}
-        </Badge>
+        <DocumentWritingHeaderStatus
+          saveStatus={saveStatus}
+          writingStatusLabel={writingStatusLabel}
+          writingStatus={documentWritingState?.status}
+          onRetry={handleRetryWriting}
+        />
         <Button
           variant={needsReassemble ? 'secondary' : 'outline'}
           size="sm"
@@ -901,7 +1150,23 @@ export default function DocumentEditor({
         <div className="flex-1 overflow-y-auto p-6">
           {activeSection ? (
             <div className="max-w-3xl mx-auto space-y-4">
-              <h2 className="text-xl font-bold">{activeSection.title}</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-bold">{activeSection.title}</h2>
+                {sectionWritingStatusLabel && (
+                  <Badge
+                    variant={activeSectionWritingState?.status === 'failed' ? 'destructive' : 'secondary'}
+                    className="text-[10px]"
+                  >
+                    {sectionWritingStatusLabel}
+                  </Badge>
+                )}
+              </div>
+
+              <SectionWritingBanner
+                visible={activeSectionWritingState?.status === 'drafting' && activeSection.generatedBy !== 'user'}
+                onCancel={handleCancelSectionWriting}
+                onTakeOwnership={handleTakeSectionOwnership}
+              />
 
               {activeSectionSourceLinks.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/30 px-3 py-2">
@@ -915,7 +1180,7 @@ export default function DocumentEditor({
                       className="h-7 gap-1 text-xs"
                       onClick={() => router.push(link.href)}
                     >
-                      <span>{link.kind === 'analysis' ? '통계' : '그래프'}</span>
+                      <span>{link.kindLabel}</span>
                       <span className="max-w-40 truncate">{link.label}</span>
                     </Button>
                   ))}

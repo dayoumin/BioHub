@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink, Unlink } from 'lucide-react'
+import { ExternalLink, FileText, Unlink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,6 +14,8 @@ interface EntityListItemProps {
   onToggleSelect?: () => void
   onNavigate?: (url: string) => void
   onUnlink?: () => void
+  onCreateWriting?: () => void
+  isCreatingWriting?: boolean
 }
 
 export function EntityListItem({
@@ -23,6 +25,8 @@ export function EntityListItem({
   onToggleSelect,
   onNavigate,
   onUnlink,
+  onCreateWriting,
+  isCreatingWriting = false,
 }: EntityListItemProps): React.ReactElement {
   const { ref, loaded, summary } = entity
   const tabEntry = getTabEntry(ref.entityKind)
@@ -88,6 +92,20 @@ export function EntityListItem({
 
       {/* 액션 */}
       <div className="flex shrink-0 items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        {loaded && onCreateWriting && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs"
+            aria-label="자료 작성"
+            onClick={onCreateWriting}
+            disabled={isCreatingWriting}
+            title="자료 작성"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            자료 작성
+          </Button>
+        )}
         {loaded && summary.navigateTo != null && onNavigate && (
           <Button
             variant="ghost"

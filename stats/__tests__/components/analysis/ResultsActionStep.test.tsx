@@ -840,6 +840,7 @@ vi.mock('@/lib/stores/research-project-store', () => ({
 vi.mock('@/lib/graph-studio', () => ({
   toAnalysisContext: vi.fn().mockReturnValue({ method: 'test' }),
   buildAnalysisVisualizationColumns: mockBuildAnalysisVisualizationColumns,
+  listProjects: vi.fn().mockReturnValue([]),
   buildKmCurveColumns: vi.fn(),
   buildRocCurveColumns: vi.fn(),
   inferColumnMeta: vi.fn().mockReturnValue([

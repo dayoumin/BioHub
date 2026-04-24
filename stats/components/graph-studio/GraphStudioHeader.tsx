@@ -8,13 +8,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
+import StartWritingButton from '@/components/papers/StartWritingButton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { DocumentSourceUsage } from '@/lib/research/document-source-usage';
 import { loadDocumentSourceUsages } from '@/lib/research/document-source-usage';
 import { buildDocumentEditorUrl } from '@/lib/research/source-navigation';
+import { createDocumentWritingSession } from '@/lib/research/document-writing-session';
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 } from '@/lib/research/document-blueprint-storage';
@@ -28,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3, Save, AlertTriangle, X } from 'lucide-react';
+import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3, Save, AlertTriangle, X, FileText } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
@@ -58,16 +61,18 @@ export function GraphStudioHeader({
     redo,
     aiPanelOpen,
     relinkWarning,
+    linkedResearchProjectId,
     toggleAiPanel,
     clearData,
     goToSetup,
   } = useGraphStudioStore();
   const [showNewChartDialog, setShowNewChartDialog] = useState(false);
   const [showRelinkSaveDialog, setShowRelinkSaveDialog] = useState(false);
+  const [isCreatingDocument, setIsCreatingDocument] = useState(false);
   const [dismissedRelinkWarningKey, setDismissedRelinkWarningKey] = useState<string | null>(null);
   const [documentUsages, setDocumentUsages] = useState<DocumentSourceUsage[]>([]);
   const documentUsageRequestSeqRef = useRef(0);
-  const currentResearchProjectId = currentProject?.projectId;
+  const resolvedResearchProjectId = currentProject?.projectId ?? linkedResearchProjectId ?? null;
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
@@ -110,7 +115,9 @@ export function GraphStudioHeader({
 
     void loadDocumentSourceUsages(
       currentProjectId,
-      currentResearchProjectId ? { projectId: currentResearchProjectId } : undefined,
+      resolvedResearchProjectId
+        ? { projectId: resolvedResearchProjectId, sourceKind: 'figure' }
+        : { sourceKind: 'figure' },
     )
       .then((usages) => {
         if (documentUsageRequestSeqRef.current === requestSeq) {
@@ -122,7 +129,7 @@ export function GraphStudioHeader({
           setDocumentUsages([]);
         }
       });
-  }, [currentProjectId, currentResearchProjectId]);
+  }, [currentProjectId, resolvedResearchProjectId]);
 
   useEffect(() => {
     reloadDocumentUsages();
@@ -136,9 +143,9 @@ export function GraphStudioHeader({
       }
       const detail = event.detail as { projectId?: string } | undefined;
       if (
-        currentResearchProjectId
+        resolvedResearchProjectId
         && detail?.projectId
-        && detail.projectId !== currentResearchProjectId
+        && detail.projectId !== resolvedResearchProjectId
       ) {
         return;
       }
@@ -149,7 +156,7 @@ export function GraphStudioHeader({
     return () => {
       window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentsChanged);
     };
-  }, [currentResearchProjectId, reloadDocumentUsages]);
+  }, [resolvedResearchProjectId, reloadDocumentUsages]);
 
   const handleNewChart = useCallback(() => {
     const hasUnsavedSession = chartSpec !== null && (currentProject === null || historyIndex > 0);
@@ -201,6 +208,39 @@ export function GraphStudioHeader({
   const handleRedo = useCallback(() => {
     redo();
   }, [redo]);
+
+  const handleCreateWritingDocument = useCallback(async () => {
+    if (isCreatingDocument) {
+      return;
+    }
+
+    const researchProjectId = resolvedResearchProjectId;
+    if (!researchProjectId) {
+      toast.error('프로젝트를 먼저 연결해야 문서를 만들 수 있습니다.');
+      return;
+    }
+    if (!currentProjectId) {
+      toast.error('저장된 그래프에서만 문서를 시작할 수 있습니다.');
+      return;
+    }
+
+    setIsCreatingDocument(true);
+    try {
+      const document = await createDocumentWritingSession({
+        projectId: researchProjectId,
+        title: `${currentProject?.name ?? '그래프'} 문서 초안`,
+        sourceEntityIds: {
+          figureIds: [currentProjectId],
+        },
+      });
+      router.push(buildDocumentEditorUrl(document.id));
+    } catch (error) {
+      console.error('[GraphStudioHeader] failed to create writing document:', error);
+      toast.error('문서 생성에 실패했습니다.');
+    } finally {
+      setIsCreatingDocument(false);
+    }
+  }, [currentProject?.name, currentProjectId, isCreatingDocument, resolvedResearchProjectId, router]);
 
   return (
     <>
@@ -285,6 +325,21 @@ export function GraphStudioHeader({
             <Sparkles className="h-4 w-4 mr-1" />
             AI
           </Button>
+        )}
+        {chartSpec && currentProjectId && resolvedResearchProjectId && (
+          <StartWritingButton
+            label="자료 작성"
+            pendingLabel="문서 생성 중..."
+            onClick={() => {
+              void handleCreateWritingDocument();
+            }}
+            pending={isCreatingDocument}
+            testId="graph-studio-write-doc"
+            icon={FileText}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          />
         )}
         {visibleUsages.map((usage) => (
           <Button

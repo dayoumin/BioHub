@@ -31,6 +31,12 @@ export * from './document-blueprint-storage';
 /** 문서 프리셋 레지스트리 (논문/보고서 템플릿) */
 export * from './document-preset-registry';
 
+/** 자료 작성 source/session 타입 */
+export * from './document-writing-source-types';
+
+/** 자료 작성 source adapter + writer registry */
+export * from './document-writing-source-registry';
+
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';
 

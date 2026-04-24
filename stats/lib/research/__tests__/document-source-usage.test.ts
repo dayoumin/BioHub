@@ -127,7 +127,39 @@ describe('findDocumentSourceUsages', () => {
         sectionId: 'results',
         kind: 'figure',
         label: 'Figure 1',
+        sourceKind: 'figure',
         artifactId: 'figure_1',
+      }),
+    ])
+  })
+
+  it('preserves supplementary source kind for section-level usages', () => {
+    const documents = [
+      makeDocument({
+        sections: [
+          {
+            id: 'results',
+            title: '보조 결과',
+            content: 'content',
+            sourceRefs: [createDocumentSourceRef('supplementary', 'protein_1', {
+              label: '단백질 해석',
+            })],
+            editable: true,
+            generatedBy: 'user',
+          },
+        ],
+      }),
+    ]
+
+    const usages = findDocumentSourceUsages(documents, 'protein_1')
+
+    expect(usages).toEqual([
+      expect.objectContaining({
+        documentId: 'doc-1',
+        sectionId: 'results',
+        kind: 'section',
+        sourceKind: 'supplementary',
+        sourceLabel: '단백질 해석',
       }),
     ])
   })
@@ -183,7 +215,10 @@ describe('findDocumentSourceUsages', () => {
       },
     ])
 
-    const usages = await loadDocumentSourceUsages('hist_1', { projectId: 'project-1' })
+    const usages = await loadDocumentSourceUsages('hist_1', {
+      projectId: 'project-1',
+      sourceKind: 'analysis',
+    })
 
     expect(usages).toEqual([
       expect.objectContaining({
@@ -228,13 +263,65 @@ describe('findDocumentSourceUsages', () => {
       },
     ])
 
-    const usages = await loadDocumentSourceUsages('hist_1', { projectId: 'project-1' })
+    const usages = await loadDocumentSourceUsages('hist_1', {
+      projectId: 'project-1',
+      sourceKind: 'analysis',
+    })
 
     expect(usages).toEqual([
       expect.objectContaining({
         documentId: 'doc-1',
         sectionId: 'results',
         kind: 'section',
+      }),
+    ])
+  })
+
+  it('uses sourceKind to avoid cross-domain collisions when scanning supplementary sources', async () => {
+    const documents = [
+      makeDocument({
+        id: 'doc-analysis',
+        sections: [
+          {
+            id: 'results-a',
+            title: '분석 결과',
+            content: 'content',
+            sourceRefs: [createDocumentSourceRef('analysis', 'shared_1')],
+            editable: true,
+            generatedBy: 'user',
+          },
+        ],
+      }),
+      makeDocument({
+        id: 'doc-supplementary',
+        sections: [
+          {
+            id: 'results-b',
+            title: '보조 결과',
+            content: 'content',
+            sourceRefs: [createDocumentSourceRef('supplementary', 'shared_1', {
+              label: '단백질 해석',
+            })],
+            editable: true,
+            generatedBy: 'user',
+          },
+        ],
+      }),
+    ]
+
+    storageMocks.loadDocumentBlueprints.mockResolvedValue(documents)
+    storageMocks.listProjectEntityRefs.mockReturnValue([])
+
+    const usages = await loadDocumentSourceUsages('shared_1', {
+      projectId: 'project-1',
+      sourceKind: 'supplementary',
+    })
+
+    expect(usages).toEqual([
+      expect.objectContaining({
+        documentId: 'doc-supplementary',
+        sectionId: 'results-b',
+        sourceKind: 'supplementary',
       }),
     ])
   })

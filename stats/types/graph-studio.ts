@@ -406,6 +406,11 @@ export interface DataPackage {
   label: string;
   columns: ColumnMeta[];
   data: Record<string, unknown[]>;
+  /** 제품 샘플/도메인 어댑터가 기본 XY 축을 명시적으로 고정해야 할 때 사용하는 선호 축. */
+  preferredXY?: {
+    x: string;
+    y: string;
+  };
   /** 상위 연구 프로젝트 연결용. */
   projectId?: string;
   /** 분석 맥락 — 생산자가 "무슨 분석을 했는가"를 기술 */

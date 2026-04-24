@@ -24,6 +24,7 @@ const {
   exportCodeFromAnalysisMock,
   isCodeExportAvailableMock,
   loadDocumentSourceUsagesMock,
+  createDocumentWritingSessionMock,
   routerPushMock,
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 } = vi.hoisted(() => ({
@@ -31,6 +32,7 @@ const {
   exportCodeFromAnalysisMock: vi.fn(),
   isCodeExportAvailableMock: vi.fn(),
   loadDocumentSourceUsagesMock: vi.fn(),
+  createDocumentWritingSessionMock: vi.fn(),
   routerPushMock: vi.fn(),
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
 }))
@@ -210,7 +212,7 @@ vi.mock('@/components/analysis/steps/results', () => ({
   ResultsStatsCards: () => null,
   ResultsChartsSection: () => null,
   ResultsActionButtons: () => null,
-  AiInterpretationCard: () => null,
+  AiInterpretationCard: ({ footerAction }: { footerAction?: React.ReactNode }) => <div>{footerAction}</div>,
   FollowUpQASection: () => null,
 }))
 
@@ -290,6 +292,10 @@ vi.mock('@/lib/research/document-source-usage', () => ({
   loadDocumentSourceUsages: (...args: unknown[]) => loadDocumentSourceUsagesMock(...args),
 }))
 
+vi.mock('@/lib/research/document-writing-session', () => ({
+  createDocumentWritingSession: (...args: unknown[]) => createDocumentWritingSessionMock(...args),
+}))
+
 vi.mock('@/lib/research/document-blueprint-storage', () => ({
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
 }))
@@ -310,6 +316,8 @@ describe('ResultsActionStep action wiring', () => {
     isCodeExportAvailableMock.mockReturnValue(true)
     loadDocumentSourceUsagesMock.mockReset()
     loadDocumentSourceUsagesMock.mockResolvedValue([])
+    createDocumentWritingSessionMock.mockReset()
+    createDocumentWritingSessionMock.mockResolvedValue({ id: 'doc-created' })
     routerPushMock.mockReset()
 
     Object.defineProperty(globalThis, 'ClipboardItem', {
@@ -416,8 +424,55 @@ describe('ResultsActionStep action wiring', () => {
       fireEvent.click(usageButton)
     })
 
-    expect(loadDocumentSourceUsagesMock).toHaveBeenCalledWith('history-1', { projectId: 'project-1' })
+    expect(loadDocumentSourceUsagesMock).toHaveBeenCalledWith('history-1', {
+      projectId: 'project-1',
+      sourceKind: 'analysis',
+    })
     expect(routerPushMock).toHaveBeenCalledWith('/papers?doc=doc-1&section=results&table=table_1')
+  })
+
+  it('creates a new writing document from the current saved result', async () => {
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('paper-document-btn'))
+    })
+
+    expect(createDocumentWritingSessionMock).toHaveBeenCalledWith({
+      projectId: 'project-1',
+      title: 'Independent Samples t-Test 문서 초안',
+      sourceEntityIds: {
+        analysisIds: ['history-1'],
+      },
+    })
+    expect(routerPushMock).toHaveBeenCalledWith('/papers?doc=doc-created')
+  })
+
+  it('shows a disabled writing surface until the result is saved', async () => {
+    useHistoryStore.getState().setCurrentHistoryId(null)
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    expect(screen.getByText('저장된 분석 결과에서만 문서를 시작할 수 있습니다. 먼저 결과를 저장하세요.')).toBeInTheDocument()
+    expect(screen.getByTestId('paper-document-btn')).toBeDisabled()
+  })
+
+  it('clears the pending state and does not navigate when document creation fails', async () => {
+    createDocumentWritingSessionMock.mockRejectedValueOnce(new Error('boom'))
+
+    const { ResultsActionStep } = await import('@/components/analysis/steps/ResultsActionStep')
+    render(<ResultsActionStep results={RESULTS} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('paper-document-btn'))
+    })
+
+    await waitFor(() => {
+      expect(routerPushMock).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: '문서에서 작성' })).toBeInTheDocument()
+    })
   })
 
   it('reloads document usages when papers change while the result view stays open', async () => {

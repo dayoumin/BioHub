@@ -16,7 +16,16 @@ import { saveDocumentBlueprint } from '@/lib/research/document-blueprint-storage
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
-import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
+import { loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
+import type {
+  BoldHistoryEntry,
+  PhylogenyHistoryEntry,
+  ProteinHistoryEntry,
+  SeqStatsHistoryEntry,
+  SimilarityHistoryEntry,
+  TranslationHistoryEntry,
+} from '@/lib/genetics/analysis-history'
+import { loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
 import type { DocumentBlueprint, DocumentPreset } from '@/lib/research/document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 
@@ -70,6 +79,7 @@ export default function DocumentAssemblyDialog({
       const entityRefs = listProjectEntityRefs(projectId)
       const allGraphProjects = listGraphProjects()
       const blastHistory = loadAnalysisHistory()
+      const bioToolHistory = loadBioToolHistory()
 
       const doc = assembleDocument(
         {
@@ -83,6 +93,13 @@ export default function DocumentAssemblyDialog({
           allHistory: analysisHistory as unknown as HistoryRecord[],
           allGraphProjects,
           blastHistory,
+          bioToolHistory,
+          proteinHistory: loadGeneticsHistory('protein') as ProteinHistoryEntry[],
+          seqStatsHistory: loadGeneticsHistory('seq-stats') as SeqStatsHistoryEntry[],
+          similarityHistory: loadGeneticsHistory('similarity') as SimilarityHistoryEntry[],
+          phylogenyHistory: loadGeneticsHistory('phylogeny') as PhylogenyHistoryEntry[],
+          boldHistory: loadGeneticsHistory('bold') as BoldHistoryEntry[],
+          translationHistory: loadGeneticsHistory('translation') as TranslationHistoryEntry[],
         },
       )
 
