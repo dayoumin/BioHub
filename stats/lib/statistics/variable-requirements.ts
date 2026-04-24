@@ -629,7 +629,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         default: 'two-sided'
       },
       equalVar: {
-        label: '실행 방식',
+        label: '분산 가정 선택',
         description: '등분산 가정 여부에 따라 Student t-검정 또는 Welch t-검정을 선택합니다. Levene 검정이 유의하면 Welch t-검정을 권장합니다.',
         options: [
           { value: 'true', label: 'Student t-검정', description: '등분산 가정을 사용해 Student t-검정으로 실행합니다.' },
@@ -1040,7 +1040,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         default: 'tukey'
       },
       welch: {
-        label: '실행 방식',
+        label: '분산 동질성 처리',
         description: '등분산 가정 여부에 따라 일반 ANOVA 또는 Welch ANOVA를 선택합니다. Levene 검정이 유의하면 Welch ANOVA를 권장합니다.',
         options: [
           { value: 'false', label: '일반 ANOVA', description: '등분산 가정을 사용해 일반 ANOVA로 실행합니다.' },

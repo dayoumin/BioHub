@@ -17,8 +17,8 @@ const GENERIC_SETTING_LABELS: Record<string, string> = {
   alternative: 'Alternative hypothesis',
   ciMethod: 'Confidence interval method',
   missingPolicy: 'Missing-data handling',
-  equalVar: 'Execution mode',
-  welch: 'Execution mode',
+  equalVar: 'Variance assumption',
+  welch: 'Homogeneity handling',
   postHoc: 'Post-hoc method',
 }
 
@@ -29,8 +29,8 @@ const GENERIC_SETTING_DESCRIPTIONS: Record<string, string> = {
   alternative: 'Chooses the direction of the statistical test.',
   ciMethod: 'Chooses the confidence-interval estimation method.',
   missingPolicy: 'Chooses how rows with missing values are handled.',
-  equalVar: 'Chooses between Student and Welch execution modes.',
-  welch: 'Chooses between standard ANOVA and Welch ANOVA.',
+  equalVar: 'Chooses whether to use the equal-variance assumption or Welch correction.',
+  welch: 'Chooses how variance heterogeneity is handled for the omnibus ANOVA.',
   postHoc: 'Chooses the multiple-comparison procedure applied after the omnibus test.',
 }
 

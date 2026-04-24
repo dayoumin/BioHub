@@ -104,7 +104,7 @@ describe('buildAnalysisExecutionContext', () => {
       expect.arrayContaining([
         { key: 'alpha', label: 'alpha', value: '0.05' },
         { key: 'postHoc', label: '사후검정 방법', value: 'Games-Howell' },
-        { key: 'welch', label: '실행 방식', value: 'Welch ANOVA' },
+        { key: 'welch', label: '분산 동질성 처리', value: 'Welch ANOVA' },
         { key: 'showAssumptions', label: '가정 검정', value: '건너뜀' },
         { key: 'showEffectSize', label: '효과크기', value: '표시' },
       ])
@@ -130,7 +130,7 @@ describe('buildAnalysisExecutionContext', () => {
     expect(result.executionSettingEntries).toEqual(
       expect.arrayContaining([
         { key: 'postHoc', label: 'Post-hoc method', value: 'Games-Howell' },
-        { key: 'welch', label: 'Execution mode', value: 'Welch ANOVA' },
+        { key: 'welch', label: 'Homogeneity handling', value: 'Welch ANOVA' },
         { key: 'showAssumptions', label: 'Assumption checks', value: 'Skipped' },
         { key: 'showEffectSize', label: 'Effect size', value: 'Hidden' },
       ])
