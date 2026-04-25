@@ -59,6 +59,7 @@ export * from './document-llm-writer-engine';
 export * from './document-quality-types';
 export * from './document-quality-storage';
 export * from './document-quality-suggestion-apply';
+export * from './document-llm-review-sanitizer';
 
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';
