@@ -146,6 +146,7 @@ export type DocumentMetadata =
     sectionBlueprints?: DocumentSectionBlueprintDefinition[]
     targetJournal?: string
     targetJournalProfile?: TargetJournalRequirementProfileSnapshot
+    numericClaims?: unknown
   })
 
 // ── 문서 전체 ──

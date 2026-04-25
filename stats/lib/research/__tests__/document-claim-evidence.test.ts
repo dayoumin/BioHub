@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DocumentBlueprint } from '../document-blueprint-types'
-import { checkNumericClaimEvidence } from '../document-claim-evidence'
+import { checkNumericClaimEvidence, getDocumentNumericClaims } from '../document-claim-evidence'
 import { buildSourceEvidenceIndex } from '../document-source-evidence'
 
 function makeDocument(): DocumentBlueprint {
@@ -127,5 +127,30 @@ describe('checkNumericClaimEvidence', () => {
     })
 
     expect(result.status).toBe('ambiguous')
+  })
+
+  it('reads structured numeric claims from document metadata', () => {
+    const document = makeDocument()
+    document.metadata = {
+      numericClaims: [{
+        claimId: 'claim-1',
+        documentId: 'doc-1',
+        sectionId: 'results',
+        text: 'p <= 0.05',
+        evidenceKeys: ['table-1'],
+        metricLabel: 'p',
+        operator: '<=',
+        value: 0.05,
+        rowLabel: 'Treatment',
+      }, {
+        claimId: 'bad-claim',
+      }],
+    }
+
+    expect(getDocumentNumericClaims(document)).toEqual([expect.objectContaining({
+      claimId: 'claim-1',
+      metricLabel: 'p',
+      operator: '<=',
+    })])
   })
 })

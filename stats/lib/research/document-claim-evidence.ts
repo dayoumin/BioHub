@@ -1,3 +1,4 @@
+import type { DocumentBlueprint } from './document-blueprint-types'
 import type {
   SourceEvidenceIndex,
   SourceEvidenceItem,
@@ -29,6 +30,59 @@ export interface NumericClaimEvidenceCheck {
   evidenceKey?: string
   observedValue?: string
   expectedValue: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isNumericClaimOperator(value: unknown): value is NumericClaimOperator {
+  return value === '=' || value === '<' || value === '<=' || value === '>' || value === '>='
+}
+
+function normalizeNumericClaim(value: unknown): NumericDocumentClaimEvidence | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  if (
+    typeof value.claimId !== 'string'
+    || typeof value.documentId !== 'string'
+    || typeof value.sectionId !== 'string'
+    || typeof value.text !== 'string'
+    || !Array.isArray(value.evidenceKeys)
+    || !value.evidenceKeys.every((item) => typeof item === 'string')
+    || typeof value.metricLabel !== 'string'
+    || !isNumericClaimOperator(value.operator)
+    || typeof value.value !== 'number'
+    || !Number.isFinite(value.value)
+  ) {
+    return null
+  }
+
+  return {
+    claimId: value.claimId,
+    documentId: value.documentId,
+    sectionId: value.sectionId,
+    text: value.text,
+    evidenceKeys: value.evidenceKeys,
+    metricLabel: value.metricLabel,
+    operator: value.operator,
+    value: value.value,
+    rowLabel: typeof value.rowLabel === 'string' ? value.rowLabel : undefined,
+  }
+}
+
+export function getDocumentNumericClaims(document: DocumentBlueprint): NumericDocumentClaimEvidence[] {
+  const metadata = document.metadata
+  if (!isRecord(metadata) || !Array.isArray(metadata.numericClaims)) {
+    return []
+  }
+
+  return metadata.numericClaims.flatMap((claim) => {
+    const normalized = normalizeNumericClaim(claim)
+    return normalized ? [normalized] : []
+  })
 }
 
 function normalizeMetricLabel(value: string): string {

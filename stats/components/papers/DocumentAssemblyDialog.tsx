@@ -31,6 +31,7 @@ import type {
   DocumentBlueprint,
   DocumentPreset,
   DocumentSectionBlueprintDefinition,
+  TargetJournalStylePreset,
 } from '@/lib/research/document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 
@@ -53,6 +54,14 @@ const SECTION_GENERATOR_HELP: Record<DocumentSectionBlueprintDefinition['generat
   llm: '작성 실행 시 설정된 AI/로컬/템플릿 방식으로 초안을 만듭니다.',
   user: '본문은 사용자가 직접 채웁니다.',
 }
+
+const JOURNAL_STYLE_OPTIONS: Array<{ value: TargetJournalStylePreset; label: string }> = [
+  { value: 'imrad', label: 'IMRAD' },
+  { value: 'apa', label: 'APA' },
+  { value: 'kci', label: 'KCI' },
+  { value: 'general', label: 'General' },
+  { value: 'manual', label: 'Manual' },
+]
 
 function buildDefaultSectionBlueprints(
   preset: DocumentPreset,
@@ -78,6 +87,8 @@ export default function DocumentAssemblyDialog({
   const [title, setTitle] = useState('')
   const [titleError, setTitleError] = useState(false)
   const [language, setLanguage] = useState<'ko' | 'en'>('ko')
+  const [journalStylePreset, setJournalStylePreset] = useState<TargetJournalStylePreset>('imrad')
+  const [targetJournal, setTargetJournal] = useState('')
   const [sectionBlueprints, setSectionBlueprints] = useState<DocumentSectionBlueprintDefinition[]>(
     () => buildDefaultSectionBlueprints('paper', 'ko'),
   )
@@ -102,6 +113,8 @@ export default function DocumentAssemblyDialog({
       setTitleError(false)
       setSelectedPreset('paper')
       setLanguage('ko')
+      setJournalStylePreset('imrad')
+      setTargetJournal('')
       setSectionBlueprints(buildDefaultSectionBlueprints('paper', 'ko'))
     }
     onOpenChange(nextOpen)
@@ -175,8 +188,9 @@ export default function DocumentAssemblyDialog({
             sectionBlueprints: normalizedSectionBlueprints,
             targetJournalProfile: selectedPreset === 'paper'
               ? createTargetJournalProfileSnapshot({
-                  stylePreset: 'imrad',
-                  label: 'IMRAD manuscript',
+                  stylePreset: journalStylePreset,
+                  label: targetJournal.trim() || `${journalStylePreset.toUpperCase()} manuscript`,
+                  targetJournal: targetJournal.trim() || undefined,
                   articleType: 'research article',
                 })
               : undefined,
@@ -205,7 +219,7 @@ export default function DocumentAssemblyDialog({
     } finally {
       setIsCreating(false)
     }
-  }, [title, sectionBlueprints, selectedPreset, language, projectId, analysisHistory, onCreated])
+  }, [title, sectionBlueprints, selectedPreset, language, projectId, analysisHistory, onCreated, journalStylePreset, targetJournal])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -249,6 +263,37 @@ export default function DocumentAssemblyDialog({
               {PRESET_REGISTRY.find(p => p.id === selectedPreset)?.description.ko}
             </p>
           </div>
+
+          {selectedPreset === 'paper' && (
+            <div className="space-y-3">
+              <div>
+                <Label>Journal/style profile</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  초안 작성과 preflight가 같은 기준을 사용합니다.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {JOURNAL_STYLE_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={journalStylePreset === option.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setJournalStylePreset(option.value)}
+                    className="h-8"
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+              <Input
+                value={targetJournal}
+                onChange={(event) => setTargetJournal(event.target.value)}
+                placeholder="Target journal (optional)"
+                className="h-9 bg-surface"
+              />
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">

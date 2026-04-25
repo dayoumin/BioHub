@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.19",
+  "version": "1.44.20",
   "lastUpdated": "2026-04-25",
   "sources": [
     "stats/__tests__/",
@@ -1269,10 +1269,10 @@
       "name": "Pure Math / Utility Function Tests",
       "description": "순수 수치 함수 검증 패턴 — 부동소수점 근사 허용 오차, 단조성, 도메인 에러",
       "patterns": [
-    {
-      "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
-      "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
-      "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
+        {
+          "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
+          "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
           "keywords": [
             "toBeCloseTo",
             "toBeGreaterThanOrEqual",
@@ -1433,6 +1433,21 @@
             "plateValue",
             "stale finding"
           ]
+        },
+        {
+          "name": "?? Review/Preflight ?? ?? ???",
+          "purpose": "?? ?? ??? deterministic preflight, LLM review partial fallback, journal profile snapshot, structured numeric claim finding? ???? ????? ??",
+          "code": "it('LLM review ?? ? deterministic report? partial? ????', async () => {\n  const document = makeDocument();\n  const report = runDocumentPreflightRules(document, { reportId: 'report-1', generatedAt });\n  const merged = await runDocumentLlmReview(document, report, {\n    generatedAt,\n    generateText: vi.fn().mockRejectedValue(new Error('network failed')),\n  });\n\n  expect(merged.status).toBe('partial');\n  expect(merged.findings.some((finding) => finding.ruleId === 'document.sources.none')).toBe(true);\n});\n\nit('numeric claim mismatch? preflight source finding?? ????', () => {\n  const report = runDocumentPreflightRules(document, { numericClaims: [makeNumericClaim({ operator: '<', value: 0.01 })], reportId, generatedAt });\n  expect(report.findings[0]).toEqual(expect.objectContaining({\n    ruleId: 'claim.numeric.mismatch',\n    evidence: [expect.objectContaining({ observedValue: '0.03', expectedValue: 'p < 0.01' })],\n  }));\n});",
+          "keywords": [
+            "DocumentEditor",
+            "runDocumentLlmReview",
+            "runDocumentPreflightRules",
+            "numericClaims",
+            "partial report",
+            "journal profile",
+            "preflight runner",
+            "LLM sanitizer"
+          ]
         }
       ]
     },
@@ -1496,13 +1511,30 @@
       "name": "KM/ROC 생존분석 차트 렌더링 (G3-A)",
       "purpose": "km-curve/roc-curve ECharts 옵션 구조를 단언하여 G3-A 생존분석 회귀 방지",
       "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport type { ChartSpec } from '@/types/graph-studio';\n\nfunction makeKmSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {\n  return {\n    chartType: 'km-curve',\n    xField: 'time', yField: 'survival', colorField: 'group',\n    title: 'KM Curve', ...overrides,\n  };\n}\n\nconst kmRows = [\n  { time: 0, survival: 1.0, ciLo: 1.0, ciHi: 1.0, group: 'A' },\n  { time: 12, survival: 0.8, ciLo: 0.6, ciHi: 0.95, group: 'A' },\n];\n\ntest('km-curve: step line + CI areaStyle', () => {\n  const option = chartSpecToECharts(makeKmSpec(), kmRows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  const mainLine = series.find(s => s.step === 'end');\n  expect(mainLine).toBeDefined();\n  const area = series.find(s => (s.areaStyle as Record<string, unknown>)?.opacity > 0);\n  expect(area).toBeDefined();\n});\n\ntest('roc-curve: AUC graphic text 포함', () => {\n  const rocSpec: ChartSpec = { chartType: 'roc-curve', xField: 'fpr', yField: 'tpr', title: 'ROC' };\n  const rocRows = [{ fpr: 0.0, tpr: 0.0 }, { fpr: 0.3, tpr: 0.8 }, { fpr: 1.0, tpr: 1.0 }];\n  const option = chartSpecToECharts(rocSpec, rocRows) as Record<string, unknown>;\n  const graphic = option.graphic as unknown[];\n  expect(Array.isArray(graphic)).toBe(true);\n  const aucText = (graphic as Record<string, unknown>[]).find(g => String(g.type) === 'text');\n  expect(aucText).toBeDefined();\n});",
-      "keywords": ["km-curve", "roc-curve", "survival", "step", "areaStyle", "AUC", "graphic", "G3-A"]
+      "keywords": [
+        "km-curve",
+        "roc-curve",
+        "survival",
+        "step",
+        "areaStyle",
+        "AUC",
+        "graphic",
+        "G3-A"
+      ]
     },
     {
       "name": "Python Worker 시뮬레이션 테스트 (Worker2 ANCOVA)",
       "purpose": "Python Worker 결과 매핑 로직을 순수 TS 객체로 시뮬레이션하여 런타임 의존성 없이 검증",
       "code": "import { describe, it, expect } from 'vitest';\n\n// Python Worker가 반환하는 camelCase 결과 형태\ninterface Worker2AncovaResult {\n  mainEffect: { fStatistic: number; pValue: number; df1: number; df2: number };\n  postHoc?: Array<{ group1: string; group2: string; meanDiff: number; pValue: number; pAdjusted?: number; significant: boolean }>;\n  effectSize?: { etaSquared: number; label: string };\n  adjustedMeans?: Array<{ group: string; adjustedMean: number; se: number }>;\n  missingRemoved?: number;\n}\n\nfunction mapAncovaResult(raw: Worker2AncovaResult) {\n  return {\n    statistic: raw.mainEffect.fStatistic,\n    pValue: raw.mainEffect.pValue,\n    df: [raw.mainEffect.df1, raw.mainEffect.df2] as [number, number],\n    postHoc: raw.postHoc?.map(p => ({\n      group1: p.group1, group2: p.group2, meanDiff: p.meanDiff,\n      pvalue: p.pValue, pvalueAdjusted: p.pAdjusted, significant: p.significant,\n    })),\n    missingRemoved: raw.missingRemoved ?? 0,\n  };\n}\n\ndescribe('ANCOVA Worker2 결과 매핑', () => {\n  it('df가 [df1, df2] 튜플로 보존된다', () => {\n    const raw: Worker2AncovaResult = { mainEffect: { fStatistic: 5.2, pValue: 0.03, df1: 1, df2: 28 } };\n    const mapped = mapAncovaResult(raw);\n    expect(mapped.df).toEqual([1, 28]);\n  });\n\n  it('null 그룹 필터링 후 missingRemoved 계산', () => {\n    const raw: Worker2AncovaResult = { mainEffect: { fStatistic: 3.1, pValue: 0.09, df1: 1, df2: 15 }, missingRemoved: 3 };\n    const mapped = mapAncovaResult(raw);\n    expect(mapped.missingRemoved).toBe(3);\n  });\n});",
-      "keywords": ["Worker2", "ANCOVA", "simulation", "df-tuple", "missingRemoved", "camelCase", "mapping"]
+      "keywords": [
+        "Worker2",
+        "ANCOVA",
+        "simulation",
+        "df-tuple",
+        "missingRemoved",
+        "camelCase",
+        "mapping"
+      ]
     },
     {
       "name": "chartSpecToECharts 시뮬레이션",

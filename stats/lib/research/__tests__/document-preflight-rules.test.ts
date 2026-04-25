@@ -80,6 +80,37 @@ describe('document-preflight-rules', () => {
     expect(report.summary.totalFindings).toBe(0)
   })
 
+  it('converts structured numeric claim mismatches into source findings', () => {
+    const report = runDocumentPreflightRules(makeDocument(), {
+      reportId: 'report-1',
+      generatedAt: '2026-04-25T02:00:00.000Z',
+      numericClaims: [{
+        claimId: 'claim-1',
+        documentId: 'doc-1',
+        sectionId: 'results',
+        text: 'p < 0.01',
+        evidenceKeys: ['doc:doc-1:section:results:table:table-1'],
+        metricLabel: 'p',
+        operator: '<',
+        value: 0.01,
+      }],
+    })
+
+    expect(report.findings).toEqual([
+      expect.objectContaining({
+        ruleId: 'claim.numeric.mismatch',
+        category: 'source',
+        severity: 'error',
+        sectionId: 'results',
+        evidence: [expect.objectContaining({
+          label: expect.stringContaining('p < 0.01'),
+          observedValue: '0.03',
+          expectedValue: 'p < 0.01',
+        })],
+      }),
+    ])
+  })
+
   it('flags documents without any source evidence', () => {
     const report = runPreflight(makeDocument({
       sections: [

@@ -37,6 +37,7 @@ const {
   mockSaveDocumentQualityReport,
   mockUpdateDocumentQualityFindingStatus,
   mockRunDocumentPreflightRules,
+  mockRunDocumentLlmReview,
   mockRouterPush,
   mockSerialize,
   mockDeserialize,
@@ -67,6 +68,11 @@ const {
     status: DocumentReviewFindingStatus,
   ) => Promise<DocumentQualityReport>>(),
   mockRunDocumentPreflightRules: vi.fn<(document: DocumentBlueprint, options: { reportId: string; generatedAt: string }) => DocumentQualityReport>(),
+  mockRunDocumentLlmReview: vi.fn(async (
+    _document: DocumentBlueprint,
+    report: DocumentQualityReport,
+    _options: { generatedAt: string },
+  ) => report),
   mockRouterPush: vi.fn(),
   mockSerialize: vi.fn(() => 'serialized editor content'),
   mockDeserialize: vi.fn(() => [{ type: 'p', children: [{ text: 'loaded nodes' }] }]),
@@ -195,11 +201,19 @@ vi.mock('@/lib/research/document-quality-storage', () => ({
 }))
 
 vi.mock('@/lib/research/document-preflight-rules', () => ({
-  DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION: 'document-preflight-rules:v1',
+  DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION: 'document-preflight-rules:v2',
   runDocumentPreflightRules: (
     document: DocumentBlueprint,
     options: { reportId: string; generatedAt: string },
   ) => mockRunDocumentPreflightRules(document, options),
+}))
+
+vi.mock('@/lib/research/document-llm-review-runner', () => ({
+  runDocumentLlmReview: (
+    document: DocumentBlueprint,
+    report: DocumentQualityReport,
+    options: { generatedAt: string },
+  ) => mockRunDocumentLlmReview(document, report, options),
 }))
 
 vi.mock('@/lib/research/project-storage', () => ({
@@ -299,7 +313,7 @@ function makeQualityReport(
     projectId: document.projectId,
     status: 'completed',
     snapshot: buildDocumentQualitySnapshot(document, {
-      ruleEngineVersion: 'document-preflight-rules:v1',
+      ruleEngineVersion: 'document-preflight-rules:v2',
       sourceSnapshotHashes: buildSourceSnapshotHashes(buildSourceEvidenceIndex(document)),
     }),
     findings,
@@ -358,6 +372,7 @@ describe('DocumentEditor export freshness', () => {
     mockSaveDocumentQualityReport.mockReset()
     mockUpdateDocumentQualityFindingStatus.mockReset()
     mockRunDocumentPreflightRules.mockReset()
+    mockRunDocumentLlmReview.mockReset()
     mockRouterPush.mockReset()
     mockSerialize.mockClear()
     mockDeserialize.mockClear()
@@ -408,6 +423,7 @@ describe('DocumentEditor export freshness', () => {
       generatedAt: options.generatedAt,
       updatedAt: options.generatedAt,
     }))
+    mockRunDocumentLlmReview.mockImplementation(async (_document, report) => report)
     mockReassembleDocument.mockImplementation((doc: DocumentBlueprint) => ({
       ...doc,
       updatedAt: '2026-04-13T00:00:00.000Z',
@@ -568,7 +584,7 @@ describe('DocumentEditor export freshness', () => {
     mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(reportBaseDocument, {
       snapshot: {
         ...buildDocumentQualitySnapshot(currentDocument, {
-          ruleEngineVersion: 'document-preflight-rules:v1',
+          ruleEngineVersion: 'document-preflight-rules:v2',
           sourceSnapshotHashes: buildSourceSnapshotHashes(buildSourceEvidenceIndex(reportBaseDocument)),
         }),
       },

@@ -129,6 +129,8 @@ import {
   DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION,
   runDocumentPreflightRules,
 } from '@/lib/research/document-preflight-rules'
+import { runDocumentLlmReview } from '@/lib/research/document-llm-review-runner'
+import { getDocumentNumericClaims } from '@/lib/research/document-claim-evidence'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -329,6 +331,7 @@ export default function DocumentEditor({
   const lastSavedUpdatedAtRef = useRef<string | null>(null)
   const hasLocalChangesRef = useRef(false)
   const documentConflictRef = useRef<DocumentBlueprint | null>(null)
+  const preflightRunSeqRef = useRef(0)
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
@@ -1068,18 +1071,30 @@ export default function DocumentEditor({
         return
       }
 
+      const runSeq = preflightRunSeqRef.current + 1
+      preflightRunSeqRef.current = runSeq
+      const runDocumentUpdatedAt = currentDoc.updatedAt
       const generatedAt = new Date().toISOString()
       const { evidenceIndex, sourceSnapshotHashes } = buildDocumentPreflightSourceSnapshot(currentDoc)
-      const report = runDocumentPreflightRules(currentDoc, {
+      const deterministicReport = runDocumentPreflightRules(currentDoc, {
         reportId: generateId('dqreport'),
         generatedAt,
         evidenceIndex,
+        numericClaims: getDocumentNumericClaims(currentDoc),
         sourceSnapshotHashes,
         targetJournalProfileVersion: getDocumentTargetJournalProfileVersion(currentDoc),
       })
+      const report = await runDocumentLlmReview(currentDoc, deterministicReport, { generatedAt })
+      if (
+        preflightRunSeqRef.current !== runSeq
+        || docRef.current?.id !== currentDoc.id
+        || docRef.current?.updatedAt !== runDocumentUpdatedAt
+      ) {
+        return
+      }
       const savedReport = await saveDocumentQualityReport(report)
       setQualityReport(savedReport)
-      toast.success('문서 점검을 완료했습니다.')
+      toast.success(report.status === 'partial' ? '문서 점검이 부분 완료되었습니다.' : '문서 점검이 완료되었습니다.')
     } catch (error: unknown) {
       console.error('[DocumentEditor] failed to run document preflight:', error)
       toast.error('문서 점검에 실패했습니다.')

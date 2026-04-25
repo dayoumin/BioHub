@@ -17,8 +17,13 @@ import {
   type DocumentBlueprint,
   type DocumentSection,
 } from './document-blueprint-types'
+import {
+  checkNumericClaimEvidenceList,
+  type NumericClaimEvidenceCheck,
+  type NumericDocumentClaimEvidence,
+} from './document-claim-evidence'
 
-export const DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION = 'document-preflight-rules:v1'
+export const DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION = 'document-preflight-rules:v2'
 
 type PreflightRuleId =
   | 'document.sources.none'
@@ -27,6 +32,9 @@ type PreflightRuleId =
   | 'figure.caption.missing'
   | 'support.source.missing'
   | 'support.citation.blank'
+  | 'claim.numeric.missing'
+  | 'claim.numeric.ambiguous'
+  | 'claim.numeric.mismatch'
 
 interface PreflightFindingDraft {
   ruleId: PreflightRuleId
@@ -36,12 +44,14 @@ interface PreflightFindingDraft {
   message: string
   sectionId?: string
   artifactId?: string
+  evidence?: DocumentReviewFinding['evidence']
 }
 
 export interface RunDocumentPreflightRulesOptions extends Omit<BuildDocumentQualitySnapshotOptions, 'ruleEngineVersion'> {
   reportId: string
   generatedAt: string
   evidenceIndex?: SourceEvidenceIndex
+  numericClaims?: readonly NumericDocumentClaimEvidence[]
   ruleEngineVersion?: string
 }
 
@@ -78,13 +88,13 @@ function toFinding(
     title: draft.title,
     message: draft.message,
     sectionId: draft.sectionId,
-    evidence: draft.artifactId
+    evidence: draft.evidence ?? (draft.artifactId
       ? [{
           label: draft.artifactId,
           sourceId: draft.artifactId,
           sourceKind: 'document-artifact',
         }]
-      : undefined,
+      : undefined),
     createdAt: generatedAt,
     updatedAt: generatedAt,
   }
@@ -209,6 +219,7 @@ function collectSupportFindings(section: DocumentSection): PreflightFindingDraft
 function collectPreflightFindingDrafts(
   document: DocumentBlueprint,
   evidenceIndex: SourceEvidenceIndex,
+  numericClaims: readonly NumericDocumentClaimEvidence[] = [],
 ): PreflightFindingDraft[] {
   return [
     ...collectDocumentSourceFindings(document, evidenceIndex),
@@ -217,7 +228,63 @@ function collectPreflightFindingDrafts(
       ...collectFigureFindings(section),
       ...collectSupportFindings(section),
     ]),
+    ...collectNumericClaimFindings(numericClaims, checkNumericClaimEvidenceList(evidenceIndex, numericClaims)),
   ]
+}
+
+function collectNumericClaimFindings(
+  claims: readonly NumericDocumentClaimEvidence[],
+  checks: readonly NumericClaimEvidenceCheck[],
+): PreflightFindingDraft[] {
+  return checks.flatMap((check, index): PreflightFindingDraft[] => {
+    const claim = claims[index]
+    if (!claim || check.status === 'linked') {
+      return []
+    }
+
+    const evidence: DocumentReviewFinding['evidence'] = [{
+      label: check.evidenceKey ? `${claim.text} (${check.evidenceKey})` : claim.text,
+      observedValue: check.observedValue,
+      expectedValue: check.expectedValue,
+    }]
+
+    if (check.status === 'mismatch') {
+      return [{
+        ruleId: 'claim.numeric.mismatch',
+        category: 'source',
+        severity: 'error',
+        title: 'Source-bound numeric claim mismatch',
+        message: 'A structured numeric claim does not match its linked evidence.',
+        sectionId: claim.sectionId,
+        artifactId: claim.claimId,
+        evidence,
+      }]
+    }
+
+    if (check.status === 'ambiguous') {
+      return [{
+        ruleId: 'claim.numeric.ambiguous',
+        category: 'source',
+        severity: 'warning',
+        title: 'Ambiguous numeric claim evidence',
+        message: 'A structured numeric claim has multiple possible evidence rows or items.',
+        sectionId: claim.sectionId,
+        artifactId: claim.claimId,
+        evidence,
+      }]
+    }
+
+    return [{
+      ruleId: 'claim.numeric.missing',
+      category: 'source',
+      severity: 'error',
+      title: 'Numeric claim evidence missing',
+      message: 'A structured numeric claim is missing linked evidence.',
+      sectionId: claim.sectionId,
+      artifactId: claim.claimId,
+      evidence,
+    }]
+  })
 }
 
 export function runDocumentPreflightRules(
@@ -228,7 +295,7 @@ export function runDocumentPreflightRules(
   const evidenceIndex = options.evidenceIndex ?? buildSourceEvidenceIndex(document)
   assertEvidenceIndexMatchesDocument(document, evidenceIndex)
   const sourceSnapshotHashes = options.sourceSnapshotHashes ?? buildSourceSnapshotHashes(evidenceIndex)
-  const findings = collectPreflightFindingDrafts(document, evidenceIndex)
+  const findings = collectPreflightFindingDrafts(document, evidenceIndex, options.numericClaims)
     .map((draft) => toFinding(document, options.reportId, options.generatedAt, draft))
 
   return {
