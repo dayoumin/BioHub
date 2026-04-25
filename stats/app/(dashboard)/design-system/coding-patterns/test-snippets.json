@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.17",
+  "version": "1.44.18",
   "lastUpdated": "2026-04-25",
   "sources": [
     "stats/__tests__/",
@@ -1405,6 +1405,19 @@
             "router.push",
             "sourceKind guard",
             "unsupported source"
+          ]
+        },
+        {
+          "name": "문서 Preflight suggestion preview 테스트",
+          "purpose": "자동 적용 전 단계에서 finding.suggestion을 read-only 미리보기로 표시하고, storage round-trip에서 suggestion이 보존되는지 검증",
+          "code": "it('open finding에 suggestion preview를 표시한다', () => {\n  render(<DocumentPreflightPanel\n    report={makeReport([makeFinding({\n      suggestion: {\n        replacementText: '표 1에 원본 분석 ID를 연결하세요.',\n        canAutoApply: false,\n        requiresUserConfirmation: true,\n      },\n    })])}\n    freshness=\"fresh\"\n    pending={false}\n    onRun={vi.fn()}\n  />);\n\n  expect(screen.getByText('제안')).toBeInTheDocument();\n  expect(screen.getByText('검토 필요')).toBeInTheDocument();\n  expect(screen.queryByRole('button', { name: /적용/ })).not.toBeInTheDocument();\n});\n\nit('storage round-trip에서 suggestion을 clone 보존한다', async () => {\n  await saveDocumentQualityReport(makeReport('report-1', { findings: [makeFinding({ suggestion })] }));\n  const loaded = await loadDocumentQualityReport('report-1');\n  expect(loaded?.findings[0]?.suggestion).toEqual(suggestion);\n});",
+          "keywords": [
+            "DocumentPreflightPanel",
+            "suggestion preview",
+            "DocumentReviewSuggestion",
+            "read-only",
+            "storage round-trip",
+            "clone"
           ]
         }
       ]

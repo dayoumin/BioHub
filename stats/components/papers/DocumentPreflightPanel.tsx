@@ -350,6 +350,32 @@ export default function DocumentPreflightPanel({
                   )}
                 </div>
               )}
+              {finding.status === 'open' && finding.suggestion && (
+                <div className="mt-2 rounded-xl bg-surface-container-high px-2 py-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      제안
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                        finding.suggestion.canAutoApply
+                          ? 'bg-secondary-container text-secondary'
+                          : 'bg-surface text-on-surface-variant',
+                      )}
+                    >
+                      {finding.suggestion.canAutoApply ? '적용 가능' : '검토 필요'}
+                    </Badge>
+                  </div>
+                  <p className="line-clamp-3 rounded-lg bg-surface px-2 py-1.5 text-[11px] leading-4 text-on-surface-variant">
+                    {finding.suggestion.replacementText}
+                  </p>
+                  {finding.suggestion.requiresUserConfirmation && (
+                    <p className="mt-1 text-[10px] text-muted-foreground">사용자 확인 필요</p>
+                  )}
+                </div>
+              )}
               {onUpdateFindingStatus && finding.status !== 'resolved' && (
                 <div className="mt-2 flex justify-end">
                   <Button

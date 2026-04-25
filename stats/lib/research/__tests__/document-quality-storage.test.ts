@@ -84,6 +84,35 @@ describe('document-quality-storage', () => {
     expect(report.snapshot.sectionHashes.results).toBe('section-hash')
   })
 
+  it('preserves finding suggestions through storage round-trip without sharing references', async () => {
+    await saveDocumentQualityReport(makeReport('report-1', {
+      findings: [
+        makeFinding({
+          reportId: 'report-1',
+          suggestion: {
+            replacementText: '제안 문장',
+            canAutoApply: false,
+            requiresUserConfirmation: true,
+          },
+        }),
+      ],
+    }))
+
+    const loaded = await loadDocumentQualityReport('report-1')
+    expect(loaded?.findings[0]?.suggestion).toEqual({
+      replacementText: '제안 문장',
+      canAutoApply: false,
+      requiresUserConfirmation: true,
+    })
+
+    if (loaded?.findings[0]?.suggestion) {
+      loaded.findings[0].suggestion.replacementText = 'mutated'
+    }
+
+    const reloaded = await loadDocumentQualityReport('report-1')
+    expect(reloaded?.findings[0]?.suggestion?.replacementText).toBe('제안 문장')
+  })
+
   it('lists reports by document and project in latest order', async () => {
     await saveDocumentQualityReport(makeReport('older', {
       generatedAt: '2026-04-25T02:00:00.000Z',

@@ -310,6 +310,60 @@ describe('DocumentPreflightPanel', () => {
     expect(screen.getByText('확인 필요')).toBeInTheDocument()
   })
 
+  it('renders read-only suggestion preview for open findings', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            suggestion: {
+              replacementText: '표 1에 원본 분석 ID를 연결하세요.',
+              canAutoApply: false,
+              requiresUserConfirmation: true,
+            },
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('제안')).toBeInTheDocument()
+    expect(screen.getByText('검토 필요')).toBeInTheDocument()
+    expect(screen.getByText('표 1에 원본 분석 ID를 연결하세요.')).toBeInTheDocument()
+    expect(screen.getByText('사용자 확인 필요')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /적용/ })).not.toBeInTheDocument()
+  })
+
+  it('hides suggestion preview for ignored findings and absent suggestions', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            id: 'ignored-with-suggestion',
+            status: 'ignored',
+            suggestion: {
+              replacementText: 'ignored suggestion',
+              canAutoApply: true,
+              requiresUserConfirmation: false,
+            },
+          }),
+          makeFinding({
+            id: 'open-without-suggestion',
+            title: 'Open without suggestion',
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('ignored suggestion')).not.toBeInTheDocument()
+    expect(screen.queryByText('제안')).not.toBeInTheDocument()
+    expect(screen.getByText('Open without suggestion')).toBeInTheDocument()
+  })
+
   it('shows evidence source navigation only when source fields and callback are available', () => {
     const { rerender } = render(
       <DocumentPreflightPanel
