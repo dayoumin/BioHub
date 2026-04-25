@@ -230,6 +230,36 @@ describe('buildHwpxDocument', () => {
     expect(binDataFiles).toHaveLength(0)
   })
 
+  it('헤더 없는 표도 유효한 HWPX 표로 생성한다', async () => {
+    const template = loadTemplate()
+    const doc = makeDoc({
+      sections: [
+        makeSection({
+          id: 'results',
+          title: '결과',
+          content: '헤더 없는 표를 포함한다.',
+          tables: [{
+            caption: 'Table 1: Headerless',
+            headers: [],
+            rows: [
+              ['A', '1'],
+              ['B', '2'],
+            ],
+          }],
+        }),
+      ],
+    })
+
+    const result = await buildHwpxDocument(doc, undefined, template)
+    const zip = await JSZip.loadAsync(result)
+    const section0 = await zip.file('Contents/section0.xml')!.async('string')
+
+    expect(section0).toContain('hp:tbl')
+    expect(section0).toContain('colCnt="2"')
+    expect(section0).toContain('Column 1')
+    expect(section0).not.toContain('Infinity')
+  })
+
   it('그림 + 스냅샷 → BinData/chart1.png 존재', async () => {
     const template = loadTemplate()
     const snapshot = makePngSnapshot('graph-1')

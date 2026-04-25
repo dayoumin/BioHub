@@ -742,6 +742,8 @@ export default function DocumentEditor({
     },
   ): DocumentBlueprint => {
     const interruptedAt = new Date().toISOString()
+    const previousJobId = document.writingState?.jobId
+    const interruptionJobId = generateId('docjob')
 
     const nextSections = document.sections.map((section) => (
       section.id === sectionId
@@ -753,16 +755,49 @@ export default function DocumentEditor({
         : section
     ))
 
-    const updatedDocument: DocumentBlueprint = {
+    let updatedDocument: DocumentBlueprint = {
       ...document,
       sections: nextSections,
       updatedAt: interruptedAt,
     }
 
-    return updateDocumentSectionWritingState(updatedDocument, sectionId, 'skipped', {
-      updatedAt: interruptedAt,
-      message: options.message,
-    })
+    updatedDocument = {
+      ...updatedDocument,
+      writingState: {
+        ...updatedDocument.writingState,
+        status: 'completed',
+        jobId: interruptionJobId,
+        startedAt: updatedDocument.writingState?.startedAt,
+        updatedAt: interruptedAt,
+        errorMessage: undefined,
+        sectionStates: {
+          ...(updatedDocument.writingState?.sectionStates ?? {}),
+        },
+      },
+    }
+
+    for (const section of document.sections) {
+      const currentStatus = document.writingState?.sectionStates[section.id]?.status
+      const currentJobId = document.writingState?.sectionStates[section.id]?.jobId ?? previousJobId
+      const shouldInterruptSection = (
+        section.id === sectionId
+        || (currentStatus === 'drafting' && currentJobId === previousJobId)
+      )
+
+      if (!shouldInterruptSection) {
+        continue
+      }
+
+      updatedDocument = updateDocumentSectionWritingState(updatedDocument, section.id, 'skipped', {
+        jobId: interruptionJobId,
+        updatedAt: interruptedAt,
+        message: section.id === sectionId
+          ? options.message
+          : '사용자가 자동 작성을 중단했습니다.',
+      })
+    }
+
+    return updatedDocument
   }, [])
 
   const takeSectionOwnershipForEditing = useCallback((sectionId: string, plateValue: unknown): void => {

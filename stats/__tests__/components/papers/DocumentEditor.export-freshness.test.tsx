@@ -390,9 +390,10 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
-    expect(savedDocument.writingState?.status).toBe('drafting')
+    expect(savedDocument.writingState?.status).toBe('completed')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
-    expect(savedDocument.writingState?.jobId).toBe('job_1')
+    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
+    expect(savedDocument.writingState?.sectionStates.results?.jobId).toBe(savedDocument.writingState?.jobId)
   })
 
   it('lets the user stop automatic writing from the section banner', async () => {
@@ -432,9 +433,10 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
-    expect(savedDocument.writingState?.status).toBe('drafting')
+    expect(savedDocument.writingState?.status).toBe('completed')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
-    expect(savedDocument.writingState?.jobId).toBe('job_1')
+    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
+    expect(savedDocument.writingState?.sectionStates.results?.jobId).toBe(savedDocument.writingState?.jobId)
   })
 
   it('flushes pending editor changes before retrying a failed writing job', async () => {

@@ -49,7 +49,7 @@ describe('hasVisibleContent', () => {
     }))).toBe(true)
   })
 
-  it('section support bindings만 있어도 true', () => {
+  it('section support bindings만 있으면 false', () => {
     expect(hasVisibleContent(makeSection({
       sectionSupportBindings: [{
         id: 'dsb_1',
@@ -61,7 +61,7 @@ describe('hasVisibleContent', () => {
         included: true,
         origin: 'user',
       }],
-    }))).toBe(true)
+    }))).toBe(false)
   })
 
   it('모두 없으면 false', () => {

@@ -182,7 +182,14 @@ class HwpxDocumentBuilder {
       this.addParagraph(table.caption)
     }
 
-    const colCount = table.headers.length
+    const headers = table.headers.length > 0
+      ? table.headers
+      : table.rows[0]?.map((_, index) => `Column ${index + 1}`) ?? []
+    if (headers.length === 0) {
+      return this
+    }
+
+    const colCount = headers.length
     const rowCount = table.rows.length + 1
     const cellWidth = Math.round(CONTENT_WIDTH / colCount)
     const horzsize = cellWidth - CELL_MARGIN_LR
@@ -222,7 +229,7 @@ class HwpxDocumentBuilder {
       )
     }
 
-    const headerRow = `<hp:tr>${table.headers.map((h, ci) => makeCell(h, ci, 0, true)).join('')}</hp:tr>`
+    const headerRow = `<hp:tr>${headers.map((h, ci) => makeCell(h, ci, 0, true)).join('')}</hp:tr>`
     const dataRows = table.rows.map((row, ri) =>
       `<hp:tr>${row.map((cell, ci) => makeCell(cell, ci, ri + 1, false)).join('')}</hp:tr>`,
     ).join('')

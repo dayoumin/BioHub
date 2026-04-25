@@ -11,10 +11,7 @@ import type {
   DocumentSection,
 } from '@/lib/research/document-blueprint-types'
 import { resolveDocumentInlineCitations } from '@/lib/research/citation-csl'
-import {
-  buildRenderableDocument,
-  hasRenderableSectionSupportContent,
-} from '@/lib/research/document-support-renderer'
+import { buildRenderableDocument } from '@/lib/research/document-support-renderer'
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
 import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
 import {
@@ -58,8 +55,7 @@ async function getDocx(): Promise<typeof import('docx')> {
 
 /** 섹션에 렌더링할 콘텐츠가 있는지 판정 (DOCX/HTML 공용) */
 export function hasVisibleContent(section: DocumentSection): boolean {
-  if (section.content) return true
-  if (hasRenderableSectionSupportContent(section)) return true
+  if (section.content.trim().length > 0) return true
   if (section.tables && section.tables.length > 0) return true
   if (section.figures && section.figures.length > 0) return true
   return false
@@ -176,6 +172,17 @@ function buildAcademicTable(
   docx: DocxModule,
 ): (ParagraphInstance | TableInstance)[] {
   const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType, BorderStyle, AlignmentType } = docx
+  const headers = table.headers.length > 0
+    ? table.headers
+    : table.rows[0]?.map((_, index) => `Column ${index + 1}`) ?? []
+  if (headers.length === 0) {
+    return table.caption
+      ? [new Paragraph({
+          children: [new TextRun({ text: table.caption, font: FONT, size: SIZE_BODY, italics: true })],
+          spacing: { before: 240, after: 80, line: LINE_SPACING },
+        })]
+      : []
+  }
 
   const elements: (ParagraphInstance | TableInstance)[] = []
 
@@ -193,7 +200,7 @@ function buildAcademicTable(
   // 헤더 행
   const headerRow = new TableRow({
     tableHeader: true,
-    children: table.headers.map(h =>
+    children: headers.map(h =>
       new TableCell({
         borders: {
           top: solidBorder,
