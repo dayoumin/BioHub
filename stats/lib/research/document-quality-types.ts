@@ -147,6 +147,10 @@ function buildSectionHash(section: DocumentSection): string {
   }))
 }
 
+export function buildDocumentSectionQualityHash(section: DocumentSection): string {
+  return buildSectionHash(section)
+}
+
 function recordsEqual(
   left: Record<string, string>,
   right: Record<string, string>,

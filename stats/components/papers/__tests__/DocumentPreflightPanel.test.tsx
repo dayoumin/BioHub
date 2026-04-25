@@ -332,7 +332,56 @@ describe('DocumentPreflightPanel', () => {
     expect(screen.getByText('검토 필요')).toBeInTheDocument()
     expect(screen.getByText('표 1에 원본 분석 ID를 연결하세요.')).toBeInTheDocument()
     expect(screen.getByText('사용자 확인 필요')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /적용/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '선택 적용' })).not.toBeInTheDocument()
+  })
+
+  it('calls suggestion apply for auto-applicable fresh findings', async () => {
+    const user = userEvent.setup()
+    const onApplySuggestion = vi.fn()
+
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            suggestion: {
+              replacementText: '적용 문장',
+              canAutoApply: true,
+              requiresUserConfirmation: false,
+            },
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+        onApplySuggestion={onApplySuggestion}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '선택 적용' }))
+
+    expect(onApplySuggestion).toHaveBeenCalledWith('finding-1')
+  })
+
+  it('disables suggestion apply when the report is stale', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            suggestion: {
+              replacementText: '적용 문장',
+              canAutoApply: true,
+              requiresUserConfirmation: false,
+            },
+          }),
+        ])}
+        freshness="stale"
+        pending={false}
+        onRun={vi.fn()}
+        onApplySuggestion={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: '선택 적용' })).not.toBeInTheDocument()
   })
 
   it('hides suggestion preview for ignored findings and absent suggestions', () => {

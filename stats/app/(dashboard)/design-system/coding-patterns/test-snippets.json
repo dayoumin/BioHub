@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.18",
+  "version": "1.44.19",
   "lastUpdated": "2026-04-25",
   "sources": [
     "stats/__tests__/",
@@ -1418,6 +1418,20 @@
             "read-only",
             "storage round-trip",
             "clone"
+          ]
+        },
+        {
+          "name": "문서 Preflight suggestion apply 가드 테스트",
+          "purpose": "선택 적용 전에 section hash, offset, canAutoApply 조건을 순수 helper로 검증해 stale finding이 본문을 오염시키지 않게 고정",
+          "code": "it('matching sectionHash와 valid offset일 때만 suggestion을 적용한다', () => {\n  const section = makeSection({ content: 'The p value is 0.04.' });\n  const finding = makeFinding(section, {\n    targetRange: { startOffset: 15, endOffset: 19, sectionHash: buildDocumentSectionQualityHash(section) },\n    suggestion: { replacementText: '0.038', canAutoApply: true, requiresUserConfirmation: false },\n  });\n\n  const result = applyDocumentFindingSuggestionToSection(section, finding);\n  expect(result).toEqual(expect.objectContaining({ ok: true, content: 'The p value is 0.038.' }));\n});\n\nit('NaN 또는 fractional offset은 invalid-offsets로 차단한다', () => {\n  const section = makeSection();\n  expect(applyDocumentFindingSuggestionToSection(section, makeFinding(section, {\n    targetRange: { startOffset: Number.NaN, endOffset: 10, sectionHash: buildDocumentSectionQualityHash(section) },\n  }))).toEqual({ ok: false, reason: 'invalid-offsets' });\n});",
+          "keywords": [
+            "preflight suggestion apply",
+            "sectionHash",
+            "targetRange",
+            "offset guard",
+            "NaN",
+            "plateValue",
+            "stale finding"
           ]
         }
       ]

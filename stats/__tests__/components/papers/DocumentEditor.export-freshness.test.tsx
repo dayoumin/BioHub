@@ -12,6 +12,7 @@ import type { AssemblerDataSources } from '@/lib/research/document-assembler'
 import type { CitationRecord } from '@/lib/research/citation-types'
 import {
   buildDocumentQualitySnapshot,
+  buildDocumentSectionQualityHash,
   deriveDocumentQualitySummary,
   type DocumentQualityReport,
   type DocumentReviewFinding,
@@ -854,6 +855,81 @@ describe('DocumentEditor export freshness', () => {
     await screen.findByText('table-1')
 
     expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument()
+  })
+
+  it('applies an auto-applicable preflight suggestion to the active section content', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('The p value is 0.04.')
+    const section = document.sections[0]
+    if (!section) {
+      throw new Error('missing section fixture')
+    }
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'P-value suggestion',
+          sectionId: 'results',
+          targetRange: {
+            startOffset: 15,
+            endOffset: 19,
+            sectionHash: buildDocumentSectionQualityHash(section),
+          },
+          suggestion: {
+            replacementText: '0.038',
+            canAutoApply: true,
+            requiresUserConfirmation: false,
+          },
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('P-value suggestion')
+    await user.click(screen.getByRole('button', { name: '선택 적용' }))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1600))
+    })
+
+    expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+    const savedDocument = mockSaveDocumentBlueprint.mock.calls.at(-1)?.[0] as DocumentBlueprint | undefined
+    expect(savedDocument?.sections[0]?.content).toBe('The p value is 0.038.')
+    expect(savedDocument?.sections[0]?.plateValue).toBeUndefined()
+    expect(mockSetValue).toHaveBeenCalled()
+  })
+
+  it('does not apply a preflight suggestion when the section hash is stale', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('The p value is 0.04.')
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'Stale suggestion',
+          sectionId: 'results',
+          targetRange: {
+            startOffset: 15,
+            endOffset: 19,
+            sectionHash: 'stale-hash',
+          },
+          suggestion: {
+            replacementText: '0.038',
+            canAutoApply: true,
+            requiresUserConfirmation: false,
+          },
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('Stale suggestion')
+    await user.click(screen.getByRole('button', { name: '선택 적용' }))
+
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).not.toHaveBeenCalled()
+    })
   })
 
   it('shows document and section drafting badges when writing state exists', async () => {

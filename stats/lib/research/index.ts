@@ -58,6 +58,7 @@ export * from './document-llm-writer-engine';
 /** 문서 품질 점검 report/finding 타입 + sidecar 저장 */
 export * from './document-quality-types';
 export * from './document-quality-storage';
+export * from './document-quality-suggestion-apply';
 
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';

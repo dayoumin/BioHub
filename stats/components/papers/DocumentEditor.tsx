@@ -111,6 +111,7 @@ import {
   type DocumentQualityReport,
   type DocumentReviewFindingStatus,
 } from '@/lib/research/document-quality-types'
+import { applyDocumentFindingSuggestionToSection } from '@/lib/research/document-quality-suggestion-apply'
 import {
   DOCUMENT_QUALITY_REPORTS_CHANGED_EVENT,
   getLatestDocumentQualityReport,
@@ -1724,6 +1725,69 @@ export default function DocumentEditor({
       toast.error('점검 항목 상태를 저장하지 못했습니다.')
     }
   }, [preflightFreshness, preflightPending, qualityReport])
+  const handleApplyPreflightSuggestion = useCallback((findingId: string): void => {
+    if (!doc || !qualityReport || preflightPending || documentConflictRef.current || preflightFreshness !== 'fresh') {
+      return
+    }
+
+    const finding = qualityReport.findings.find((item) => item.id === findingId)
+    if (!finding || !finding.sectionId) {
+      toast.info('적용할 섹션을 찾을 수 없습니다.')
+      return
+    }
+
+    if (finding.suggestion?.requiresUserConfirmation) {
+      const confirmed = window.confirm('이 제안을 현재 문서에 적용할까요? 적용 후 기존 점검 결과는 오래된 결과가 됩니다.')
+      if (!confirmed) {
+        return
+      }
+    }
+
+    setDoc((prev) => {
+      if (!prev) {
+        return prev
+      }
+
+      const section = prev.sections.find((item) => item.id === finding.sectionId)
+      const result = applyDocumentFindingSuggestionToSection(section, finding)
+      if (!result.ok) {
+        toast.error('제안을 적용할 수 없습니다. 문서를 다시 점검해 주세요.')
+        return prev
+      }
+
+      const updated: DocumentBlueprint = {
+        ...prev,
+        sections: prev.sections.map((item) => (
+          item.id === result.section.id ? result.section : item
+        )),
+        updatedAt: new Date().toISOString(),
+      }
+
+      scheduleSave(updated)
+      setNeedsReassemble(false)
+      if (activeSectionId === result.section.id) {
+        try {
+          const nodes = editor.api.markdown.deserialize(result.content)
+          isApplyingRemoteValueRef.current = true
+          editor.tf.setValue(nodes)
+          loadedSectionRef.current = result.section.id
+          loadedSectionSnapshotRef.current = buildSectionEditorSnapshot(result.section)
+          if (remoteValueGuardTimerRef.current) {
+            clearTimeout(remoteValueGuardTimerRef.current)
+          }
+          remoteValueGuardTimerRef.current = setTimeout(() => {
+            isApplyingRemoteValueRef.current = false
+            remoteValueGuardTimerRef.current = null
+          }, 0)
+        } catch {
+          loadedSectionRef.current = null
+          loadedSectionSnapshotRef.current = null
+        }
+      }
+      toast.success('제안을 적용했습니다. 문서를 다시 점검해 주세요.')
+      return updated
+    })
+  }, [activeSectionId, doc, editor, preflightFreshness, preflightPending, qualityReport, scheduleSave])
   const activeSectionAttachedCitationRoleCounts = useMemo(() => {
     const roleMap = new Map<string, Map<DocumentSectionSupportRole, number>>()
     for (const binding of activeSectionSupportBindings) {
@@ -2498,6 +2562,7 @@ export default function DocumentEditor({
               canOpenEvidenceSource={canOpenPreflightEvidenceSource}
               onOpenEvidenceSource={handleOpenPreflightEvidenceSource}
               onUpdateFindingStatus={handleUpdatePreflightFindingStatus}
+              onApplySuggestion={handleApplyPreflightSuggestion}
             />
             <MaterialPalette
               projectId={doc.projectId}

@@ -24,6 +24,7 @@ interface DocumentPreflightPanelProps {
   canOpenEvidenceSource?: (sourceKind: string, sourceId: string) => boolean
   onOpenEvidenceSource?: (sourceKind: string, sourceId: string) => void
   onUpdateFindingStatus?: (findingId: string, status: DocumentReviewFindingStatus) => void
+  onApplySuggestion?: (findingId: string) => void
 }
 
 const FRESHNESS_LABELS: Record<DocumentQualityFreshness, string> = {
@@ -131,6 +132,7 @@ export default function DocumentPreflightPanel({
   canOpenEvidenceSource,
   onOpenEvidenceSource,
   onUpdateFindingStatus,
+  onApplySuggestion,
 }: DocumentPreflightPanelProps): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<FindingStatusFilter>('all')
   const findings = report?.findings ?? []
@@ -373,6 +375,20 @@ export default function DocumentPreflightPanel({
                   </p>
                   {finding.suggestion.requiresUserConfirmation && (
                     <p className="mt-1 text-[10px] text-muted-foreground">사용자 확인 필요</p>
+                  )}
+                  {onApplySuggestion && finding.suggestion.canAutoApply && freshness === 'fresh' && (
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={actionsDisabled || disabled || pending}
+                        onClick={() => onApplySuggestion(finding.id)}
+                        className="h-7 rounded-full bg-surface px-2.5 text-[11px]"
+                      >
+                        선택 적용
+                      </Button>
+                    </div>
                   )}
                 </div>
               )}
