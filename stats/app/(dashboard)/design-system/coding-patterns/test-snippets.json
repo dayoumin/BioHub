@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.16",
+  "version": "1.44.17",
   "lastUpdated": "2026-04-25",
   "sources": [
     "stats/__tests__/",
@@ -1392,6 +1392,19 @@
             "finding status",
             "waitFor",
             "userEvent"
+          ]
+        },
+        {
+          "name": "문서 Preflight evidence 원본 이동 테스트",
+          "purpose": "점검 evidence의 sourceKind/sourceId를 안전하게 해석해 지원되는 원본만 이동 버튼을 노출하고, unsupported source는 숨기는지 검증",
+          "code": "it('analysis evidence 원본을 연다', async () => {\n  const user = userEvent.setup();\n  mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {\n    findings: [makeReviewFinding({ evidence: [{ label: 'analysis evidence', sourceKind: 'analysis', sourceId: 'analysis-1' }] })],\n  }));\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('analysis evidence');\n  await user.click(screen.getByRole('button', { name: '원본' }));\n\n  expect(mockRouterPush).toHaveBeenCalledWith('/?history=analysis-1');\n});\n\nit('document-artifact evidence에는 원본 버튼을 숨긴다', async () => {\n  mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {\n    findings: [makeReviewFinding({ evidence: [{ label: 'table-1', sourceKind: 'document-artifact', sourceId: 'table-1' }] })],\n  }));\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('table-1');\n  expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument();\n});",
+          "keywords": [
+            "DocumentEditor",
+            "preflight evidence",
+            "source navigation",
+            "router.push",
+            "sourceKind guard",
+            "unsupported source"
           ]
         }
       ]

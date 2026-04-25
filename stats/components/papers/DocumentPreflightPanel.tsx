@@ -1,11 +1,13 @@
 'use client'
 
 import { AlertTriangle, CheckCircle2, FileSearch, Loader2, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type {
   DocumentQualityFreshness,
   DocumentQualityReport,
+  DocumentReviewEvidence,
   DocumentReviewFindingStatus,
   DocumentReviewFindingSeverity,
 } from '@/lib/research/document-quality-types'
@@ -19,6 +21,8 @@ interface DocumentPreflightPanelProps {
   actionsDisabled?: boolean
   onRun: () => void
   onSelectSection?: (sectionId: string) => void
+  canOpenEvidenceSource?: (sourceKind: string, sourceId: string) => boolean
+  onOpenEvidenceSource?: (sourceKind: string, sourceId: string) => void
   onUpdateFindingStatus?: (findingId: string, status: DocumentReviewFindingStatus) => void
 }
 
@@ -53,6 +57,32 @@ const FINDING_STATUS_LABELS: Record<DocumentReviewFindingStatus, string> = {
   ignored: '무시됨',
 }
 
+type FindingStatusFilter = 'all' | DocumentReviewFindingStatus
+
+const FINDING_FILTERS: Array<{ value: FindingStatusFilter; label: string }> = [
+  { value: 'all', label: '전체' },
+  { value: 'open', label: '열림' },
+  { value: 'ignored', label: '무시됨' },
+  { value: 'resolved', label: '해결됨' },
+]
+
+type EvidenceComparisonStatus = 'match' | 'mismatch' | 'incomplete'
+
+const COMPARISON_META: Record<EvidenceComparisonStatus, { label: string; className: string }> = {
+  match: {
+    label: '일치',
+    className: 'bg-secondary-container text-secondary',
+  },
+  mismatch: {
+    label: '불일치',
+    className: 'bg-destructive/10 text-destructive',
+  },
+  incomplete: {
+    label: '확인 필요',
+    className: 'bg-surface text-on-surface-variant',
+  },
+}
+
 function getPanelStatusLabel(report: DocumentQualityReport | null, freshness: DocumentQualityFreshness): string {
   if (freshness !== 'fresh') {
     return FRESHNESS_LABELS[freshness]
@@ -66,6 +96,30 @@ function getPanelStatusLabel(report: DocumentQualityReport | null, freshness: Do
   return '주의'
 }
 
+function getEvidenceSourceLabel(evidence: DocumentReviewEvidence): string | null {
+  if (!evidence.sourceKind && !evidence.sourceId) {
+    return null
+  }
+
+  return [evidence.sourceKind, evidence.sourceId].filter(Boolean).join(':')
+}
+
+function normalizeEvidenceValue(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase()
+}
+
+function getEvidenceComparisonStatus(evidence: DocumentReviewEvidence): EvidenceComparisonStatus | null {
+  if (!evidence.observedValue && !evidence.expectedValue) {
+    return null
+  }
+  if (!evidence.observedValue || !evidence.expectedValue) {
+    return 'incomplete'
+  }
+  return normalizeEvidenceValue(evidence.observedValue) === normalizeEvidenceValue(evidence.expectedValue)
+    ? 'match'
+    : 'mismatch'
+}
+
 export default function DocumentPreflightPanel({
   report,
   freshness,
@@ -74,11 +128,18 @@ export default function DocumentPreflightPanel({
   actionsDisabled = false,
   onRun,
   onSelectSection,
+  canOpenEvidenceSource,
+  onOpenEvidenceSource,
   onUpdateFindingStatus,
 }: DocumentPreflightPanelProps): React.ReactElement {
+  const [statusFilter, setStatusFilter] = useState<FindingStatusFilter>('all')
   const findings = report?.findings ?? []
+  const visibleFindings = statusFilter === 'all'
+    ? findings
+    : findings.filter((finding) => finding.status === statusFilter)
   const statusLabel = getPanelStatusLabel(report, freshness)
   const hasFindings = findings.length > 0
+  const hasVisibleFindings = visibleFindings.length > 0
 
   return (
     <section className="rounded-[24px] bg-surface px-4 py-4">
@@ -130,6 +191,29 @@ export default function DocumentPreflightPanel({
         {pending ? '점검 중...' : freshness === 'missing' ? '점검 실행' : '다시 점검'}
       </Button>
 
+      {hasFindings && (
+        <div className="mt-3 flex flex-wrap gap-1">
+          {FINDING_FILTERS.map((filter) => (
+            <Button
+              key={filter.value}
+              type="button"
+              variant={statusFilter === filter.value ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter(filter.value)}
+              aria-pressed={statusFilter === filter.value}
+              className={cn(
+                'h-7 rounded-full px-2.5 text-[11px]',
+                statusFilter === filter.value
+                  ? 'bg-surface-container-high text-on-surface'
+                  : 'text-on-surface-variant',
+              )}
+            >
+              {filter.label}
+            </Button>
+          ))}
+        </div>
+      )}
+
       <div className="mt-4 max-h-[280px] space-y-2 overflow-y-auto pr-1">
         {!hasFindings && freshness === 'fresh' && (
           <div className="flex items-center gap-2 rounded-2xl bg-surface-container px-3 py-3 text-xs text-on-surface-variant">
@@ -143,9 +227,18 @@ export default function DocumentPreflightPanel({
             {freshness === 'missing' ? '점검 기록 없음' : '다시 점검 필요'}
           </div>
         )}
-        {findings.map((finding) => {
+        {hasFindings && !hasVisibleFindings && (
+          <div className="rounded-2xl bg-surface-container px-3 py-3 text-xs text-on-surface-variant">
+            해당 상태의 항목 없음
+          </div>
+        )}
+        {visibleFindings.map((finding) => {
           const severityMeta = SEVERITY_META[finding.severity]
           const canSelectSection = Boolean(finding.sectionId && onSelectSection)
+          const evidenceItems = finding.evidence ?? []
+          const hasEvidence = evidenceItems.length > 0
+          const visibleEvidenceItems = evidenceItems.slice(0, 2)
+          const hiddenEvidenceCount = evidenceItems.length - visibleEvidenceItems.length
           return (
             <div
               key={finding.id}
@@ -189,6 +282,74 @@ export default function DocumentPreflightPanel({
                 <p className="mt-2 text-xs font-medium text-on-surface">{finding.title}</p>
                 <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">{finding.message}</p>
               </button>
+              {hasEvidence && (
+                <div className="mt-2 space-y-1.5 rounded-xl bg-surface-container-high px-2 py-2">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">근거</p>
+                  {visibleEvidenceItems.map((evidence, evidenceIndex) => {
+                    const sourceLabel = getEvidenceSourceLabel(evidence)
+                    const evidenceSourceKind = evidence.sourceKind?.trim()
+                    const evidenceSourceId = evidence.sourceId?.trim()
+                    const comparisonStatus = getEvidenceComparisonStatus(evidence)
+                    const comparisonMeta = comparisonStatus ? COMPARISON_META[comparisonStatus] : null
+                    const canOpenSource = Boolean(
+                      evidenceSourceKind
+                      && evidenceSourceId
+                      && onOpenEvidenceSource
+                      && (canOpenEvidenceSource?.(evidenceSourceKind, evidenceSourceId) ?? true),
+                    )
+                    return (
+                      <div key={`${finding.id}-evidence-${evidenceIndex}`} className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-[11px] font-medium text-on-surface">{evidence.label}</p>
+                          {sourceLabel && (
+                            <span className="flex min-w-0 shrink-0 items-center gap-1">
+                              <span className="max-w-28 truncate rounded-full bg-surface px-2 py-0.5 text-[10px] text-muted-foreground">
+                                {sourceLabel}
+                              </span>
+                              {canOpenSource && evidenceSourceKind && evidenceSourceId && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onOpenEvidenceSource?.(evidenceSourceKind, evidenceSourceId)}
+                                  className="h-5 rounded-full px-1.5 text-[10px] text-on-surface-variant"
+                                >
+                                  원본
+                                </Button>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        {comparisonMeta && (
+                          <div className="rounded-lg bg-surface px-2 py-1.5">
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                                비교
+                              </span>
+                              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', comparisonMeta.className)}>
+                                {comparisonMeta.label}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2 gap-y-1 text-[10px]">
+                              <span className="text-muted-foreground">관찰</span>
+                              <span className="truncate text-on-surface-variant">
+                                {evidence.observedValue ?? '-'}
+                              </span>
+                              <span className="text-muted-foreground">기대</span>
+                              <span className="truncate text-on-surface-variant">
+                                {evidence.expectedValue ?? '-'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {hiddenEvidenceCount > 0 && (
+                    <p className="text-[10px] text-muted-foreground">외 {hiddenEvidenceCount}개</p>
+                  )}
+                </div>
+              )}
               {onUpdateFindingStatus && finding.status !== 'resolved' && (
                 <div className="mt-2 flex justify-end">
                   <Button

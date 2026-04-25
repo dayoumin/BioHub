@@ -205,7 +205,7 @@ describe('DocumentPreflightPanel', () => {
       />,
     )
 
-    expect(screen.getByText('무시됨')).toBeInTheDocument()
+    expect(screen.getAllByText('무시됨').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('사용자 예외')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '다시 열기' }))
@@ -232,6 +232,277 @@ describe('DocumentPreflightPanel', () => {
 
     await user.click(ignoreButton)
     expect(onUpdateFindingStatus).not.toHaveBeenCalled()
+  })
+
+  it('renders compact finding evidence details without selecting the section', async () => {
+    const user = userEvent.setup()
+    const onSelectSection = vi.fn()
+    const onOpenEvidenceSource = vi.fn()
+
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            title: 'Table source check',
+            evidence: [
+              {
+                label: 'table-1',
+                sourceKind: 'analysis',
+                sourceId: 'analysis-1',
+                observedValue: 'missing',
+                expectedValue: 'source id',
+              },
+            ],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+        onSelectSection={onSelectSection}
+        onOpenEvidenceSource={onOpenEvidenceSource}
+      />,
+    )
+
+    expect(screen.getByText('근거')).toBeInTheDocument()
+    expect(screen.getByText('table-1')).toBeInTheDocument()
+    expect(screen.getByText('analysis:analysis-1')).toBeInTheDocument()
+    expect(screen.getByText('비교')).toBeInTheDocument()
+    expect(screen.getByText('불일치')).toBeInTheDocument()
+    expect(screen.getByText('관찰')).toBeInTheDocument()
+    expect(screen.getByText('missing')).toBeInTheDocument()
+    expect(screen.getByText('기대')).toBeInTheDocument()
+    expect(screen.getByText('source id')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Table source check 섹션으로 이동' }))
+    expect(onSelectSection).toHaveBeenCalledWith('results')
+
+    await user.click(screen.getByRole('button', { name: '원본' }))
+    expect(onOpenEvidenceSource).toHaveBeenCalledWith('analysis', 'analysis-1')
+  })
+
+  it('marks evidence comparison as matched or incomplete', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            evidence: [
+              {
+                label: 'matched evidence',
+                observedValue: ' p = 0.040 ',
+                expectedValue: 'p = 0.040',
+              },
+              {
+                label: 'incomplete evidence',
+                observedValue: 'empty caption',
+              },
+            ],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('matched evidence')).toBeInTheDocument()
+    expect(screen.getByText('일치')).toBeInTheDocument()
+    expect(screen.getByText('incomplete evidence')).toBeInTheDocument()
+    expect(screen.getByText('확인 필요')).toBeInTheDocument()
+  })
+
+  it('shows evidence source navigation only when source fields and callback are available', () => {
+    const { rerender } = render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            evidence: [{ label: 'analysis evidence', sourceKind: 'analysis', sourceId: 'analysis-1' }],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument()
+
+    rerender(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            evidence: [{ label: 'analysis evidence', sourceKind: 'analysis', sourceId: 'analysis-1' }],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+        canOpenEvidenceSource={() => false}
+        onOpenEvidenceSource={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument()
+
+    rerender(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            evidence: [
+              { label: 'missing source kind', sourceId: 'analysis-1' },
+              { label: 'missing source id', sourceKind: 'analysis' },
+            ],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+        onOpenEvidenceSource={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument()
+  })
+
+  it('does not select the section when opening an evidence source', async () => {
+    const user = userEvent.setup()
+    const onSelectSection = vi.fn()
+    const onOpenEvidenceSource = vi.fn()
+
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            title: 'Source finding',
+            evidence: [{ label: 'analysis evidence', sourceKind: 'analysis', sourceId: 'analysis-1' }],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+        onSelectSection={onSelectSection}
+        onOpenEvidenceSource={onOpenEvidenceSource}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '원본' }))
+
+    expect(onOpenEvidenceSource).toHaveBeenCalledWith('analysis', 'analysis-1')
+    expect(onSelectSection).not.toHaveBeenCalled()
+  })
+
+  it('renders label-only evidence without empty separators and caps visible rows', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            evidence: [
+              { label: 'first evidence' },
+              { label: 'second evidence' },
+              { label: 'third evidence' },
+            ],
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('first evidence')).toBeInTheDocument()
+    expect(screen.getByText('second evidence')).toBeInTheDocument()
+    expect(screen.queryByText('third evidence')).not.toBeInTheDocument()
+    expect(screen.getByText('외 1개')).toBeInTheDocument()
+    expect(screen.queryByText(':')).not.toBeInTheDocument()
+  })
+
+  it('keeps evidence visible for stale ignored findings while disabling status actions', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            status: 'ignored',
+            evidence: [{ label: 'stale evidence' }],
+          }),
+        ])}
+        freshness="stale"
+        pending={false}
+        onRun={vi.fn()}
+        onUpdateFindingStatus={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('stale evidence')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '다시 열기' })).toBeDisabled()
+  })
+
+  it('does not show an evidence block for findings without evidence', () => {
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([makeFinding()])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('근거')).not.toBeInTheDocument()
+  })
+
+  it('filters findings by status without changing report summary counts', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([
+          makeFinding({
+            id: 'open-finding',
+            title: 'Open finding',
+            status: 'open',
+          }),
+          makeFinding({
+            id: 'ignored-finding',
+            title: 'Ignored finding',
+            status: 'ignored',
+          }),
+        ])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Open finding')).toBeInTheDocument()
+    expect(screen.getByText('Ignored finding')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '열림' }))
+
+    expect(screen.getByText('Open finding')).toBeInTheDocument()
+    expect(screen.queryByText('Ignored finding')).not.toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '무시됨' }))
+
+    expect(screen.queryByText('Open finding')).not.toBeInTheDocument()
+    expect(screen.getByText('Ignored finding')).toBeInTheDocument()
+  })
+
+  it('shows an empty filtered state when no finding matches the selected status', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <DocumentPreflightPanel
+        report={makeReport([makeFinding({ status: 'open' })])}
+        freshness="fresh"
+        pending={false}
+        onRun={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '해결됨' }))
+
+    expect(screen.getByText('해당 상태의 항목 없음')).toBeInTheDocument()
+    expect(screen.queryByText('표 caption 누락')).not.toBeInTheDocument()
   })
 
   it('disables the run button while pending or externally disabled', () => {

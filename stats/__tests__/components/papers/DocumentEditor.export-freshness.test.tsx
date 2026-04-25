@@ -685,7 +685,7 @@ describe('DocumentEditor export freshness', () => {
     await waitFor(() => {
       expect(mockUpdateDocumentQualityFindingStatus).toHaveBeenCalledWith(report.id, 'finding-1', 'ignored')
     })
-    expect(screen.getByText('무시됨')).toBeInTheDocument()
+    expect(screen.getAllByText('무시됨').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('사용자가 이번 점검에서 예외로 표시했습니다.')).toBeInTheDocument()
     expect(screen.getByText('통과')).toBeInTheDocument()
   })
@@ -713,6 +713,147 @@ describe('DocumentEditor export freshness', () => {
     await user.click(ignoreButton)
 
     expect(mockUpdateDocumentQualityFindingStatus).not.toHaveBeenCalled()
+  })
+
+  it('opens a navigable preflight evidence source', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('결과 내용')
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'Analysis evidence finding',
+          evidence: [
+            {
+              label: 'analysis evidence',
+              sourceKind: 'analysis',
+              sourceId: 'analysis-1',
+            },
+          ],
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('analysis evidence')
+    await user.click(screen.getByRole('button', { name: '원본' }))
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/?history=analysis-1')
+  })
+
+  it('opens a figure preflight evidence source', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('결과 내용')
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'Figure evidence finding',
+          evidence: [
+            {
+              label: 'figure evidence',
+              sourceKind: 'figure',
+              sourceId: 'figure-1',
+            },
+          ],
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('figure evidence')
+    await user.click(screen.getByRole('button', { name: '원본' }))
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/graph-studio?project=figure-1')
+  })
+
+  it('opens supplementary preflight evidence through Bio-Tools history fallback', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('결과 내용')
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockListProjectEntityRefs.mockReturnValue([])
+    mockLoadBioToolHistory.mockReturnValue([
+      { id: 'bio-1', toolId: 'fst', toolNameEn: 'Fst', toolNameKo: 'Fst', csvFileName: 'fst.csv', columnConfig: {}, results: {}, createdAt: Date.now() },
+    ])
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'Bio evidence finding',
+          evidence: [
+            {
+              label: 'bio evidence',
+              sourceKind: 'supplementary',
+              sourceId: 'bio-1',
+            },
+          ],
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('bio evidence')
+    await user.click(screen.getByRole('button', { name: '원본' }))
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/bio-tools?tool=fst&history=bio-1')
+  })
+
+  it('opens supplementary preflight evidence through genetics history fallback', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('결과 내용')
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockListProjectEntityRefs.mockReturnValue([])
+    mockLoadGeneticsHistory.mockReturnValue([
+      { id: 'protein-1', type: 'protein', analysisName: '단백질 해석', sequenceLength: 146, molecularWeight: 16000, isoelectricPoint: 6.8, isStable: true, createdAt: Date.now() },
+    ])
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'Protein evidence finding',
+          evidence: [
+            {
+              label: 'protein evidence',
+              sourceKind: 'supplementary',
+              sourceId: 'protein-1',
+            },
+          ],
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('protein evidence')
+    await user.click(screen.getByRole('button', { name: '원본' }))
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/genetics/protein?history=protein-1')
+  })
+
+  it('does not render source navigation for unsupported preflight evidence kinds', async () => {
+    const document = makeDocument('결과 내용')
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          title: 'Artifact evidence finding',
+          evidence: [
+            {
+              label: 'table-1',
+              sourceKind: 'document-artifact',
+              sourceId: 'table-1',
+            },
+          ],
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('table-1')
+
+    expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument()
   })
 
   it('shows document and section drafting badges when writing state exists', async () => {

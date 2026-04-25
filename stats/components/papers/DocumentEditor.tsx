@@ -77,6 +77,7 @@ import {
 } from '@/lib/research/source-navigation'
 import type { CitationRecord } from '@/lib/research/citation-types'
 import { citationKey } from '@/lib/research/citation-types'
+import type { ProjectEntityKind } from '@/lib/types/research'
 import {
   deleteCitation,
   listCitationsByProject,
@@ -1601,6 +1602,110 @@ export default function DocumentEditor({
     }
     setActiveSectionId(sectionId)
   }, [doc?.sections])
+  const resolvePreflightEvidenceSourceHref = useCallback((sourceKind: string, sourceId: string): string | undefined => {
+    const trimmedSourceId = sourceId.trim()
+    const trimmedSourceKind = sourceKind.trim()
+    if (!trimmedSourceId) {
+      return undefined
+    }
+
+    if (trimmedSourceKind === 'analysis') {
+      return buildAnalysisHistoryUrl(trimmedSourceId)
+    }
+
+    if (trimmedSourceKind === 'figure') {
+      return buildGraphStudioProjectUrl(trimmedSourceId)
+    }
+
+    const supportedEntityKinds = new Set<ProjectEntityKind>([
+      'analysis',
+      'figure',
+      'draft',
+      'bio-tool-result',
+      'blast-result',
+      'seq-stats-result',
+      'similarity-result',
+      'phylogeny-result',
+      'bold-result',
+      'translation-result',
+      'protein-result',
+    ])
+
+    let entityKind = supportedEntityKinds.has(trimmedSourceKind as ProjectEntityKind)
+      ? trimmedSourceKind as ProjectEntityKind
+      : undefined
+
+    if (trimmedSourceKind === 'supplementary') {
+      const entityRef = doc
+        ? listProjectEntityRefs(doc.projectId).find((ref) => ref.entityId === trimmedSourceId)
+        : undefined
+      if (entityRef && supportedEntityKinds.has(entityRef.entityKind)) {
+        entityKind = entityRef.entityKind
+      } else {
+        const bioToolEntry = loadBioToolHistory().find((entry) => entry.id === trimmedSourceId)
+        if (bioToolEntry) {
+          entityKind = 'bio-tool-result'
+        } else {
+          const geneticsEntry = [
+            ...loadGeneticsHistory('protein'),
+            ...loadGeneticsHistory('seq-stats'),
+            ...loadGeneticsHistory('similarity'),
+            ...loadGeneticsHistory('phylogeny'),
+            ...loadGeneticsHistory('bold'),
+            ...loadGeneticsHistory('translation'),
+            ...loadAnalysisHistory(),
+          ].find((entry) => entry.id === trimmedSourceId)
+
+          if (geneticsEntry && 'type' in geneticsEntry) {
+            switch (geneticsEntry.type) {
+              case 'seq-stats':
+                entityKind = 'seq-stats-result'
+                break
+              case 'similarity':
+                entityKind = 'similarity-result'
+                break
+              case 'phylogeny':
+                entityKind = 'phylogeny-result'
+                break
+              case 'bold':
+                entityKind = 'bold-result'
+                break
+              case 'translation':
+                entityKind = 'translation-result'
+                break
+              case 'protein':
+                entityKind = 'protein-result'
+                break
+              default:
+                entityKind = 'blast-result'
+                break
+            }
+          }
+        }
+      }
+    }
+
+    if (!entityKind) {
+      return undefined
+    }
+
+    const bioToolEntry = loadBioToolHistory().find((entry) => entry.id === trimmedSourceId)
+    return buildProjectEntityNavigationUrl(entityKind, trimmedSourceId, {
+      bioToolId: bioToolEntry?.toolId,
+    })
+  }, [doc])
+  const canOpenPreflightEvidenceSource = useCallback((sourceKind: string, sourceId: string): boolean => (
+    Boolean(resolvePreflightEvidenceSourceHref(sourceKind, sourceId))
+  ), [resolvePreflightEvidenceSourceHref])
+  const handleOpenPreflightEvidenceSource = useCallback((sourceKind: string, sourceId: string): void => {
+    const href = resolvePreflightEvidenceSourceHref(sourceKind, sourceId)
+    if (!href) {
+      toast.info('이 근거는 바로 열 수 있는 원본 경로가 없습니다.')
+      return
+    }
+
+    router.push(href)
+  }, [resolvePreflightEvidenceSourceHref, router])
   const handleUpdatePreflightFindingStatus = useCallback(async (
     findingId: string,
     status: DocumentReviewFindingStatus,
@@ -2390,6 +2495,8 @@ export default function DocumentEditor({
               actionsDisabled={Boolean(documentConflict)}
               onRun={handleRunPreflight}
               onSelectSection={handleSelectPreflightSection}
+              canOpenEvidenceSource={canOpenPreflightEvidenceSource}
+              onOpenEvidenceSource={handleOpenPreflightEvidenceSource}
               onUpdateFindingStatus={handleUpdatePreflightFindingStatus}
             />
             <MaterialPalette
