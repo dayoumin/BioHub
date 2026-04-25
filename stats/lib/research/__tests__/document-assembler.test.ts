@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { assembleDocument, reassembleDocument } from '../document-assembler'
+import {
+  applyReferencesSectionContent,
+  assembleDocument,
+  reassembleDocument,
+} from '../document-assembler'
 import type { AssemblerDataSources, AssembleOptions } from '../document-assembler'
 import {
   createDocumentSourceRef,
@@ -106,6 +110,38 @@ describe('assembleDocument', () => {
     expect(doc.id).toMatch(/^doc_/)
     expect(doc.createdAt).toBeTruthy()
     expect(doc.updatedAt).toBeTruthy()
+  })
+
+  it('should honor custom section blueprints and persist them in metadata', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [],
+      allHistory: [],
+      allGraphProjects: [],
+    }
+
+    const doc = assembleDocument({
+      ...BASE_OPTIONS,
+      sectionBlueprints: [
+        { id: 'literature-trends', title: '문헌 동향', generatedBy: 'user' },
+        { id: 'methods', title: '연구 방법', generatedBy: 'template' },
+        { id: 'results', title: '결과', generatedBy: 'template' },
+        { id: 'conclusion', title: '결론', generatedBy: 'user' },
+      ],
+    }, sources)
+
+    expect(doc.sections.map((section) => section.id)).toEqual([
+      'literature-trends',
+      'methods',
+      'results',
+      'conclusion',
+    ])
+    expect(doc.sections.map((section) => section.title)).toEqual([
+      '문헌 동향',
+      '연구 방법',
+      '결과',
+      '결론',
+    ])
+    expect(doc.metadata.sectionBlueprints).toHaveLength(4)
   })
 
   it('should merge methods from project analyses', () => {
@@ -749,6 +785,60 @@ describe('reassembleDocument', () => {
     expect(results?.figures?.[0]?.caption).toBe('Updated Box Plot (box)')
   })
 
+  it('preserves section support bindings during reassemble for template sections', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' }),
+      ],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [],
+    }
+
+    const original = assembleDocument(BASE_OPTIONS, sources)
+    const edited = {
+      ...original,
+      sections: original.sections.map((section) => (
+        section.id === 'discussion'
+          ? {
+              ...section,
+              sectionSupportBindings: [{
+                id: 'dsb_discussion_1',
+                sourceKind: 'citation-record' as const,
+                sourceId: 'cit_1',
+                role: 'comparison' as const,
+                summary: '비교 문헌 메모',
+                included: false,
+                origin: 'user' as const,
+              }],
+            }
+          : section
+      )),
+    }
+
+    const reassembled = reassembleDocument(edited, {
+      ...sources,
+      allHistory: [
+        makeHistoryRecord({
+          id: 'hist_1',
+          paperDraft: makePaperDraft({
+            methods: 'Updated methods',
+            results: 'Updated results',
+          }),
+        }),
+      ],
+    })
+
+    expect(reassembled.sections.find((section) => section.id === 'discussion')?.sectionSupportBindings).toEqual([{
+      id: 'dsb_discussion_1',
+      sourceKind: 'citation-record',
+      sourceId: 'cit_1',
+      role: 'comparison',
+      summary: '비교 문헌 메모',
+      included: false,
+      origin: 'user',
+    }])
+  })
+
   it('upgrades legacy supplementary refs to typed refs without duplication during reassemble', () => {
     const sources: AssemblerDataSources = {
       entityRefs: [
@@ -944,6 +1034,43 @@ describe('reassembleDocument', () => {
     expect(results?.sourceRefs.map((ref) => `${ref.kind}:${ref.sourceId}`)).toContain('analysis:manual-analysis-template')
     expect(results?.sourceRefs.map((ref) => `${ref.kind}:${ref.sourceId}`)).toContain('figure:manual-figure-template')
   })
+
+  it('preserves custom section blueprints across reassemble', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [],
+      allHistory: [],
+      allGraphProjects: [],
+    }
+
+    const original = assembleDocument({
+      ...BASE_OPTIONS,
+      metadata: {
+        sectionBlueprints: [
+          { id: 'introduction', title: '서론', generatedBy: 'user' },
+          { id: 'literature-review', title: '문헌 동향', generatedBy: 'user' },
+          { id: 'methods', title: '연구 방법', generatedBy: 'template' },
+          { id: 'results', title: '결과', generatedBy: 'template' },
+          { id: 'discussion', title: '고찰', generatedBy: 'user' },
+          { id: 'conclusion', title: '결론', generatedBy: 'user' },
+          { id: 'references', title: '참고문헌', generatedBy: 'template' },
+        ],
+      },
+    }, sources)
+
+    const reassembled = reassembleDocument(original, sources)
+
+    expect(reassembled.sections.map((section) => section.id)).toEqual([
+      'introduction',
+      'literature-review',
+      'methods',
+      'results',
+      'discussion',
+      'conclusion',
+      'references',
+    ])
+    expect(reassembled.sections[1]?.title).toBe('문헌 동향')
+    expect(reassembled.metadata.sectionBlueprints).toHaveLength(7)
+  })
 })
 
 // ── citations 병합 테스트 ──
@@ -973,7 +1100,7 @@ describe('assembleDocument - citations 병합', () => {
     }
   }
 
-  it('citations가 있으면 References 섹션에 APA 문자열 포함', () => {
+  it('citations가 있어도 사용하지 않으면 References에는 소프트웨어 기본 인용만 표시', () => {
     const citations = [makeCitationRecord()]
     const sources: AssemblerDataSources = {
       entityRefs: [],
@@ -986,9 +1113,87 @@ describe('assembleDocument - citations 병합', () => {
       sources,
     )
     const refsSection = blueprint.sections.find(s => s.id === 'references')
-    expect(refsSection?.content).toContain('Smith A, & Jones B')
-    expect(refsSection?.content).toContain('2021')
-    expect(refsSection?.content).toContain('https://doi.org/10.0000/fr.2021')
+    expect(refsSection?.content).not.toContain('Smith, A. & Jones, B.')
+    expect(refsSection?.content).toContain('BioHub')
+  })
+
+  it('section support binding이 있으면 사용한 citation만 References에 포함한다', () => {
+    const c1 = makeCitationRecord({ id: 'cit_1' })
+    const c2 = makeCitationRecord({ id: 'cit_2' })
+    c2.item = {
+      ...c2.item,
+      title: 'Unused Citation',
+      doi: '10.0000/unused.2021',
+    }
+
+    const document = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      {
+        entityRefs: [],
+        allHistory: [],
+        allGraphProjects: [],
+        citations: [c1, c2],
+      },
+    )
+
+    const updated = applyReferencesSectionContent({
+      ...document,
+      sections: document.sections.map((section) => (
+        section.id === 'discussion'
+          ? {
+              ...section,
+              sectionSupportBindings: [{
+                id: 'dsb_discussion_1',
+                sourceKind: 'citation-record',
+                sourceId: 'cit_1',
+                role: 'comparison',
+                included: true,
+                origin: 'user',
+              }],
+            }
+          : section
+      )),
+    }, [c1, c2])
+
+    const refsSection = updated.sections.find((section) => section.id === 'references')
+    expect(refsSection?.content).toContain('10.0000/fr.2021')
+    expect(refsSection?.content).not.toContain('Unused Citation')
+  })
+
+  it('inline citation markdown만 있어도 사용한 citation을 References에 포함한다', () => {
+    const c1 = makeCitationRecord({ id: 'cit_inline_1' })
+    const c2 = makeCitationRecord({ id: 'cit_inline_2' })
+    c2.item = {
+      ...c2.item,
+      title: 'Unused Citation',
+      doi: '10.0000/unused.2021',
+    }
+
+    const document = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      {
+        entityRefs: [],
+        allHistory: [],
+        allGraphProjects: [],
+        citations: [c1, c2],
+      },
+    )
+
+    const updated = applyReferencesSectionContent({
+      ...document,
+      sections: document.sections.map((section) => (
+        section.id === 'discussion'
+          ? {
+              ...section,
+              content: 'Compared with [(Smith & Jones, 2021)](citation:cit_inline_1).',
+            }
+          : section
+      )),
+    }, [c1, c2])
+
+    const refsSection = updated.sections.find((section) => section.id === 'references')
+    expect(refsSection?.content).toContain('10.0000/fr.2021')
+    expect(refsSection?.content).not.toContain('Unused Citation')
   })
 
   it('citations가 없으면 소프트웨어 기본 인용만 표시', () => {
@@ -1005,6 +1210,50 @@ describe('assembleDocument - citations 병합', () => {
     const refsSection = blueprint.sections.find(s => s.id === 'references')
     expect(refsSection?.content).toContain('BioHub')
     expect(refsSection?.content).toContain('SciPy')
+  })
+
+  it('사용자가 수정한 References 섹션은 binding 변경 후에도 보존한다', () => {
+    const c1 = makeCitationRecord({ id: 'cit_keep_1' })
+    const document = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      {
+        entityRefs: [],
+        allHistory: [],
+        allGraphProjects: [],
+        citations: [c1],
+      },
+    )
+
+    const updated = applyReferencesSectionContent({
+      ...document,
+      sections: document.sections.map((section) => {
+        if (section.id === 'discussion') {
+          return {
+            ...section,
+            sectionSupportBindings: [{
+              id: 'dsb_discussion_keep',
+              sourceKind: 'citation-record',
+              sourceId: 'cit_keep_1',
+              role: 'comparison',
+              included: true,
+              origin: 'user',
+            }],
+          }
+        }
+        if (section.id === 'references') {
+          return {
+            ...section,
+            content: '사용자가 직접 정리한 참고문헌 목록',
+            generatedBy: 'user' as const,
+          }
+        }
+        return section
+      }),
+    }, [c1])
+
+    const refsSection = updated.sections.find((section) => section.id === 'references')
+    expect(refsSection?.content).toBe('사용자가 직접 정리한 참고문헌 목록')
+    expect(refsSection?.generatedBy).toBe('user')
   })
 
   it('citations가 undefined이면 기존 동작과 동일', () => {
@@ -1032,13 +1281,34 @@ describe('assembleDocument - citations 병합', () => {
       allGraphProjects: [],
       citations: [c1, c2],
     }
-    const blueprint = assembleDocument(
+    const blueprint = applyReferencesSectionContent(assembleDocument(
       { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
       sources,
-    )
+    ), [c1, c2])
     const refsSection = blueprint.sections.find(s => s.id === 'references')
     // "1." 은 있고 "2." 은 없어야 함 (중복 제거)
-    expect(refsSection?.content).toContain('1.')
-    expect(refsSection?.content).not.toContain('2.')
+    expect(refsSection?.content).toContain('BioHub')
+    expect(refsSection?.content).not.toContain('1.')
+    const updated = applyReferencesSectionContent({
+      ...blueprint,
+      sections: blueprint.sections.map((section) => (
+        section.id === 'discussion'
+          ? {
+              ...section,
+              sectionSupportBindings: [{
+                id: 'dsb_dedupe',
+                sourceKind: 'citation-record',
+                sourceId: 'cit_1',
+                role: 'comparison',
+                included: true,
+                origin: 'user',
+              }],
+            }
+          : section
+      )),
+    }, [c1, c2])
+    const updatedRefs = updated.sections.find((section) => section.id === 'references')
+    expect(updatedRefs?.content).toContain('1.')
+    expect(updatedRefs?.content).not.toContain('2.')
   })
 })

@@ -11,6 +11,7 @@ interface StartWritingButtonProps {
   disabled?: boolean
   pending?: boolean
   testId?: string
+  title?: string
   variant?: 'default' | 'outline' | 'secondary' | 'ghost'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   className?: string
@@ -19,11 +20,12 @@ interface StartWritingButtonProps {
 
 export default function StartWritingButton({
   label,
-  pendingLabel = '문서 생성 중...',
+  pendingLabel = '문서 준비 중...',
   onClick,
   disabled = false,
   pending = false,
   testId,
+  title,
   variant = 'default',
   size = 'default',
   className,
@@ -39,6 +41,7 @@ export default function StartWritingButton({
       onClick={onClick}
       disabled={disabled || pending}
       data-testid={testId}
+      title={title}
       className={className}
     >
       <CurrentIcon className={`w-4 h-4 ${pending ? 'animate-spin' : ''}`} />

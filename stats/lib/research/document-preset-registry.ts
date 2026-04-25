@@ -5,7 +5,11 @@
  * 구현 계획: Phase 1
  */
 
-import type { DocumentPreset, DocumentSection } from './document-blueprint-types'
+import type {
+  DocumentPreset,
+  DocumentSection,
+  DocumentSectionBlueprintDefinition,
+} from './document-blueprint-types'
 
 // ── 섹션 정의 타입 ──
 
@@ -77,23 +81,79 @@ export const PRESET_REGISTRY: PresetInfo[] = [
 
 // ── 공개 API ──
 
+function buildFallbackSectionId(index: number): string {
+  return `section-${index + 1}`
+}
+
+function normalizeSectionId(input: string, index: number): string {
+  const normalized = input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalized || buildFallbackSectionId(index)
+}
+
+export function createSectionBlueprints(
+  preset: DocumentPreset,
+  language: 'ko' | 'en',
+  customBlueprints?: readonly DocumentSectionBlueprintDefinition[],
+): DocumentSectionBlueprintDefinition[] {
+  if (!customBlueprints || customBlueprints.length === 0) {
+    return PRESET_SECTIONS[preset].map((template) => ({
+      id: template.id,
+      title: template.title[language],
+      editable: template.editable,
+      generatedBy: template.generatedBy,
+    }))
+  }
+
+  const usedIds = new Set<string>()
+
+  return customBlueprints.map((blueprint, index) => {
+    const title = blueprint.title.trim() || `섹션 ${index + 1}`
+    const requestedId = blueprint.id && blueprint.id.trim().length > 0
+      ? blueprint.id.trim()
+      : title
+
+    let id = normalizeSectionId(requestedId, index)
+    let suffix = 2
+    while (usedIds.has(id)) {
+      id = `${normalizeSectionId(requestedId, index)}-${suffix}`
+      suffix += 1
+    }
+    usedIds.add(id)
+
+    return {
+      id,
+      title,
+      editable: blueprint.editable ?? true,
+      generatedBy: blueprint.generatedBy,
+    }
+  })
+}
+
 /**
  * 프리셋과 언어에 따른 빈 섹션 구조 생성
  */
 export function createEmptySections(
   preset: DocumentPreset,
   language: 'ko' | 'en',
+  options?: {
+    sectionBlueprints?: readonly DocumentSectionBlueprintDefinition[]
+  },
 ): DocumentSection[] {
-  const templates = PRESET_SECTIONS[preset]
-  return templates.map(t => ({
-    id: t.id,
-    title: t.title[language],
+  const templates = createSectionBlueprints(preset, language, options?.sectionBlueprints)
+  return templates.map((template) => ({
+    id: template.id ?? buildFallbackSectionId(0),
+    title: template.title,
     content: '',
     sourceRefs: [],
     tables: undefined,
     figures: undefined,
-    editable: t.editable,
-    generatedBy: t.generatedBy,
+    editable: template.editable ?? true,
+    generatedBy: template.generatedBy,
   }))
 }
 

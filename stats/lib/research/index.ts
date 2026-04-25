@@ -21,6 +21,12 @@ export * from './citation-storage';
 /** APA 포맷 인용 문자열 빌더 */
 export * from './citation-apa-formatter';
 
+/** CSL/citeproc 기반 인용 렌더러 */
+export * from './citation-csl';
+
+/** 섹션별 narrative support 자산 타입 */
+export * from './document-support-asset-types';
+
 // ── 문서 블루프린트 ─────────────────────────────────────────
 /** 문서 블루프린트 타입 (섹션, 테이블, 메타데이터) */
 export * from './document-blueprint-types';
@@ -36,6 +42,18 @@ export * from './document-writing-source-types';
 
 /** 자료 작성 source adapter + writer registry */
 export * from './document-writing-source-registry';
+
+/** 섹션별 작성 context builder */
+export * from './document-section-writing-context';
+
+/** provider-agnostic document writer engine contract */
+export * from './document-writer-engine';
+
+/** document writer provider registry + settings resolution */
+export * from './document-writer-engine-registry';
+
+/** OpenRouter/Ollama document writer engines */
+export * from './document-llm-writer-engine';
 
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';

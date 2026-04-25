@@ -9,13 +9,12 @@ describe('StartWritingButton', () => {
     render(
       <StartWritingButton
         label="문서에서 작성"
-        pendingLabel="문서 생성 중..."
         onClick={onClick}
         pending
       />,
     )
 
-    const button = screen.getByRole('button', { name: '문서 생성 중...' })
+    const button = screen.getByRole('button', { name: '문서 준비 중...' })
     expect(button).toBeDisabled()
 
     fireEvent.click(button)

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { BookOpen, FileText, Layers } from 'lucide-react'
+import { BookOpen, FileText, Layers, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { PRESET_REGISTRY } from '@/lib/research/document-preset-registry'
+import { PRESET_REGISTRY, createSectionBlueprints } from '@/lib/research/document-preset-registry'
 import { assembleDocument } from '@/lib/research/document-assembler'
 import { saveDocumentBlueprint } from '@/lib/research/document-blueprint-storage'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
@@ -26,7 +26,11 @@ import type {
   TranslationHistoryEntry,
 } from '@/lib/genetics/analysis-history'
 import { loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
-import type { DocumentBlueprint, DocumentPreset } from '@/lib/research/document-blueprint-types'
+import type {
+  DocumentBlueprint,
+  DocumentPreset,
+  DocumentSectionBlueprintDefinition,
+} from '@/lib/research/document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 
 // ── 프리셋 아이콘 ──
@@ -35,6 +39,25 @@ const PRESET_ICONS: Record<DocumentPreset, React.ElementType> = {
   paper: BookOpen,
   report: FileText,
   custom: Layers,
+}
+
+const SECTION_GENERATOR_LABELS: Record<DocumentSectionBlueprintDefinition['generatedBy'], string> = {
+  template: '템플릿 초안',
+  llm: 'AI 초안 대상',
+  user: '직접 작성',
+}
+
+const SECTION_GENERATOR_HELP: Record<DocumentSectionBlueprintDefinition['generatedBy'], string> = {
+  template: '정해진 구조로 초안을 만듭니다.',
+  llm: '작성 실행 시 설정된 AI/로컬/템플릿 방식으로 초안을 만듭니다.',
+  user: '본문은 사용자가 직접 채웁니다.',
+}
+
+function buildDefaultSectionBlueprints(
+  preset: DocumentPreset,
+  language: 'ko' | 'en',
+): DocumentSectionBlueprintDefinition[] {
+  return createSectionBlueprints(preset, language)
 }
 
 // ── Props ──
@@ -54,8 +77,22 @@ export default function DocumentAssemblyDialog({
   const [title, setTitle] = useState('')
   const [titleError, setTitleError] = useState(false)
   const [language, setLanguage] = useState<'ko' | 'en'>('ko')
+  const [sectionBlueprints, setSectionBlueprints] = useState<DocumentSectionBlueprintDefinition[]>(
+    () => buildDefaultSectionBlueprints('paper', 'ko'),
+  )
   const [isCreating, setIsCreating] = useState(false)
   const { analysisHistory } = useHistoryStore()
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    setSectionBlueprints(buildDefaultSectionBlueprints(selectedPreset, language))
+  }, [language, open, selectedPreset])
+
+  const resetSectionBlueprints = useCallback(() => {
+    setSectionBlueprints(buildDefaultSectionBlueprints(selectedPreset, language))
+  }, [language, selectedPreset])
 
   // A2: 다이얼로그 닫힐 때 폼 리셋
   const handleOpenChange = useCallback((nextOpen: boolean) => {
@@ -64,15 +101,60 @@ export default function DocumentAssemblyDialog({
       setTitleError(false)
       setSelectedPreset('paper')
       setLanguage('ko')
+      setSectionBlueprints(buildDefaultSectionBlueprints('paper', 'ko'))
     }
     onOpenChange(nextOpen)
   }, [onOpenChange])
+
+  const handleSectionTitleChange = useCallback((index: number, value: string) => {
+    setSectionBlueprints((prev) => prev.map((section, sectionIndex) => (
+      sectionIndex === index ? { ...section, title: value } : section
+    )))
+  }, [])
+
+  const handleSectionGeneratedByChange = useCallback((
+    index: number,
+    generatedBy: DocumentSectionBlueprintDefinition['generatedBy'],
+  ) => {
+    setSectionBlueprints((prev) => prev.map((section, sectionIndex) => (
+      sectionIndex === index ? { ...section, generatedBy } : section
+    )))
+  }, [])
+
+  const handleAddSection = useCallback(() => {
+    setSectionBlueprints((prev) => [
+      ...prev,
+      {
+        title: language === 'ko' ? `새 섹션 ${prev.length + 1}` : `New Section ${prev.length + 1}`,
+        generatedBy: 'user',
+        editable: true,
+      },
+    ])
+  }, [language])
+
+  const handleDeleteSection = useCallback((index: number) => {
+    setSectionBlueprints((prev) => (
+      prev.length <= 1 ? prev : prev.filter((_, sectionIndex) => sectionIndex !== index)
+    ))
+  }, [])
 
   const handleCreate = useCallback(async () => {
     if (!title.trim()) {
       setTitleError(true)
       return
     }
+    const normalizedSectionBlueprints = sectionBlueprints
+      .map((section) => ({
+        ...section,
+        title: section.title.trim(),
+      }))
+      .filter((section) => section.title.length > 0)
+
+    if (normalizedSectionBlueprints.length === 0) {
+      toast.error('최소 한 개 이상의 목차를 남겨주세요.')
+      return
+    }
+
     setIsCreating(true)
 
     try {
@@ -87,6 +169,10 @@ export default function DocumentAssemblyDialog({
           preset: selectedPreset,
           language,
           title: title.trim(),
+          sectionBlueprints: normalizedSectionBlueprints,
+          metadata: {
+            sectionBlueprints: normalizedSectionBlueprints,
+          },
         },
         {
           entityRefs,
@@ -111,7 +197,7 @@ export default function DocumentAssemblyDialog({
     } finally {
       setIsCreating(false)
     }
-  }, [title, selectedPreset, language, projectId, analysisHistory, onCreated])
+  }, [title, sectionBlueprints, selectedPreset, language, projectId, analysisHistory, onCreated])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -154,6 +240,86 @@ export default function DocumentAssemblyDialog({
             <p className="text-xs text-muted-foreground">
               {PRESET_REGISTRY.find(p => p.id === selectedPreset)?.description.ko}
             </p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label>목차 구성</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  서론, 고찰, 결론 같은 섹션 이름을 바꾸거나 새 섹션을 미리 추가해 둘 수 있습니다.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resetSectionBlueprints}
+                className="gap-1"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                기본값 복원
+              </Button>
+            </div>
+
+            <div className="space-y-2 rounded-2xl bg-surface-container p-3">
+              {sectionBlueprints.map((section, index) => (
+                <div
+                  key={`${section.id ?? 'new'}-${index}`}
+                  className="rounded-xl bg-surface-container-lowest px-3 py-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="min-w-6 text-xs font-medium text-muted-foreground">
+                      {index + 1}
+                    </span>
+                    <Input
+                      value={section.title}
+                      onChange={(event) => handleSectionTitleChange(index, event.target.value)}
+                      placeholder={language === 'ko' ? '섹션 제목' : 'Section title'}
+                      className="h-9 bg-surface"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteSection(index)}
+                      disabled={sectionBlueprints.length <= 1}
+                      className="h-9 w-9 shrink-0"
+                      title="섹션 삭제"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(['user', 'template', 'llm'] as const).map((generatedBy) => (
+                      <Button
+                        key={generatedBy}
+                        type="button"
+                        variant={section.generatedBy === generatedBy ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleSectionGeneratedByChange(index, generatedBy)}
+                        className="h-8"
+                      >
+                        {SECTION_GENERATOR_LABELS[generatedBy]}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {SECTION_GENERATOR_HELP[section.generatedBy]}
+                  </p>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleAddSection}
+                className="gap-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                섹션 추가
+              </Button>
+            </div>
           </div>
 
           {/* 제목 */}

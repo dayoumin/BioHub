@@ -6,6 +6,7 @@ import type {
   DocumentTable,
   FigureRef,
 } from './document-blueprint-types'
+import type { DocumentSectionSupportBindingDraft } from './document-support-asset-types'
 
 export type WritingEntryMode = 'manual-blank' | 'source-bound-draft' | 'retry'
 
@@ -82,6 +83,7 @@ interface StartWritingSessionInputBase {
   language?: 'ko' | 'en'
   authors?: string[]
   metadata?: DocumentMetadata
+  initialSectionSupportBindings?: Record<string, DocumentSectionSupportBindingDraft[]>
 }
 
 export interface StartManualBlankWritingSessionInput extends StartWritingSessionInputBase {

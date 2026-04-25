@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createEmptySections,
+  createSectionBlueprints,
   getPresetRegistry,
   PRESET_REGISTRY,
 } from '../document-preset-registry'
@@ -90,6 +91,32 @@ describe('createEmptySections', () => {
       expect(sections).toHaveLength(1)
       expect(sections[0].id).toBe('section-1')
       expect(sections[0].generatedBy).toBe('user')
+    })
+  })
+
+  describe('custom section blueprints', () => {
+    it('should build sections from caller-provided blueprints', () => {
+      const sections = createEmptySections('paper', 'ko', {
+        sectionBlueprints: [
+          { id: 'intro', title: '문헌 동향', generatedBy: 'user' },
+          { id: 'results', title: '연구 결과', generatedBy: 'template' },
+          { title: '결론', generatedBy: 'user' },
+        ],
+      })
+
+      expect(sections.map((section) => section.id)).toEqual(['intro', 'results', 'section-3'])
+      expect(sections.map((section) => section.title)).toEqual(['문헌 동향', '연구 결과', '결론'])
+      expect(sections[1]?.generatedBy).toBe('template')
+    })
+
+    it('should normalize duplicate or blank ids when building blueprints', () => {
+      const blueprints = createSectionBlueprints('custom', 'ko', [
+        { title: '결론', generatedBy: 'user' },
+        { title: '결론', generatedBy: 'user' },
+        { id: 'results', title: '결과 재정리', generatedBy: 'template' },
+      ])
+
+      expect(blueprints.map((section) => section.id)).toEqual(['section-1', 'section-2', 'results'])
     })
   })
 })

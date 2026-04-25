@@ -13,6 +13,8 @@ import type {
   DocumentBlueprint,
   DocumentTable,
 } from '@/lib/research/document-blueprint-types'
+import { resolveDocumentInlineCitations } from '@/lib/research/citation-csl'
+import { buildRenderableDocument } from '@/lib/research/document-support-renderer'
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
 import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
 import {
@@ -495,6 +497,7 @@ export async function buildHwpxDocument(
   snapshots?: Map<string, ChartSnapshot>,
   templateData?: Uint8Array,
 ): Promise<Uint8Array> {
+  const resolvedDoc = resolveDocumentInlineCitations(buildRenderableDocument(doc))
   // 1. 템플릿 로드
   let rawTemplate: Uint8Array
   if (templateData !== undefined) {
@@ -509,17 +512,17 @@ export async function buildHwpxDocument(
   const builder = await createBuilderFromZip(zip)
 
   // 2. 제목 단락
-  builder.addParagraph(`**${doc.title}**`, { align: 'center' })
+  builder.addParagraph(`**${resolvedDoc.title}**`, { align: 'center' })
 
   // 3. 저자
-  if (doc.authors && doc.authors.length > 0) {
-    builder.addParagraph(doc.authors.join(', '), { align: 'center' })
+  if (resolvedDoc.authors && resolvedDoc.authors.length > 0) {
+    builder.addParagraph(resolvedDoc.authors.join(', '), { align: 'center' })
   }
 
   builder.addEmptyLine()
 
   // 4. 섹션 순회
-  for (const section of doc.sections) {
+  for (const section of resolvedDoc.sections) {
     if (!hasVisibleContent(section)) continue
 
     // 섹션 제목

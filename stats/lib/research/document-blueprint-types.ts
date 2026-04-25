@@ -8,6 +8,8 @@
 import type { PaperTable } from '@/lib/services/paper-draft/paper-types'
 import type { GraphProject } from '@/types/graph-studio'
 import { getGraphProjectAnalysisSourceRefs } from '@/lib/graph-studio/project-lineage'
+import type { DocumentSectionSupportBinding } from './document-support-asset-types'
+import { normalizeDocumentSectionSupportBindings } from './document-support-asset-types'
 
 // ── 프리셋 ──
 
@@ -68,6 +70,13 @@ export interface FigureRef {
   patternSummary?: string
 }
 
+export interface DocumentSectionBlueprintDefinition {
+  id?: string
+  title: string
+  editable?: boolean
+  generatedBy: 'template' | 'llm' | 'user'
+}
+
 // ── 섹션 ──
 
 export interface DocumentSection {
@@ -77,6 +86,7 @@ export interface DocumentSection {
   /** Plate 에디터 Slate JSON (WYSIWYG 편집 시 생성, 없으면 content에서 역직렬화) */
   plateValue?: unknown
   sourceRefs: DocumentSourceRef[]
+  sectionSupportBindings?: DocumentSectionSupportBinding[]
   tables?: DocumentTable[]
   figures?: FigureRef[]
   editable: boolean
@@ -103,16 +113,20 @@ export interface DocumentWritingState {
 
 export interface PaperMetadata {
   targetJournal?: string
+  sectionBlueprints?: DocumentSectionBlueprintDefinition[]
 }
 
 export interface ReportMetadata {
   organization?: string
+  sectionBlueprints?: DocumentSectionBlueprintDefinition[]
 }
 
 export type DocumentMetadata =
   | PaperMetadata
   | ReportMetadata
-  | Record<string, unknown>
+  | (Record<string, unknown> & {
+    sectionBlueprints?: DocumentSectionBlueprintDefinition[]
+  })
 
 // ── 문서 전체 ──
 
@@ -201,11 +215,15 @@ export function normalizeDocumentBlueprint(document: DocumentBlueprint): Documen
   return {
     ...document,
     writingState: normalizeDocumentWritingState(document.writingState),
-    sections: document.sections.map((section) => ({
-      ...section,
-      sourceRefs: (section.sourceRefs ?? []).map((ref) => normalizeDocumentSourceRef(ref as LegacyDocumentSourceRef)),
-      tables: section.tables?.map((table) => normalizeDocumentTable(table)),
-    })),
+    sections: document.sections.map((section) => {
+      const sectionSupportBindings = normalizeDocumentSectionSupportBindings(section.sectionSupportBindings)
+      return {
+        ...section,
+        sourceRefs: (section.sourceRefs ?? []).map((ref) => normalizeDocumentSourceRef(ref as LegacyDocumentSourceRef)),
+        ...(sectionSupportBindings ? { sectionSupportBindings } : {}),
+        tables: section.tables?.map((table) => normalizeDocumentTable(table)),
+      }
+    }),
   }
 }
 

@@ -171,17 +171,19 @@ describe('GraphStudioHeader', () => {
     expect(saveButton).toHaveTextContent('저장 중...')
   })
 
-  it('hides the writing button until the graph is saved as a project', () => {
+  it('shows a disabled writing button until the graph is saved as a project', () => {
     act(() => {
       useGraphStudioStore.getState().setChartSpec(makeSpec())
     })
 
     render(<GraphStudioHeader />)
 
-    expect(screen.queryByTestId('graph-studio-write-doc')).not.toBeInTheDocument()
+    const button = screen.getByTestId('graph-studio-write-doc')
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('title', '저장된 그래프에서만 문서를 시작할 수 있습니다.')
   })
 
-  it('hides the writing button when no research project is resolved', () => {
+  it('shows a disabled writing button when no research project is resolved', () => {
     const spec = makeSpec()
 
     act(() => {
@@ -196,7 +198,9 @@ describe('GraphStudioHeader', () => {
 
     render(<GraphStudioHeader />)
 
-    expect(screen.queryByTestId('graph-studio-write-doc')).not.toBeInTheDocument()
+    const button = screen.getByTestId('graph-studio-write-doc')
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('title', '프로젝트를 먼저 연결해야 문서를 만들 수 있습니다.')
   })
 
   it('asks for confirmation before saving when a relink mismatch warning is active', async () => {
@@ -335,7 +339,7 @@ describe('GraphStudioHeader', () => {
 
     await waitFor(() => {
       expect(mockRouterPush).not.toHaveBeenCalled()
-      expect(screen.getByRole('button', { name: '자료 작성' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '문서 초안 만들기' })).toBeInTheDocument()
     })
   })
 
@@ -378,6 +382,7 @@ describe('GraphStudioHeader', () => {
 
     expect(await screen.findByRole('button', { name: '논문 초안' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '보고서' })).toBeInTheDocument()
+    expect(screen.getByText('연결된 문서')).toBeInTheDocument()
     expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(2)
   })
 
@@ -401,7 +406,7 @@ describe('GraphStudioHeader', () => {
     })
 
     await waitFor(() => {
-      expect(screen.queryByTestId('graph-studio-write-doc')).not.toBeInTheDocument()
+      expect(screen.getByTestId('graph-studio-write-doc')).toBeDisabled()
     })
     expect(mockLoadDocumentSourceUsages).toHaveBeenCalledTimes(2)
   })

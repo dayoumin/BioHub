@@ -16,6 +16,10 @@ import {
   type DocumentSourceRef,
 } from './document-blueprint-types'
 import { loadDocumentBlueprint, saveDocumentBlueprint } from './document-blueprint-storage'
+import {
+  normalizeDocumentSectionSupportBindings,
+  type DocumentSectionSupportBindingDraft,
+} from './document-support-asset-types'
 import { updateDocumentSectionWritingState, updateDocumentWritingState } from './document-writing'
 import { retryDocumentWriting } from './document-writing-orchestrator'
 import type {
@@ -226,11 +230,35 @@ function hasWritableSourceBindings(sections: readonly DocumentSection[]): boolea
   ))
 }
 
+function applyInitialSectionSupportBindings(
+  sections: DocumentSection[],
+  initialSectionSupportBindings: Record<string, DocumentSectionSupportBindingDraft[]> | undefined,
+): DocumentSection[] {
+  if (!initialSectionSupportBindings) {
+    return sections
+  }
+
+  return sections.map((section) => {
+    const sectionSupportBindings = normalizeDocumentSectionSupportBindings(
+      initialSectionSupportBindings[section.id],
+    )
+    return {
+      ...section,
+      ...(sectionSupportBindings ? { sectionSupportBindings } : {}),
+    }
+  })
+}
+
 async function createManualBlankDocument(
   input: StartManualBlankWritingSessionInput,
 ): Promise<DocumentBlueprint> {
   const now = new Date().toISOString()
-  const sections = createEmptySections(input.preset ?? 'paper', input.language ?? 'ko')
+  const sections = applyInitialSectionSupportBindings(
+    createEmptySections(input.preset ?? 'paper', input.language ?? 'ko', {
+      sectionBlueprints: input.metadata?.sectionBlueprints,
+    }),
+    input.initialSectionSupportBindings,
+  )
 
   let document: DocumentBlueprint = {
     id: generateDocumentId(),
@@ -262,7 +290,12 @@ async function createSourceBoundWritingDocument(
   const selectedEntityRefs = buildSelectedEntityRefsFromRequests(allEntityRefs, input.requestedSources)
 
   const sections = await applySourceBindings(
-    createEmptySections(input.preset ?? 'paper', input.language ?? 'ko'),
+    applyInitialSectionSupportBindings(
+      createEmptySections(input.preset ?? 'paper', input.language ?? 'ko', {
+        sectionBlueprints: input.metadata?.sectionBlueprints,
+      }),
+      input.initialSectionSupportBindings,
+    ),
     selectedEntityRefs,
   )
 

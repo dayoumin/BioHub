@@ -122,6 +122,75 @@ describe('createDocumentWritingSession', () => {
     expect(result.sections.some((section) => (section.sourceRefs?.length ?? 0) > 0)).toBe(false)
   })
 
+  it('uses custom section blueprints for manual blank mode', async () => {
+    const result = await startWritingSession({
+      mode: 'manual-blank',
+      projectId: 'proj_1',
+      title: '커스텀 문서',
+      metadata: {
+        sectionBlueprints: [
+          { id: 'introduction', title: '서론', generatedBy: 'user' },
+          { id: 'literature-review', title: '문헌 동향', generatedBy: 'user' },
+          { id: 'results', title: '결과', generatedBy: 'template' },
+          { id: 'conclusion', title: '결론', generatedBy: 'user' },
+        ],
+      },
+    })
+
+    expect(result.sections.map((section) => section.id)).toEqual([
+      'introduction',
+      'literature-review',
+      'results',
+      'conclusion',
+    ])
+    expect(result.metadata.sectionBlueprints).toHaveLength(4)
+  })
+
+  it('attaches initial section support bindings without starting drafting for manual blank mode', async () => {
+    const result = await startWritingSession({
+      mode: 'manual-blank',
+      projectId: 'proj_1',
+      title: '문헌 메모 문서',
+      initialSectionSupportBindings: {
+        introduction: [{
+          sourceKind: 'citation-record',
+          sourceId: 'cit_1',
+          role: 'background',
+          summary: '배경 문헌',
+        }],
+        discussion: [{
+          sourceKind: 'deep-research-note',
+          sourceId: 'note_1',
+          role: 'interpretation',
+          summary: '해석 메모',
+          citationIds: ['cit_1'],
+        }],
+      },
+    })
+
+    expect(result.writingState?.status).toBe('idle')
+    expect(result.writingState?.sectionStates).toEqual({})
+    expect(result.sections.find((section) => section.id === 'introduction')?.sectionSupportBindings).toEqual([{
+      id: expect.any(String),
+      sourceKind: 'citation-record',
+      sourceId: 'cit_1',
+      role: 'background',
+      summary: '배경 문헌',
+      included: true,
+      origin: 'user',
+    }])
+    expect(result.sections.find((section) => section.id === 'discussion')?.sectionSupportBindings).toEqual([{
+      id: expect.any(String),
+      sourceKind: 'deep-research-note',
+      sourceId: 'note_1',
+      role: 'interpretation',
+      summary: '해석 메모',
+      citationIds: ['cit_1'],
+      included: true,
+      origin: 'user',
+    }])
+  })
+
   it('creates a blank paper document with selected source bindings', async () => {
     const result = await createDocumentWritingSession({
       projectId: 'proj_1',

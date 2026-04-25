@@ -34,6 +34,7 @@ import {
   CollapsibleContent,
 } from '@/components/ui/collapsible'
 import { EmptyState } from '@/components/common/EmptyState'
+import { handoffCitationToPapers } from './literature-handoff'
 
 // ── 상수 ──
 
@@ -439,9 +440,15 @@ interface LiteratureCardProps {
   item: LiteratureItem
   onSave?: (item: LiteratureItem) => void
   isSaved?: boolean
+  saveLabel?: string
 }
 
-const LiteratureCard = memo(function LiteratureCard({ item, onSave, isSaved }: LiteratureCardProps): React.ReactElement {
+const LiteratureCard = memo(function LiteratureCard({
+  item,
+  onSave,
+  isSaved,
+  saveLabel,
+}: LiteratureCardProps): React.ReactElement {
   const [showAbstract, setShowAbstract] = useState(false)
 
   const authorsDisplay = useMemo(() => {
@@ -536,7 +543,7 @@ const LiteratureCard = memo(function LiteratureCard({ item, onSave, isSaved }: L
           >
             {isSaved
               ? <><Check className="w-3 h-3 mr-1" />저장됨</>
-              : <><BookmarkPlus className="w-3 h-3 mr-1" />저장</>
+              : <><BookmarkPlus className="w-3 h-3 mr-1" />{saveLabel ?? '저장'}</>
             }
           </Button>
         )}
@@ -571,6 +578,7 @@ interface ResultsListProps {
   onSortChange: (key: SortKey) => void
   onSave?: (item: LiteratureItem) => void
   savedIds?: Set<string>
+  saveLabel?: string
 }
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -579,7 +587,14 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'source', label: '소스순' },
 ]
 
-function ResultsList({ items, sortKey, onSortChange, onSave, savedIds }: ResultsListProps): React.ReactElement {
+function ResultsList({
+  items,
+  sortKey,
+  onSortChange,
+  onSave,
+  savedIds,
+  saveLabel,
+}: ResultsListProps): React.ReactElement {
   const sortedItems = useMemo(() => sortItems(items, sortKey), [items, sortKey])
 
   if (items.length === 0) {
@@ -628,6 +643,7 @@ function ResultsList({ items, sortKey, onSortChange, onSave, savedIds }: Results
             item={item}
             onSave={onSave}
             isSaved={savedIds?.has(citationKey(item))}
+            saveLabel={saveLabel}
           />
         ))}
       </div>
@@ -728,6 +744,9 @@ export default function LiteratureSearchContent(): React.ReactElement {
   const [hasSearched, setHasSearched] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('year')
   const [projectId, setProjectId] = useState<string | null>(null)
+  const [sourceDocumentId, setSourceDocumentId] = useState<string | null>(null)
+  const [sourceSectionId, setSourceSectionId] = useState<string | null>(null)
+  const [sourceSectionTitle, setSourceSectionTitle] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -735,6 +754,9 @@ export default function LiteratureSearchContent(): React.ReactElement {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const pid = params.get('project')
+    setSourceDocumentId(params.get('documentId'))
+    setSourceSectionId(params.get('sectionId'))
+    setSourceSectionTitle(params.get('sectionTitle'))
     if (!pid) return
     setProjectId(pid)
     listCitationsByProject(pid)
@@ -749,7 +771,16 @@ export default function LiteratureSearchContent(): React.ReactElement {
     const record: CitationRecord = createCitationRecord(projectId, item)
     await saveCitation(record)
     setSavedIds(prev => new Set([...prev, citationKey(item)]))
-  }, [projectId])
+    if (sourceDocumentId && sourceSectionId) {
+      handoffCitationToPapers(
+        window.history,
+        window,
+        sourceDocumentId,
+        sourceSectionId,
+        citationKey(item),
+      )
+    }
+  }, [projectId, sourceDocumentId, sourceSectionId])
 
   // unmount 시 진행 중인 검색 취소
   useEffect(() => {
@@ -883,7 +914,12 @@ export default function LiteratureSearchContent(): React.ReactElement {
       {projectId && (
         <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg text-sm mb-4">
           <BookmarkPlus className="w-4 h-4 text-primary" />
-          <span>프로젝트 문서에 인용 추가 모드 — 검색 결과에서 <strong>저장</strong>을 클릭하세요.</span>
+          <span>
+            {sourceDocumentId && sourceSectionId
+              ? <><strong>{sourceSectionTitle ?? sourceSectionId}</strong> 섹션 연결 모드 — 저장하면 해당 섹션으로 돌아가 문헌을 바로 연결합니다.</>
+              : <>프로젝트 문서에 인용 추가 모드 — 검색 결과에서 <strong>저장</strong>을 클릭하세요.</>
+            }
+          </span>
         </div>
       )}
 
@@ -895,6 +931,7 @@ export default function LiteratureSearchContent(): React.ReactElement {
           onSortChange={setSortKey}
           onSave={projectId ? handleSaveCitation : undefined}
           savedIds={savedIds}
+          saveLabel={sourceDocumentId && sourceSectionId ? '저장 후 연결' : '저장'}
         />
       )}
     </main>

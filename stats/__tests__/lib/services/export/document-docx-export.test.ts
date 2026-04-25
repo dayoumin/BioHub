@@ -49,6 +49,21 @@ describe('hasVisibleContent', () => {
     }))).toBe(true)
   })
 
+  it('section support bindings만 있어도 true', () => {
+    expect(hasVisibleContent(makeSection({
+      sectionSupportBindings: [{
+        id: 'dsb_1',
+        sourceKind: 'citation-record',
+        sourceId: 'cit_1',
+        role: 'comparison',
+        label: 'Marine Ecology Review',
+        summary: '비교 문헌의 핵심 차이를 정리한 메모',
+        included: true,
+        origin: 'user',
+      }],
+    }))).toBe(true)
+  })
+
   it('모두 없으면 false', () => {
     expect(hasVisibleContent(makeSection())).toBe(false)
   })

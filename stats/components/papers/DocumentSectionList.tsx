@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -81,16 +81,20 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
   const meta = GENERATED_BY_META[section.generatedBy]
   const MetaIcon = meta.icon
   const hasContent = section.content.length > 0 || (Array.isArray(section.plateValue) && section.plateValue.length > 0)
+  const sourceCount = section.sourceRefs?.length ?? 0
+  const supportCount = (section.sectionSupportBindings ?? []).filter((binding) => binding.included !== false).length
+  const hasPreparedMaterials = sourceCount > 0 || supportCount > 0
+  const statusLabel = hasContent ? 'Ready' : hasPreparedMaterials ? 'Bound' : 'Empty'
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-pointer group',
+        'group flex items-start gap-3 rounded-2xl px-3 py-3 transition-all cursor-pointer',
         isActive
-          ? 'border-primary bg-primary/5'
-          : 'border-transparent hover:border-muted-foreground/20 hover:bg-muted/50',
+          ? 'bg-surface-container-highest shadow-[0px_12px_32px_rgba(25,28,30,0.06)]'
+          : 'bg-surface-container-low hover:bg-surface-container',
         isDragging && 'opacity-50',
       )}
       onClick={onSelect}
@@ -101,17 +105,27 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
       <div
         {...attributes}
         {...listeners}
-        className="shrink-0 cursor-grab text-muted-foreground/50 hover:text-muted-foreground"
+        className="mt-0.5 shrink-0 cursor-grab text-muted-foreground/50 hover:text-foreground"
         onClick={e => e.stopPropagation()}
       >
         <GripVertical className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            'h-2 w-2 rounded-full',
+            hasContent || hasPreparedMaterials ? 'bg-[#188ace]' : 'bg-muted-foreground/30',
+          )}
+          />
+          <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            {statusLabel}
+          </span>
+        </div>
         {editing ? (
           <input
             ref={inputRef}
             defaultValue={section.title}
-            className="text-sm font-medium w-full bg-transparent border-b border-primary outline-none"
+            className="mt-1 w-full bg-transparent text-sm font-medium outline-none"
             onBlur={handleFinishEdit}
             onKeyDown={e => {
               if (e.key === 'Enter') handleFinishEdit()
@@ -121,15 +135,23 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
           />
         ) : (
           <p
-            className={cn('text-sm font-medium truncate', !hasContent && 'text-muted-foreground')}
+            className={cn('mt-1 text-sm font-medium truncate', !hasContent && !hasPreparedMaterials && 'text-muted-foreground')}
             onDoubleClick={handleStartEdit}
             title="더블클릭하여 제목 편집"
           >
             {section.title}
           </p>
         )}
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span>{sourceCount > 0 ? `원본 ${sourceCount}` : '원본 없음'}</span>
+          <span>{supportCount > 0 ? `문헌 ${supportCount}` : '문헌 없음'}</span>
+          <span>{section.generatedBy === 'llm' ? 'AI 초안' : section.generatedBy === 'template' ? '구조 자동화' : '직접 작성'}</span>
+        </div>
       </div>
-      <Badge variant="outline" className="text-[10px] gap-1 shrink-0">
+      <Badge
+        variant="secondary"
+        className="shrink-0 gap-1 rounded-full bg-secondary-container px-2.5 py-1 text-[10px] font-medium text-secondary"
+      >
         <MetaIcon className="w-3 h-3" />
         {meta.label}
       </Badge>
@@ -183,6 +205,17 @@ export default function DocumentSectionList({
   onRenameSection,
   onAddSection,
 }: DocumentSectionListProps): React.ReactElement {
+  const filledCount = useMemo(() => (
+    sections.filter((section) => (
+      section.content.length > 0 || (Array.isArray(section.plateValue) && section.plateValue.length > 0)
+    )).length
+  ), [sections])
+  const autoSectionCount = useMemo(() => (
+    sections.filter((section) => section.generatedBy !== 'user').length
+  ), [sections])
+  const activeIndex = useMemo(() => (
+    activeSectionId ? sections.findIndex((section) => section.id === activeSectionId) : -1
+  ), [activeSectionId, sections])
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   )
@@ -199,7 +232,36 @@ export default function DocumentSectionList({
   }, [sections, onReorder])
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-3">
+      <div className="rounded-[24px] bg-surface-container px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Writing Map
+            </p>
+            <h2 className="text-sm font-semibold text-foreground">문서 목차</h2>
+          </div>
+          <Badge
+            variant="secondary"
+            className="rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+          >
+            {filledCount}/{sections.length} 작성
+          </Badge>
+        </div>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          드래그로 순서를 바꾸고, 제목은 더블클릭해 바로 수정할 수 있습니다.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+          <span className="rounded-full bg-surface-container-high px-2.5 py-1">
+            자동 섹션 {autoSectionCount}
+          </span>
+          {activeIndex >= 0 && (
+            <span className="rounded-full bg-surface-container-high px-2.5 py-1">
+              현재 {activeIndex + 1} / {sections.length}
+            </span>
+          )}
+        </div>
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -223,10 +285,10 @@ export default function DocumentSectionList({
       </DndContext>
 
       <Button
-        variant="ghost"
+        variant="secondary"
         size="sm"
         onClick={onAddSection}
-        className="gap-1 mt-2 text-muted-foreground"
+        className="mt-1 gap-1 rounded-full bg-surface-container px-3 text-muted-foreground hover:bg-surface-container-high"
       >
         <Plus className="w-4 h-4" />
         섹션 추가

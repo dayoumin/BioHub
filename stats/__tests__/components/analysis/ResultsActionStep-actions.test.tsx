@@ -142,17 +142,17 @@ vi.mock('@/hooks/use-terminology', () => ({
       contextPanels: {
         historyViewTitle: '히스토리 결과 보기',
         historyViewDescription: 'desc',
-        documentsTitle: '이 결과를 사용하는 문서',
-        documentsDescription: 'desc',
         moreDocuments: (count: number) => `+${count}`,
-        writingTitle: '문서 작성',
-        writingAction: '문서에서 작성',
-        writingPending: '문서 생성 중...',
+        documentsTitle: '연결된 문서',
+        documentsDescription: '이 결과가 반영된 문서를 열어 해당 섹션으로 바로 이동합니다.',
+        writingTitle: '자료 작성',
+        writingAction: '문서 초안 만들기',
+        writingPending: '문서 준비 중...',
         writingUntitledResult: '분석 결과',
         writingDescriptionNoProject: '프로젝트를 먼저 선택하면 저장된 분석 결과를 바로 문서 초안으로 연결할 수 있습니다.',
         writingDescriptionUnsaved: '저장된 분석 결과에서만 문서를 시작할 수 있습니다. 먼저 결과를 저장하세요.',
         writingDescriptionUnlinked: '이 저장 결과가 현재 프로젝트에 연결되어 있지 않아 여기서는 문서를 시작할 수 없습니다.',
-        writingEmptyReady: '아직 이 결과를 사용하는 문서가 없습니다. 지금 바로 초안을 만들 수 있습니다.',
+        writingEmptyReady: '아직 연결된 문서가 없습니다. 지금 바로 문서 초안을 만들 수 있습니다.',
         writingEmptyUnsaved: '먼저 현재 결과를 저장하면 이 화면에서 바로 문서 초안을 만들 수 있습니다.',
         writingEmptyUnlinked: '이 저장 결과를 프로젝트에 연결한 뒤 이 화면에서 문서 초안을 시작할 수 있습니다.',
         writingRequireProjectError: '프로젝트를 먼저 선택해야 문서를 만들 수 있습니다.',
@@ -589,7 +589,7 @@ describe('ResultsActionStep action wiring', () => {
 
     await waitFor(() => {
       expect(routerPushMock).not.toHaveBeenCalled()
-      expect(screen.getByRole('button', { name: '문서에서 작성' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '문서 초안 만들기' })).toBeInTheDocument()
     })
   })
 

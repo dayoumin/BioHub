@@ -44,6 +44,9 @@
 ### 자료 작성 1차 구현 명세 (Plate 유지안, 2026-04-24)
 - [ ] 공통 모듈/공통 컴포넌트/registry 확장 전략 계획 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md)
 - [ ] agent 리뷰 반영 핵심 계약 정리: 상태/저장/동시성 계약, `DocumentSection` merge matrix, `NormalizedWritingSource`, `manualBlank/sourceBoundDraft` entry mode, Phase 0 테스트 게이트를 위 계획 문서 기준으로 고정
+- [ ] **문헌 지원 1차 우선순위 고정**: `sectionSupportBindings` 기반 section-level literature binding, `citation / reference-package / deep-research-note` 역할 분리, `CSL/citeproc-js` 기반 인라인 인용/References 렌더링을 OpenAlex 연동보다 먼저 닫는다.
+- [ ] **OpenAlex 연동 후순위 명시**: 회사에 이미 있는 OpenAlex 코드를 재사용하는 방향으로 가되, 1차에서는 직접 연동하지 않는다. 우선은 문헌 자산 저장/섹션 바인딩/인용 표시를 먼저 안정화하고, OpenAlex discovery 연동은 Phase 2.5 이후 별도 작업으로 둔다.
+- [ ] **외부 연구 스택 활용 원칙 고정**: Zotero는 라이브러리 관리, `BibTeX/RIS/JSON import-export`는 1차 입력 경로, `GROBID` 계열 PDF 추출은 선택적 후속, OpenAlex는 후순위 discovery 계층으로 역할을 분리한다.
 - [ ] 상태/저장/동시성 계약 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md)
 - [ ] `DocumentSection` merge matrix 문서: [`stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md`](stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md)
 - [ ] **Step 1. 구현 명세 고정**: 1차 구현 범위를 `analysis + figure + blast/protein`, 진입점은 `ResultsActionStep + GraphStudioHeader`, 산출물은 `DocumentBlueprint`, 편집기는 `DocumentEditor(Plate)`로 고정한다.
@@ -91,6 +94,30 @@
   4. `ResultsActionStep` 진입 연결
   5. `GraphStudioHeader` 진입 연결
   6. background patch + 테스트
+
+### 자료 작성 품질/투고 점검 계획 (2026-04-25)
+- [x] **계획 문서 반영 완료**: 초안 생성 후 품질 점검과 투고 준비도 기능 방향을 [`stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md)의 `Review / Preflight Layer`와 `Phase 2.75`로 정리했다. (2026-04-25)
+- [x] **agent 점검 반영 완료**: 제품/UX, 아키텍처/데이터 모델, 테스트/리스크 관점 리뷰를 반영해 Phase 2.75 MVP 범위, freshness, evidence index, sidecar storage, 테스트 matrix 보강 방향을 계획 문서에 추가했다. (2026-04-25)
+- [ ] **Phase 2.75 MVP 범위 고정**: 1차는 `내보내기 전 기술/근거 점검`으로 좁힌다. 포함: 수치 불일치, 표/그림 본문 호출 누락, caption 누락, 필수 statement 누락, reference/citation consistency, stale report 감지. 제외: journal fit 추천, 실제 submission tracking.
+- [ ] **제품 원칙 고정**: "투고 성공률", "합격 가능성", "acceptance probability", 단일 점수, 확률, 저널 1위 추천처럼 보이는 표현을 금지한다. UI는 `투고 전 체크리스트`, `저널 요구사항 대조`, `연구 범위 일치 신호` 중심으로 표현한다.
+- [ ] **경쟁/참고 도구 기준 반영**: Paperpal Preflight(technical compliance), Writefull(편집기 내 학술 문체 교정), Trinka Journal Finder(scope match), Elsevier/Wiley Journal Finder(title/abstract matching)를 참고하되, BioHub 1차 범위는 source-bound pre-export check로 제한한다.
+- [ ] **Review/Preflight sidecar 저장 계약 설계**: `DocumentQualityReport`, `DocumentReviewFinding`, `DocumentReviewJobState`, `SubmissionReadinessReport`를 `DocumentBlueprint` 본문과 분리된 sidecar로 저장한다. 후보 store: `document-review-jobs`, `document-quality-reports`, `target-journal-profiles`, `submission-attempts`.
+- [ ] **freshness/stale 계약 설계**: report에 `baseDocumentUpdatedAt`, `documentContentHash`, `sectionHashes`, `sourceSnapshotHashes`, `targetJournalProfileVersion`, `ruleEngineVersion`을 저장하고, 문서/source/profile/rule version이 바뀌면 기존 report를 `stale`로 표시한다.
+- [ ] **review job lifecycle 설계**: `idle | running | partial | completed | stale | failed` 상태, `jobId`, retry, late job overwrite 방지, deterministic rule 성공 + LLM 실패 시 partial report 보존을 정의한다.
+- [ ] **투고 기준 프로필 설계**: `TargetJournalProfile`에 target journal, article type, abstract/main text word limit, reference style, figure/table format, ethics/COI/funding/data availability 요구사항을 담는다. 1차는 manual profile + APA/IMRAD/KCI/general preset으로 시작한다.
+- [ ] **SubmissionAttempt 경계 설계**: 실제 제출 로그는 live profile 참조가 아니라 `profileSnapshot`, `readinessReportId`, `exportArtifactId/hash`, `submittedAt`, `statusHistory`, `decisionNote`를 저장한다.
+- [ ] **초안 자체 점검 rule engine 설계**: IMRAD 흐름, 섹션 누락, 빈 문단, 반복/모순, figure/table 본문 호출 누락, caption 누락, 참고문헌 미사용/미인용, disclosure 누락을 deterministic check로 정의하고 rule id를 고정한다.
+- [ ] **SourceEvidenceIndex 설계**: source-bound 검증을 free-text 파싱에만 의존하지 않도록 `SourceEvidenceIndex` 또는 `DocumentClaimEvidence`를 정의한다. 후보 필드: `metricId`, `sourceId`, `resultPath`, `statisticKind`, `value`, `formattedValue`, `tolerance`, `tableCellRef`, `figureRef`, `sectionId`.
+- [ ] **BioHub 고유 source-bound 검증 설계**: 본문에 등장한 `p`, `F`, `t`, `chi2`, `n`, 평균/SD, 표/그림 번호를 source analysis, `DocumentTable`, `FigureRef`, Graph Studio provenance와 대조한다. `확인 불가` 등급과 반올림/부등호/locale 허용 규칙을 포함한다.
+- [ ] **LLM 리뷰 범위 제한 + sanitizer 설계**: LLM은 전체 흐름, 문체, 논리 점프, 과잉 주장, 오탈자 suggestion만 담당한다. LLM finding이 `content`, `plateValue`, source-bound statistic, citation/reference patch를 직접 바꾸려 하면 drop/flag한다.
+- [ ] **DocumentEditor 점검 패널 UX 설계**: `통과 / 주의 / 수정 필요 / 확인 불가` finding list, stale/partial/failed 상태, source mismatch warning, export 전 preflight report CTA를 에디터 안에 배치한다.
+- [ ] **finding 액션 설계**: `섹션으로 이동`, `원본 보기`, `차이 비교`, `선택 적용`, `무시/사유 기록`, `재검사`, `보고서 다운로드`, `위험 확인 후 export` 액션을 정의한다.
+- [ ] **export preflight gating 설계**: 최신 report가 없거나 stale이면 재검사 CTA를 우선 노출한다. critical mismatch가 있으면 경고와 명시적 확인 후 export를 허용하고, report 생성 실패 시 fallback UX를 정의한다.
+- [ ] **저널 적합도/투고 추적 후속 범위**: OpenAlex 기반 유사 논문/저널 후보는 Phase 2.5 이후 discovery 계층과 연결하고, 실제 투고 상태는 `SubmissionAttempt` log로 submitted/under review/revision/accepted/rejected를 기록한다. Phase 2.75 MVP에는 넣지 않는다.
+- [ ] **L1 테스트 matrix 추가**: deterministic rule engine golden fixtures, source-bound numeric/provenance mismatch fixtures, LLM finding sanitizer, review job freshness/stale/retry/partial failure, export preflight service를 순수 함수/서비스 테스트로 고정한다.
+- [ ] **L2 테스트 matrix 추가**: `DocumentEditor` 점검 패널 finding list, stale warning, retry, user edit 보존, `DocumentExportBar` preflight CTA/report/stale warning/critical confirm을 data-testid 중심으로 검증한다.
+- [ ] **L3 테스트 matrix 추가**: 결과 문서 생성 → 사용자 수정 → review retry → export preflight 흐름의 happy path와 critical mismatch path 각 1개만 유지한다.
+- [ ] **금지 문구 회귀 테스트 추가**: `투고 성공률`, `합격 가능성`, `acceptance probability` 같은 금지 표현이 readiness/scope fit UI에 노출되지 않도록 terminology/UI 문자열 assertion을 추가한다.
 
 ### Graph Studio scoring follow-up (2026-04-14, 커밋 `9ae32a41` 후속)
 - [x] **[P1] 기본 차트 타입 휴리스틱 재검토**: 샘플 데이터(`species`/`length_cm`/`weight_g`/`year`)에서 scatter를 기본값으로 선택하도록 `suggestChartType()` 기준을 정리하고 `ChartSetupPanel.defaultType`도 같은 경로를 사용하도록 통일. (`chart-spec-utils.ts`, `ChartSetupPanel.tsx`, `chart-spec-utils.test.ts`, 2026-04-14)
