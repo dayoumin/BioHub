@@ -28,6 +28,7 @@ interface DocumentExportBarProps {
   qualityReport?: DocumentQualityReport | null
   preflightFreshness?: DocumentQualityFreshness
   preflightPending?: boolean
+  preflightPendingLabel?: string
   onRunPreflight?: () => void
 }
 
@@ -214,6 +215,7 @@ export default function DocumentExportBar({
   qualityReport = null,
   preflightFreshness,
   preflightPending = false,
+  preflightPendingLabel,
   onRunPreflight,
 }: DocumentExportBarProps): React.ReactElement {
   const [copied, setCopied] = useState(false)
@@ -341,7 +343,7 @@ export default function DocumentExportBar({
             disabled={preflightPending}
             className="h-7 shrink-0 rounded-full bg-surface px-3 text-[11px]"
           >
-            {preflightPending ? '점검 중...' : preflightFreshness === 'missing' ? '점검 실행' : '다시 점검'}
+            {preflightPending ? (preflightPendingLabel ?? '점검 중...') : preflightFreshness === 'missing' ? '점검 실행' : '다시 점검'}
           </Button>
         )}
       </div>

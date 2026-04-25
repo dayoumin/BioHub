@@ -59,6 +59,7 @@ export * from './document-llm-writer-engine';
 export * from './document-quality-types';
 export * from './document-quality-storage';
 export * from './document-quality-suggestion-apply';
+export * from './document-review-job-storage';
 export * from './document-llm-review-sanitizer';
 export * from './document-llm-review-report';
 export * from './document-llm-review-runner';

@@ -23,6 +23,12 @@ import {
   buildSourceSnapshotHashes,
 } from '@/lib/research/document-source-evidence'
 import { createTargetJournalProfileSnapshot } from '@/lib/research/document-journal-profile'
+import type {
+  DocumentReviewJobPhase,
+  DocumentReviewJobPhaseState,
+  DocumentReviewJobState,
+  DocumentReviewJobStatus,
+} from '@/lib/research/document-review-job-storage'
 
 const {
   mockDocumentToDocx,
@@ -37,6 +43,8 @@ const {
   mockGetLatestDocumentQualityReport,
   mockSaveDocumentQualityReport,
   mockUpdateDocumentQualityFindingStatus,
+  mockGetLatestDocumentReviewJobState,
+  mockSaveDocumentReviewJobState,
   mockRunDocumentPreflightRules,
   mockRunDocumentLlmReview,
   mockRouterPush,
@@ -68,6 +76,8 @@ const {
     findingId: string,
     status: DocumentReviewFindingStatus,
   ) => Promise<DocumentQualityReport>>(),
+  mockGetLatestDocumentReviewJobState: vi.fn<(documentId: string) => Promise<DocumentReviewJobState | null>>(),
+  mockSaveDocumentReviewJobState: vi.fn<(job: DocumentReviewJobState) => Promise<DocumentReviewJobState>>(),
   mockRunDocumentPreflightRules: vi.fn<(document: DocumentBlueprint, options: { reportId: string; generatedAt: string }) => DocumentQualityReport>(),
   mockRunDocumentLlmReview: vi.fn(async (
     _document: DocumentBlueprint,
@@ -201,6 +211,66 @@ vi.mock('@/lib/research/document-quality-storage', () => ({
     mockUpdateDocumentQualityFindingStatus(reportId, findingId, status),
 }))
 
+vi.mock('@/lib/research/document-review-job-storage', () => ({
+  DOCUMENT_REVIEW_JOBS_CHANGED_EVENT: 'document-review-jobs-changed',
+  createDocumentReviewJobState: (options: {
+    id: string
+    documentId: string
+    projectId: string
+    reportId: string
+    documentUpdatedAt: string
+    generatedAt: string
+  }): DocumentReviewJobState => ({
+    id: options.id,
+    documentId: options.documentId,
+    projectId: options.projectId,
+    reportId: options.reportId,
+    status: 'running',
+    activePhase: 'deterministic',
+    phases: {
+      deterministic: {
+        status: 'running',
+        startedAt: options.generatedAt,
+      },
+      llm: {
+        status: 'pending',
+      },
+    },
+    documentUpdatedAt: options.documentUpdatedAt,
+    generatedAt: options.generatedAt,
+    startedAt: options.generatedAt,
+    updatedAt: options.generatedAt,
+  }),
+  updateDocumentReviewJobPhase: (
+    job: DocumentReviewJobState,
+    phase: DocumentReviewJobPhase,
+    phaseState: DocumentReviewJobPhaseState,
+    options: {
+      status?: DocumentReviewJobStatus
+      activePhase?: DocumentReviewJobPhase | null
+      updatedAt: string
+      completedAt?: string
+      errorMessage?: string
+    },
+  ): DocumentReviewJobState => ({
+    ...job,
+    status: options.status ?? job.status,
+    activePhase: options.activePhase === undefined ? job.activePhase : options.activePhase,
+    phases: {
+      ...job.phases,
+      [phase]: {
+        ...job.phases[phase],
+        ...phaseState,
+      },
+    },
+    updatedAt: options.updatedAt,
+    completedAt: options.completedAt ?? job.completedAt,
+    errorMessage: options.errorMessage,
+  }),
+  getLatestDocumentReviewJobState: (documentId: string) => mockGetLatestDocumentReviewJobState(documentId),
+  saveDocumentReviewJobState: (job: DocumentReviewJobState) => mockSaveDocumentReviewJobState(job),
+}))
+
 vi.mock('@/lib/research/document-preflight-rules', () => ({
   DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION: 'document-preflight-rules:v2',
   runDocumentPreflightRules: (
@@ -325,6 +395,33 @@ function makeQualityReport(
   }
 }
 
+function makeReviewJob(overrides: Partial<DocumentReviewJobState> = {}): DocumentReviewJobState {
+  return {
+    id: 'dqjob-1',
+    documentId: 'doc-1',
+    projectId: 'project-1',
+    reportId: 'dqreport-1',
+    status: 'running',
+    activePhase: 'llm',
+    phases: {
+      deterministic: {
+        status: 'completed',
+        startedAt: '2026-04-25T00:00:00.000Z',
+        completedAt: '2026-04-25T00:00:01.000Z',
+      },
+      llm: {
+        status: 'running',
+        startedAt: '2026-04-25T00:00:01.000Z',
+      },
+    },
+    documentUpdatedAt: '2026-04-25T00:00:00.000Z',
+    generatedAt: '2026-04-25T00:00:00.000Z',
+    startedAt: '2026-04-25T00:00:00.000Z',
+    updatedAt: '2026-04-25T00:00:01.000Z',
+    ...overrides,
+  }
+}
+
 function makeReviewFinding(overrides: Partial<DocumentReviewFinding> = {}): DocumentReviewFinding {
   return {
     id: 'finding-1',
@@ -372,6 +469,8 @@ describe('DocumentEditor export freshness', () => {
     mockGetLatestDocumentQualityReport.mockReset()
     mockSaveDocumentQualityReport.mockReset()
     mockUpdateDocumentQualityFindingStatus.mockReset()
+    mockGetLatestDocumentReviewJobState.mockReset()
+    mockSaveDocumentReviewJobState.mockReset()
     mockRunDocumentPreflightRules.mockReset()
     mockRunDocumentLlmReview.mockReset()
     mockRouterPush.mockReset()
@@ -394,6 +493,8 @@ describe('DocumentEditor export freshness', () => {
     mockLoadGeneticsHistory.mockReturnValue([])
     mockGetLatestDocumentQualityReport.mockResolvedValue(null)
     mockSaveDocumentQualityReport.mockImplementation(async (report: DocumentQualityReport) => report)
+    mockGetLatestDocumentReviewJobState.mockResolvedValue(null)
+    mockSaveDocumentReviewJobState.mockImplementation(async (job: DocumentReviewJobState) => job)
     mockUpdateDocumentQualityFindingStatus.mockImplementation(async (_reportId, findingId, status) => {
       const report = await mockGetLatestDocumentQualityReport('doc-1')
       if (!report) {
@@ -478,6 +579,38 @@ describe('DocumentEditor export freshness', () => {
       expect(mockRunDocumentPreflightRules).toHaveBeenCalledTimes(1)
       expect(mockSaveDocumentQualityReport).toHaveBeenCalledTimes(1)
     })
+    expect(mockSaveDocumentReviewJobState).toHaveBeenCalledTimes(4)
+    expect(mockSaveDocumentReviewJobState.mock.calls.map(([job]) => ({
+      status: job.status,
+      activePhase: job.activePhase,
+      deterministic: job.phases.deterministic.status,
+      llm: job.phases.llm.status,
+    }))).toEqual([
+      {
+        status: 'running',
+        activePhase: 'deterministic',
+        deterministic: 'running',
+        llm: 'pending',
+      },
+      {
+        status: 'running',
+        activePhase: 'llm',
+        deterministic: 'completed',
+        llm: 'pending',
+      },
+      {
+        status: 'running',
+        activePhase: 'llm',
+        deterministic: 'completed',
+        llm: 'running',
+      },
+      {
+        status: 'completed',
+        activePhase: null,
+        deterministic: 'completed',
+        llm: 'completed',
+      },
+    ])
 
     const [documentArg, optionsArg] = mockRunDocumentPreflightRules.mock.calls[0] as [
       DocumentBlueprint,
@@ -487,6 +620,29 @@ describe('DocumentEditor export freshness', () => {
     expect(optionsArg.reportId).toMatch(/^dqreport_/)
     await waitFor(() => {
       expect(screen.getAllByText('점검 통과').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('discards a stale restored review job before running preflight again', async () => {
+    const user = userEvent.setup()
+    mockGetLatestDocumentReviewJobState.mockResolvedValue(makeReviewJob({
+      updatedAt: '2026-04-25T00:00:00.000Z',
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await waitFor(() => {
+      expect(mockSaveDocumentReviewJobState).toHaveBeenCalledWith(expect.objectContaining({
+        status: 'discarded',
+        activePhase: null,
+      }))
+    })
+
+    await user.click(screen.getAllByRole('button', { name: '점검 실행' })[0] as HTMLElement)
+
+    await waitFor(() => {
+      expect(mockSaveDocumentQualityReport).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -17,6 +17,7 @@ interface DocumentPreflightPanelProps {
   report: DocumentQualityReport | null
   freshness: DocumentQualityFreshness
   pending: boolean
+  pendingLabel?: string
   disabled?: boolean
   actionsDisabled?: boolean
   onRun: () => void
@@ -125,6 +126,7 @@ export default function DocumentPreflightPanel({
   report,
   freshness,
   pending,
+  pendingLabel,
   disabled = false,
   actionsDisabled = false,
   onRun,
@@ -190,7 +192,7 @@ export default function DocumentPreflightPanel({
         className="mt-4 w-full gap-1 rounded-full bg-surface-container-high"
       >
         {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        {pending ? '점검 중...' : freshness === 'missing' ? '점검 실행' : '다시 점검'}
+        {pending ? (pendingLabel ?? '점검 중...') : freshness === 'missing' ? '점검 실행' : '다시 점검'}
       </Button>
 
       {hasFindings && (

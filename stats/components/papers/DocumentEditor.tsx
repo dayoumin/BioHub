@@ -123,6 +123,15 @@ import {
   type DocumentQualityReportsChangedDetail,
 } from '@/lib/research/document-quality-storage'
 import {
+  createDocumentReviewJobState,
+  DOCUMENT_REVIEW_JOBS_CHANGED_EVENT,
+  getLatestDocumentReviewJobState,
+  saveDocumentReviewJobState,
+  updateDocumentReviewJobPhase,
+  type DocumentReviewJobsChangedDetail,
+  type DocumentReviewJobState,
+} from '@/lib/research/document-review-job-storage'
+import {
   buildSourceEvidenceIndex,
   buildSourceSnapshotHashes,
   type SourceEvidenceIndex,
@@ -157,6 +166,7 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+const REVIEW_JOB_RUNNING_STALE_MS = 10 * 60 * 1000
 const JOURNAL_STYLE_OPTIONS: Array<{ value: TargetJournalStylePreset; label: string }> = [
   { value: 'imrad', label: 'IMRAD' },
   { value: 'apa', label: 'APA' },
@@ -181,6 +191,37 @@ function buildDocumentPreflightSourceSnapshot(
     evidenceIndex,
     sourceSnapshotHashes: buildSourceSnapshotHashes(evidenceIndex),
   }
+}
+
+function isRunningReviewJobStale(job: DocumentReviewJobState, now = Date.now()): boolean {
+  if (job.status !== 'running') {
+    return false
+  }
+  const updatedAt = Date.parse(job.updatedAt)
+  if (!Number.isFinite(updatedAt)) {
+    return true
+  }
+  return now - updatedAt > REVIEW_JOB_RUNNING_STALE_MS
+}
+
+async function resolveRestoredReviewJobState(
+  job: DocumentReviewJobState | null,
+): Promise<DocumentReviewJobState | null> {
+  if (!job || !isRunningReviewJobStale(job)) {
+    return job
+  }
+
+  const discardedAt = new Date().toISOString()
+  return saveDocumentReviewJobState(updateDocumentReviewJobPhase(job, job.activePhase ?? 'llm', {
+    status: 'discarded',
+    completedAt: discardedAt,
+    message: 'Discarded because the review job was restored after its running timeout.',
+  }, {
+    status: 'discarded',
+    activePhase: null,
+    updatedAt: discardedAt,
+    completedAt: discardedAt,
+  }))
 }
 
 interface JournalProfilePanelProps {
@@ -415,7 +456,8 @@ export default function DocumentEditor({
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
   const [qualityReport, setQualityReport] = useState<DocumentQualityReport | null>(null)
-  const [preflightPending, setPreflightPending] = useState(false)
+  const [preflightJobState, setPreflightJobState] = useState<DocumentReviewJobState | null>(null)
+  const [preflightInMemoryPending, setPreflightInMemoryPending] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
@@ -427,6 +469,7 @@ export default function DocumentEditor({
   const hasLocalChangesRef = useRef(false)
   const documentConflictRef = useRef<DocumentBlueprint | null>(null)
   const preflightRunSeqRef = useRef(0)
+  const activeReviewJobIdRef = useRef<string | null>(null)
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
@@ -436,6 +479,12 @@ export default function DocumentEditor({
     [doc],
   )
   const isScratchProject = (currentProject?.tags ?? []).includes(SCRATCH_PROJECT_TAG)
+  const preflightPending = preflightInMemoryPending || preflightJobState?.status === 'running'
+  const preflightPendingLabel = preflightJobState?.activePhase === 'llm'
+    ? 'LLM review running...'
+    : preflightJobState?.activePhase === 'deterministic'
+      ? 'Preflight running...'
+      : undefined
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
   const editor = usePlateEditor({
@@ -578,6 +627,9 @@ export default function DocumentEditor({
     setCitations([])
     setNeedsReassemble(false)
     setQualityReport(null)
+    setPreflightJobState(null)
+    setPreflightInMemoryPending(false)
+    activeReviewJobIdRef.current = null
     setDocumentConflict(null)
     setSaveStatus('saved')
     loadedSectionRef.current = null
@@ -621,6 +673,30 @@ export default function DocumentEditor({
 
   useEffect(() => {
     if (!doc?.id) {
+      setPreflightJobState(null)
+      return
+    }
+
+    let cancelled = false
+    setPreflightJobState(null)
+    getLatestDocumentReviewJobState(doc.id)
+      .then((job) => resolveRestoredReviewJobState(job))
+      .then((job) => {
+        if (!cancelled) {
+          setPreflightJobState(job)
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('[DocumentEditor] failed to load document review job:', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [doc?.id])
+
+  useEffect(() => {
+    if (!doc?.id) {
       return
     }
 
@@ -644,6 +720,34 @@ export default function DocumentEditor({
       window.removeEventListener(DOCUMENT_QUALITY_REPORTS_CHANGED_EVENT, handleQualityReportChange)
     }
   }, [doc?.id, doc?.projectId])
+
+  useEffect(() => {
+    if (!doc?.id) {
+      return
+    }
+
+    const handleReviewJobChange = (event: Event): void => {
+      const detail = (event as CustomEvent<DocumentReviewJobsChangedDetail>).detail
+      if (!detail || detail.documentId !== doc.id || detail.projectId !== doc.projectId) {
+        return
+      }
+
+      getLatestDocumentReviewJobState(doc.id)
+        .then((job) => resolveRestoredReviewJobState(job))
+        .then((job) => {
+          setPreflightJobState(job)
+        })
+        .catch((error: unknown) => {
+          console.error('[DocumentEditor] failed to reload document review job:', error)
+        })
+    }
+
+    window.addEventListener(DOCUMENT_REVIEW_JOBS_CHANGED_EVENT, handleReviewJobChange)
+    return (): void => {
+      window.removeEventListener(DOCUMENT_REVIEW_JOBS_CHANGED_EVENT, handleReviewJobChange)
+    }
+  }, [doc?.id, doc?.projectId])
+
 
   useEffect(() => {
     pendingArtifactTargetRef.current = initialTableId
@@ -1194,7 +1298,8 @@ export default function DocumentEditor({
       return
     }
 
-    setPreflightPending(true)
+    setPreflightInMemoryPending(true)
+    let activeJob: DocumentReviewJobState | null = null
     try {
       await flushPendingWrites()
       if (documentConflictRef.current) {
@@ -1211,9 +1316,22 @@ export default function DocumentEditor({
       preflightRunSeqRef.current = runSeq
       const runDocumentUpdatedAt = currentDoc.updatedAt
       const generatedAt = new Date().toISOString()
+      const reportId = generateId('dqreport')
+      const jobId = generateId('dqjob')
+      activeReviewJobIdRef.current = jobId
+      activeJob = await saveDocumentReviewJobState(createDocumentReviewJobState({
+        id: jobId,
+        documentId: currentDoc.id,
+        projectId: currentDoc.projectId,
+        reportId,
+        documentUpdatedAt: runDocumentUpdatedAt,
+        generatedAt,
+      }))
+      setPreflightJobState(activeJob)
+
       const { evidenceIndex, sourceSnapshotHashes } = buildDocumentPreflightSourceSnapshot(currentDoc)
       const deterministicReport = runDocumentPreflightRules(currentDoc, {
-        reportId: generateId('dqreport'),
+        reportId,
         generatedAt,
         evidenceIndex,
         numericClaims: getDocumentNumericClaims(currentDoc, {
@@ -1223,22 +1341,90 @@ export default function DocumentEditor({
         sourceSnapshotHashes,
         targetJournalProfileVersion: getDocumentTargetJournalProfileVersion(currentDoc),
       })
+      const deterministicCompletedAt = new Date().toISOString()
+      activeJob = await saveDocumentReviewJobState(updateDocumentReviewJobPhase(activeJob, 'deterministic', {
+        status: 'completed',
+        completedAt: deterministicCompletedAt,
+      }, {
+        activePhase: 'llm',
+        updatedAt: deterministicCompletedAt,
+      }))
+      activeJob = await saveDocumentReviewJobState(updateDocumentReviewJobPhase(activeJob, 'llm', {
+        status: 'running',
+        startedAt: deterministicCompletedAt,
+      }, {
+        activePhase: 'llm',
+        updatedAt: deterministicCompletedAt,
+      }))
+      setPreflightJobState(activeJob)
+
       const report = await runDocumentLlmReview(currentDoc, deterministicReport, { generatedAt })
       if (
         preflightRunSeqRef.current !== runSeq
         || docRef.current?.id !== currentDoc.id
         || docRef.current?.updatedAt !== runDocumentUpdatedAt
       ) {
+        const discardedAt = new Date().toISOString()
+        activeJob = await saveDocumentReviewJobState(updateDocumentReviewJobPhase(activeJob, 'llm', {
+          status: 'discarded',
+          completedAt: discardedAt,
+          message: 'Discarded because the document changed before review completion.',
+        }, {
+          status: 'discarded',
+          activePhase: null,
+          updatedAt: discardedAt,
+          completedAt: discardedAt,
+        }))
+        if (docRef.current?.id === currentDoc.id) {
+          setPreflightJobState(activeJob)
+        }
         return
       }
+      const completedAt = new Date().toISOString()
+      const finalJobStatus = report.status === 'partial' ? 'partial' : 'completed'
+      activeJob = await saveDocumentReviewJobState(updateDocumentReviewJobPhase(activeJob, 'llm', {
+        status: finalJobStatus,
+        completedAt,
+        message: report.status === 'partial'
+          ? 'LLM review finished partially; deterministic findings were preserved.'
+          : undefined,
+      }, {
+        status: finalJobStatus,
+        activePhase: null,
+        updatedAt: completedAt,
+        completedAt,
+      }))
+      setPreflightJobState(activeJob)
       const savedReport = await saveDocumentQualityReport(report)
       setQualityReport(savedReport)
       toast.success(report.status === 'partial' ? '문서 점검이 부분 완료되었습니다.' : '문서 점검이 완료되었습니다.')
     } catch (error: unknown) {
+      if (activeJob) {
+        try {
+          const failedAt = new Date().toISOString()
+          const phase = activeJob.activePhase ?? 'llm'
+          const errorMessage = error instanceof Error ? error.message : 'Document review failed.'
+          const failedJob = await saveDocumentReviewJobState(updateDocumentReviewJobPhase(activeJob, phase, {
+            status: 'failed',
+            completedAt: failedAt,
+            message: errorMessage,
+          }, {
+            status: 'failed',
+            activePhase: null,
+            updatedAt: failedAt,
+            completedAt: failedAt,
+            errorMessage,
+          }))
+          setPreflightJobState(failedJob)
+        } catch (jobError: unknown) {
+          console.error('[DocumentEditor] failed to save failed review job state:', jobError)
+        }
+      }
       console.error('[DocumentEditor] failed to run document preflight:', error)
       toast.error('문서 점검에 실패했습니다.')
     } finally {
-      setPreflightPending(false)
+      setPreflightInMemoryPending(false)
+      activeReviewJobIdRef.current = null
     }
   }, [flushPendingWrites, needsReassemble, preflightPending, reassembleCurrentDocument])
 
@@ -2712,6 +2898,7 @@ export default function DocumentEditor({
               report={qualityReport}
               freshness={preflightFreshness}
               pending={preflightPending}
+              pendingLabel={preflightPendingLabel}
               disabled={Boolean(documentConflict)}
               actionsDisabled={Boolean(documentConflict)}
               onRun={handleRunPreflight}
@@ -2755,6 +2942,7 @@ export default function DocumentEditor({
             qualityReport={qualityReport}
             preflightFreshness={preflightFreshness}
             preflightPending={preflightPending}
+            preflightPendingLabel={preflightPendingLabel}
             onRunPreflight={handleRunPreflight}
           />
         </div>

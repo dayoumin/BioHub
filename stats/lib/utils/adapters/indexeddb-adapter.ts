@@ -15,7 +15,7 @@ import type {
 } from '../storage-types'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 6  // v6: document quality report sidecar store 추가
+const DB_VERSION = 7  // v7: document review job sidecar store 추가
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'
 const FAVORITES_STORE = 'favorites'
@@ -97,6 +97,15 @@ export function openDB(): Promise<IDBDatabase> {
         qualityReportStore.createIndex('projectId', 'projectId', { unique: false })
         qualityReportStore.createIndex('status', 'status', { unique: false })
         qualityReportStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+      }
+
+      // Document review jobs store (v7)
+      if (!db.objectStoreNames.contains('document-review-jobs')) {
+        const reviewJobStore = db.createObjectStore('document-review-jobs', { keyPath: 'id' })
+        reviewJobStore.createIndex('documentId', 'documentId', { unique: false })
+        reviewJobStore.createIndex('projectId', 'projectId', { unique: false })
+        reviewJobStore.createIndex('status', 'status', { unique: false })
+        reviewJobStore.createIndex('updatedAt', 'updatedAt', { unique: false })
       }
     }
   })
