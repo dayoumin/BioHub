@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.20",
+  "version": "1.44.21",
   "lastUpdated": "2026-04-25",
   "sources": [
     "stats/__tests__/",
@@ -1447,6 +1447,18 @@
             "journal profile",
             "preflight runner",
             "LLM sanitizer"
+          ]
+        },
+        {
+          "name": "Journal profile stale freshness test",
+          "purpose": "Verify that editing an existing document target journal/style profile marks the previous preflight report stale and persists the updated metadata snapshot through autosave.",
+          "code": "it('marks the preflight report stale after updating the journal profile', async () => {\n  const user = userEvent.setup();\n  const document = makeDocument('journal profile target');\n  const report = makeQualityReport(document);\n  mockLoadDocumentBlueprint.mockResolvedValue(document);\n  mockGetLatestDocumentQualityReport.mockResolvedValue(report);\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findAllByText('\\uc810\\uac80 \\ud1b5\\uacfc');\n  await user.click(screen.getByRole('button', { name: 'KCI' }));\n  await user.type(screen.getByLabelText('Target journal'), 'Korean Journal');\n  await user.click(screen.getByRole('button', { name: '\\uae30\\uc900 \\uc800\\uc7a5' }));\n\n  await waitFor(() => expect(screen.getByText('\\uc624\\ub798\\ub428')).toBeInTheDocument());\n  await act(async () => {\n    await new Promise((resolve) => setTimeout(resolve, 1600));\n  });\n\n  expect(mockSaveDocumentBlueprint).toHaveBeenCalledWith(expect.objectContaining({\n    metadata: expect.objectContaining({\n      targetJournal: 'Korean Journal',\n      targetJournalProfile: expect.objectContaining({ stylePreset: 'kci' }),\n    }),\n  }));\n});",
+          "keywords": [
+            "DocumentEditor",
+            "targetJournalProfile",
+            "preflight freshness",
+            "stale report",
+            "autosave"
           ]
         }
       ]

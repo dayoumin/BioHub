@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   type DocumentBlueprintsChangedDetail,
@@ -53,6 +55,7 @@ import {
   createDocumentSourceRef,
   getGraphPrimaryAnalysisId,
   getDocumentSourceId,
+  type TargetJournalStylePreset,
   type DocumentWritingSectionStatus,
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
@@ -124,7 +127,11 @@ import {
   buildSourceSnapshotHashes,
   type SourceEvidenceIndex,
 } from '@/lib/research/document-source-evidence'
-import { getDocumentTargetJournalProfileVersion } from '@/lib/research/document-journal-profile'
+import {
+  createTargetJournalProfileSnapshot,
+  getDocumentTargetJournalProfileSnapshot,
+  getDocumentTargetJournalProfileVersion,
+} from '@/lib/research/document-journal-profile'
 import {
   DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION,
   runDocumentPreflightRules,
@@ -150,6 +157,13 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+const JOURNAL_STYLE_OPTIONS: Array<{ value: TargetJournalStylePreset; label: string }> = [
+  { value: 'imrad', label: 'IMRAD' },
+  { value: 'apa', label: 'APA' },
+  { value: 'kci', label: 'KCI' },
+  { value: 'general', label: 'General' },
+  { value: 'manual', label: 'Manual' },
+]
 
 function buildSectionEditorSnapshot(section: DocumentSection): string {
   return JSON.stringify({
@@ -167,6 +181,87 @@ function buildDocumentPreflightSourceSnapshot(
     evidenceIndex,
     sourceSnapshotHashes: buildSourceSnapshotHashes(evidenceIndex),
   }
+}
+
+interface JournalProfilePanelProps {
+  document: DocumentBlueprint
+  disabled: boolean
+  onUpdate: (stylePreset: TargetJournalStylePreset, targetJournal: string) => void
+}
+
+function JournalProfilePanel({
+  document,
+  disabled,
+  onUpdate,
+}: JournalProfilePanelProps): React.ReactElement {
+  const profile = getDocumentTargetJournalProfileSnapshot(document)
+  const defaultStylePreset: TargetJournalStylePreset = profile?.stylePreset ?? 'imrad'
+  const defaultTargetJournal = profile?.targetJournal ?? ''
+  const [stylePreset, setStylePreset] = useState<TargetJournalStylePreset>(defaultStylePreset)
+  const [targetJournal, setTargetJournal] = useState(defaultTargetJournal)
+
+  useEffect(() => {
+    setStylePreset(defaultStylePreset)
+    setTargetJournal(defaultTargetJournal)
+  }, [defaultStylePreset, defaultTargetJournal, profile?.version])
+
+  const hasChanged = stylePreset !== defaultStylePreset
+    || targetJournal.trim() !== defaultTargetJournal
+
+  return (
+    <section className="rounded-[24px] bg-surface px-4 py-4">
+      <div className="space-y-1">
+        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          Journal Profile
+        </p>
+        <h3 className="text-sm font-semibold text-on-surface">투고/스타일 기준</h3>
+        <p className="text-xs text-on-surface-variant">
+          초안 작성과 preflight가 같은 기준을 사용합니다.
+        </p>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {JOURNAL_STYLE_OPTIONS.map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            variant={stylePreset === option.value ? 'secondary' : 'outline'}
+            size="sm"
+            disabled={disabled}
+            onClick={() => setStylePreset(option.value)}
+            className="h-8 rounded-full px-3 text-xs"
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <Label htmlFor="document-target-journal" className="text-xs text-on-surface-variant">
+          Target journal
+        </Label>
+        <Input
+          id="document-target-journal"
+          value={targetJournal}
+          disabled={disabled}
+          onChange={(event) => setTargetJournal(event.target.value)}
+          placeholder="Optional"
+          className="h-9 bg-surface-container"
+        />
+      </div>
+
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        disabled={disabled || !hasChanged}
+        onClick={() => onUpdate(stylePreset, targetJournal)}
+        className="mt-3 w-full rounded-full bg-surface-container-high"
+      >
+        기준 저장
+      </Button>
+    </section>
+  )
 }
 
 function buildCitationSupportBinding(
@@ -786,6 +881,47 @@ export default function DocumentEditor({
       )
       const updated = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
       scheduleSave(updated)
+      return updated
+    })
+  }, [scheduleSave])
+
+  const handleUpdateJournalProfile = useCallback((
+    stylePreset: TargetJournalStylePreset,
+    targetJournal: string,
+  ): void => {
+    setDoc((prev) => {
+      if (!prev) {
+        return prev
+      }
+      if (prev.preset !== 'paper') {
+        return prev
+      }
+
+      const normalizedTargetJournal = targetJournal.trim()
+      const currentProfile = getDocumentTargetJournalProfileSnapshot(prev)
+      const profile = createTargetJournalProfileSnapshot({
+        stylePreset,
+        label: normalizedTargetJournal || currentProfile?.label || `${stylePreset.toUpperCase()} manuscript`,
+        targetJournal: normalizedTargetJournal || undefined,
+        articleType: currentProfile?.articleType ?? 'research article',
+        abstractWordLimit: currentProfile?.abstractWordLimit,
+        mainTextWordLimit: currentProfile?.mainTextWordLimit,
+        referenceStyle: currentProfile?.referenceStyle,
+        requiredStatements: currentProfile?.requiredStatements,
+        figureTableRequirements: currentProfile?.figureTableRequirements,
+        manualRequirements: currentProfile?.manualRequirements,
+      })
+      const updated: DocumentBlueprint = {
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          targetJournal: normalizedTargetJournal || undefined,
+          targetJournalProfile: profile,
+        },
+        updatedAt: new Date().toISOString(),
+      }
+      scheduleSave(updated)
+      toast.success('투고 기준을 저장했습니다.')
       return updated
     })
   }, [scheduleSave])
@@ -2582,6 +2718,13 @@ export default function DocumentEditor({
               onUpdateFindingStatus={handleUpdatePreflightFindingStatus}
               onApplySuggestion={handleApplyPreflightSuggestion}
             />
+            {doc.preset === 'paper' ? (
+              <JournalProfilePanel
+                document={doc}
+                disabled={Boolean(documentConflict)}
+                onUpdate={handleUpdateJournalProfile}
+              />
+            ) : null}
             <MaterialPalette
               projectId={doc.projectId}
               documentId={doc.id}

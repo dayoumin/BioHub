@@ -22,6 +22,7 @@ import {
   buildSourceEvidenceIndex,
   buildSourceSnapshotHashes,
 } from '@/lib/research/document-source-evidence'
+import { createTargetJournalProfileSnapshot } from '@/lib/research/document-journal-profile'
 
 const {
   mockDocumentToDocx,
@@ -487,6 +488,88 @@ describe('DocumentEditor export freshness', () => {
     await waitFor(() => {
       expect(screen.getAllByText('점검 통과').length).toBeGreaterThan(0)
     })
+  })
+
+  it('marks the preflight report stale after updating the journal profile', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('journal profile 대상')
+    const report = makeQualityReport(document)
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(report)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findAllByText('점검 통과')
+    await user.click(screen.getByRole('button', { name: 'KCI' }))
+    await user.type(screen.getByLabelText('Target journal'), 'Korean Journal')
+    await user.click(screen.getByRole('button', { name: '기준 저장' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('오래됨')).toBeInTheDocument()
+    })
+    expect(mockSaveDocumentBlueprint).not.toHaveBeenCalled()
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1600))
+    })
+    expect(mockSaveDocumentBlueprint).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({
+        targetJournal: 'Korean Journal',
+        targetJournalProfile: expect.objectContaining({
+          stylePreset: 'kci',
+          targetJournal: 'Korean Journal',
+        }),
+      }),
+    }))
+  })
+
+  it('preserves detailed journal profile requirements when editing basic criteria', async () => {
+    const user = userEvent.setup()
+    const targetJournalProfile = createTargetJournalProfileSnapshot({
+      stylePreset: 'imrad',
+      targetJournal: 'Original Journal',
+      articleType: 'research article',
+      abstractWordLimit: 250,
+      mainTextWordLimit: 5000,
+      referenceStyle: 'Vancouver',
+      requiredStatements: ['Ethics approval'],
+      figureTableRequirements: ['Max 6 figures/tables'],
+      manualRequirements: ['Use structured abstract'],
+    })
+    const document = makeDocument('journal profile details', {
+      metadata: {
+        targetJournal: 'Original Journal',
+        targetJournalProfile,
+      },
+    })
+    const report = makeQualityReport(document)
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(report)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    const input = await screen.findByLabelText('Target journal')
+    await user.clear(input)
+    await user.type(input, 'Updated Journal')
+    await user.click(screen.getByRole('button', { name: '기준 저장' }))
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1600))
+    })
+    expect(mockSaveDocumentBlueprint).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({
+        targetJournal: 'Updated Journal',
+        targetJournalProfile: expect.objectContaining({
+          stylePreset: 'imrad',
+          targetJournal: 'Updated Journal',
+          abstractWordLimit: 250,
+          mainTextWordLimit: 5000,
+          referenceStyle: 'Vancouver',
+          requiredStatements: ['Ethics approval'],
+          figureTableRequirements: ['Max 6 figures/tables'],
+          manualRequirements: ['Use structured abstract'],
+        }),
+      }),
+    }))
   })
 
   it('requires confirmation before exporting with a missing preflight report', async () => {
