@@ -286,6 +286,8 @@ describe('createDocumentWritingSession', () => {
     expect(resultsSection?.sourceRefs).toEqual([
       { kind: 'supplementary', sourceId: 'bio_1', label: 'Shannon diversity — sample.csv' },
     ])
+    expect(result.writingState?.sectionStates.methods).toBeUndefined()
+    expect(result.writingState?.sectionStates.results?.status).toBe('drafting')
   })
 
   it('rejects ambiguous supplementary entity ids instead of binding multiple kinds', async () => {

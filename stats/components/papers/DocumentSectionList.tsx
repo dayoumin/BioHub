@@ -25,7 +25,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
-import type { DocumentSection } from '@/lib/research/document-blueprint-types'
+import type {
+  DocumentSection,
+  DocumentWritingSectionState,
+  DocumentWritingSectionStatus,
+} from '@/lib/research/document-blueprint-types'
 
 // ── generatedBy 아이콘/라벨 ──
 
@@ -37,15 +41,46 @@ const GENERATED_BY_META: Record<DocumentSection['generatedBy'], { icon: React.El
 
 // ── 정렬 가능한 섹션 아이템 ──
 
+const WRITING_STATUS_META: Record<DocumentWritingSectionStatus, { label: string; className: string }> = {
+  idle: {
+    label: '\uB300\uAE30',
+    className: 'bg-surface-container-high text-on-surface-variant',
+  },
+  drafting: {
+    label: '\uC791\uC131 \uC911',
+    className: 'bg-secondary-container text-secondary',
+  },
+  patched: {
+    label: '\uBC18\uC601\uB428',
+    className: 'bg-[#d9f0e2] text-[#24543a]',
+  },
+  skipped: {
+    label: '\uBCF4\uC874',
+    className: 'bg-surface-container-high text-on-surface-variant',
+  },
+  failed: {
+    label: '\uC2E4\uD328',
+    className: 'bg-destructive/10 text-destructive',
+  },
+}
+
 interface SortableSectionItemProps {
   section: DocumentSection
+  writingState?: DocumentWritingSectionState
   isActive: boolean
   onSelect: () => void
   onDelete: () => void
   onRename: (newTitle: string) => void
 }
 
-function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }: SortableSectionItemProps): React.ReactElement {
+function SortableSectionItem({
+  section,
+  writingState,
+  isActive,
+  onSelect,
+  onDelete,
+  onRename,
+}: SortableSectionItemProps): React.ReactElement {
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const committedRef = useRef(false)
@@ -85,11 +120,15 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
   const supportCount = (section.sectionSupportBindings ?? []).filter((binding) => binding.included !== false).length
   const hasPreparedMaterials = sourceCount > 0 || supportCount > 0
   const statusLabel = hasContent ? 'Ready' : hasPreparedMaterials ? 'Bound' : 'Empty'
+  const writingStatusMeta = writingState && writingState.status !== 'idle'
+    ? WRITING_STATUS_META[writingState.status]
+    : null
 
   return (
     <div
       ref={setNodeRef}
       style={style}
+      data-testid={`document-section-row-${section.id}`}
       className={cn(
         'group flex items-start gap-3 rounded-2xl px-3 py-3 transition-all cursor-pointer',
         isActive
@@ -120,6 +159,17 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
           <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             {statusLabel}
           </span>
+          {writingStatusMeta && (
+            <span
+              data-testid={`document-section-writing-${section.id}`}
+              className={cn(
+                'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                writingStatusMeta.className,
+              )}
+            >
+              {writingStatusMeta.label}
+            </span>
+          )}
         </div>
         {editing ? (
           <input
@@ -188,6 +238,7 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
 
 interface DocumentSectionListProps {
   sections: DocumentSection[]
+  sectionStates?: Record<string, DocumentWritingSectionState>
   activeSectionId: string | null
   onSelectSection: (id: string) => void
   onReorder: (sections: DocumentSection[]) => void
@@ -198,6 +249,7 @@ interface DocumentSectionListProps {
 
 export default function DocumentSectionList({
   sections,
+  sectionStates,
   activeSectionId,
   onSelectSection,
   onReorder,
@@ -275,6 +327,7 @@ export default function DocumentSectionList({
             <SortableSectionItem
               key={section.id}
               section={section}
+              writingState={sectionStates?.[section.id]}
               isActive={activeSectionId === section.id}
               onSelect={() => onSelectSection(section.id)}
               onDelete={() => onDeleteSection(section.id)}

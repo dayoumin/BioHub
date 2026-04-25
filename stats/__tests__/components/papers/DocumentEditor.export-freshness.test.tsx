@@ -10,6 +10,17 @@ import {
 } from '@/lib/research/document-blueprint-types'
 import type { AssemblerDataSources } from '@/lib/research/document-assembler'
 import type { CitationRecord } from '@/lib/research/citation-types'
+import {
+  buildDocumentQualitySnapshot,
+  deriveDocumentQualitySummary,
+  type DocumentQualityReport,
+  type DocumentReviewFinding,
+  type DocumentReviewFindingStatus,
+} from '@/lib/research/document-quality-types'
+import {
+  buildSourceEvidenceIndex,
+  buildSourceSnapshotHashes,
+} from '@/lib/research/document-source-evidence'
 
 const {
   mockDocumentToDocx,
@@ -21,10 +32,15 @@ const {
   mockListGraphProjects,
   mockEnsureDocumentWriting,
   mockRetryDocumentWriting,
+  mockGetLatestDocumentQualityReport,
+  mockSaveDocumentQualityReport,
+  mockUpdateDocumentQualityFindingStatus,
+  mockRunDocumentPreflightRules,
   mockRouterPush,
   mockSerialize,
   mockDeserialize,
   mockSetValue,
+  mockPlateOnChangeRef,
   mockLoadBioToolHistory,
   mockLoadGeneticsHistory,
   BIO_HISTORY_CHANGE_EVENT,
@@ -42,10 +58,19 @@ const {
   mockListGraphProjects: vi.fn(),
   mockEnsureDocumentWriting: vi.fn(async (_documentId: string) => null),
   mockRetryDocumentWriting: vi.fn(async (_documentId: string) => null),
+  mockGetLatestDocumentQualityReport: vi.fn<(documentId: string) => Promise<DocumentQualityReport | null>>(),
+  mockSaveDocumentQualityReport: vi.fn<(report: DocumentQualityReport) => Promise<DocumentQualityReport>>(),
+  mockUpdateDocumentQualityFindingStatus: vi.fn<(
+    reportId: string,
+    findingId: string,
+    status: DocumentReviewFindingStatus,
+  ) => Promise<DocumentQualityReport>>(),
+  mockRunDocumentPreflightRules: vi.fn<(document: DocumentBlueprint, options: { reportId: string; generatedAt: string }) => DocumentQualityReport>(),
   mockRouterPush: vi.fn(),
   mockSerialize: vi.fn(() => 'serialized editor content'),
   mockDeserialize: vi.fn(() => [{ type: 'p', children: [{ text: 'loaded nodes' }] }]),
   mockSetValue: vi.fn(),
+  mockPlateOnChangeRef: { current: null as (() => void) | null },
   mockLoadBioToolHistory: vi.fn<() => BioToolHistoryEntry[]>(() => []),
   mockLoadGeneticsHistory: vi.fn<() => GeneticsHistoryEntry[]>(() => []),
   BIO_HISTORY_CHANGE_EVENT: 'bio-tools-history-changed',
@@ -72,11 +97,14 @@ vi.mock('platejs/react', () => ({
 }))
 
 vi.mock('@/components/papers/PlateEditor', () => ({
-  default: ({ onChange }: { onChange: () => void }) => (
-    <button type="button" data-testid="paper-plate-editor" onClick={onChange}>
-      editor
-    </button>
-  ),
+  default: ({ onChange }: { onChange: () => void }) => {
+    mockPlateOnChangeRef.current = onChange
+    return (
+      <button type="button" data-testid="paper-plate-editor" onClick={onChange}>
+        editor
+      </button>
+    )
+  },
 }))
 
 vi.mock('@/components/papers/plate-plugins', () => ({
@@ -151,6 +179,26 @@ vi.mock('@/lib/research/document-assembler', () => ({
 vi.mock('@/lib/research/document-writing-orchestrator', () => ({
   ensureDocumentWriting: (documentId: string) => mockEnsureDocumentWriting(documentId),
   retryDocumentWriting: (documentId: string) => mockRetryDocumentWriting(documentId),
+}))
+
+vi.mock('@/lib/research/document-quality-storage', () => ({
+  DOCUMENT_QUALITY_REPORTS_CHANGED_EVENT: 'document-quality-reports-changed',
+  getLatestDocumentQualityReport: (documentId: string) => mockGetLatestDocumentQualityReport(documentId),
+  saveDocumentQualityReport: (report: DocumentQualityReport) => mockSaveDocumentQualityReport(report),
+  updateDocumentQualityFindingStatus: (
+    reportId: string,
+    findingId: string,
+    status: DocumentReviewFindingStatus,
+  ) =>
+    mockUpdateDocumentQualityFindingStatus(reportId, findingId, status),
+}))
+
+vi.mock('@/lib/research/document-preflight-rules', () => ({
+  DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION: 'document-preflight-rules:v1',
+  runDocumentPreflightRules: (
+    document: DocumentBlueprint,
+    options: { reportId: string; generatedAt: string },
+  ) => mockRunDocumentPreflightRules(document, options),
 }))
 
 vi.mock('@/lib/research/project-storage', () => ({
@@ -238,12 +286,60 @@ function makeDocument(
   }
 }
 
+function makeQualityReport(
+  document: DocumentBlueprint,
+  overrides: Partial<DocumentQualityReport> = {},
+): DocumentQualityReport {
+  const generatedAt = overrides.generatedAt ?? new Date().toISOString()
+  const findings = overrides.findings ?? []
+  return {
+    id: overrides.id ?? 'dqreport-1',
+    documentId: document.id,
+    projectId: document.projectId,
+    status: 'completed',
+    snapshot: buildDocumentQualitySnapshot(document, {
+      ruleEngineVersion: 'document-preflight-rules:v1',
+      sourceSnapshotHashes: buildSourceSnapshotHashes(buildSourceEvidenceIndex(document)),
+    }),
+    findings,
+    summary: deriveDocumentQualitySummary(findings),
+    generatedAt,
+    updatedAt: overrides.updatedAt ?? generatedAt,
+    ...overrides,
+  }
+}
+
+function makeReviewFinding(overrides: Partial<DocumentReviewFinding> = {}): DocumentReviewFinding {
+  return {
+    id: 'finding-1',
+    reportId: 'dqreport-1',
+    documentId: 'doc-1',
+    projectId: 'project-1',
+    ruleId: 'table.caption.missing',
+    category: 'format',
+    severity: 'warning',
+    status: 'open',
+    title: 'Missing table caption',
+    message: 'Caption is missing.',
+    sectionId: 'results',
+    createdAt: '2026-04-25T00:00:00.000Z',
+    updatedAt: '2026-04-25T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
 function createDeferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((res) => {
     resolve = res
   })
   return { promise, resolve }
+}
+
+async function flushEditorRemoteValueGuard(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
 }
 
 describe('DocumentEditor export freshness', () => {
@@ -257,12 +353,21 @@ describe('DocumentEditor export freshness', () => {
     mockListGraphProjects.mockReset()
     mockEnsureDocumentWriting.mockClear()
     mockRetryDocumentWriting.mockClear()
+    mockGetLatestDocumentQualityReport.mockReset()
+    mockSaveDocumentQualityReport.mockReset()
+    mockUpdateDocumentQualityFindingStatus.mockReset()
+    mockRunDocumentPreflightRules.mockReset()
     mockRouterPush.mockReset()
     mockSerialize.mockClear()
     mockDeserialize.mockClear()
     mockSetValue.mockClear()
+    mockPlateOnChangeRef.current = null
     mockLoadBioToolHistory.mockReset()
     mockLoadGeneticsHistory.mockReset()
+    Object.defineProperty(window, 'confirm', {
+      configurable: true,
+      value: vi.fn(() => true),
+    })
 
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('이전 내용'))
     mockListCitationsByProject.mockResolvedValue([])
@@ -270,6 +375,38 @@ describe('DocumentEditor export freshness', () => {
     mockListGraphProjects.mockReturnValue([])
     mockLoadBioToolHistory.mockReturnValue([])
     mockLoadGeneticsHistory.mockReturnValue([])
+    mockGetLatestDocumentQualityReport.mockResolvedValue(null)
+    mockSaveDocumentQualityReport.mockImplementation(async (report: DocumentQualityReport) => report)
+    mockUpdateDocumentQualityFindingStatus.mockImplementation(async (_reportId, findingId, status) => {
+      const report = await mockGetLatestDocumentQualityReport('doc-1')
+      if (!report) {
+        throw new Error('Report not found')
+      }
+      const findings = report.findings.map((finding) => (
+        finding.id === findingId
+          ? {
+              ...finding,
+              status,
+              ignoredReason: status === 'ignored' ? '사용자가 이번 점검에서 예외로 표시했습니다.' : undefined,
+              updatedAt: '2026-04-25T03:00:00.000Z',
+            }
+          : finding
+      ))
+      return {
+        ...report,
+        findings,
+        summary: deriveDocumentQualitySummary(findings),
+        updatedAt: '2026-04-25T03:00:00.000Z',
+      }
+    })
+    mockRunDocumentPreflightRules.mockImplementation((
+      document: DocumentBlueprint,
+      options: { reportId: string; generatedAt: string },
+    ) => makeQualityReport(document, {
+      id: options.reportId,
+      generatedAt: options.generatedAt,
+      updatedAt: options.generatedAt,
+    }))
     mockReassembleDocument.mockImplementation((doc: DocumentBlueprint) => ({
       ...doc,
       updatedAt: '2026-04-13T00:00:00.000Z',
@@ -311,6 +448,273 @@ describe('DocumentEditor export freshness', () => {
     expect(mockSerialize).not.toHaveBeenCalled()
   })
 
+  it('runs preflight from the right rail and saves the latest report', async () => {
+    const user = userEvent.setup()
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getAllByRole('button', { name: '점검 실행' })[0] as HTMLElement)
+
+    await waitFor(() => {
+      expect(mockRunDocumentPreflightRules).toHaveBeenCalledTimes(1)
+      expect(mockSaveDocumentQualityReport).toHaveBeenCalledTimes(1)
+    })
+
+    const [documentArg, optionsArg] = mockRunDocumentPreflightRules.mock.calls[0] as [
+      DocumentBlueprint,
+      { reportId: string; generatedAt: string },
+    ]
+    expect(documentArg.id).toBe('doc-1')
+    expect(optionsArg.reportId).toMatch(/^dqreport_/)
+    await waitFor(() => {
+      expect(screen.getAllByText('점검 통과').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('requires confirmation before exporting with a missing preflight report', async () => {
+    const user = userEvent.setup()
+    const confirmMock = vi.fn(() => false)
+    Object.defineProperty(window, 'confirm', {
+      configurable: true,
+      value: confirmMock,
+    })
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getAllByText('점검 전').length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'DOCX 다운로드' }))
+
+    expect(confirmMock).toHaveBeenCalledWith('최신 문서 점검 결과가 없습니다. 그래도 내보낼까요?')
+    expect(mockDocumentToDocx).not.toHaveBeenCalled()
+  })
+
+  it('treats a fresh preflight report as stale when linked materials need reassembly before export', async () => {
+    const user = userEvent.setup()
+    const initialDocument = makeDocument('이전 내용')
+    const confirmMock = vi.fn(() => false)
+    Object.defineProperty(window, 'confirm', {
+      configurable: true,
+      value: confirmMock,
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(initialDocument)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(initialDocument))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, {
+        detail: { projectIds: ['project-1'] },
+      }))
+    })
+
+    await screen.findByText('프로젝트 분석 또는 그래프가 변경되었습니다.')
+    await user.click(screen.getByRole('button', { name: 'DOCX 다운로드' }))
+
+    expect(confirmMock).toHaveBeenCalledWith('문서가 점검 이후 변경되었습니다. 그래도 내보낼까요?')
+    expect(mockDocumentToDocx).not.toHaveBeenCalled()
+  })
+
+  it('treats a report as stale when the current source evidence snapshot differs', async () => {
+    const user = userEvent.setup()
+    const currentDocument = makeDocument('이전 내용', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '이전 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+          tables: [
+            {
+              id: 'table-1',
+              caption: 'Updated table',
+              headers: ['F'],
+              rows: [['4.2']],
+              sourceAnalysisId: 'analysis-1',
+            },
+          ],
+        },
+      ],
+    })
+    const reportBaseDocument = makeDocument('이전 내용', {
+      sections: [
+        {
+          ...currentDocument.sections[0],
+          tables: [
+            {
+              id: 'table-1',
+              caption: 'Original table',
+              headers: ['F'],
+              rows: [['4.2']],
+              sourceAnalysisId: 'analysis-1',
+            },
+          ],
+        },
+      ],
+    })
+    const confirmMock = vi.fn(() => false)
+    Object.defineProperty(window, 'confirm', {
+      configurable: true,
+      value: confirmMock,
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(currentDocument)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(reportBaseDocument, {
+      snapshot: {
+        ...buildDocumentQualitySnapshot(currentDocument, {
+          ruleEngineVersion: 'document-preflight-rules:v1',
+          sourceSnapshotHashes: buildSourceSnapshotHashes(buildSourceEvidenceIndex(reportBaseDocument)),
+        }),
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getByRole('button', { name: 'DOCX 다운로드' }))
+
+    expect(confirmMock).toHaveBeenCalledWith('문서가 점검 이후 변경되었습니다. 그래도 내보낼까요?')
+    expect(mockDocumentToDocx).not.toHaveBeenCalled()
+  })
+
+  it('opens the finding section from the preflight panel', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('서론 내용', {
+      sections: [
+        {
+          id: 'intro',
+          title: '서론',
+          content: '서론 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '결과 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          sectionId: 'results',
+          title: 'Missing table caption',
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await screen.findByText('Missing table caption')
+    await user.click(screen.getByRole('button', { name: 'Missing table caption 섹션으로 이동' }))
+
+    const sectionList = screen.getByTestId('document-section-list')
+    const activeEntry = sectionList.querySelector('[data-active="true"]')
+    expect(activeEntry).toHaveTextContent('결과')
+  })
+
+  it('ignores preflight finding navigation when the section no longer exists', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('서론 내용', {
+      sections: [
+        {
+          id: 'intro',
+          title: '서론',
+          content: '서론 내용',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          sectionId: 'missing-section',
+          title: 'Missing section finding',
+        }),
+      ],
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await screen.findByText('Missing section finding')
+    await user.click(screen.getByRole('button', { name: 'Missing section finding 섹션으로 이동' }))
+
+    const sectionList = screen.getByTestId('document-section-list')
+    const activeEntry = sectionList.querySelector('[data-active="true"]')
+    expect(activeEntry).toHaveTextContent('서론')
+  })
+
+  it('marks a fresh preflight finding as ignored and refreshes the panel summary', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('결과 내용')
+    const report = makeQualityReport(document, {
+      findings: [
+        makeReviewFinding({
+          severity: 'critical',
+          title: 'Missing table caption',
+        }),
+      ],
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(report)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await screen.findByText('Missing table caption')
+    expect(screen.getByText('수정 필요')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '무시' }))
+
+    await waitFor(() => {
+      expect(mockUpdateDocumentQualityFindingStatus).toHaveBeenCalledWith(report.id, 'finding-1', 'ignored')
+    })
+    expect(screen.getByText('무시됨')).toBeInTheDocument()
+    expect(screen.getByText('사용자가 이번 점검에서 예외로 표시했습니다.')).toBeInTheDocument()
+    expect(screen.getByText('통과')).toBeInTheDocument()
+  })
+
+  it('does not update finding status when the preflight report is stale', async () => {
+    const user = userEvent.setup()
+    const document = makeDocument('최신 결과 내용')
+    const staleReport = makeQualityReport(makeDocument('이전 결과 내용'), {
+      findings: [
+        makeReviewFinding({
+          title: 'Missing table caption',
+        }),
+      ],
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(document)
+    mockGetLatestDocumentQualityReport.mockResolvedValue(staleReport)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await screen.findByText('Missing table caption')
+    const ignoreButton = screen.getByRole('button', { name: '무시' })
+    expect(ignoreButton).toBeDisabled()
+
+    await user.click(ignoreButton)
+
+    expect(mockUpdateDocumentQualityFindingStatus).not.toHaveBeenCalled()
+  })
+
   it('shows document and section drafting badges when writing state exists', async () => {
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('초안 내용', {
       writingState: {
@@ -329,6 +733,89 @@ describe('DocumentEditor export freshness', () => {
 
     await screen.findByText('초안 작성 중')
     expect(screen.getByText('섹션 작성 중')).toBeInTheDocument()
+  })
+
+  it('summarizes completed writing when some sections were preserved', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('draft', {
+      sections: [
+        {
+          id: 'results',
+          title: 'Results',
+          content: 'draft',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'llm',
+        },
+        {
+          id: 'methods',
+          title: 'Methods',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+      writingState: {
+        status: 'completed',
+        jobId: 'job_1',
+        sectionStates: {
+          results: {
+            status: 'patched',
+            jobId: 'job_1',
+          },
+          methods: {
+            status: 'skipped',
+            jobId: 'job_1',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    expect(await screen.findByText('\uC77C\uBD80 \uBC18\uC601 (1/2)')).toBeInTheDocument()
+  })
+
+  it('summarizes failed writing when some sections were already patched', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('draft', {
+      sections: [
+        {
+          id: 'results',
+          title: 'Results',
+          content: 'draft',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'llm',
+        },
+        {
+          id: 'methods',
+          title: 'Methods',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+      writingState: {
+        status: 'failed',
+        jobId: 'job_1',
+        errorMessage: 'failed',
+        sectionStates: {
+          results: {
+            status: 'patched',
+            jobId: 'job_1',
+          },
+          methods: {
+            status: 'failed',
+            jobId: 'job_1',
+          },
+        },
+      },
+    }))
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    expect(await screen.findByText('\uC77C\uBD80 \uC2E4\uD328 (1/2 \uBC18\uC601)')).toBeInTheDocument()
   })
 
   it('starts background writing when a collecting document is opened', async () => {
@@ -366,12 +853,24 @@ describe('DocumentEditor export freshness', () => {
           editable: true,
           generatedBy: 'template',
         },
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'template',
+        },
       ],
       writingState: {
         status: 'drafting',
         jobId: 'job_1',
         sectionStates: {
           results: {
+            status: 'drafting',
+            jobId: 'job_1',
+          },
+          methods: {
             status: 'drafting',
             jobId: 'job_1',
           },
@@ -390,10 +889,11 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
-    expect(savedDocument.writingState?.status).toBe('completed')
+    expect(savedDocument.writingState?.status).toBe('drafting')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
-    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
-    expect(savedDocument.writingState?.sectionStates.results?.jobId).toBe(savedDocument.writingState?.jobId)
+    expect(savedDocument.writingState?.sectionStates.methods?.status).toBe('drafting')
+    expect(savedDocument.writingState?.jobId).toBe('job_1')
+    expect(savedDocument.writingState?.sectionStates.results?.jobId).toBe('job_1')
   })
 
   it('lets the user stop automatic writing from the section banner', async () => {
@@ -409,12 +909,24 @@ describe('DocumentEditor export freshness', () => {
           editable: true,
           generatedBy: 'template',
         },
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'template',
+        },
       ],
       writingState: {
         status: 'drafting',
         jobId: 'job_1',
         sectionStates: {
           results: {
+            status: 'drafting',
+            jobId: 'job_1',
+          },
+          methods: {
             status: 'drafting',
             jobId: 'job_1',
           },
@@ -425,7 +937,7 @@ describe('DocumentEditor export freshness', () => {
     render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
 
     expect(await screen.findByText('이 섹션은 자동으로 작성 중입니다.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '자동 작성 중단' }))
+    await user.click(screen.getByRole('button', { name: '이 섹션 중단' }))
 
     await waitFor(() => {
       expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
@@ -433,10 +945,11 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
-    expect(savedDocument.writingState?.status).toBe('completed')
+    expect(savedDocument.writingState?.status).toBe('drafting')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
-    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
-    expect(savedDocument.writingState?.sectionStates.results?.jobId).toBe(savedDocument.writingState?.jobId)
+    expect(savedDocument.writingState?.sectionStates.methods?.status).toBe('drafting')
+    expect(savedDocument.writingState?.jobId).toBe('job_1')
+    expect(savedDocument.writingState?.sectionStates.results?.jobId).toBe('job_1')
   })
 
   it('flushes pending editor changes before retrying a failed writing job', async () => {
@@ -1212,6 +1725,7 @@ describe('DocumentEditor export freshness', () => {
     render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
 
     await screen.findByText('테스트 문서')
+    await flushEditorRemoteValueGuard()
 
     vi.useFakeTimers()
     try {
@@ -1268,6 +1782,14 @@ describe('DocumentEditor export freshness', () => {
     render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
 
     await screen.findByText('테스트 문서')
+    await flushEditorRemoteValueGuard()
+    mockDeserialize.mockClear()
+    mockSetValue.mockClear()
+    mockSetValue.mockImplementationOnce(() => {
+      setTimeout(() => {
+        mockPlateOnChangeRef.current?.()
+      }, 0)
+    })
 
     act(() => {
       window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
@@ -1284,6 +1806,14 @@ describe('DocumentEditor export freshness', () => {
       expect(mockLoadDocumentBlueprint).toHaveBeenCalledTimes(2)
     })
 
+    await waitFor(() => {
+      expect(mockDeserialize).toHaveBeenCalledWith('\uC678\uBD80 \uCD5C\uC2E0 \uB0B4\uC6A9')
+      expect(mockSetValue).toHaveBeenCalled()
+    })
+
+    await flushEditorRemoteValueGuard()
+
+    expect(mockSaveDocumentBlueprint).not.toHaveBeenCalled()
     expect(screen.queryByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')).not.toBeInTheDocument()
   })
 
@@ -1298,6 +1828,7 @@ describe('DocumentEditor export freshness', () => {
     render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
 
     await screen.findByText('테스트 문서')
+    await flushEditorRemoteValueGuard()
 
     act(() => {
       screen.getByTestId('paper-plate-editor').click()

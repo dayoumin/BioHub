@@ -672,6 +672,14 @@ async function patchDocumentSection(
       })
     }
 
+    const currentSectionState = document.writingState?.sectionStates[sectionId]
+    if (currentSectionState?.status === 'skipped' && (!currentSectionState.jobId || currentSectionState.jobId === jobId)) {
+      return updateDocumentSectionWritingState(document, sectionId, 'skipped', {
+        jobId,
+        message: currentSectionState.message,
+      })
+    }
+
     const shouldSkipBodyPatch = shouldSkipDocumentSectionBodyPatch(section)
     if (shouldSkipBodyPatch) {
       return updateDocumentSectionWritingState(document, sectionId, 'skipped', {
@@ -789,6 +797,16 @@ async function restartDocumentWritingState(
     })
 
     for (const sectionId of getDraftableSectionIds(restartedDocument)) {
+      const currentSectionState = document.writingState?.sectionStates[sectionId]
+      if (currentSectionState?.status === 'skipped') {
+        restartedDocument = updateDocumentSectionWritingState(restartedDocument, sectionId, 'skipped', {
+          jobId,
+          updatedAt: now,
+          message: currentSectionState.message,
+        })
+        continue
+      }
+
       restartedDocument = updateDocumentSectionWritingState(restartedDocument, sectionId, 'drafting', {
         jobId,
         updatedAt: now,

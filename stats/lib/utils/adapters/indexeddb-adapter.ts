@@ -15,7 +15,7 @@ import type {
 } from '../storage-types'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 5  // v5: citations store 추가
+const DB_VERSION = 6  // v6: document quality report sidecar store 추가
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'
 const FAVORITES_STORE = 'favorites'
@@ -44,7 +44,13 @@ export function openDB(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
     request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
+    request.onblocked = () => reject(new Error('IndexedDB upgrade blocked by another open BioHub tab'))
+    request.onsuccess = () => {
+      request.result.onversionchange = () => {
+        request.result.close()
+      }
+      resolve(request.result)
+    }
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
@@ -82,6 +88,15 @@ export function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('citations')) {
         const citationStore = db.createObjectStore('citations', { keyPath: 'id' })
         citationStore.createIndex('projectId', 'projectId', { unique: false })
+      }
+
+      // Document quality reports store (v6)
+      if (!db.objectStoreNames.contains('document-quality-reports')) {
+        const qualityReportStore = db.createObjectStore('document-quality-reports', { keyPath: 'id' })
+        qualityReportStore.createIndex('documentId', 'documentId', { unique: false })
+        qualityReportStore.createIndex('projectId', 'projectId', { unique: false })
+        qualityReportStore.createIndex('status', 'status', { unique: false })
+        qualityReportStore.createIndex('updatedAt', 'updatedAt', { unique: false })
       }
     }
   })

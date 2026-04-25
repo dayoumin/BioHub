@@ -389,6 +389,29 @@ UX 원칙:
 8. 자동 수정은 기본값이 아니며, 사용자가 선택한 finding만 suggestion/patch로 반영한다.
 9. 최종 export 전 preflight report를 생성해 사용자가 남은 위험을 확인할 수 있게 한다.
 
+UI/UX 설계 범위:
+
+1. 정보 구조
+   - `DocumentEditor` 안에서 작성 상태와 점검 상태를 분리해 보여준다.
+   - 점검 패널은 문서 편집 흐름을 방해하지 않는 side panel 또는 inspector 형태를 기본으로 검토한다.
+   - export 영역에는 최신 preflight 상태와 unresolved blocker만 요약한다.
+2. 상태 표현
+   - `검사 전`, `검사 중`, `검사 완료`, `부분 완료`, `검사 실패`, `오래된 결과`, `원본 변경됨`, `확인 불가`, `무시됨` 상태를 UI 상태 모델로 둔다.
+   - 오래된 report는 통과처럼 보이지 않게 stale badge와 재검사 CTA를 함께 보여준다.
+3. finding 탐색
+   - finding list는 severity, category, section, source availability로 filter/sort 가능해야 한다.
+   - finding을 선택하면 해당 섹션/문장/표/그림으로 이동하고, 가능한 경우 원본 evidence와 비교값을 함께 보여준다.
+4. 수정 흐름
+   - 자동 수정은 bulk apply가 아니라 finding 단위 선택 적용을 기본으로 한다.
+   - 사용자가 직접 수정한 뒤에는 해당 finding을 stale 또는 needs-recheck로 표시한다.
+   - 무시 처리에는 사유를 남겨 export report에 포함할 수 있게 한다.
+5. export 흐름
+   - export 버튼은 막지 않는 것을 기본으로 하되, critical finding 또는 stale report가 있으면 명시적 확인 단계를 둔다.
+   - export 전 preflight report는 "통과/실패 점수"가 아니라 남은 위험과 확인 불가 항목을 요약한다.
+6. 문구 원칙
+   - "합격 가능성", "투고 성공률", "저널 추천 1위" 같은 표현은 UI copy와 tooltip에서 금지한다.
+   - 사용자는 "무엇을 고쳐야 하는지", "왜 문제인지", "어떤 원본과 충돌하는지"를 한 화면에서 이해할 수 있어야 한다.
+
 ## 5. 공통 컴포넌트 계획
 
 ### 5.1 Editor Control UI
@@ -591,6 +614,36 @@ registry 추출 전에 현재 동작을 테스트 기준선으로 잠근다.
 10. `DocumentEditor`에 "초안 점검" 패널, stale/partial/failed 상태, finding list, finding action 추가
 11. export 전 preflight report 생성, stale report 경고, critical mismatch 명시적 확인 흐름 추가
 12. journal fit은 acceptance prediction이 아니라 후속 `연구 범위 일치 신호` 설명으로 제한
+
+### Phase 2.75 진행 방식: 단계별 agent gate
+
+Review / Preflight는 논문 초안 작성 기능과 강하게 연결되어 있으므로, 작성 파이프라인을 건너뛰고 별도 기능처럼 구현하지 않는다. 각 단계는 `구현 전 agent 계획 점검 -> 구현 -> 1차 로컬 검토 -> agent 리뷰 -> 문서/TODO 갱신 -> 다음 단계` 순서로 진행한다.
+
+권장 gate:
+
+1. 작성 파이프라인 안정화 gate
+   - 대상: `DocumentBlueprint`, writing job/state, section patch, user edit 보존
+   - agent 관점: 아키텍처, 동시성, UX
+2. Review/Preflight 기반 계약 gate
+   - 대상: `DocumentQualityReport`, `DocumentReviewFinding`, stale/freshness, sidecar store
+   - agent 관점: 데이터 모델, 저장, 상태 전이
+3. Source evidence gate
+   - 대상: `SourceEvidenceIndex`, claim/evidence 연결, table/figure stable id
+   - agent 관점: 통계 검증, provenance, fixture 설계
+4. Deterministic preflight gate
+   - 대상: caption 누락, figure/table 호출 누락, required statement, citation/reference consistency, word count
+   - agent 관점: rule coverage, false positive, 테스트
+5. DocumentEditor UI/UX gate
+   - 대상: 점검 패널, finding list, stale/partial/failed 상태, 원본 보기/무시/재검사/선택 적용
+   - agent 관점: 제품 UX, 정보 구조, 문구
+6. Export preflight gate
+   - 대상: stale report 경고, critical finding 확인, preflight report 포함
+   - agent 관점: export UX, 회귀 위험, 테스트
+7. 후속 journal fit / submission tracking gate
+   - 대상: OpenAlex 기반 scope signal, `SubmissionAttempt` log
+   - agent 관점: 제품 표현, 오해 방지, 데이터 경계
+
+중요 원칙: 초안 생성, 편집, 저장, 사용자 수정 보존이 안정되기 전에는 Review / Preflight를 깊게 붙이지 않는다. 점검 결과의 신뢰도는 작성 파이프라인의 안정성에 의존한다.
 
 ### Phase 3. Preset / 문서 종류 확장
 

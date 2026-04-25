@@ -224,10 +224,13 @@ async function applySourceBindings(
 }
 
 function hasWritableSourceBindings(sections: readonly DocumentSection[]): boolean {
-  return sections.some((section) => (
-    (section.sourceRefs?.length ?? 0) > 0
+  return sections.some((section) => hasSectionWritingInputs(section))
+}
+
+function hasSectionWritingInputs(section: DocumentSection): boolean {
+  return (section.sourceRefs?.length ?? 0) > 0
     || (section.figures?.length ?? 0) > 0
-  ))
+    || (section.sectionSupportBindings?.some((binding) => binding.included !== false) ?? false)
 }
 
 function applyInitialSectionSupportBindings(
@@ -323,8 +326,12 @@ async function createSourceBoundWritingDocument(
     updatedAt: now,
   })
 
-  for (const sectionId of ['methods', 'results']) {
-    document = updateDocumentSectionWritingState(document, sectionId, 'drafting', {
+  for (const section of document.sections) {
+    if (!hasSectionWritingInputs(section)) {
+      continue
+    }
+
+    document = updateDocumentSectionWritingState(document, section.id, 'drafting', {
       jobId,
       updatedAt: now,
     })

@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.44.15",
+  "version": "1.44.16",
   "lastUpdated": "2026-04-25",
   "sources": [
     "stats/__tests__/",
@@ -1371,6 +1371,27 @@
             "localStorage",
             "useAppPreferences mock",
             "regression"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Document Preflight Tests",
+      "description": "문서 점검 sidecar, stale freshness, finding 액션을 비동기 UI와 저장소 mock으로 검증하는 패턴",
+      "patterns": [
+        {
+          "name": "문서 Preflight sidecar 상태 회귀 테스트",
+          "purpose": "DocumentQualityReport를 본문과 분리된 sidecar로 로드/갱신하고, stale report에서는 finding 상태 액션이 저장되지 않는지 검증",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { vi } from 'vitest';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\nimport { deriveDocumentQualitySummary } from '@/lib/research/document-quality-types';\n\nvi.mock('@/lib/research/document-quality-storage', () => ({\n  getLatestDocumentQualityReport: vi.fn(),\n  updateDocumentQualityFindingStatus: vi.fn(),\n}));\n\nit('fresh report finding을 ignored로 저장하고 summary를 갱신한다', async () => {\n  const user = userEvent.setup();\n  const report = makeQualityReport(document, { findings: [makeReviewFinding({ severity: 'critical' })] });\n  mockGetLatestDocumentQualityReport.mockResolvedValue(report);\n  mockUpdateDocumentQualityFindingStatus.mockResolvedValue({\n    ...report,\n    findings: [{ ...report.findings[0], status: 'ignored' }],\n    summary: deriveDocumentQualitySummary([{ ...report.findings[0], status: 'ignored' }]),\n  });\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('Missing table caption');\n  await user.click(screen.getByRole('button', { name: '무시' }));\n\n  await waitFor(() => {\n    expect(mockUpdateDocumentQualityFindingStatus).toHaveBeenCalledWith(report.id, 'finding-1', 'ignored');\n  });\n  expect(screen.getByText('무시됨')).toBeInTheDocument();\n});",
+          "keywords": [
+            "DocumentEditor",
+            "DocumentQualityReport",
+            "preflight",
+            "sidecar",
+            "stale",
+            "finding status",
+            "waitFor",
+            "userEvent"
           ]
         }
       ]

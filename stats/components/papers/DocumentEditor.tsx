@@ -99,10 +99,33 @@ import MaterialPalette from './MaterialPalette'
 import DocumentExportBar from './DocumentExportBar'
 import DocumentWritingHeaderStatus from './DocumentWritingHeaderStatus'
 import SectionWritingBanner from './SectionWritingBanner'
+import DocumentPreflightPanel from './DocumentPreflightPanel'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
 import { generateId } from '@/lib/utils/generate-id'
+import {
+  getDocumentQualityFreshness,
+  type DocumentQualityFreshness,
+  type DocumentQualityReport,
+  type DocumentReviewFindingStatus,
+} from '@/lib/research/document-quality-types'
+import {
+  DOCUMENT_QUALITY_REPORTS_CHANGED_EVENT,
+  getLatestDocumentQualityReport,
+  saveDocumentQualityReport,
+  updateDocumentQualityFindingStatus,
+  type DocumentQualityReportsChangedDetail,
+} from '@/lib/research/document-quality-storage'
+import {
+  buildSourceEvidenceIndex,
+  buildSourceSnapshotHashes,
+  type SourceEvidenceIndex,
+} from '@/lib/research/document-source-evidence'
+import {
+  DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION,
+  runDocumentPreflightRules,
+} from '@/lib/research/document-preflight-rules'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -122,6 +145,24 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+
+function buildSectionEditorSnapshot(section: DocumentSection): string {
+  return JSON.stringify({
+    content: section.content,
+    generatedBy: section.generatedBy,
+    plateValue: section.plateValue ?? null,
+  })
+}
+
+function buildDocumentPreflightSourceSnapshot(
+  document: DocumentBlueprint,
+): { evidenceIndex: SourceEvidenceIndex; sourceSnapshotHashes: Record<string, string> } {
+  const evidenceIndex = buildSourceEvidenceIndex(document)
+  return {
+    evidenceIndex,
+    sourceSnapshotHashes: buildSourceSnapshotHashes(evidenceIndex),
+  }
+}
 
 function buildCitationSupportBinding(
   sectionId: string,
@@ -273,6 +314,8 @@ export default function DocumentEditor({
   const [citations, setCitations] = useState<CitationRecord[]>([])
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
+  const [qualityReport, setQualityReport] = useState<DocumentQualityReport | null>(null)
+  const [preflightPending, setPreflightPending] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
@@ -307,6 +350,10 @@ export default function DocumentEditor({
   // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
   const pendingDocRef = useRef<DocumentBlueprint | null>(null)
   const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loadedSectionRef = useRef<string | null>(null)
+  const loadedSectionSnapshotRef = useRef<string | null>(null)
+  const isApplyingRemoteValueRef = useRef(false)
+  const remoteValueGuardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDocumentConflictError = useCallback((error: unknown): error is DocumentBlueprintConflictError => (
     error instanceof DocumentBlueprintConflictError
@@ -328,6 +375,8 @@ export default function DocumentEditor({
     setDocumentConflict(null)
     documentConflictRef.current = null
     setSaveStatus('saved')
+    loadedSectionRef.current = null
+    loadedSectionSnapshotRef.current = null
 
     if (loaded.sections.length === 0) {
       setActiveSectionId(null)
@@ -403,6 +452,10 @@ export default function DocumentEditor({
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current)
       }
+      if (remoteValueGuardTimerRef.current) {
+        clearTimeout(remoteValueGuardTimerRef.current)
+        remoteValueGuardTimerRef.current = null
+      }
 
       const pendingDoc = pendingDocRef.current
       const pendingRevision = pendingSaveRevisionRef.current
@@ -423,8 +476,11 @@ export default function DocumentEditor({
     setActiveSectionId(null)
     setCitations([])
     setNeedsReassemble(false)
+    setQualityReport(null)
     setDocumentConflict(null)
     setSaveStatus('saved')
+    loadedSectionRef.current = null
+    loadedSectionSnapshotRef.current = null
 
     loadDocumentBlueprint(documentId).then(loaded => {
       if (cancelled) return
@@ -438,6 +494,55 @@ export default function DocumentEditor({
       cancelled = true
     }
   }, [applyLoadedDocument, documentId, initialSectionId])
+
+  useEffect(() => {
+    if (!doc?.id) {
+      setQualityReport(null)
+      return
+    }
+
+    let cancelled = false
+    setQualityReport(null)
+    getLatestDocumentQualityReport(doc.id)
+      .then((report) => {
+        if (!cancelled) {
+          setQualityReport(report)
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('[DocumentEditor] failed to load document quality report:', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [doc?.id])
+
+  useEffect(() => {
+    if (!doc?.id) {
+      return
+    }
+
+    const handleQualityReportChange = (event: Event): void => {
+      const detail = (event as CustomEvent<DocumentQualityReportsChangedDetail>).detail
+      if (!detail || detail.documentId !== doc.id || detail.projectId !== doc.projectId) {
+        return
+      }
+
+      getLatestDocumentQualityReport(doc.id)
+        .then((report) => {
+          setQualityReport(report)
+        })
+        .catch((error: unknown) => {
+          console.error('[DocumentEditor] failed to reload document quality report:', error)
+        })
+    }
+
+    window.addEventListener(DOCUMENT_QUALITY_REPORTS_CHANGED_EVENT, handleQualityReportChange)
+    return (): void => {
+      window.removeEventListener(DOCUMENT_QUALITY_REPORTS_CHANGED_EVENT, handleQualityReportChange)
+    }
+  }, [doc?.id, doc?.projectId])
 
   useEffect(() => {
     pendingArtifactTargetRef.current = initialTableId
@@ -733,7 +838,7 @@ export default function DocumentEditor({
     return sectionStatus === 'drafting'
   }, [])
 
-  const interruptDocumentWriting = useCallback((
+  const interruptSectionWriting = useCallback((
     document: DocumentBlueprint,
     sectionId: string,
     options: {
@@ -742,8 +847,8 @@ export default function DocumentEditor({
     },
   ): DocumentBlueprint => {
     const interruptedAt = new Date().toISOString()
-    const previousJobId = document.writingState?.jobId
-    const interruptionJobId = generateId('docjob')
+    const currentWritingState = document.writingState
+    const currentJobId = currentWritingState?.jobId
 
     const nextSections = document.sections.map((section) => (
       section.id === sectionId
@@ -761,40 +866,30 @@ export default function DocumentEditor({
       updatedAt: interruptedAt,
     }
 
-    updatedDocument = {
-      ...updatedDocument,
-      writingState: {
-        ...updatedDocument.writingState,
-        status: 'completed',
-        jobId: interruptionJobId,
-        startedAt: updatedDocument.writingState?.startedAt,
-        updatedAt: interruptedAt,
-        errorMessage: undefined,
-        sectionStates: {
-          ...(updatedDocument.writingState?.sectionStates ?? {}),
+    updatedDocument = updateDocumentSectionWritingState(updatedDocument, sectionId, 'skipped', {
+      jobId: currentJobId,
+      updatedAt: interruptedAt,
+      message: options.message,
+    })
+
+    const hasOtherDraftingSections = document.sections.some((section) => (
+      section.id !== sectionId
+      && document.writingState?.sectionStates[section.id]?.status === 'drafting'
+    ))
+
+    if (!hasOtherDraftingSections && currentWritingState) {
+      return {
+        ...updatedDocument,
+        writingState: {
+          ...updatedDocument.writingState,
+          status: 'completed',
+          jobId: currentJobId,
+          startedAt: currentWritingState.startedAt,
+          updatedAt: interruptedAt,
+          errorMessage: undefined,
+          sectionStates: updatedDocument.writingState?.sectionStates ?? {},
         },
-      },
-    }
-
-    for (const section of document.sections) {
-      const currentStatus = document.writingState?.sectionStates[section.id]?.status
-      const currentJobId = document.writingState?.sectionStates[section.id]?.jobId ?? previousJobId
-      const shouldInterruptSection = (
-        section.id === sectionId
-        || (currentStatus === 'drafting' && currentJobId === previousJobId)
-      )
-
-      if (!shouldInterruptSection) {
-        continue
       }
-
-      updatedDocument = updateDocumentSectionWritingState(updatedDocument, section.id, 'skipped', {
-        jobId: interruptionJobId,
-        updatedAt: interruptedAt,
-        message: section.id === sectionId
-          ? options.message
-          : '사용자가 자동 작성을 중단했습니다.',
-      })
     }
 
     return updatedDocument
@@ -805,25 +900,25 @@ export default function DocumentEditor({
       if (!prev) {
         return prev
       }
-      const updated = interruptDocumentWriting(prev, sectionId, {
+      const updated = interruptSectionWriting(prev, sectionId, {
         message: '사용자 편집이 시작되어 자동 초안을 중단했습니다.',
         plateValue,
       })
       scheduleImmediateSave(updated)
       return updated
     })
-  }, [interruptDocumentWriting, scheduleImmediateSave])
+  }, [interruptSectionWriting, scheduleImmediateSave])
 
   const skipSectionWriting = useCallback((sectionId: string, message: string): void => {
     setDoc((prev) => {
       if (!prev) {
         return prev
       }
-      const updated = interruptDocumentWriting(prev, sectionId, { message })
+      const updated = interruptSectionWriting(prev, sectionId, { message })
       scheduleImmediateSave(updated)
       return updated
     })
-  }, [interruptDocumentWriting, scheduleImmediateSave])
+  }, [interruptSectionWriting, scheduleImmediateSave])
 
   const reassembleCurrentDocument = useCallback((baseDoc?: DocumentBlueprint): DocumentBlueprint | null => {
     const targetDoc = baseDoc ?? docRef.current
@@ -952,8 +1047,46 @@ export default function DocumentEditor({
     await saveQueueRef.current.catch(() => undefined)
   }, [flushSerialize, queueDocumentSave])
 
+  const handleRunPreflight = useCallback(async (): Promise<void> => {
+    if (preflightPending || documentConflictRef.current) {
+      return
+    }
+
+    setPreflightPending(true)
+    try {
+      await flushPendingWrites()
+      if (documentConflictRef.current) {
+        return
+      }
+      const currentDoc = needsReassemble
+        ? (reassembleCurrentDocument(docRef.current ?? undefined) ?? docRef.current)
+        : docRef.current
+      if (!currentDoc) {
+        return
+      }
+
+      const generatedAt = new Date().toISOString()
+      const { evidenceIndex, sourceSnapshotHashes } = buildDocumentPreflightSourceSnapshot(currentDoc)
+      const report = runDocumentPreflightRules(currentDoc, {
+        reportId: generateId('dqreport'),
+        generatedAt,
+        evidenceIndex,
+        sourceSnapshotHashes,
+      })
+      const savedReport = await saveDocumentQualityReport(report)
+      setQualityReport(savedReport)
+      toast.success('문서 점검을 완료했습니다.')
+    } catch (error: unknown) {
+      console.error('[DocumentEditor] failed to run document preflight:', error)
+      toast.error('문서 점검에 실패했습니다.')
+    } finally {
+      setPreflightPending(false)
+    }
+  }, [flushPendingWrites, needsReassemble, preflightPending, reassembleCurrentDocument])
+
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
+    if (isApplyingRemoteValueRef.current) return
     if (!activeSectionId) return
     const plateValue = editor.children
     if (shouldTakeOwnershipForWritingSection(activeSectionId)) {
@@ -995,18 +1128,35 @@ export default function DocumentEditor({
   }, [activeSectionId, skipSectionWriting])
 
   // 섹션 전환 시 Plate 에디터에 content 로드
-  const loadedSectionRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!activeSectionId || !doc) return
-    if (loadedSectionRef.current === activeSectionId) return
-
-    // 이전 섹션의 serialize 타이머가 있으면 즉시 flush (내용 오염 방지)
-    flushSerialize()
-    loadedSectionRef.current = activeSectionId
-
+    if (!activeSectionId || !doc) {
+      loadedSectionRef.current = null
+      loadedSectionSnapshotRef.current = null
+      return
+    }
     const section = doc.sections.find(s => s.id === activeSectionId)
     if (!section) return
+    const nextSnapshot = buildSectionEditorSnapshot(section)
+    const isSameSection = loadedSectionRef.current === activeSectionId
 
+    if (isSameSection && loadedSectionSnapshotRef.current === nextSnapshot) return
+    if (
+      isSameSection
+      && (
+        hasLocalChangesRef.current
+        || pendingSaveRevisionRef.current !== null
+        || pendingSerializeSectionRef.current === activeSectionId
+      )
+    ) {
+      return
+    }
+
+    if (!isSameSection) {
+      // 이전 섹션의 serialize 타이머가 있으면 즉시 flush (내용 오염 방지)
+      flushSerialize()
+    }
+
+    isApplyingRemoteValueRef.current = true
     try {
       // plateValue가 있으면 그대로 사용, 없으면 마크다운에서 역직렬화
       if (section.plateValue && Array.isArray(section.plateValue) && section.plateValue.length > 0) {
@@ -1019,8 +1169,18 @@ export default function DocumentEditor({
       }
     } catch {
       editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }])
+    } finally {
+      loadedSectionRef.current = activeSectionId
+      loadedSectionSnapshotRef.current = nextSnapshot
+      if (remoteValueGuardTimerRef.current) {
+        clearTimeout(remoteValueGuardTimerRef.current)
+      }
+      remoteValueGuardTimerRef.current = setTimeout(() => {
+        isApplyingRemoteValueRef.current = false
+        remoteValueGuardTimerRef.current = null
+      }, 0)
     }
-  }, [activeSectionId, doc, editor])
+  }, [activeSectionId, doc, editor, flushSerialize])
 
   // 섹션 순서 변경
   const handleReorder = useCallback((newSections: DocumentSection[]) => {
@@ -1420,6 +1580,45 @@ export default function DocumentEditor({
   const activeSectionPreviewContent = useMemo(() => (
     resolveInlineCitationMarkdown(activeSection?.content || '*내용 없음*', citations)
   ), [activeSection?.content, citations])
+  const preflightFreshness = useMemo<DocumentQualityFreshness>(() => {
+    if (!doc || !qualityReport || qualityReport.documentId !== doc.id) {
+      return 'missing'
+    }
+
+    if (needsReassemble) {
+      return 'stale'
+    }
+
+    const { sourceSnapshotHashes } = buildDocumentPreflightSourceSnapshot(doc)
+    return getDocumentQualityFreshness(doc, qualityReport, {
+      ruleEngineVersion: DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION,
+      sourceSnapshotHashes,
+    })
+  }, [doc, needsReassemble, qualityReport])
+  const handleSelectPreflightSection = useCallback((sectionId: string): void => {
+    if (!doc?.sections.some((section) => section.id === sectionId)) {
+      return
+    }
+    setActiveSectionId(sectionId)
+  }, [doc?.sections])
+  const handleUpdatePreflightFindingStatus = useCallback(async (
+    findingId: string,
+    status: DocumentReviewFindingStatus,
+  ): Promise<void> => {
+    if (!qualityReport || preflightPending || documentConflictRef.current || preflightFreshness !== 'fresh') {
+      return
+    }
+
+    try {
+      const savedReport = await updateDocumentQualityFindingStatus(qualityReport.id, findingId, status, {
+        ignoredReason: status === 'ignored' ? '사용자가 이번 점검에서 예외로 표시했습니다.' : undefined,
+      })
+      setQualityReport(savedReport)
+    } catch (error: unknown) {
+      console.error('[DocumentEditor] failed to update document preflight finding:', error)
+      toast.error('점검 항목 상태를 저장하지 못했습니다.')
+    }
+  }, [preflightFreshness, preflightPending, qualityReport])
   const activeSectionAttachedCitationRoleCounts = useMemo(() => {
     const roleMap = new Map<string, Map<DocumentSectionSupportRole, number>>()
     for (const binding of activeSectionSupportBindings) {
@@ -1438,6 +1637,20 @@ export default function DocumentEditor({
   const activeSectionWritingState = activeSection
     ? documentWritingState?.sectionStates[activeSection.id]
     : undefined
+  const writingSectionSummary = useMemo(() => {
+    const currentSectionIds = new Set((doc?.sections ?? []).map((section) => section.id))
+    const states = Object.entries(documentWritingState?.sectionStates ?? {})
+      .filter(([sectionId]) => currentSectionIds.has(sectionId))
+      .map(([, state]) => state)
+    const trackedStates = states.filter((state) => state.status !== 'idle')
+
+    return {
+      total: trackedStates.length,
+      patched: trackedStates.filter((state) => state.status === 'patched').length,
+      skipped: trackedStates.filter((state) => state.status === 'skipped').length,
+      failed: trackedStates.filter((state) => state.status === 'failed').length,
+    }
+  }, [doc?.sections, documentWritingState?.sectionStates])
   const writingStatusLabel = useMemo((): string | null => {
     switch (documentWritingState?.status) {
       case 'collecting':
@@ -1447,13 +1660,25 @@ export default function DocumentEditor({
       case 'patching':
         return '문서 반영 중'
       case 'completed':
+        if (writingSectionSummary.failed > 0 && writingSectionSummary.total > 0) {
+          return `\uC77C\uBD80 \uC2E4\uD328 (${writingSectionSummary.patched}/${writingSectionSummary.total} \uBC18\uC601)`
+        }
+        if (writingSectionSummary.skipped > 0 && writingSectionSummary.patched > 0 && writingSectionSummary.total > 0) {
+          return `\uC77C\uBD80 \uBC18\uC601 (${writingSectionSummary.patched}/${writingSectionSummary.total})`
+        }
+        if (writingSectionSummary.skipped > 0 && writingSectionSummary.total > 0) {
+          return `\uC77C\uBD80 \uBCF4\uC874 (${writingSectionSummary.skipped}/${writingSectionSummary.total})`
+        }
         return '작성 완료'
       case 'failed':
+        if (writingSectionSummary.patched > 0 && writingSectionSummary.total > 0) {
+          return `\uC77C\uBD80 \uC2E4\uD328 (${writingSectionSummary.patched}/${writingSectionSummary.total} \uBC18\uC601)`
+        }
         return '작성 실패'
       default:
         return null
     }
-  }, [documentWritingState?.status])
+  }, [documentWritingState?.status, writingSectionSummary.failed, writingSectionSummary.patched, writingSectionSummary.skipped, writingSectionSummary.total])
   useEffect(() => {
     initialCitationAttachmentHandledRef.current = false
   }, [documentId, initialAttachCitationKey])
@@ -1773,6 +1998,7 @@ export default function DocumentEditor({
         <div className="w-[280px] shrink-0 overflow-y-auto rounded-[28px] bg-surface-container-low p-4">
           <DocumentSectionList
             sections={doc.sections}
+            sectionStates={documentWritingState?.sectionStates}
             activeSectionId={activeSectionId}
             onSelectSection={setActiveSectionId}
             onReorder={handleReorder}
@@ -2155,27 +2381,46 @@ export default function DocumentEditor({
 
         {/* 우측: 재료 팔레트 */}
         <div className="w-[340px] shrink-0 overflow-y-auto rounded-[28px] bg-surface-container-low p-4">
-          <MaterialPalette
-            projectId={doc.projectId}
-            documentId={doc.id}
-            activeSectionId={activeSectionId}
-            activeSectionTitle={activeSection?.title ?? null}
-            onInsertAnalysis={handleInsertAnalysis}
-            onInsertFigure={handleInsertFigure}
-            citations={citations}
-            onDeleteCitation={handleDeleteCitation}
-            onAttachCitationToSection={handleAttachCitationToSection}
-            onDetachCitationFromSection={handleDetachCitationRoleFromSection}
-            onInsertInlineCitation={handleInsertInlineCitation}
-            attachedCitationRoleCounts={activeSectionAttachedCitationRoleCounts}
-          />
+          <div className="space-y-4">
+            <DocumentPreflightPanel
+              report={qualityReport}
+              freshness={preflightFreshness}
+              pending={preflightPending}
+              disabled={Boolean(documentConflict)}
+              actionsDisabled={Boolean(documentConflict)}
+              onRun={handleRunPreflight}
+              onSelectSection={handleSelectPreflightSection}
+              onUpdateFindingStatus={handleUpdatePreflightFindingStatus}
+            />
+            <MaterialPalette
+              projectId={doc.projectId}
+              documentId={doc.id}
+              activeSectionId={activeSectionId}
+              activeSectionTitle={activeSection?.title ?? null}
+              onInsertAnalysis={handleInsertAnalysis}
+              onInsertFigure={handleInsertFigure}
+              citations={citations}
+              onDeleteCitation={handleDeleteCitation}
+              onAttachCitationToSection={handleAttachCitationToSection}
+              onDetachCitationFromSection={handleDetachCitationRoleFromSection}
+              onInsertInlineCitation={handleInsertInlineCitation}
+              attachedCitationRoleCounts={activeSectionAttachedCitationRoleCounts}
+            />
+          </div>
         </div>
       </div>
 
       {/* 하단: 내보내기 */}
       <div className="shrink-0 px-6 pb-6">
         <div className="rounded-[24px] bg-surface-container px-4 py-3">
-          <DocumentExportBar document={doc} onBeforeExport={prepareDocumentForExport} />
+          <DocumentExportBar
+            document={doc}
+            onBeforeExport={prepareDocumentForExport}
+            qualityReport={qualityReport}
+            preflightFreshness={preflightFreshness}
+            preflightPending={preflightPending}
+            onRunPreflight={handleRunPreflight}
+          />
         </div>
       </div>
     </div>

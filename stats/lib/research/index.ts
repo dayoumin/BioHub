@@ -55,11 +55,16 @@ export * from './document-writer-engine-registry';
 /** OpenRouter/Ollama document writer engines */
 export * from './document-llm-writer-engine';
 
+/** 문서 품질 점검 report/finding 타입 + sidecar 저장 */
+export * from './document-quality-types';
+export * from './document-quality-storage';
+
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';
 
 /** 근거(evidence) 레코드 팩토리 */
 export * from './evidence-factory';
+export * from './submission-readiness-terminology';
 
 // ── 논문 패키지 ─────────────────────────────────────────────
 /** 논문 패키지 타입 (아이템, 참조, 저널 프리셋) */

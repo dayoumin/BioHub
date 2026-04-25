@@ -906,6 +906,135 @@ describe('document writing orchestrator', () => {
     expect(recovered?.sections.find((section) => section.id === 'results')?.content).toContain('결과 초안')
   })
 
+  it('preserves a user-owned section body while continuing to patch other drafting sections', async () => {
+    currentDocument = makeDocument({
+      sections: [
+        {
+          id: 'methods',
+          title: 'Methods',
+          content: 'User edited methods',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: 'Results',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const result = await ensureDocumentWriting('doc_1')
+
+    expect(result?.writingState?.status).toBe('completed')
+    expect(result?.writingState?.sectionStates.methods?.status).toBe('skipped')
+    expect(result?.writingState?.sectionStates.results?.status).toBe('patched')
+    expect(result?.sections.find((section) => section.id === 'methods')?.content).toBe('User edited methods')
+    expect(result?.sections.find((section) => section.id === 'results')?.content).toContain('결과 초안')
+  })
+
+  it('does not patch an empty section that the user already skipped while continuing other sections', async () => {
+    currentDocument = makeDocument({
+      writingState: {
+        status: 'drafting',
+        jobId: 'job_1',
+        sectionStates: {
+          methods: {
+            status: 'skipped',
+            jobId: 'job_1',
+            message: '사용자가 이 섹션 자동 작성을 중단했습니다.',
+          },
+          results: {
+            status: 'drafting',
+            jobId: 'job_1',
+          },
+        },
+      },
+      sections: [
+        {
+          id: 'methods',
+          title: 'Methods',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: 'Results',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const result = await ensureDocumentWriting('doc_1')
+
+    expect(result?.writingState?.status).toBe('completed')
+    expect(result?.writingState?.sectionStates.methods?.status).toBe('skipped')
+    expect(result?.writingState?.sectionStates.methods?.message).toBe('사용자가 이 섹션 자동 작성을 중단했습니다.')
+    expect(result?.writingState?.sectionStates.results?.status).toBe('patched')
+    expect(result?.sections.find((section) => section.id === 'methods')?.content).toBe('')
+    expect(result?.sections.find((section) => section.id === 'methods')?.generatedBy).toBe('user')
+    expect(result?.sections.find((section) => section.id === 'results')?.content).toContain('결과 초안')
+  })
+
+  it('preserves an empty skipped user section when retrying a failed document', async () => {
+    currentDocument = makeDocument({
+      writingState: {
+        status: 'failed',
+        jobId: 'job_failed',
+        errorMessage: 'previous failure',
+        sectionStates: {
+          methods: {
+            status: 'skipped',
+            jobId: 'job_failed',
+            message: '사용자가 이 섹션 자동 작성을 중단했습니다.',
+          },
+          results: {
+            status: 'failed',
+            jobId: 'job_failed',
+          },
+        },
+      },
+      sections: [
+        {
+          id: 'methods',
+          title: 'Methods',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: 'Results',
+          content: '',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const result = await retryDocumentWriting('doc_1')
+
+    expect(result?.writingState?.status).toBe('completed')
+    expect(result?.writingState?.sectionStates.methods?.status).toBe('skipped')
+    expect(result?.writingState?.sectionStates.methods?.jobId).toBe(result?.writingState?.jobId)
+    expect(result?.writingState?.sectionStates.methods?.message).toBe('사용자가 이 섹션 자동 작성을 중단했습니다.')
+    expect(result?.writingState?.sectionStates.results?.status).toBe('patched')
+    expect(result?.sections.find((section) => section.id === 'methods')?.content).toBe('')
+    expect(result?.sections.find((section) => section.id === 'methods')?.generatedBy).toBe('user')
+    expect(result?.sections.find((section) => section.id === 'results')?.content).toContain('결과 초안')
+  })
+
   it('applies writer override to methods and results while preserving structured artifacts', async () => {
     mockResolveDocumentWriterSettings.mockReturnValue({
       provider: 'api',

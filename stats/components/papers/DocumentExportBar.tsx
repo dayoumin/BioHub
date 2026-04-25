@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { Copy, Download, FileDown, Check, Loader2 } from 'lucide-react'
+import { AlertTriangle, Check, Copy, Download, FileDown, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { downloadBlob } from '@/lib/services/export/export-data-builder'
@@ -14,12 +14,83 @@ import {
   renderMarkdownProvenanceLines,
 } from '@/lib/services/export/document-provenance'
 import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
+import type {
+  DocumentQualityFreshness,
+  DocumentQualityReport,
+} from '@/lib/research/document-quality-types'
 import { resolveDocumentInlineCitations } from '@/lib/research/citation-csl'
 import { buildRenderableDocument } from '@/lib/research/document-support-renderer'
+import { cn } from '@/lib/utils'
 
 interface DocumentExportBarProps {
   document: DocumentBlueprint
   onBeforeExport?: () => void | DocumentBlueprint | undefined | Promise<void | DocumentBlueprint | undefined>
+  qualityReport?: DocumentQualityReport | null
+  preflightFreshness?: DocumentQualityFreshness
+  preflightPending?: boolean
+  onRunPreflight?: () => void
+}
+
+interface ExportPreflightStatus {
+  tone: 'ready' | 'warning' | 'danger'
+  label: string
+  message: string
+  confirmMessage?: string
+}
+
+function getExportPreflightStatus(
+  report: DocumentQualityReport | null | undefined,
+  freshness: DocumentQualityFreshness | undefined,
+): ExportPreflightStatus {
+  if (!freshness && !report) {
+    return {
+      tone: 'ready',
+      label: '점검 상태 없음',
+      message: '문서 점검 정보 없이 내보냅니다.',
+    }
+  }
+
+  const currentFreshness = freshness ?? 'missing'
+  if (currentFreshness === 'missing') {
+    return {
+      tone: 'warning',
+      label: '점검 전',
+      message: '내보내기 전 문서 점검을 권장합니다.',
+      confirmMessage: '최신 문서 점검 결과가 없습니다. 그래도 내보낼까요?',
+    }
+  }
+
+  if (currentFreshness === 'stale') {
+    return {
+      tone: 'warning',
+      label: '재점검 필요',
+      message: '문서가 점검 이후 변경되었습니다.',
+      confirmMessage: '문서가 점검 이후 변경되었습니다. 그래도 내보낼까요?',
+    }
+  }
+
+  if (report?.summary.unresolvedCritical && report.summary.unresolvedCritical > 0) {
+    return {
+      tone: 'danger',
+      label: '중요 항목 남음',
+      message: `중요 점검 항목 ${report.summary.unresolvedCritical}개가 열려 있습니다.`,
+      confirmMessage: '중요 점검 항목이 남아 있습니다. 그래도 내보낼까요?',
+    }
+  }
+
+  if (report?.summary.openFindings && report.summary.openFindings > 0) {
+    return {
+      tone: 'warning',
+      label: '검토 항목 남음',
+      message: `열린 점검 항목 ${report.summary.openFindings}개가 있습니다.`,
+    }
+  }
+
+  return {
+    tone: 'ready',
+    label: '점검 통과',
+    message: '최신 점검 기준으로 내보낼 수 있습니다.',
+  }
 }
 
 function documentToMarkdown(doc: DocumentBlueprint): string {
@@ -83,6 +154,10 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
+function getSafeFileName(value: string): string {
+  return value.replace(/[/\\?%*:|"<>]/g, '_')
+}
+
 export function documentToHtml(doc: DocumentBlueprint): string {
   const parts: string[] = []
   parts.push(`<h1>${escapeHtml(doc.title)}</h1>`)
@@ -133,7 +208,14 @@ ${parts.join('\n')}
 </html>`
 }
 
-export default function DocumentExportBar({ document: doc, onBeforeExport }: DocumentExportBarProps): React.ReactElement {
+export default function DocumentExportBar({
+  document: doc,
+  onBeforeExport,
+  qualityReport = null,
+  preflightFreshness,
+  preflightPending = false,
+  onRunPreflight,
+}: DocumentExportBarProps): React.ReactElement {
   const [copied, setCopied] = useState(false)
   const [docxLoading, setDocxLoading] = useState(false)
   const [hwpxLoading, setHwpxLoading] = useState(false)
@@ -143,12 +225,29 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     [doc.sections],
   )
 
+  const exportPreflightStatus = useMemo(
+    () => getExportPreflightStatus(qualityReport, preflightFreshness),
+    [preflightFreshness, qualityReport],
+  )
+
+  const confirmExportPreflight = useCallback((): boolean => {
+    if (!exportPreflightStatus.confirmMessage) {
+      return true
+    }
+    return window.confirm(exportPreflightStatus.confirmMessage)
+  }, [exportPreflightStatus.confirmMessage])
+
+  const showPreflightAction = Boolean(preflightFreshness && preflightFreshness !== 'fresh' && onRunPreflight)
+
   const resolveExportDocument = useCallback(async (): Promise<DocumentBlueprint> => {
     const prepared = await onBeforeExport?.()
     return resolveDocumentInlineCitations(buildRenderableDocument(prepared ?? doc))
   }, [doc, onBeforeExport])
 
   const handleCopyMarkdown = useCallback(async () => {
+    if (!confirmExportPreflight()) {
+      return
+    }
     const exportDoc = await resolveExportDocument()
     const md = documentToMarkdown(exportDoc)
     try {
@@ -158,21 +257,38 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     } catch {
       toast.error('클립보드에 복사할 수 없습니다')
     }
-  }, [resolveExportDocument])
+  }, [confirmExportPreflight, resolveExportDocument])
 
   const handleDownloadHtml = useCallback(async () => {
+    if (!confirmExportPreflight()) {
+      return
+    }
     const exportDoc = await resolveExportDocument()
     try {
       const html = documentToHtml(exportDoc)
       const blob = new Blob([html], { type: 'text/html' })
-      const safeName = exportDoc.title.replace(/[/\\?%*:|"<>]/g, '_')
+      const safeName = getSafeFileName(exportDoc.title)
       downloadBlob(blob, `${safeName}.html`)
     } catch {
       toast.error('HTML 생성에 실패했습니다')
     }
-  }, [resolveExportDocument])
+  }, [confirmExportPreflight, resolveExportDocument])
+
+  const handleDownloadPreflightReport = useCallback((): void => {
+    if (!qualityReport) {
+      return
+    }
+    const safeName = getSafeFileName(doc.title)
+    const blob = new Blob([JSON.stringify(qualityReport, null, 2)], {
+      type: 'application/json',
+    })
+    downloadBlob(blob, `${safeName}_preflight-report.json`)
+  }, [doc.title, qualityReport])
 
   const handleDownloadDocx = useCallback(async () => {
+    if (!confirmExportPreflight()) {
+      return
+    }
     setDocxLoading(true)
     try {
       const exportDoc = await resolveExportDocument()
@@ -183,9 +299,12 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     } finally {
       setDocxLoading(false)
     }
-  }, [resolveExportDocument])
+  }, [confirmExportPreflight, resolveExportDocument])
 
   const handleDownloadHwpx = useCallback(async () => {
+    if (!confirmExportPreflight()) {
+      return
+    }
     setHwpxLoading(true)
     try {
       const exportDoc = await resolveExportDocument()
@@ -196,38 +315,78 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     } finally {
       setHwpxLoading(false)
     }
-  }, [resolveExportDocument])
+  }, [confirmExportPreflight, resolveExportDocument])
 
   return (
-    <div className="flex items-center gap-2 border-t pt-3">
-      <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5">
-        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-        {copied ? '복사됨' : '마크다운 복사'}
-      </Button>
-      <Button variant="outline" size="sm" onClick={handleDownloadHtml} disabled={!hasContent} className="gap-1.5">
-        <Download className="w-4 h-4" />
-        HTML 다운로드
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={!hasContent || docxLoading}
-        onClick={handleDownloadDocx}
-        className="gap-1.5"
+    <div className="space-y-3">
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3 rounded-2xl px-3 py-2 text-xs',
+          exportPreflightStatus.tone === 'ready' && 'bg-secondary-container text-secondary',
+          exportPreflightStatus.tone === 'warning' && 'bg-surface-container-high text-on-surface-variant',
+          exportPreflightStatus.tone === 'danger' && 'bg-destructive/10 text-destructive',
+        )}
       >
-        {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-        {docxLoading ? '생성 중...' : 'DOCX 다운로드'}
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={!hasContent || hwpxLoading}
-        onClick={handleDownloadHwpx}
-        className="gap-1.5"
-      >
-        {hwpxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-        {hwpxLoading ? '생성 중...' : 'HWPX 다운로드'}
-      </Button>
+        <div className="flex min-w-0 items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span className="shrink-0 font-medium">{exportPreflightStatus.label}</span>
+          <span className="truncate text-muted-foreground">{exportPreflightStatus.message}</span>
+        </div>
+        {showPreflightAction && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onRunPreflight?.()}
+            disabled={preflightPending}
+            className="h-7 shrink-0 rounded-full bg-surface px-3 text-[11px]"
+          >
+            {preflightPending ? '점검 중...' : preflightFreshness === 'missing' ? '점검 실행' : '다시 점검'}
+          </Button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5">
+          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {copied ? '복사됨' : '마크다운 복사'}
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleDownloadHtml} disabled={!hasContent} className="gap-1.5">
+          <Download className="w-4 h-4" />
+          HTML 다운로드
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!hasContent || docxLoading}
+          onClick={handleDownloadDocx}
+          className="gap-1.5"
+        >
+          {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+          {docxLoading ? '생성 중...' : 'DOCX 다운로드'}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!hasContent || hwpxLoading}
+          onClick={handleDownloadHwpx}
+          className="gap-1.5"
+        >
+          {hwpxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+          {hwpxLoading ? '생성 중...' : 'HWPX 다운로드'}
+        </Button>
+        {qualityReport && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPreflightReport}
+            className="gap-1.5"
+          >
+            <FileDown className="w-4 h-4" />
+            점검 리포트
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

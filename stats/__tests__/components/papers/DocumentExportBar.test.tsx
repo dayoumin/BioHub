@@ -6,6 +6,12 @@ import {
   createDocumentSourceRef,
   type DocumentBlueprint,
 } from '@/lib/research/document-blueprint-types'
+import {
+  buildDocumentQualitySnapshot,
+  deriveDocumentQualitySummary,
+  type DocumentQualityReport,
+  type DocumentReviewFinding,
+} from '@/lib/research/document-quality-types'
 import { buildRenderableDocument } from '@/lib/research/document-support-renderer'
 
 const mockDownloadBlob = vi.fn()
@@ -48,8 +54,46 @@ function makeDocument(title: string, content: string): DocumentBlueprint {
   }
 }
 
+function makeFinding(overrides: Partial<DocumentReviewFinding> = {}): DocumentReviewFinding {
+  return {
+    id: 'finding-1',
+    reportId: 'report-1',
+    documentId: 'doc-1',
+    projectId: 'project-1',
+    ruleId: 'export.critical',
+    category: 'format',
+    severity: 'critical',
+    status: 'open',
+    title: '중요 점검 항목',
+    message: '내보내기 전 확인이 필요합니다.',
+    createdAt: '2026-04-25T00:00:00.000Z',
+    updatedAt: '2026-04-25T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeQualityReport(
+  document: DocumentBlueprint,
+  findings: DocumentReviewFinding[] = [],
+): DocumentQualityReport {
+  return {
+    id: 'report-1',
+    documentId: document.id,
+    projectId: document.projectId,
+    status: 'completed',
+    snapshot: buildDocumentQualitySnapshot(document, {
+      ruleEngineVersion: 'document-preflight-rules:v1',
+    }),
+    findings,
+    summary: deriveDocumentQualitySummary(findings),
+    generatedAt: '2026-04-25T00:00:00.000Z',
+    updatedAt: '2026-04-25T00:00:00.000Z',
+  }
+}
+
 describe('DocumentExportBar', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     mockDownloadBlob.mockClear()
     mockDocumentToDocx.mockClear()
     mockDocumentToHwpx.mockClear()
@@ -90,6 +134,84 @@ describe('DocumentExportBar', () => {
 
     expect(mockDocumentToDocx).toHaveBeenCalledWith(preparedDoc)
     expect(mockDocumentToDocx).not.toHaveBeenCalledWith(initialDoc)
+  })
+
+  it('shows a missing preflight warning and runs the preflight action from the export area', async () => {
+    const user = userEvent.setup()
+    const doc = makeDocument('초기 문서', '본문')
+    const onRunPreflight = vi.fn()
+
+    render(
+      <DocumentExportBar
+        document={doc}
+        preflightFreshness="missing"
+        onRunPreflight={onRunPreflight}
+      />,
+    )
+
+    expect(screen.getByText('점검 전')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '점검 실행' }))
+
+    expect(onRunPreflight).toHaveBeenCalledTimes(1)
+  })
+
+  it('requires confirmation before exporting without a fresh preflight report', async () => {
+    const user = userEvent.setup()
+    const doc = makeDocument('초기 문서', '본문')
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    render(
+      <DocumentExportBar
+        document={doc}
+        preflightFreshness="stale"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'DOCX 다운로드' }))
+
+    expect(confirmSpy).toHaveBeenCalledWith('문서가 점검 이후 변경되었습니다. 그래도 내보낼까요?')
+    expect(mockDocumentToDocx).not.toHaveBeenCalled()
+  })
+
+  it('allows export after confirming unresolved critical findings', async () => {
+    const user = userEvent.setup()
+    const doc = makeDocument('초기 문서', '본문')
+    const report = makeQualityReport(doc, [makeFinding()])
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(
+      <DocumentExportBar
+        document={doc}
+        qualityReport={report}
+        preflightFreshness="fresh"
+      />,
+    )
+
+    expect(screen.getByText('중요 항목 남음')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'DOCX 다운로드' }))
+
+    expect(mockDocumentToDocx).toHaveBeenCalledTimes(1)
+  })
+
+  it('downloads the preflight report as a sidecar JSON file', async () => {
+    const user = userEvent.setup()
+    const doc = makeDocument('초기 문서', '본문')
+    const report = makeQualityReport(doc)
+
+    render(
+      <DocumentExportBar
+        document={doc}
+        qualityReport={report}
+        preflightFreshness="fresh"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '점검 리포트' }))
+
+    expect(mockDownloadBlob).toHaveBeenCalledTimes(1)
+    const [blob, filename] = mockDownloadBlob.mock.calls[0] as [Blob, string]
+    expect(blob.type).toBe('application/json')
+    expect(filename).toBe('초기 문서_preflight-report.json')
   })
 
   it('resolves inline citation markdown before DOCX export', async () => {
