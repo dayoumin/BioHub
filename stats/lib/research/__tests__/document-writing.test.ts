@@ -80,11 +80,16 @@ describe('document-writing helpers', () => {
     })
   })
 
-  it('skips body patch for user-generated sections only', () => {
+  it('skips body patch for user-generated sections with existing body content', () => {
     const document = makeDocument()
+    const emptyUserSection = {
+      ...document.sections[1]!,
+      content: '',
+    }
 
     expect(shouldSkipDocumentSectionBodyPatch(document.sections[0]!)).toBe(false)
     expect(shouldSkipDocumentSectionBodyPatch(document.sections[1]!)).toBe(true)
+    expect(shouldSkipDocumentSectionBodyPatch(emptyUserSection)).toBe(false)
   })
 
   it('preserves user-owned body while merging source refs, tables, and figures', () => {
@@ -112,6 +117,14 @@ describe('document-writing helpers', () => {
         },
       ],
       generatedBy: 'llm',
+      sectionSupportBindings: [
+        {
+          sourceKind: 'citation-record',
+          sourceId: 'cit_1',
+          role: 'background',
+          summary: '핵심 배경 문헌',
+        },
+      ],
     })
 
     expect(merged.content).toBe('사용자가 정리한 내용')
@@ -134,6 +147,17 @@ describe('document-writing helpers', () => {
         entityId: 'figure_1',
         label: 'Figure 1',
         caption: '결과 도식',
+      },
+    ])
+    expect(merged.sectionSupportBindings).toEqual([
+      {
+        id: expect.any(String),
+        sourceKind: 'citation-record',
+        sourceId: 'cit_1',
+        role: 'background',
+        summary: '핵심 배경 문헌',
+        included: true,
+        origin: 'user',
       },
     ])
   })
@@ -258,5 +282,45 @@ describe('document-writing helpers', () => {
     ])
     expect(merged.tables).toEqual([])
     expect(merged.figures).toEqual([])
+  })
+
+  it('preserves excluded section support bindings when a new patch refreshes the same identity', () => {
+    const methods = {
+      ...makeDocument().sections[0]!,
+      sectionSupportBindings: [{
+        id: 'dsb_existing',
+        sourceKind: 'deep-research-note' as const,
+        sourceId: 'note_1',
+        role: 'method-rationale' as const,
+        summary: '기존 메모',
+        citationIds: ['cit_1'],
+        included: false,
+        origin: 'user' as const,
+      }],
+    }
+
+    const merged = mergeDocumentSectionPatch(methods, {
+      sectionSupportBindings: [{
+        id: 'dsb_existing',
+        sourceKind: 'deep-research-note',
+        sourceId: 'note_1',
+        role: 'method-rationale',
+        summary: '갱신 메모',
+        citationIds: ['cit_2'],
+        included: true,
+        origin: 'writer',
+      }],
+    })
+
+    expect(merged.sectionSupportBindings).toEqual([{
+      id: 'dsb_existing',
+      sourceKind: 'deep-research-note',
+      sourceId: 'note_1',
+      role: 'method-rationale',
+      summary: '갱신 메모',
+      citationIds: ['cit_1', 'cit_2'],
+      included: false,
+      origin: 'user',
+    }])
   })
 })

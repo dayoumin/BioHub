@@ -42,8 +42,27 @@ import {
   type SupplementaryWritingSourceMaps,
   writeNormalizedSourceBlock,
 } from './document-writing-source-registry'
+import {
+  hasRenderableSectionSupportContent,
+  renderSectionSupportMarkdown,
+  stripRenderedSectionSupportMarkdown,
+} from './document-support-renderer'
+import { inferDocumentSectionSupportRole } from './document-support-asset-types'
+import { buildSectionWritingContext } from './document-section-writing-context'
+import { resolveDocumentWriterSettings } from './document-writer-engine-registry'
+import type { NormalizedWritingSource } from './document-writing-source-types'
 
 const runningDocumentJobs = new Map<string, Promise<DocumentBlueprint | null>>()
+
+const CORE_DRAFTABLE_SECTION_IDS = new Set([
+  'introduction',
+  'background',
+  'summary',
+  'methods',
+  'results',
+  'discussion',
+  'conclusion',
+])
 
 class DocumentWritingJobStaleError extends Error {
   constructor() {
@@ -206,6 +225,12 @@ function collectSupplementarySourceRefs(
   ))
 }
 
+function collectFigureSourceRefs(section: DocumentSection): DocumentSourceRef[] {
+  return (section.figures ?? []).map((figure) => createDocumentSourceRef('figure', figure.entityId, {
+    label: figure.caption,
+  }))
+}
+
 function dedupeSourceRefs(sourceRefs: readonly DocumentSourceRef[]): DocumentSourceRef[] {
   const deduped = new Map<string, DocumentSourceRef>()
   for (const sourceRef of sourceRefs) {
@@ -215,6 +240,192 @@ function dedupeSourceRefs(sourceRefs: readonly DocumentSourceRef[]): DocumentSou
     }
   }
   return Array.from(deduped.values())
+}
+
+function appendSectionSupportNotes(
+  content: string,
+  section: DocumentSection,
+  language: 'ko' | 'en',
+): string {
+  const supportMarkdown = renderSectionSupportMarkdown(section, language)
+  const contentWithoutStaleSupport = stripRenderedSectionSupportMarkdown(content, supportMarkdown)
+  if (!supportMarkdown) {
+    return contentWithoutStaleSupport
+  }
+  if (!contentWithoutStaleSupport.trim()) {
+    return supportMarkdown
+  }
+  if (contentWithoutStaleSupport.includes(supportMarkdown)) {
+    return contentWithoutStaleSupport
+  }
+  return `${contentWithoutStaleSupport}\n\n${supportMarkdown}`
+}
+
+function buildWriterCitationSupportBindings(
+  section: DocumentSection,
+  citationIds: readonly string[],
+): Array<{
+  id: string
+  sourceKind: 'citation-record'
+  sourceId: string
+  role: ReturnType<typeof inferDocumentSectionSupportRole>
+  label: string
+  citationIds: string[]
+  included: true
+  origin: 'writer'
+}> {
+  const existingCitationIds = new Set<string>()
+  for (const binding of section.sectionSupportBindings ?? []) {
+    if (binding.sourceKind === 'citation-record') {
+      existingCitationIds.add(binding.sourceId)
+    }
+    for (const citationId of binding.citationIds ?? []) {
+      existingCitationIds.add(citationId)
+    }
+  }
+
+  return citationIds.filter((citationId) => !existingCitationIds.has(citationId)).map((citationId) => ({
+    id: `writer-citation-${section.id}-${citationId}`,
+    sourceKind: 'citation-record',
+    sourceId: citationId,
+    role: inferDocumentSectionSupportRole(section.id),
+    label: citationId,
+    citationIds: [citationId],
+    included: true,
+    origin: 'writer',
+  }))
+}
+
+function collectSectionWritingSources(
+  projectId: string,
+  section: DocumentSection,
+  historyById: Map<string, HistoryRecord>,
+  supplementaryMaps: SupplementaryDataMaps,
+  language: 'ko' | 'en',
+): NormalizedWritingSource[] {
+  const sources: NormalizedWritingSource[] = []
+
+  for (const sourceRef of collectAnalysisSourceRefs(section)) {
+    const record = historyById.get(sourceRef.sourceId)
+    if (!record) {
+      continue
+    }
+    const draft = safelyBuildPaperDraftFromHistory(record, language)
+    if (!draft) {
+      continue
+    }
+    sources.push(createNormalizedAnalysisWritingSource({
+      projectId,
+      sourceRef,
+      record,
+      draft,
+    }))
+  }
+
+  for (const sourceRef of collectSupplementarySourceRefs(section, supplementaryMaps.projectRefsByEntityId)) {
+    const entityRef = supplementaryMaps.projectRefsByEntityId.get(sourceRef.sourceId)
+    if (!entityRef) {
+      continue
+    }
+    sources.push(createNormalizedSupplementaryWritingSource({
+      entityRef,
+      sourceRef,
+      language,
+      maps: supplementaryMaps,
+    }))
+  }
+
+  for (const figure of section.figures ?? []) {
+    sources.push(createNormalizedFigureWritingSource({
+      projectId,
+      sourceRef: createDocumentSourceRef('figure', figure.entityId, {
+        label: figure.caption,
+      }),
+      figure,
+    }))
+  }
+
+  return sources
+}
+
+async function buildNarrativeSectionPatch(
+  document: DocumentBlueprint,
+  section: DocumentSection,
+  historyById: Map<string, HistoryRecord>,
+  supplementaryMaps: SupplementaryDataMaps,
+): Promise<Partial<DocumentSection>> {
+  const sources = collectSectionWritingSources(
+    document.projectId,
+    section,
+    historyById,
+    supplementaryMaps,
+    document.language,
+  )
+  const context = buildSectionWritingContext({
+    document,
+    section,
+    sources,
+  })
+  const writerSettings = resolveDocumentWriterSettings(document, context.sectionKind)
+  const result = await writerSettings.engine.writeSection({
+    provider: writerSettings.provider,
+    quality: writerSettings.quality,
+    context,
+  })
+  const generatedBy = result.provider === 'template' ? 'template' : 'llm'
+
+  return {
+    content: result.content,
+    sourceRefs: dedupeSourceRefs([
+      ...collectAnalysisSourceRefs(section),
+      ...collectSupplementarySourceRefs(section, supplementaryMaps.projectRefsByEntityId),
+      ...collectFigureSourceRefs(section),
+    ]),
+    sectionSupportBindings: buildWriterCitationSupportBindings(section, result.citationIds),
+    generatedBy,
+  }
+}
+
+async function buildWriterBackedSectionPatch(
+  document: DocumentBlueprint,
+  section: DocumentSection,
+  historyById: Map<string, HistoryRecord>,
+  supplementaryMaps: SupplementaryDataMaps,
+  basePatch: Partial<DocumentSection>,
+): Promise<Partial<DocumentSection>> {
+  const sources = collectSectionWritingSources(
+    document.projectId,
+    section,
+    historyById,
+    supplementaryMaps,
+    document.language,
+  )
+  const context = buildSectionWritingContext({
+    document,
+    section,
+    sources,
+  })
+  const writerSettings = resolveDocumentWriterSettings(document, context.sectionKind)
+  if (writerSettings.provider === 'template') {
+    return basePatch
+  }
+
+  const result = await writerSettings.engine.writeSection({
+    provider: writerSettings.provider,
+    quality: writerSettings.quality,
+    context,
+  })
+
+  if (result.provider === 'template' || !result.content.trim()) {
+    return basePatch
+  }
+
+  return {
+    ...basePatch,
+    content: result.content,
+    sectionSupportBindings: buildWriterCitationSupportBindings(section, result.citationIds),
+    generatedBy: 'llm',
+  }
 }
 
 function buildMethodsSectionPatch(
@@ -254,7 +465,7 @@ function buildMethodsSectionPatch(
   }
 
   return {
-    content: parts.join('\n\n'),
+    content: appendSectionSupportNotes(parts.join('\n\n'), section, language),
     sourceRefs: dedupeSourceRefs(analysisRefs),
     generatedBy: 'template',
   }
@@ -330,7 +541,7 @@ function buildResultsSectionPatch(
   }
 
   return {
-    content: parts.join('\n\n'),
+    content: appendSectionSupportNotes(parts.join('\n\n'), section, language),
     sourceRefs: dedupeSourceRefs([
       ...analysisRefs,
       ...supplementaryRefs,
@@ -378,7 +589,20 @@ function hasRequestedSectionSources(section: DocumentSection): boolean {
   return (
     (section.sourceRefs?.length ?? 0) > 0
     || (section.figures?.length ?? 0) > 0
+    || hasRenderableSectionSupportContent(section)
   )
+}
+
+function isDraftableSection(section: DocumentSection): boolean {
+  return section.id !== 'references'
+    && (CORE_DRAFTABLE_SECTION_IDS.has(section.id) || hasRenderableSectionSupportContent(section))
+    && hasRequestedSectionSources(section)
+}
+
+function getDraftableSectionIds(document: DocumentBlueprint): string[] {
+  return document.sections
+    .filter(isDraftableSection)
+    .map((section) => section.id)
 }
 
 function patchProducesWritableContent(patch: Partial<DocumentSection>): boolean {
@@ -396,7 +620,7 @@ function patchProducesWritableContent(patch: Partial<DocumentSection>): boolean 
 
 async function mutateDocumentWithRetry(
   documentId: string,
-  updater: (document: DocumentBlueprint) => DocumentBlueprint,
+  updater: (document: DocumentBlueprint) => DocumentBlueprint | Promise<DocumentBlueprint>,
   attempts = 3,
   options?: {
     expectedJobId?: string
@@ -417,7 +641,7 @@ async function mutateDocumentWithRetry(
       throw new DocumentWritingJobStaleError()
     }
 
-    const nextDocument = updater(latestDocument)
+    const nextDocument = await updater(latestDocument)
     try {
       return await saveDocumentBlueprint(nextDocument, {
         expectedUpdatedAt: latestDocument.updatedAt,
@@ -437,10 +661,10 @@ async function mutateDocumentWithRetry(
 async function patchDocumentSection(
   documentId: string,
   jobId: string,
-  sectionId: 'methods' | 'results',
-  buildPatch: (section: DocumentSection, document: DocumentBlueprint) => Partial<DocumentSection>,
+  sectionId: string,
+  buildPatch: (section: DocumentSection, document: DocumentBlueprint) => Partial<DocumentSection> | Promise<Partial<DocumentSection>>,
 ): Promise<DocumentBlueprint | null> {
-  return mutateDocumentWithRetry(documentId, (document) => {
+  return mutateDocumentWithRetry(documentId, async (document) => {
     const section = document.sections.find((item) => item.id === sectionId)
     if (!section) {
       return updateDocumentSectionWritingState(document, sectionId, 'failed', {
@@ -448,14 +672,20 @@ async function patchDocumentSection(
       })
     }
 
-    const patch = buildPatch(section, document)
+    const shouldSkipBodyPatch = shouldSkipDocumentSectionBodyPatch(section)
+    if (shouldSkipBodyPatch) {
+      return updateDocumentSectionWritingState(document, sectionId, 'skipped', {
+        message: '사용자 편집 본문은 유지하고 연결 자료 작성은 건너뛰었습니다.',
+      })
+    }
+
+    const patch = await buildPatch(section, document)
     if (hasRequestedSectionSources(section) && !patchProducesWritableContent(patch)) {
       return updateDocumentSectionWritingState(document, sectionId, 'failed', {
         message: '연결된 자료에서 초안 내용을 생성하지 못했습니다.',
       })
     }
 
-    const shouldSkipBodyPatch = shouldSkipDocumentSectionBodyPatch(section)
     const nextSections = document.sections.map((item) => (
       item.id === sectionId
         ? mergeDocumentSectionPatch(item, patch)
@@ -476,6 +706,52 @@ async function patchDocumentSection(
   })
 }
 
+async function markDocumentSectionFailed(
+  documentId: string,
+  jobId: string,
+  sectionId: string,
+  message: string,
+): Promise<DocumentBlueprint | null> {
+  return mutateDocumentWithRetry(documentId, (document) => (
+    updateDocumentSectionWritingState(document, sectionId, 'failed', {
+      jobId,
+      message,
+    })
+  ), 3, {
+    expectedJobId: jobId,
+  })
+}
+
+async function patchDocumentSectionSafely(
+  documentId: string,
+  jobId: string,
+  sectionId: string,
+  buildPatch: (section: DocumentSection, document: DocumentBlueprint) => Partial<DocumentSection> | Promise<Partial<DocumentSection>>,
+): Promise<{
+  document: DocumentBlueprint | null
+  message?: string
+}> {
+  try {
+    const updatedDocument = await patchDocumentSection(documentId, jobId, sectionId, buildPatch)
+    const sectionState = updatedDocument?.writingState?.sectionStates[sectionId]
+    return {
+      document: updatedDocument,
+      message: sectionState?.message,
+    }
+  } catch (error) {
+    if (error instanceof DocumentWritingJobStaleError) {
+      throw error
+    }
+
+    const message = error instanceof Error ? error.message : `${sectionId} 섹션 초안 생성에 실패했습니다.`
+    const failedDocument = await markDocumentSectionFailed(documentId, jobId, sectionId, message)
+    return {
+      document: failedDocument,
+      message,
+    }
+  }
+}
+
 async function failDocumentWriting(documentId: string, jobId: string, message: string): Promise<DocumentBlueprint | null> {
   return mutateDocumentWithRetry(documentId, (document) => {
     let updatedDocument = updateDocumentWritingState(document, 'failed', {
@@ -483,7 +759,7 @@ async function failDocumentWriting(documentId: string, jobId: string, message: s
       errorMessage: message,
     })
 
-    for (const sectionId of ['methods', 'results'] as const) {
+    for (const sectionId of getDraftableSectionIds(updatedDocument)) {
       const currentStatus = updatedDocument.writingState?.sectionStates[sectionId]?.status
       if (currentStatus === 'patched' || currentStatus === 'skipped') {
         continue
@@ -512,7 +788,7 @@ async function restartDocumentWritingState(
       errorMessage: undefined,
     })
 
-    for (const sectionId of ['methods', 'results'] as const) {
+    for (const sectionId of getDraftableSectionIds(restartedDocument)) {
       restartedDocument = updateDocumentSectionWritingState(restartedDocument, sectionId, 'drafting', {
         jobId,
         updatedAt: now,
@@ -556,11 +832,38 @@ async function runDocumentWriting(documentId: string): Promise<DocumentBlueprint
       expectedJobId: jobId,
     })
 
-    const patchedMethods = await patchDocumentSection(documentId, jobId, 'methods', (section, currentDocument) => (
-      buildMethodsSectionPatch(currentDocument.projectId, section, historyById, currentDocument.language)
-    ))
-    if (patchedMethods?.writingState?.sectionStates.methods?.status === 'failed') {
-      throw new Error(patchedMethods.writingState.sectionStates.methods.message ?? 'methods 초안 생성에 실패했습니다.')
+    const draftableSectionIds = getDraftableSectionIds(document)
+    let latestPatchedDocument: DocumentBlueprint | null = null
+
+    for (const sectionId of draftableSectionIds) {
+      if (sectionId === 'methods') {
+        const patched = await patchDocumentSectionSafely(documentId, jobId, sectionId, async (section, currentDocument) => {
+          const basePatch = buildMethodsSectionPatch(currentDocument.projectId, section, historyById, currentDocument.language)
+          return buildWriterBackedSectionPatch(currentDocument, section, historyById, supplementaryMaps, basePatch)
+        })
+        latestPatchedDocument = patched.document ?? latestPatchedDocument
+        continue
+      }
+
+      if (sectionId === 'results') {
+        await mutateDocumentWithRetry(documentId, (currentDocument) => updateDocumentWritingState(currentDocument, 'patching', {
+          jobId,
+        }), 3, {
+          expectedJobId: jobId,
+        })
+
+        const patched = await patchDocumentSectionSafely(documentId, jobId, sectionId, async (section, currentDocument) => {
+          const basePatch = buildResultsSectionPatch(currentDocument.projectId, section, historyById, supplementaryMaps, currentDocument.language)
+          return buildWriterBackedSectionPatch(currentDocument, section, historyById, supplementaryMaps, basePatch)
+        })
+        latestPatchedDocument = patched.document ?? latestPatchedDocument
+        continue
+      }
+
+      const patched = await patchDocumentSectionSafely(documentId, jobId, sectionId, (section, currentDocument) => (
+        buildNarrativeSectionPatch(currentDocument, section, historyById, supplementaryMaps)
+      ))
+      latestPatchedDocument = patched.document ?? latestPatchedDocument
     }
 
     await mutateDocumentWithRetry(documentId, (currentDocument) => updateDocumentWritingState(currentDocument, 'patching', {
@@ -569,11 +872,22 @@ async function runDocumentWriting(documentId: string): Promise<DocumentBlueprint
       expectedJobId: jobId,
     })
 
-    const patchedResults = await patchDocumentSection(documentId, jobId, 'results', (section, currentDocument) => (
-      buildResultsSectionPatch(currentDocument.projectId, section, historyById, supplementaryMaps, currentDocument.language)
-    ))
-    if (patchedResults?.writingState?.sectionStates.results?.status === 'failed') {
-      throw new Error(patchedResults.writingState.sectionStates.results.message ?? 'results 초안 생성에 실패했습니다.')
+    const latestDocument = latestPatchedDocument
+      ?? await loadDocumentBlueprint(documentId)
+    if (!latestDocument) {
+      return null
+    }
+
+    const failedSections = draftableSectionIds
+      .map((sectionId) => latestDocument.writingState?.sectionStates[sectionId])
+      .filter((sectionState) => sectionState?.status === 'failed')
+
+    if (failedSections.length > 0) {
+      const message = failedSections
+        .map((sectionState) => sectionState?.message)
+        .filter((value): value is string => Boolean(value))
+        .join(' ')
+      throw new Error(message || '문서 초안 생성에 실패했습니다.')
     }
 
     return mutateDocumentWithRetry(documentId, (currentDocument) => updateDocumentWritingState(currentDocument, 'completed', {

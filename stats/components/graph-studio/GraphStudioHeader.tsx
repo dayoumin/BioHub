@@ -39,6 +39,13 @@ import {
 import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3, Save, AlertTriangle, X, FileText } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
+const WRITING_ACTION_LABEL = '문서 초안 만들기';
+const WRITING_PENDING_LABEL = '문서 준비 중...';
+const LINKED_DOCUMENTS_LABEL = '연결된 문서';
+const WRITING_REQUIRES_SAVED_GRAPH = '저장된 그래프에서만 문서를 시작할 수 있습니다.';
+const WRITING_REQUIRES_PROJECT = '프로젝트를 먼저 연결해야 문서를 만들 수 있습니다.';
+const WRITING_REQUIRES_LINKED_FIGURE = '현재 그래프가 연결된 연구 프로젝트 자료로 등록되어 있지 않습니다.';
+
 interface GraphStudioHeaderProps {
   onToggleLeftPanel?: () => void;
   onToggleRightPanel?: () => void;
@@ -88,6 +95,16 @@ export function GraphStudioHeader({
     && listProjectEntityRefs(resolvedResearchProjectId).some((entityRef) => (
       entityRef.entityKind === 'figure' && entityRef.entityId === currentProjectId
     ));
+  const writingUnavailableReason = !chartSpec
+    ? null
+    : !currentProjectId
+      ? WRITING_REQUIRES_SAVED_GRAPH
+      : !resolvedResearchProjectId
+        ? WRITING_REQUIRES_PROJECT
+        : !isFigureLinkedToResolvedResearchProject
+          ? WRITING_REQUIRES_LINKED_FIGURE
+          : null;
+  const canCreateWritingDocument = chartSpec !== null && writingUnavailableReason === null;
   const visibleUsages = documentUsages.slice(0, 2);
   const relinkWarningKey = relinkWarning
     ? JSON.stringify({
@@ -252,15 +269,15 @@ export function GraphStudioHeader({
 
     const researchProjectId = resolvedResearchProjectId;
     if (!researchProjectId) {
-      toast.error('프로젝트를 먼저 연결해야 문서를 만들 수 있습니다.');
+      toast.error(WRITING_REQUIRES_PROJECT);
       return;
     }
     if (!currentProjectId) {
-      toast.error('저장된 그래프에서만 문서를 시작할 수 있습니다.');
+      toast.error(WRITING_REQUIRES_SAVED_GRAPH);
       return;
     }
     if (!isFigureLinkedToResolvedResearchProject) {
-      toast.error('현재 그래프가 연결된 연구 프로젝트 자료로 등록되어 있지 않습니다.');
+      toast.error(WRITING_REQUIRES_LINKED_FIGURE);
       return;
     }
 
@@ -373,20 +390,27 @@ export function GraphStudioHeader({
             AI
           </Button>
         )}
-        {chartSpec && currentProjectId && resolvedResearchProjectId && isFigureLinkedToResolvedResearchProject && (
+        {chartSpec && (
           <StartWritingButton
-            label="자료 작성"
-            pendingLabel="문서 생성 중..."
+            label={WRITING_ACTION_LABEL}
+            pendingLabel={WRITING_PENDING_LABEL}
             onClick={() => {
               void handleCreateWritingDocument();
             }}
+            disabled={!canCreateWritingDocument}
             pending={isCreatingDocument}
             testId="graph-studio-write-doc"
             icon={FileText}
             variant="ghost"
             size="sm"
             className="text-xs text-muted-foreground hover:text-foreground"
+            title={writingUnavailableReason ?? undefined}
           />
+        )}
+        {documentUsages.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {LINKED_DOCUMENTS_LABEL}
+          </span>
         )}
         {visibleUsages.map((usage) => (
           <Button

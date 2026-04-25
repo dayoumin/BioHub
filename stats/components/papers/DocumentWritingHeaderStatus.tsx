@@ -20,11 +20,17 @@ export default function DocumentWritingHeaderStatus({
 }: DocumentWritingHeaderStatusProps): React.ReactElement {
   return (
     <>
-      <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
+      <Badge
+        variant="secondary"
+        className="hidden rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant md:inline-flex"
+      >
         <HardDriveDownload className="mr-1 h-3 w-3" />
         로컬 자동 저장
       </Badge>
-      <Badge variant="outline" className="text-[10px]">
+      <Badge
+        variant="secondary"
+        className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+      >
         {saveStatus === 'saved' && '저장됨'}
         {saveStatus === 'saving' && '저장 중...'}
         {saveStatus === 'unsaved' && '변경됨'}
@@ -33,7 +39,9 @@ export default function DocumentWritingHeaderStatus({
       {writingStatusLabel && (
         <Badge
           variant={writingStatus === 'failed' ? 'destructive' : 'secondary'}
-          className="text-[10px]"
+          className={writingStatus === 'failed'
+            ? 'rounded-full px-2.5 py-1 text-[10px] font-medium'
+            : 'rounded-full bg-secondary-container px-2.5 py-1 text-[10px] font-medium text-secondary'}
         >
           {writingStatusLabel}
         </Badge>
@@ -41,10 +49,10 @@ export default function DocumentWritingHeaderStatus({
       {writingStatus === 'failed' && onRetry && (
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={onRetry}
-          className="gap-1"
+          className="gap-1 rounded-full bg-surface-container px-3"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           재시도

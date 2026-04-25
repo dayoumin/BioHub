@@ -19,7 +19,7 @@ export default function SectionWritingBanner({
   }
 
   return (
-    <div className="flex items-start gap-3 rounded-xl bg-surface-container-low px-4 py-3">
+    <div className="flex items-start gap-3 rounded-[24px] bg-surface px-4 py-4">
       <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-sm font-medium text-foreground">이 섹션은 자동으로 작성 중입니다.</p>
@@ -30,9 +30,10 @@ export default function SectionWritingBanner({
       <div className="flex shrink-0 items-center gap-2">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={onCancel}
+          className="rounded-full bg-surface-container px-3"
         >
           자동 작성 중단
         </Button>
@@ -40,6 +41,7 @@ export default function SectionWritingBanner({
           type="button"
           size="sm"
           onClick={onTakeOwnership}
+          className="rounded-full px-3"
         >
           직접 편집
         </Button>

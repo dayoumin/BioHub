@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DocumentEditor from '@/components/papers/DocumentEditor'
@@ -106,8 +106,25 @@ vi.mock('@/components/papers/DocumentSectionList', () => ({
 }))
 
 vi.mock('@/components/papers/MaterialPalette', () => ({
-  default: ({ citations }: { citations: Array<{ id: string }> }) => (
-    <div data-testid="material-palette">Citations: {citations.length}</div>
+  default: ({
+    citations,
+    onDeleteCitation,
+  }: {
+    citations: Array<{ id: string }>
+    onDeleteCitation: (id: string) => void
+  }) => (
+    <div data-testid="material-palette">
+      <span>Citations: {citations.length}</span>
+      {citations.map((citation) => (
+        <button
+          key={citation.id}
+          type="button"
+          onClick={() => onDeleteCitation(citation.id)}
+        >
+          delete {citation.id}
+        </button>
+      ))}
+    </div>
   ),
 }))
 
@@ -126,6 +143,7 @@ vi.mock('@/lib/research/document-blueprint-storage', () => ({
 }))
 
 vi.mock('@/lib/research/document-assembler', () => ({
+  applyReferencesSectionContent: (document: DocumentBlueprint) => document,
   reassembleDocument: (document: DocumentBlueprint, _sources: AssemblerDataSources) =>
     mockReassembleDocument(document),
 }))
@@ -372,9 +390,9 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
-    expect(savedDocument.writingState?.status).toBe('completed')
+    expect(savedDocument.writingState?.status).toBe('drafting')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
-    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
+    expect(savedDocument.writingState?.jobId).toBe('job_1')
   })
 
   it('lets the user stop automatic writing from the section banner', async () => {
@@ -414,9 +432,9 @@ describe('DocumentEditor export freshness', () => {
 
     const savedDocument = mockSaveDocumentBlueprint.mock.calls[0]?.[0] as DocumentBlueprint
     expect(savedDocument.sections[0]?.generatedBy).toBe('user')
-    expect(savedDocument.writingState?.status).toBe('completed')
+    expect(savedDocument.writingState?.status).toBe('drafting')
     expect(savedDocument.writingState?.sectionStates.results?.status).toBe('skipped')
-    expect(savedDocument.writingState?.jobId).not.toBe('job_1')
+    expect(savedDocument.writingState?.jobId).toBe('job_1')
   })
 
   it('flushes pending editor changes before retrying a failed writing job', async () => {
@@ -808,6 +826,366 @@ describe('DocumentEditor export freshness', () => {
     const sectionList = screen.getByTestId('document-section-list')
     const activeEntry = sectionList.querySelector('[data-active="true"]')
     expect(activeEntry).toHaveTextContent('결과')
+  })
+
+  it('lets the user detach literature support from the active section without deleting the citation', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('문헌 연결', {
+      sections: [
+        {
+          id: 'discussion',
+          title: '고찰',
+          content: '문헌 연결',
+          sourceRefs: [],
+          sectionSupportBindings: [{
+            id: 'dsb_1',
+            sourceKind: 'citation-record',
+            sourceId: 'cit_1',
+            role: 'comparison',
+            label: 'Marine Ecology Review',
+            citationIds: ['cit_1'],
+            included: true,
+            origin: 'user',
+          }],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListCitationsByProject.mockResolvedValue([
+      {
+        id: 'cit_1',
+        projectId: 'project-1',
+        item: {
+          id: 'paper-1',
+          source: 'openalex',
+          title: 'Marine Ecology Review',
+          authors: ['Kim'],
+          year: 2025,
+          url: 'https://example.com/paper-1',
+          searchedName: 'Species',
+        },
+        addedAt: '2026-04-13T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getByText('섹션 작성 근거')).toBeInTheDocument()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: '섹션에서 해제' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('섹션 작성 근거')).not.toBeInTheDocument()
+    })
+    expect(screen.getByTestId('material-palette')).toHaveTextContent('Citations: 1')
+  })
+
+  it('deleting a project citation also clears section evidence bindings', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('문헌 연결 [Kim, 2025](citation:cit_1)', {
+      sections: [
+        {
+          id: 'discussion',
+          title: '고찰',
+          content: '문헌 연결 [Kim, 2025](citation:cit_1)',
+          sourceRefs: [],
+          sectionSupportBindings: [{
+            id: 'dsb_1',
+            sourceKind: 'citation-record',
+            sourceId: 'cit_1',
+            role: 'comparison',
+            label: 'Marine Ecology Review',
+            citationIds: ['cit_1'],
+            included: true,
+            origin: 'user',
+          }],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListCitationsByProject.mockResolvedValue([
+      {
+        id: 'cit_1',
+        projectId: 'project-1',
+        item: {
+          id: 'paper-1',
+          source: 'openalex',
+          title: 'Marine Ecology Review',
+          authors: ['Kim'],
+          year: 2025,
+          url: 'https://example.com/paper-1',
+          searchedName: 'Species',
+        },
+        addedAt: '2026-04-13T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getByText('섹션 작성 근거')).toBeInTheDocument()
+    await screen.findByText('Citations: 1')
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'delete cit_1' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('material-palette')).toHaveTextContent('Citations: 0')
+      expect(screen.queryByText('섹션 작성 근거')).not.toBeInTheDocument()
+    })
+    await waitFor(() => {
+      const savedDocument = mockSaveDocumentBlueprint.mock.calls.at(-1)?.[0]
+      expect(savedDocument?.sections[0]?.sectionSupportBindings).toBeUndefined()
+    })
+    expect(mockSetValue).toHaveBeenCalled()
+  })
+
+  it('lets the user duplicate a literature card to capture another claim from the same citation', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('문헌 연결', {
+      sections: [
+        {
+          id: 'discussion',
+          title: '고찰',
+          content: '문헌 연결',
+          sourceRefs: [],
+          sectionSupportBindings: [{
+            id: 'dsb_1',
+            sourceKind: 'citation-record',
+            sourceId: 'cit_1',
+            role: 'comparison',
+            label: 'Marine Ecology Review',
+            citationIds: ['cit_1'],
+            included: true,
+            origin: 'user',
+          }],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListCitationsByProject.mockResolvedValue([
+      {
+        id: 'cit_1',
+        projectId: 'project-1',
+        item: {
+          id: 'paper-1',
+          source: 'openalex',
+          title: 'Marine Ecology Review',
+          authors: ['Kim'],
+          year: 2025,
+          url: 'https://example.com/paper-1',
+          searchedName: 'Species',
+        },
+        addedAt: '2026-04-13T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getAllByLabelText('핵심 메모')).toHaveLength(1)
+
+    await userEvent.setup().click(screen.getByRole('button', { name: '같은 문헌 근거 추가' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('핵심 메모')).toHaveLength(2)
+    })
+  })
+
+  it('keeps the remaining memo card when one duplicated literature card is detached', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('문헌 연결', {
+      sections: [
+        {
+          id: 'discussion',
+          title: '고찰',
+          content: '문헌 연결',
+          sourceRefs: [],
+          sectionSupportBindings: [{
+            id: 'dsb_1',
+            sourceKind: 'citation-record',
+            sourceId: 'cit_1',
+            role: 'comparison',
+            label: 'Marine Ecology Review',
+            citationIds: ['cit_1'],
+            included: true,
+            origin: 'user',
+          }],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListCitationsByProject.mockResolvedValue([
+      {
+        id: 'cit_1',
+        projectId: 'project-1',
+        item: {
+          id: 'paper-1',
+          source: 'openalex',
+          title: 'Marine Ecology Review',
+          authors: ['Kim'],
+          year: 2025,
+          url: 'https://example.com/paper-1',
+          searchedName: 'Species',
+        },
+        addedAt: '2026-04-13T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await userEvent.setup().click(screen.getByRole('button', { name: '같은 문헌 근거 추가' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('핵심 메모')).toHaveLength(2)
+    })
+
+    await userEvent.setup().click(screen.getAllByRole('button', { name: '섹션에서 해제' })[0]!)
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('핵심 메모')).toHaveLength(1)
+    })
+  })
+
+  it('preserves separate memo cards when a role change moves onto an already used role', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('문헌 연결', {
+      sections: [
+        {
+          id: 'discussion',
+          title: '고찰',
+          content: '문헌 연결',
+          sourceRefs: [],
+          sectionSupportBindings: [
+            {
+              id: 'dsb_1',
+              sourceKind: 'citation-record',
+              sourceId: 'cit_1',
+              role: 'comparison',
+              label: 'Marine Ecology Review',
+              citationIds: ['cit_1'],
+              included: true,
+              origin: 'user',
+            },
+            {
+              id: 'dsb_2',
+              sourceKind: 'citation-record',
+              sourceId: 'cit_1',
+              role: 'interpretation',
+              label: 'Marine Ecology Review',
+              citationIds: ['cit_1'],
+              included: true,
+              origin: 'user',
+            },
+          ],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListCitationsByProject.mockResolvedValue([
+      {
+        id: 'cit_1',
+        projectId: 'project-1',
+        item: {
+          id: 'paper-1',
+          source: 'openalex',
+          title: 'Marine Ecology Review',
+          authors: ['Kim'],
+          year: 2025,
+          url: 'https://example.com/paper-1',
+          searchedName: 'Species',
+        },
+        addedAt: '2026-04-13T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    const moveToComparisonButton = screen.getAllByRole('button', { name: '비교' })
+      .find((button) => !button.hasAttribute('disabled'))
+    expect(moveToComparisonButton).toBeDefined()
+
+    await userEvent.setup().click(moveToComparisonButton as HTMLElement)
+
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+    }, { timeout: 4_000 })
+
+    const savedDocument = mockSaveDocumentBlueprint.mock.calls.at(-1)?.[0] as DocumentBlueprint
+    expect(savedDocument.sections[0]?.sectionSupportBindings).toEqual([
+      expect.objectContaining({ id: 'dsb_1', role: 'comparison' }),
+      expect.objectContaining({ id: 'dsb_2', role: 'comparison' }),
+    ])
+    expect(screen.getAllByLabelText('핵심 메모')).toHaveLength(2)
+  })
+
+  it('saves edited support notes on blur so claim and excerpt can be curated per card', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('문헌 연결', {
+      sections: [
+        {
+          id: 'discussion',
+          title: '고찰',
+          content: '문헌 연결',
+          sourceRefs: [],
+          sectionSupportBindings: [{
+            id: 'dsb_1',
+            sourceKind: 'citation-record',
+            sourceId: 'cit_1',
+            role: 'comparison',
+            label: 'Marine Ecology Review',
+            citationIds: ['cit_1'],
+            included: true,
+            origin: 'user',
+          }],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListCitationsByProject.mockResolvedValue([
+      {
+        id: 'cit_1',
+        projectId: 'project-1',
+        item: {
+          id: 'paper-1',
+          source: 'openalex',
+          title: 'Marine Ecology Review',
+          authors: ['Kim'],
+          year: 2025,
+          url: 'https://example.com/paper-1',
+          searchedName: 'Species',
+        },
+        addedAt: '2026-04-13T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    const noteInput = screen.getByLabelText('핵심 메모')
+    const excerptInput = screen.getByLabelText('발췌 메모')
+
+    fireEvent.change(noteInput, { target: { value: '핵심 주장 메모' } })
+    fireEvent.blur(noteInput)
+    fireEvent.change(excerptInput, { target: { value: '초록에서 발췌한 비교 문장' } })
+    fireEvent.blur(excerptInput)
+
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+    }, { timeout: 4_000 })
+
+    const savedDocument = mockSaveDocumentBlueprint.mock.calls.at(-1)?.[0] as DocumentBlueprint
+    expect(savedDocument.sections[0]?.sectionSupportBindings).toEqual([
+      expect.objectContaining({
+        id: 'dsb_1',
+        summary: '핵심 주장 메모',
+        excerpt: '초록에서 발췌한 비교 문장',
+      }),
+    ])
   })
 
   it('serializes autosave writes so an older save cannot overtake newer content', async () => {

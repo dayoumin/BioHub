@@ -14,7 +14,10 @@ import type { BlastEntryLike } from './entity-resolver'
 import type { CitationRecord } from './citation-types'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools'
 import { citationKey } from './citation-types'
-import { buildCitationString } from './citation-apa-formatter'
+import {
+  collectInlineCitationIds,
+  renderCitationBibliography,
+} from './citation-csl'
 import { generateFigurePatternSummary } from './paper-package-assembler'
 import type {
   BarcodingHistoryEntry,
@@ -29,6 +32,7 @@ import type {
   DocumentBlueprint,
   DocumentPreset,
   DocumentSection,
+  DocumentSectionBlueprintDefinition,
   DocumentTable,
   FigureRef,
   DocumentMetadata,
@@ -44,6 +48,7 @@ import {
   normalizeDocumentBlueprint,
   normalizeDocumentWritingState,
 } from './document-blueprint-types'
+import { mergeDocumentSectionSupportBindings } from './document-support-asset-types'
 import { createEmptySections } from './document-preset-registry'
 import {
   buildSupplementaryWritingSourceMaps,
@@ -83,6 +88,11 @@ export interface AssembleOptions {
   title: string
   authors?: string[]
   metadata?: DocumentMetadata
+  sectionBlueprints?: DocumentSectionBlueprintDefinition[]
+}
+
+interface ReferencedCitationSelection {
+  citationIds: Set<string>
 }
 
 // ── 내부 유틸 ──
@@ -324,11 +334,82 @@ function buildReferencesContent(
   })
 
   const header = language === 'ko' ? '### 참고문헌' : '### References'
-  const cited = unique
-    .map((c, i) => `${i + 1}. ${buildCitationString(c.item)}`)
+  const cited = renderCitationBibliography(unique)
+    .map((entry, i) => `${i + 1}. ${entry}`)
     .join('\n')
 
   return `${header}\n\n${cited}\n\n${software}`
+}
+
+function collectReferencedCitationSelection(
+  sections: readonly DocumentSection[],
+): ReferencedCitationSelection {
+  const citationIds = new Set<string>()
+
+  for (const section of sections) {
+    for (const citationId of collectInlineCitationIds(section.content)) {
+      citationIds.add(citationId)
+    }
+    for (const binding of section.sectionSupportBindings ?? []) {
+      if (binding.included === false) {
+        continue
+      }
+      if (binding.sourceKind === 'citation-record') {
+        citationIds.add(binding.sourceId)
+      }
+      for (const citationId of binding.citationIds ?? []) {
+        citationIds.add(citationId)
+      }
+    }
+  }
+
+  return {
+    citationIds,
+  }
+}
+
+export function selectDocumentCitations(
+  citations: readonly CitationRecord[],
+  sections: readonly DocumentSection[],
+): CitationRecord[] {
+  const { citationIds } = collectReferencedCitationSelection(sections)
+  if (citationIds.size === 0) {
+    return []
+  }
+
+  const referencedCitations = citations.filter((citation) => citationIds.has(citation.id))
+  const uniqueByKey = new Map<string, CitationRecord>()
+  for (const citation of referencedCitations) {
+    const key = citationKey(citation.item)
+    if (!uniqueByKey.has(key)) {
+      uniqueByKey.set(key, citation)
+    }
+  }
+
+  return Array.from(uniqueByKey.values())
+}
+
+export function applyReferencesSectionContent(
+  document: DocumentBlueprint,
+  citations: readonly CitationRecord[],
+): DocumentBlueprint {
+  const selectedCitations = selectDocumentCitations(citations, document.sections)
+  return {
+    ...document,
+    sections: document.sections.map((section) => (
+      section.id === 'references'
+        ? {
+            ...section,
+            content: section.generatedBy === 'user'
+              ? section.content
+              : buildReferencesContent(selectedCitations, document.language),
+            generatedBy: section.generatedBy === 'user'
+              ? 'user'
+              : ('template' as const),
+          }
+        : section
+    )),
+  }
 }
 
 // ── 공개 API ──
@@ -343,9 +424,12 @@ export function assembleDocument(
   options: AssembleOptions,
   sources: AssemblerDataSources,
 ): DocumentBlueprint {
-  const { projectId, preset, language, title, authors, metadata } = options
+  const { projectId, preset, language, title, authors, metadata, sectionBlueprints } = options
 
-  const sections = createEmptySections(preset, language)
+  const effectiveSectionBlueprints = sectionBlueprints ?? metadata?.sectionBlueprints
+  const sections = createEmptySections(preset, language, {
+    sectionBlueprints: effectiveSectionBlueprints,
+  })
 
   const projectHistory = filterProjectHistory(sources.entityRefs, sources.allHistory)
   const projectFigures = filterProjectFigures(sources.entityRefs, sources.allGraphProjects)
@@ -403,7 +487,7 @@ export function assembleDocument(
 
   const now = new Date().toISOString()
 
-  return {
+  const document = {
     id: generateDocumentId(),
     projectId,
     preset,
@@ -411,11 +495,15 @@ export function assembleDocument(
     authors,
     language,
     sections,
-    metadata: metadata ?? {},
+    metadata: effectiveSectionBlueprints
+      ? { ...(metadata ?? {}), sectionBlueprints: effectiveSectionBlueprints }
+      : (metadata ?? {}),
     writingState: normalizeDocumentWritingState(undefined),
     createdAt: now,
     updatedAt: now,
   }
+
+  return applyReferencesSectionContent(document, sources.citations ?? [])
 }
 
 /**
@@ -519,6 +607,10 @@ export function reassembleDocument(
     return {
       ...baseSection,
       sourceRefs: preservedSourceRefs,
+      sectionSupportBindings: mergeDocumentSectionSupportBindings(
+        existingSection.sectionSupportBindings,
+        freshSection.sectionSupportBindings,
+      ),
       tables,
       figures,
     }
@@ -544,9 +636,11 @@ export function reassembleDocument(
   const existingMs = new Date(normalizedExisting.updatedAt).getTime()
   const updatedAt = new Date(Math.max(nowMs, existingMs + 1)).toISOString()
 
-  return {
+  const reassembledDocument = {
     ...normalizedExisting,
     sections: merged,
     updatedAt,
   }
+
+  return applyReferencesSectionContent(reassembledDocument, sources.citations ?? [])
 }

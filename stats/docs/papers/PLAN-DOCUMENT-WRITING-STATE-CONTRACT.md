@@ -28,7 +28,8 @@
 4. `tables`
 5. `figures`
 6. `sourceRefs`
-7. `writingState`
+7. `sectionSupportBindings`
+8. `writingState`
 
 규칙:
 
@@ -50,6 +51,7 @@ invariant:
 1. 최소 하나의 section을 가진 문서가 생성된다.
 2. `writingState.status`는 `idle`이다.
 3. source binding 부족은 오류가 아니다.
+4. `sectionSupportBindings`만으로 background drafting을 자동 시작하지 않는다.
 
 ### 3.2 `sourceBoundDraft`
 
@@ -63,6 +65,7 @@ invariant:
 1. `sourceRefs` 또는 `figures`가 실제로 연결되어야 한다.
 2. 연결 실패 시 drafting 문서를 만들지 않는다.
 3. 초기 상태는 `collecting`에서 시작한다.
+4. 1차 범위에서 `sectionSupportBindings`는 section-level narrative rewrite 보조 자산이며, `sourceBoundDraft` 시작 조건으로 사용하지 않는다.
 
 ### 3.3 `retry`
 
@@ -100,6 +103,7 @@ invariant:
 
 1. 사용자 본문 편집과 background patch는 같은 `DocumentBlueprint` 충돌 도메인을 공유한다.
 2. hidden last-write-wins는 금지한다.
+3. `sectionSupportBindings`는 section 본문과 별개 필드지만 동일 section ownership / merge 규칙 안에서 다룬다.
 
 허용 방식:
 
@@ -124,6 +128,7 @@ invariant:
 1. 사용자가 drafting 중인 section을 최초 편집하는 순간 해당 section은 사용자 소유로 전환된다.
 2. 그 section의 body patch는 즉시 `skipped`된다.
 3. structured sidecar는 merge 정책이 허용하는 범위에서만 반영된다.
+4. `sectionSupportBindings`는 user가 수동으로 연결/해제한 사실 자체를 background patch가 되돌리지 않는다.
 
 즉, background drafting은 사용자 소유로 승격된 section의 본문을 건드리지 않는다.
 
@@ -153,6 +158,12 @@ invariant:
 5. `collecting | drafting | patching -> failed`
 6. `failed -> collecting` (`retry`)
 
+support binding 트리거 규칙:
+
+1. 1차에서는 support binding만으로 문서 레벨 상태를 `collecting`으로 올리지 않는다.
+2. support binding을 사용한 section-level rewrite는 기존 문서 안에서 section 상태만 `drafting`으로 올릴 수 있다.
+3. 즉, `manualBlank` + support binding은 허용되지만, `support-only sourceBoundDraft`는 1차 비포함이다.
+
 ### 8.2 섹션 상태
 
 허용 전이:
@@ -177,6 +188,7 @@ invariant:
 2. source 하나 또는 section 하나가 실패해도 가능한 범위에서 나머지는 계속 진행한다.
 3. 저장 실패는 문서 레벨 `failed`로 올릴 수 있다.
 4. 실패 이유는 toast만이 아니라 persisted 상태 또는 화면 배너에서도 확인 가능해야 한다.
+5. support binding 기반 section rewrite 실패는 해당 section `failed`로 남기고, 문서 전체 실패로 곧바로 승격하지 않는다.
 
 ## 10. 테스트 게이트
 
@@ -188,9 +200,12 @@ registry 추출 전 최소 회귀 게이트:
 4. user edit 이후 같은 section 본문은 background patch되지 않는다.
 5. 하나의 source 실패가 전체 drafting을 불필요하게 중단시키지 않는다.
 6. export는 migrated 문서에서도 계속 동작한다.
+7. `sectionSupportBindings` 수동 연결은 reassemble/retry가 지우지 않는다.
+8. support binding만 있는 문서는 1차에서 자동 drafting을 시작하지 않는다.
 
 ## 11. 보류 항목
 
 1. `writingState`를 별도 저장소로 분리할지 여부
 2. cross-tab lease/owner 모델 도입 여부
 3. section별 partial 상태를 `partial`로 명시적으로 올릴지 여부
+4. support-only entry mode를 별도 모드로 분리할지 여부

@@ -5,6 +5,15 @@ const shared = vi.hoisted(() => ({
   routerPush: vi.fn(),
   setShowHub: vi.fn(),
   loadHistoryFromDB: vi.fn(),
+  analysisHistory: [] as Array<{
+    id: string
+    projectId?: string
+    results: Record<string, unknown> | null
+    method?: { name?: string } | null
+    name?: string
+    dataFileName: string
+    timestamp: number
+  }>,
   activeProject: { id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' } } as { id: string; name: string; presentation?: { emoji?: string } } | null,
   projects: [{ id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' }, status: 'active', tags: [] }] as Array<{ id: string; name: string; presentation?: { emoji?: string }; status: string; tags?: string[] }>,
   createProject: vi.fn(),
@@ -24,7 +33,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/stores/history-store', () => ({
   useHistoryStore: Object.assign(
-    () => ({ analysisHistory: [] }),
+    () => ({ analysisHistory: shared.analysisHistory }),
     {
       getState: () => ({
         loadHistoryFromDB: shared.loadHistoryFromDB,
@@ -98,6 +107,17 @@ describe('PapersHub', () => {
     shared.routerPush.mockReset()
     shared.setShowHub.mockReset()
     shared.loadHistoryFromDB.mockReset()
+    shared.analysisHistory = [
+      {
+        id: 'analysis-1',
+        projectId: 'proj-1',
+        results: { ok: true },
+        method: { name: 'ANOVA' },
+        name: 'Length comparison',
+        dataFileName: 'anova.csv',
+        timestamp: Date.now(),
+      },
+    ]
     shared.activeProject = { id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' } }
     shared.projects = [{ id: 'proj-1', name: 'Project One', presentation: { emoji: '🧪' }, status: 'active', tags: [] }]
     shared.createProject.mockReset()
@@ -121,6 +141,14 @@ describe('PapersHub', () => {
     shared.loadDocumentBlueprints.mockResolvedValue([])
     shared.listPackages.mockReturnValue([])
     shared.listProjectEntityRefs.mockReturnValue([
+      {
+        id: 'analysis-ref-1',
+        projectId: 'proj-1',
+        entityKind: 'analysis',
+        entityId: 'analysis-1',
+        label: 'ANOVA',
+        createdAt: '2026-04-24T00:00:00.000Z',
+      },
       {
         id: 'ref-1',
         projectId: 'proj-1',
@@ -157,9 +185,7 @@ describe('PapersHub', () => {
   it('starts a manual blank writing session from the hero action', async () => {
     const onOpenDocument = vi.fn()
 
-    render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
-
-    expect(screen.getByRole('button', { name: 'AI 입력 패키지' })).toBeInTheDocument()
+    render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} onOpenLiterature={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
 
@@ -178,13 +204,13 @@ describe('PapersHub', () => {
     shared.activeProject = null
     shared.projects = []
 
-    render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
+    render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} onOpenLiterature={vi.fn()} />)
 
     expect(screen.getByRole('button', { name: '새 문서로 바로 시작' })).toBeInTheDocument()
-    expect(screen.getByText('바로 편집 시작')).toBeInTheDocument()
-    expect(screen.getByText('이 기기 로컬 저장')).toBeInTheDocument()
+    expect(screen.getByText('즉시 편집')).toBeInTheDocument()
+    expect(screen.getByText('로컬 저장')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
+    fireEvent.click(screen.getByRole('button', { name: '새 문서로 바로 시작' }))
 
     await waitFor(() => {
       expect(shared.createProject).toHaveBeenCalledWith('자료 작성 임시 공간', expect.objectContaining({
@@ -200,14 +226,24 @@ describe('PapersHub', () => {
     })
   })
 
-  it('opens a new AI input package from the hero action', async () => {
+  it('opens a new AI input package from the secondary tools area', async () => {
     const onOpenPackage = vi.fn()
 
-    render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={onOpenPackage} />)
+    render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={onOpenPackage} onOpenLiterature={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'AI 입력 패키지' }))
+    fireEvent.click(screen.getByRole('button', { name: '패키지 만들기' }))
 
     expect(onOpenPackage).toHaveBeenCalledWith('new', 'proj-1')
+  })
+
+  it('opens literature from the secondary tools area', async () => {
+    const onOpenLiterature = vi.fn()
+
+    render(<PapersHub onOpenDocument={vi.fn()} onOpenLiterature={onOpenLiterature} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '문헌 검색 열기' }))
+
+    expect(onOpenLiterature).toHaveBeenCalledWith('proj-1')
   })
 
   it('shows bio/genetics quick-start cards and opens a writing session', async () => {
@@ -228,6 +264,30 @@ describe('PapersHub', () => {
         title: 'Protein properties 문서 초안',
         sourceEntityIds: {
           entityIds: ['protein-1'],
+        },
+      })
+      expect(onOpenDocument).toHaveBeenCalledWith('doc-created')
+    })
+  })
+
+  it('creates a writing document directly from a linked analysis result', async () => {
+    const onOpenDocument = vi.fn()
+
+    render(<PapersHub onOpenDocument={onOpenDocument} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('프로젝트 분석 결과에서 바로 작성')).toBeInTheDocument()
+      expect(screen.getByText('ANOVA')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: '문서 초안 만들기' })[0] as HTMLElement)
+
+    await waitFor(() => {
+      expect(shared.createDocumentWritingSession).toHaveBeenCalledWith({
+        projectId: 'proj-1',
+        title: 'ANOVA 문서 초안',
+        sourceEntityIds: {
+          analysisIds: ['analysis-1'],
         },
       })
       expect(onOpenDocument).toHaveBeenCalledWith('doc-created')

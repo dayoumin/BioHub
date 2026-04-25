@@ -13,7 +13,30 @@ import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('@/components/papers/PapersHub', () => ({
   default: (props: Record<string, unknown>) => (
-    <div data-testid="papers-hub" data-props={JSON.stringify(props)} />
+    <div data-testid="papers-hub" data-props={JSON.stringify(props)}>
+      <button
+        type="button"
+        onClick={() => {
+          const handler = props.onOpenLiterature
+          if (typeof handler === 'function') {
+            handler()
+          }
+        }}
+      >
+        open literature
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const handler = props.onOpenLiterature
+          if (typeof handler === 'function') {
+            handler('active-project')
+          }
+        }}
+      >
+        open literature with project
+      </button>
+    </div>
   ),
 }))
 
@@ -117,28 +140,63 @@ describe('PapersContent routing', () => {
     expect(screen.queryByTestId('document-editor')).not.toBeInTheDocument()
   })
 
-  it('tab switch uses replaceState and preserves project param', () => {
-    setLocationSearch('?tab=literature&project=p1')
+  it('returns from literature to docs via replaceState and preserves project param', () => {
+    setLocationSearch('?tab=literature&project=p1&sectionTitle=Old&attachCitation=stale-citation')
 
     render(<PapersContent />)
 
-    // Verify we are on the literature tab
     expect(screen.getByTestId('literature-search')).toBeInTheDocument()
 
-    // Now click the docs tab button ("문서")
-    const docsButton = screen.getByRole('button', { name: /문서/i })
-    fireEvent.click(docsButton)
+    fireEvent.click(screen.getByRole('button', { name: /문서 작업으로 돌아가기/i }))
 
-    // replaceState should have been called
     expect(replaceStateSpy).toHaveBeenCalledTimes(1)
 
     const [, , url] = replaceStateSpy.mock.calls[0] as [unknown, string, string]
-
-    // URL should NOT contain tab= (docs is default, so tab is removed)
     expect(url).not.toContain('tab=')
-
-    // URL should still contain project=p1
     expect(url).toContain('project=p1')
+    expect(url).not.toContain('sectionTitle=')
+    expect(url).not.toContain('attachCitation=')
+  })
+
+  it('returns from literature to the source document section when handoff context exists', () => {
+    setLocationSearch('?tab=literature&project=p1&documentId=doc-1&sectionId=discussion&sectionTitle=%EA%B3%A0%EC%B0%B0')
+
+    render(<PapersContent />)
+
+    fireEvent.click(screen.getByRole('button', { name: /문서 작업으로 돌아가기/i }))
+
+    expect(replaceStateSpy).toHaveBeenCalledTimes(1)
+    const [, , url] = replaceStateSpy.mock.calls[0] as [unknown, string, string]
+    expect(url).toBe('/papers?doc=doc-1&section=discussion')
+    expect(screen.getByTestId('document-editor').getAttribute('data-doc-id')).toBe('doc-1')
+  })
+
+  it('opens literature from the docs hub via replaceState', () => {
+    setLocationSearch('?project=p1')
+
+    render(<PapersContent />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'open literature' }))
+
+    expect(replaceStateSpy).toHaveBeenCalledTimes(1)
+
+    const [, , url] = replaceStateSpy.mock.calls[0] as [unknown, string, string]
+    expect(url).toContain('tab=literature')
+    expect(url).toContain('project=p1')
+  })
+
+  it('opens literature with active project context when the hub passes a project id', () => {
+    setLocationSearch('')
+
+    render(<PapersContent />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open literature with project/i }))
+
+    expect(replaceStateSpy).toHaveBeenCalledTimes(1)
+
+    const [, , url] = replaceStateSpy.mock.calls[0] as [unknown, string, string]
+    expect(url).toContain('tab=literature')
+    expect(url).toContain('project=active-project')
   })
 
   it('default (no params) shows PapersHub', () => {

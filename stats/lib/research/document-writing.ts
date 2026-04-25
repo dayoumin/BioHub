@@ -13,6 +13,10 @@ import {
   buildDocumentTableId,
   normalizeDocumentWritingState,
 } from './document-blueprint-types'
+import {
+  mergeDocumentSectionSupportBindings,
+  type DocumentSectionSupportBindingDraft,
+} from './document-support-asset-types'
 
 interface WritingStateUpdateOptions {
   jobId?: string
@@ -82,6 +86,10 @@ export function updateDocumentSectionWritingState(
 
 export function shouldSkipDocumentSectionBodyPatch(section: DocumentSection): boolean {
   return section.generatedBy === 'user'
+    && (
+      section.content.trim().length > 0
+      || section.plateValue !== undefined
+    )
 }
 
 function dedupeSourceRefs(sourceRefs: readonly DocumentSourceRef[]): DocumentSourceRef[] {
@@ -125,7 +133,9 @@ function mergeDocumentFigures(
 
 export function mergeDocumentSectionPatch(
   section: DocumentSection,
-  patch: Partial<DocumentSection>,
+  patch: Omit<Partial<DocumentSection>, 'sectionSupportBindings'> & {
+    sectionSupportBindings?: DocumentSectionSupportBindingDraft[]
+  },
 ): DocumentSection {
   const preserveBody = shouldSkipDocumentSectionBodyPatch(section)
 
@@ -137,10 +147,13 @@ export function mergeDocumentSectionPatch(
     sourceRefs: patch.sourceRefs
       ? dedupeSourceRefs(patch.sourceRefs)
       : section.sourceRefs,
+    sectionSupportBindings: patch.sectionSupportBindings
+      ? mergeDocumentSectionSupportBindings(section.sectionSupportBindings, patch.sectionSupportBindings)
+      : section.sectionSupportBindings,
     tables: mergeDocumentTables(section.tables, patch.tables),
     figures: mergeDocumentFigures(section.figures, patch.figures),
-    generatedBy: section.generatedBy === 'user'
-      ? 'user'
+    generatedBy: preserveBody
+      ? section.generatedBy
       : (patch.generatedBy ?? section.generatedBy),
   }
 }

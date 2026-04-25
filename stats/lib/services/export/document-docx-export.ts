@@ -10,6 +10,11 @@ import type {
   DocumentTable,
   DocumentSection,
 } from '@/lib/research/document-blueprint-types'
+import { resolveDocumentInlineCitations } from '@/lib/research/citation-csl'
+import {
+  buildRenderableDocument,
+  hasRenderableSectionSupportContent,
+} from '@/lib/research/document-support-renderer'
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
 import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
 import {
@@ -54,6 +59,7 @@ async function getDocx(): Promise<typeof import('docx')> {
 /** 섹션에 렌더링할 콘텐츠가 있는지 판정 (DOCX/HTML 공용) */
 export function hasVisibleContent(section: DocumentSection): boolean {
   if (section.content) return true
+  if (hasRenderableSectionSupportContent(section)) return true
   if (section.tables && section.tables.length > 0) return true
   if (section.figures && section.figures.length > 0) return true
   return false
@@ -258,6 +264,7 @@ export async function buildDocxDocument(
   doc: DocumentBlueprint,
   snapshots?: Map<string, ChartSnapshot>,
 ): Promise<InstanceType<typeof import('docx')['Document']>> {
+  const resolvedDoc = resolveDocumentInlineCitations(buildRenderableDocument(doc))
   const docx = await getDocx()
   const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, PageNumber, Footer } = docx
 
@@ -265,26 +272,26 @@ export async function buildDocxDocument(
 
   // 1. 제목
   children.push(new Paragraph({
-    children: [new TextRun({ text: doc.title, font: FONT, size: SIZE_TITLE, bold: true })],
+    children: [new TextRun({ text: resolvedDoc.title, font: FONT, size: SIZE_TITLE, bold: true })],
     heading: HeadingLevel.HEADING_1,
     alignment: AlignmentType.CENTER,
     spacing: { after: 120, line: LINE_SPACING },
   }))
 
   // 2. 저자
-  if (doc.authors && doc.authors.length > 0) {
+  if (resolvedDoc.authors && resolvedDoc.authors.length > 0) {
     children.push(new Paragraph({
-      children: [new TextRun({ text: doc.authors.join(', '), font: FONT, size: SIZE_BODY })],
+      children: [new TextRun({ text: resolvedDoc.authors.join(', '), font: FONT, size: SIZE_BODY })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 80, line: LINE_SPACING },
     }))
   }
 
   // 3. 날짜
-  if (doc.updatedAt) {
+  if (resolvedDoc.updatedAt) {
     children.push(new Paragraph({
       children: [new TextRun({
-        text: formatDate(doc.updatedAt),
+        text: formatDate(resolvedDoc.updatedAt),
         font: FONT,
         size: SIZE_BODY,
         italics: true,
@@ -296,7 +303,7 @@ export async function buildDocxDocument(
   }
 
   // 4. 섹션
-  for (const section of doc.sections) {
+  for (const section of resolvedDoc.sections) {
     if (!hasVisibleContent(section)) continue
 
     // 섹션 제목

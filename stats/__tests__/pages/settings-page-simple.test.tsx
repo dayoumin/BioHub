@@ -82,7 +82,7 @@ describe('SettingsPage - Simple Tests', () => {
 
     // 모든 탭 확인
     const tabs = screen.getAllByRole('tab')
-    expect(tabs).toHaveLength(3)
+    expect(tabs).toHaveLength(4)
 
     // 탭 텍스트 확인
     expect(screen.getByText('외관 및 알림')).toBeInTheDocument()

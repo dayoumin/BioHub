@@ -104,14 +104,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const historyViewTitle = t.results.contextPanels.historyViewTitle ?? 'Viewing saved result'
   const historyViewDescription =
     t.results.contextPanels.historyViewDescription ?? 'You are reviewing a result restored from history.'
-  const documentsTitle = t.results.contextPanels.documentsTitle ?? 'Documents using this result'
+  const documentsTitle = t.results.contextPanels.documentsTitle ?? 'Linked documents'
   const documentsDescription =
-    t.results.contextPanels.documentsDescription ?? 'Open a linked document to review the referenced section.'
+    t.results.contextPanels.documentsDescription ?? 'Open a linked document to jump to the referenced section.'
   const moreDocumentsLabel =
     t.results.contextPanels.moreDocuments ?? ((count: number): string => `+${count}`)
-  const writingTitle = t.results.contextPanels.writingTitle ?? 'Write a document'
-  const writingActionLabel = t.results.contextPanels.writingAction ?? 'Write from result'
-  const writingPendingLabel = t.results.contextPanels.writingPending ?? 'Creating document...'
+  const writingTitle = t.results.contextPanels.writingTitle ?? 'Writing'
+  const writingActionLabel = t.results.contextPanels.writingAction ?? 'Create draft'
+  const writingPendingLabel = t.results.contextPanels.writingPending ?? 'Preparing draft...'
   const writingUntitledResult = t.results.contextPanels.writingUntitledResult ?? 'Analysis result'
   const writingDescriptionNoProject =
     t.results.contextPanels.writingDescriptionNoProject
@@ -796,6 +796,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               {currentHistoryId && documentUsages.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="w-full text-sm font-semibold tracking-tight text-foreground">{documentsTitle}</p>
+                  <p className="w-full text-xs text-muted-foreground">{documentsDescription}</p>
                   {documentUsages.slice(0, 3).map((usage) => (
                     <Button
                       key={`${usage.documentId}:${usage.kind}:${usage.label}`}

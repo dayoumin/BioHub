@@ -14,6 +14,8 @@ import {
   renderMarkdownProvenanceLines,
 } from '@/lib/services/export/document-provenance'
 import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
+import { resolveDocumentInlineCitations } from '@/lib/research/citation-csl'
+import { buildRenderableDocument } from '@/lib/research/document-support-renderer'
 
 interface DocumentExportBarProps {
   document: DocumentBlueprint
@@ -65,23 +67,32 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
 
 function renderTableHtml(table: DocumentTable): string {
   const provenanceHtml = renderHtmlProvenance(getTableProvenanceLines(table))
-  if (table.htmlContent) return `<p><strong>${table.caption}</strong></p>${provenanceHtml}${table.htmlContent}`
+  if (table.htmlContent) return `<p><strong>${escapeHtml(table.caption)}</strong></p>${provenanceHtml}${table.htmlContent}`
   if (table.headers.length === 0) return ''
-  const thead = `<thead><tr>${table.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
-  const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`
-  return `<p><strong>${table.caption}</strong></p>${provenanceHtml}<table>${thead}${tbody}</table>`
+  const thead = `<thead><tr>${table.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`
+  const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`
+  return `<p><strong>${escapeHtml(table.caption)}</strong></p>${provenanceHtml}<table>${thead}${tbody}</table>`
 }
 
-function documentToHtml(doc: DocumentBlueprint): string {
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+export function documentToHtml(doc: DocumentBlueprint): string {
   const parts: string[] = []
-  parts.push(`<h1>${doc.title}</h1>`)
-  if (doc.authors?.length) parts.push(`<p>${doc.authors.join(', ')}</p>`)
+  parts.push(`<h1>${escapeHtml(doc.title)}</h1>`)
+  if (doc.authors?.length) parts.push(`<p>${doc.authors.map(escapeHtml).join(', ')}</p>`)
 
   for (const section of doc.sections) {
     if (!hasVisibleContent(section)) continue
-    parts.push(`<h2>${section.title}</h2>`)
+    parts.push(`<h2>${escapeHtml(section.title)}</h2>`)
     if (section.content) {
-      const contentHtml = section.content
+      const contentHtml = escapeHtml(section.content)
         .replace(/^### (.+)$/gm, '<h3>$1</h3>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -97,7 +108,7 @@ function documentToHtml(doc: DocumentBlueprint): string {
     }
     if (section.figures?.length) {
       for (const fig of section.figures) {
-        parts.push(`<p><em>${fig.label}: ${fig.caption}</em></p>${renderHtmlProvenance(getFigureProvenanceLines(fig))}`)
+        parts.push(`<p><em>${escapeHtml(fig.label)}: ${escapeHtml(fig.caption)}</em></p>${renderHtmlProvenance(getFigureProvenanceLines(fig))}`)
       }
     }
   }
@@ -106,7 +117,7 @@ function documentToHtml(doc: DocumentBlueprint): string {
 <html lang="${doc.language}">
 <head>
   <meta charset="UTF-8">
-  <title>${doc.title}</title>
+  <title>${escapeHtml(doc.title)}</title>
   <style>
     body { font-family: 'Times New Roman', serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
     h1 { text-align: center; }
@@ -134,7 +145,7 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
 
   const resolveExportDocument = useCallback(async (): Promise<DocumentBlueprint> => {
     const prepared = await onBeforeExport?.()
-    return prepared ?? doc
+    return resolveDocumentInlineCitations(buildRenderableDocument(prepared ?? doc))
   }, [doc, onBeforeExport])
 
   const handleCopyMarkdown = useCallback(async () => {

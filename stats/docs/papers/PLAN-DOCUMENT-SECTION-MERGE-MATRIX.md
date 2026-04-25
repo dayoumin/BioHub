@@ -22,6 +22,7 @@
 | `content` | 본문 수정 금지 | `skip-after-user-edit` | 가장 강한 보호 대상 |
 | `plateValue` | 본문 수정 금지 | `skip-after-user-edit` | `content`와 같은 취급 |
 | `sourceRefs` | 보수적 병합 허용 | `merge-dedupe` | provenance 유지 목적 |
+| `sectionSupportBindings` | 사용자 연결 우선 보존 + writer 보강 병합 허용 | `merge-support-bindings` | narrative support lineage 유지 |
 | `tables` | 신규/갱신 병합 허용 | `merge-by-id` | 사용자 수동 삭제 정책은 추후 결정 |
 | `figures` | 신규/갱신 병합 허용 | `merge-by-entityId` | label/caption drift 주의 |
 | `editable` | 수정 금지 | `never-touch` | preset/schema 관리 |
@@ -51,7 +52,18 @@ table ID 기준으로 merge한다.
 1. 기존 user-added table을 함부로 지우지 않는다.
 2. 같은 ID의 generated table은 최신 값으로 교체할 수 있다.
 
-### 3.5 `merge-by-entityId`
+### 3.5 `merge-support-bindings`
+
+support binding identity 기준으로 merge한다.
+
+원칙:
+
+1. user가 수동으로 추가한 binding은 background patch가 제거하지 않는다.
+2. 같은 binding identity의 generated metadata는 최신 값으로 갱신할 수 있다.
+3. section intent(`sectionId`, `role`)가 달라지면 새 binding으로 취급한다.
+4. `included=false`로 꺼둔 binding은 retry/reassemble이 자동으로 다시 켜지지 않는다.
+
+### 3.6 `merge-by-entityId`
 
 figure `entityId` 기준으로 merge한다.
 
@@ -60,7 +72,7 @@ figure `entityId` 기준으로 merge한다.
 1. 같은 figure source는 최신 metadata로 갱신 가능
 2. unrelated figure는 유지
 
-### 3.6 `user-wins`
+### 3.7 `user-wins`
 
 한 번 `generatedBy: 'user'`가 되면 template/llm으로 되돌리지 않는다.
 
@@ -75,7 +87,7 @@ user 소유 section에서는:
 
 1. `content` patch 금지
 2. `plateValue` patch 금지
-3. `sourceRefs/tables/figures`는 policy 허용 범위만 적용
+3. `sourceRefs/sectionSupportBindings/tables/figures`는 policy 허용 범위만 적용
 
 ## 5. 저장 실패/충돌 시 우선순위
 
@@ -91,3 +103,4 @@ user 소유 section에서는:
 3. unrelated table/figure가 유지되는지
 4. `generatedBy`가 다시 template로 떨어지지 않는지
 5. `sourceRefs`가 중복 없이 누적되는지
+6. `sectionSupportBindings`가 user 선택을 보존한 채 dedupe/갱신되는지

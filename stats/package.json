@@ -109,6 +109,7 @@
     "absurd-sql": "^0.0.54",
     "better-sqlite3": "^12.4.1",
     "buffer": "^6.0.3",
+    "citeproc": "^2.4.63",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

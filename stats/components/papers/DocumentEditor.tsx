@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   type DocumentBlueprintsChangedDetail,
@@ -15,7 +16,10 @@ import {
   loadDocumentBlueprint,
   saveDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
-import { reassembleDocument } from '@/lib/research/document-assembler'
+import {
+  applyReferencesSectionContent,
+  reassembleDocument,
+} from '@/lib/research/document-assembler'
 import {
   type ResearchProjectEntityRefsChangedDetail,
   listProjectEntityRefs,
@@ -52,6 +56,17 @@ import {
   type DocumentWritingSectionStatus,
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
+import type {
+  DocumentSectionSupportBinding,
+  DocumentSectionSupportBindingDraft,
+  DocumentSectionSupportRole,
+} from '@/lib/research/document-support-asset-types'
+import {
+  DOCUMENT_SECTION_SUPPORT_ROLE_LABELS,
+  getRecommendedDocumentSectionSupportRoles,
+  inferDocumentSectionSupportRole,
+  mergeDocumentSectionSupportBindings,
+} from '@/lib/research/document-support-asset-types'
 import { ensureDocumentWriting, retryDocumentWriting } from '@/lib/research/document-writing-orchestrator'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
@@ -61,12 +76,20 @@ import {
   buildProjectEntityNavigationUrl,
 } from '@/lib/research/source-navigation'
 import type { CitationRecord } from '@/lib/research/citation-types'
+import { citationKey } from '@/lib/research/citation-types'
 import {
   deleteCitation,
   listCitationsByProject,
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   type ResearchProjectCitationsChangedDetail,
 } from '@/lib/research/citation-storage'
+import {
+  buildInlineCitationMarkdown,
+  renderInlineCitation,
+  resolveDocumentInlineCitations,
+  resolveInlineCitationMarkdown,
+} from '@/lib/research/citation-csl'
+import { insertInlineCitationAtCursor } from '@/lib/research/inline-citation-insertion'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
 import { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } from './plate-plugins'
 import { EquationElement, InlineEquationElement } from './equation-element'
@@ -90,6 +113,7 @@ interface DocumentEditorProps {
   initialSectionId?: string
   initialTableId?: string
   initialFigureId?: string
+  initialAttachCitationKey?: string
   onBack: () => void
 }
 
@@ -98,6 +122,129 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+
+function buildCitationSupportBinding(
+  sectionId: string,
+  record: CitationRecord,
+  role?: DocumentSectionSupportRole,
+): DocumentSectionSupportBindingDraft {
+  return {
+    sourceKind: 'citation-record',
+    sourceId: record.id,
+    role: role ?? inferDocumentSectionSupportRole(sectionId),
+    label: record.item.title,
+    summary: record.item.abstract?.slice(0, 180),
+    citationIds: [record.id],
+    origin: 'user',
+  }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function removeInlineCitationMarkdown(content: string, citationId: string): string {
+  const citationLinkPattern = new RegExp(`\\[([^\\]]*?)\\]\\(citation:${escapeRegExp(citationId)}\\)`, 'g')
+  return content.replace(citationLinkPattern, '$1')
+}
+
+interface CleanPlateValueResult {
+  value: unknown
+  changed: boolean
+}
+
+function removeInlineCitationFromPlateValue(value: unknown, citationId: string): CleanPlateValueResult {
+  const citationUrl = `citation:${citationId}`
+
+  if (typeof value === 'string') {
+    const nextValue = removeInlineCitationMarkdown(value, citationId)
+    return {
+      value: nextValue,
+      changed: nextValue !== value,
+    }
+  }
+
+  if (Array.isArray(value)) {
+    let changed = false
+    const nextValue = value.flatMap((item) => {
+      const cleaned = removeInlineCitationFromPlateValue(item, citationId)
+      if (cleaned.changed) {
+        changed = true
+      }
+      return Array.isArray(cleaned.value) ? cleaned.value : [cleaned.value]
+    })
+    return {
+      value: changed ? nextValue : value,
+      changed,
+    }
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return {
+      value,
+      changed: false,
+    }
+  }
+
+  const node = value as Record<string, unknown>
+  const children = node.children
+  const hasCitationUrl = node.url === citationUrl || node.href === citationUrl
+  if (hasCitationUrl && Array.isArray(children)) {
+    const cleanedChildren = removeInlineCitationFromPlateValue(children, citationId)
+    return {
+      value: cleanedChildren.value,
+      changed: true,
+    }
+  }
+
+  let changed = false
+  const nextNode: Record<string, unknown> = {}
+  for (const [key, fieldValue] of Object.entries(node)) {
+    const cleaned = key === 'text' || key === 'children'
+      ? removeInlineCitationFromPlateValue(fieldValue, citationId)
+      : { value: fieldValue, changed: false }
+    nextNode[key] = cleaned.value
+    changed = changed || cleaned.changed
+  }
+
+  return {
+    value: changed ? nextNode : value,
+    changed,
+  }
+}
+
+function removeCitationFromSupportBindings(
+  bindings: DocumentSectionSupportBinding[] | undefined,
+  citationId: string,
+): DocumentSectionSupportBinding[] | undefined {
+  if (!bindings) {
+    return bindings
+  }
+
+  let didChange = false
+  const nextBindings = bindings.flatMap((binding) => {
+    if (binding.sourceKind === 'citation-record' && binding.sourceId === citationId) {
+      didChange = true
+      return []
+    }
+
+    if ((binding.citationIds ?? []).includes(citationId)) {
+      didChange = true
+      return [{
+        ...binding,
+        citationIds: binding.citationIds?.filter((id) => id !== citationId),
+      }]
+    }
+
+    return [binding]
+  })
+
+  if (!didChange) {
+    return bindings
+  }
+
+  return nextBindings.length > 0 ? nextBindings : undefined
+}
 
 function documentHasSupplementarySources(document: DocumentBlueprint | null): boolean {
   if (!document) {
@@ -114,6 +261,7 @@ export default function DocumentEditor({
   initialSectionId,
   initialTableId,
   initialFigureId,
+  initialAttachCitationKey,
   onBack,
 }: DocumentEditorProps): React.ReactElement {
   const router = useRouter()
@@ -138,6 +286,7 @@ export default function DocumentEditor({
   const citationRequestSeqRef = useRef(0)
   const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
+  const initialCitationAttachmentHandledRef = useRef(false)
   const currentProject = useMemo(
     () => (doc ? loadResearchProject(doc.projectId) : null),
     [doc],
@@ -530,6 +679,42 @@ export default function DocumentEditor({
     })
   }, [scheduleSave])
 
+  const updateSectionSupportBindings = useCallback((
+    sectionId: string,
+    updater: (currentBindings: DocumentSectionSupportBinding[] | undefined) => DocumentSectionSupportBinding[] | undefined,
+  ): void => {
+    setDoc((prev) => {
+      if (!prev) {
+        return prev
+      }
+
+      let didChange = false
+      const newSections = prev.sections.map((section) => {
+        if (section.id !== sectionId) {
+          return section
+        }
+
+        const nextBindings = updater(section.sectionSupportBindings)
+        if (nextBindings === section.sectionSupportBindings) {
+          return section
+        }
+
+        didChange = true
+        return { ...section, sectionSupportBindings: nextBindings }
+      })
+      if (!didChange) {
+        return prev
+      }
+      const updated = applyReferencesSectionContent({
+        ...prev,
+        sections: newSections,
+        updatedAt: new Date().toISOString(),
+      }, latestCitationsRef.current)
+      scheduleSave(updated)
+      return updated
+    })
+  }, [scheduleSave])
+
   const shouldTakeOwnershipForWritingSection = useCallback((sectionId: string): boolean => {
     const currentDoc = docRef.current
     if (!currentDoc) {
@@ -557,8 +742,6 @@ export default function DocumentEditor({
     },
   ): DocumentBlueprint => {
     const interruptedAt = new Date().toISOString()
-    const previousJobId = document.writingState?.jobId
-    const interruptionJobId = generateId('docjob')
 
     const nextSections = document.sections.map((section) => (
       section.id === sectionId
@@ -570,49 +753,16 @@ export default function DocumentEditor({
         : section
     ))
 
-    let updatedDocument: DocumentBlueprint = {
+    const updatedDocument: DocumentBlueprint = {
       ...document,
       sections: nextSections,
       updatedAt: interruptedAt,
     }
 
-    updatedDocument = {
-      ...updatedDocument,
-      writingState: {
-        ...updatedDocument.writingState,
-        status: 'completed',
-        jobId: interruptionJobId,
-        startedAt: updatedDocument.writingState?.startedAt,
-        updatedAt: interruptedAt,
-        errorMessage: undefined,
-        sectionStates: {
-          ...(updatedDocument.writingState?.sectionStates ?? {}),
-        },
-      },
-    }
-
-    for (const section of document.sections) {
-      const currentStatus = document.writingState?.sectionStates[section.id]?.status
-      const currentJobId = document.writingState?.sectionStates[section.id]?.jobId ?? previousJobId
-      const shouldInterruptSection = (
-        section.id === sectionId
-        || (currentStatus === 'drafting' && currentJobId === previousJobId)
-      )
-
-      if (!shouldInterruptSection) {
-        continue
-      }
-
-      updatedDocument = updateDocumentSectionWritingState(updatedDocument, section.id, 'skipped', {
-        jobId: interruptionJobId,
-        updatedAt: interruptedAt,
-        message: section.id === sectionId
-          ? options.message
-          : '사용자가 자동 작성을 중단했습니다.',
-      })
-    }
-
-    return updatedDocument
+    return updateDocumentSectionWritingState(updatedDocument, sectionId, 'skipped', {
+      updatedAt: interruptedAt,
+      message: options.message,
+    })
   }, [])
 
   const takeSectionOwnershipForEditing = useCallback((sectionId: string, plateValue: unknown): void => {
@@ -683,7 +833,11 @@ export default function DocumentEditor({
 
     const sectionId = pendingSerializeSectionRef.current
     if (!sectionId) {
-      return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+      const exportDoc = needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+      return resolveDocumentInlineCitations(
+        applyReferencesSectionContent(exportDoc, latestCitationsRef.current),
+        latestCitationsRef.current,
+      )
     }
 
     pendingSerializeSectionRef.current = null
@@ -692,16 +846,24 @@ export default function DocumentEditor({
       const newSections = currentDoc.sections.map((section) => (
         section.id === sectionId ? { ...section, content: markdown } : section
       ))
-      const updated = {
+      const updated = applyReferencesSectionContent({
         ...currentDoc,
         sections: newSections,
         updatedAt: new Date().toISOString(),
-      }
+      }, latestCitationsRef.current)
       setDoc(updated)
       scheduleSave(updated)
-      return needsReassemble ? (reassembleCurrentDocument(updated) ?? updated) : updated
+      const exportDoc = needsReassemble ? (reassembleCurrentDocument(updated) ?? updated) : updated
+      return resolveDocumentInlineCitations(
+        applyReferencesSectionContent(exportDoc, latestCitationsRef.current),
+        latestCitationsRef.current,
+      )
     } catch {
-      return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+      const exportDoc = needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+      return resolveDocumentInlineCitations(
+        applyReferencesSectionContent(exportDoc, latestCitationsRef.current),
+        latestCitationsRef.current,
+      )
     }
   }, [editor, needsReassemble, reassembleCurrentDocument, scheduleSave])
 
@@ -780,7 +942,7 @@ export default function DocumentEditor({
         // serialize 실패 시 무시
       }
     }, 500)
-  }, [editor, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
+  }, [activeSectionId, editor, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
 
   const handleTakeSectionOwnership = useCallback((): void => {
     if (!activeSectionId) {
@@ -979,9 +1141,264 @@ export default function DocumentEditor({
 
   const handleDeleteCitation = useCallback(async (id: string) => {
     await deleteCitation(id)
-  }, [])
+    const remainingCitations = latestCitationsRef.current.filter((record) => record.id !== id)
+    latestCitationsRef.current = remainingCitations
+    setCitations(remainingCitations)
+
+    const cleanedActivePlateValue = activeSectionId
+      ? removeInlineCitationFromPlateValue(editor.children, id)
+      : { value: null, changed: false }
+    if (activeSectionId && cleanedActivePlateValue.changed) {
+      editor.tf.setValue(cleanedActivePlateValue.value as typeof editor.children)
+    }
+
+    setDoc((prev) => {
+      if (!prev) {
+        return prev
+      }
+
+      let didChange = false
+      const nextSections = prev.sections.map((section) => {
+        const nextContent = removeInlineCitationMarkdown(section.content, id)
+        const nextBindings = removeCitationFromSupportBindings(section.sectionSupportBindings, id)
+        const nextPlateValue = section.id === activeSectionId && cleanedActivePlateValue.changed
+          ? cleanedActivePlateValue.value
+          : section.plateValue
+            ? removeInlineCitationFromPlateValue(section.plateValue, id).value
+            : section.plateValue
+        if (
+          nextContent === section.content
+          && nextBindings === section.sectionSupportBindings
+          && nextPlateValue === section.plateValue
+        ) {
+          return section
+        }
+
+        didChange = true
+        return {
+          ...section,
+          content: nextContent,
+          plateValue: nextPlateValue,
+          sectionSupportBindings: nextBindings,
+        }
+      })
+
+      if (!didChange) {
+        return prev
+      }
+
+      const updated = applyReferencesSectionContent({
+        ...prev,
+        sections: nextSections,
+        updatedAt: new Date().toISOString(),
+      }, remainingCitations)
+      scheduleSave(updated)
+      return updated
+    })
+    toast.success('문헌을 삭제하고 연결된 섹션 근거를 정리했습니다.')
+  }, [activeSectionId, editor, scheduleSave])
+
+  const handleAttachCitationToSection = useCallback((
+    record: CitationRecord,
+    role?: DocumentSectionSupportRole,
+  ): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    const bindingDraft = buildCitationSupportBinding(activeSectionId, record, role)
+    updateSectionSupportBindings(activeSectionId, (currentBindings) => {
+      const alreadyAttached = (currentBindings ?? []).some((binding) => (
+        binding.sourceKind === 'citation-record'
+        && binding.sourceId === record.id
+        && binding.role === bindingDraft.role
+      ))
+      if (alreadyAttached) {
+        return currentBindings
+      }
+      return mergeDocumentSectionSupportBindings(currentBindings, [bindingDraft])
+    })
+    setNeedsReassemble(true)
+    toast.success(`${DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[bindingDraft.role]} 문헌으로 연결했습니다.`)
+  }, [activeSectionId, updateSectionSupportBindings])
+
+  const handleInsertInlineCitation = useCallback((
+    record: CitationRecord,
+    role?: DocumentSectionSupportRole,
+  ): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    const citationMarkdown = buildInlineCitationMarkdown(record)
+    const strategy = insertInlineCitationAtCursor(editor, citationMarkdown)
+    if (strategy !== 'noop') {
+      return
+    }
+    try {
+      const citationNodes = editor.api.markdown.deserialize(citationMarkdown)
+      if (Array.isArray(citationNodes) && citationNodes.length > 0) {
+        editor.tf.insertNodes(citationNodes)
+        return
+      }
+    } catch {
+      // markdown link deserialize 실패 시 plain text fallback
+    }
+    editor.tf.insertNodes([
+      { type: 'p', children: [{ text: renderInlineCitation(record) }] },
+    ])
+    toast.success(`${DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[role ?? inferDocumentSectionSupportRole(activeSectionId)]} 본문 인용을 삽입했습니다.`)
+  }, [activeSectionId, editor])
+
+  const handleUpdateSupportBindingRole = useCallback((
+    bindingId: string,
+    role: DocumentSectionSupportRole,
+  ): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    updateSectionSupportBindings(activeSectionId, (currentBindings) => {
+      const existing = (currentBindings ?? []).find((binding) => binding.id === bindingId)
+      if (!existing || existing.role === role) {
+        return currentBindings
+      }
+
+      const remainingBindings = (currentBindings ?? []).filter((binding) => binding.id !== bindingId)
+      return mergeDocumentSectionSupportBindings(remainingBindings, [{
+        ...existing,
+        role,
+      }])
+    })
+    setNeedsReassemble(true)
+    toast.success(`문헌 역할을 ${DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[role]}로 바꿨습니다.`)
+  }, [activeSectionId, updateSectionSupportBindings])
+
+  const handleDetachSupportBinding = useCallback((bindingId: string): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    updateSectionSupportBindings(activeSectionId, (currentBindings) => {
+      const nextBindings = (currentBindings ?? []).filter((binding) => binding.id !== bindingId)
+      return nextBindings.length > 0 ? nextBindings : undefined
+    })
+    setNeedsReassemble(true)
+    toast.success('현재 섹션에서 문헌 연결을 해제했습니다.')
+  }, [activeSectionId, updateSectionSupportBindings])
+
+  const handleDetachCitationRoleFromSection = useCallback((
+    record: CitationRecord,
+    role: DocumentSectionSupportRole,
+  ): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    let removedCount = 0
+    updateSectionSupportBindings(activeSectionId, (currentBindings) => {
+      const nextBindings = (currentBindings ?? []).filter((binding) => {
+        const matchesCitation = binding.sourceKind === 'citation-record'
+          && (
+            binding.sourceId === record.id
+            || (binding.citationIds ?? []).includes(record.id)
+          )
+        const shouldRemove = matchesCitation && binding.role === role
+        if (shouldRemove) {
+          removedCount += 1
+        }
+        return !shouldRemove
+      })
+
+      return nextBindings.length > 0 ? nextBindings : undefined
+    })
+
+    if (removedCount > 0) {
+      setNeedsReassemble(true)
+      toast.success(
+        removedCount > 1
+          ? `${DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[role]} 문헌 메모 ${removedCount}건을 현재 섹션에서 해제했습니다.`
+          : `${DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[role]} 문헌 연결을 현재 섹션에서 해제했습니다.`,
+      )
+    }
+  }, [activeSectionId, updateSectionSupportBindings])
+
+  const handleDuplicateSupportBinding = useCallback((bindingId: string): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    updateSectionSupportBindings(activeSectionId, (currentBindings) => {
+      const existing = (currentBindings ?? []).find((binding) => binding.id === bindingId)
+      if (!existing) {
+        return currentBindings
+      }
+
+      return mergeDocumentSectionSupportBindings(currentBindings, [{
+        ...existing,
+        id: generateId('dsb'),
+        summary: undefined,
+        excerpt: undefined,
+      }])
+    })
+    toast.success('같은 문헌으로 새 메모 카드를 추가했습니다.')
+  }, [activeSectionId, updateSectionSupportBindings])
+
+  const handleUpdateSupportBindingNotes = useCallback((
+    bindingId: string,
+    updates: {
+      summary?: string
+      excerpt?: string
+    },
+  ): void => {
+    if (!activeSectionId) {
+      return
+    }
+
+    updateSectionSupportBindings(activeSectionId, (currentBindings) => {
+      const existing = (currentBindings ?? []).find((binding) => binding.id === bindingId)
+      if (!existing) {
+        return currentBindings
+      }
+
+      const nextSummary = updates.summary?.trim() || undefined
+      const nextExcerpt = updates.excerpt?.trim() || undefined
+      if (existing.summary === nextSummary && existing.excerpt === nextExcerpt) {
+        return currentBindings
+      }
+
+      const remainingBindings = (currentBindings ?? []).filter((binding) => binding.id !== bindingId)
+      return mergeDocumentSectionSupportBindings(remainingBindings, [{
+        ...existing,
+        summary: nextSummary,
+        excerpt: nextExcerpt,
+      }])
+    })
+  }, [activeSectionId, updateSectionSupportBindings])
 
   const activeSection = doc?.sections.find((section) => section.id === activeSectionId) ?? null
+  const activeSectionSupportBindings = activeSection?.sectionSupportBindings?.filter((binding) => binding.included !== false) ?? []
+  const activeSectionSupportRoleOptions = useMemo(
+    () => getRecommendedDocumentSectionSupportRoles(activeSectionId),
+    [activeSectionId],
+  )
+  const activeSectionPreviewContent = useMemo(() => (
+    resolveInlineCitationMarkdown(activeSection?.content || '*내용 없음*', citations)
+  ), [activeSection?.content, citations])
+  const activeSectionAttachedCitationRoleCounts = useMemo(() => {
+    const roleMap = new Map<string, Map<DocumentSectionSupportRole, number>>()
+    for (const binding of activeSectionSupportBindings) {
+      const targets = binding.sourceKind === 'citation-record'
+        ? [binding.sourceId, ...(binding.citationIds ?? [])]
+        : []
+      for (const citationId of targets) {
+        const roleCounts = roleMap.get(citationId) ?? new Map<DocumentSectionSupportRole, number>()
+        roleCounts.set(binding.role, (roleCounts.get(binding.role) ?? 0) + 1)
+        roleMap.set(citationId, roleCounts)
+      }
+    }
+    return roleMap
+  }, [activeSectionSupportBindings])
   const documentWritingState = doc?.writingState
   const activeSectionWritingState = activeSection
     ? documentWritingState?.sectionStates[activeSection.id]
@@ -1002,6 +1419,25 @@ export default function DocumentEditor({
         return null
     }
   }, [documentWritingState?.status])
+  useEffect(() => {
+    initialCitationAttachmentHandledRef.current = false
+  }, [documentId, initialAttachCitationKey])
+
+  useEffect(() => {
+    if (!initialAttachCitationKey || initialCitationAttachmentHandledRef.current || !activeSectionId) {
+      return
+    }
+
+    const matchingCitation = citations.find((record) => (
+      citationKey(record.item) === initialAttachCitationKey
+    ))
+    if (!matchingCitation) {
+      return
+    }
+
+    initialCitationAttachmentHandledRef.current = true
+    handleAttachCitationToSection(matchingCitation)
+  }, [activeSectionId, citations, handleAttachCitationToSection, initialAttachCitationKey])
   const sectionWritingStatusLabel = useMemo((): string | null => {
     switch (activeSectionWritingState?.status as DocumentWritingSectionStatus | undefined) {
       case 'drafting':
@@ -1178,55 +1614,62 @@ export default function DocumentEditor({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-64px)] flex-col bg-surface">
       {/* 상단 바 */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
-          <ArrowLeft className="w-4 h-4" />
-          목록
-        </Button>
-        <Separator orientation="vertical" className="h-5" />
-        <h1 className="text-sm font-semibold truncate flex-1">{doc.title}</h1>
-        <DocumentWritingHeaderStatus
-          saveStatus={saveStatus}
-          writingStatusLabel={writingStatusLabel}
-          writingStatus={documentWritingState?.status}
-          onRetry={handleRetryWriting}
-        />
-        <Button
-          variant={needsReassemble ? 'secondary' : 'outline'}
-          size="sm"
-          onClick={handleReassemble}
-          className="gap-1"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          {needsReassemble ? '재조립 필요' : '재조립'}
-        </Button>
-        <div className="flex border rounded-md">
-          <Button
-            variant={previewMode ? 'ghost' : 'secondary'}
-            size="sm"
-            onClick={() => setPreviewMode(false)}
-            className="gap-1 rounded-r-none"
-          >
-            <PenLine className="w-3.5 h-3.5" />
-            편집
+      <div className="shrink-0 px-6 pt-6">
+        <div className="flex flex-wrap items-center gap-3 rounded-[28px] bg-surface-container-lowest px-5 py-4 shadow-[0px_12px_32px_rgba(25,28,30,0.06)]">
+          <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
+            <ArrowLeft className="w-4 h-4" />
+            목록
           </Button>
+          <Separator orientation="vertical" className="h-5 bg-outline/30" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Writing Workspace
+            </p>
+            <h1 className="truncate text-sm font-semibold text-on-surface">{doc.title}</h1>
+          </div>
+          <DocumentWritingHeaderStatus
+            saveStatus={saveStatus}
+            writingStatusLabel={writingStatusLabel}
+            writingStatus={documentWritingState?.status}
+            onRetry={handleRetryWriting}
+          />
           <Button
-            variant={previewMode ? 'secondary' : 'ghost'}
+            variant="secondary"
             size="sm"
-            onClick={() => { flushSerialize(); setPreviewMode(true) }}
-            className="gap-1 rounded-l-none"
+            onClick={handleReassemble}
+            className="gap-1 rounded-full bg-surface-container-high px-3"
           >
-            <Eye className="w-3.5 h-3.5" />
-            미리보기
+            <RefreshCw className="w-3.5 h-3.5" />
+            {needsReassemble ? '재조립 필요' : '재조립'}
           </Button>
+          <div className="flex rounded-full bg-surface-container p-1">
+            <Button
+              variant={previewMode ? 'ghost' : 'secondary'}
+              size="sm"
+              onClick={() => setPreviewMode(false)}
+              className="gap-1 rounded-full"
+            >
+              <PenLine className="w-3.5 h-3.5" />
+              편집
+            </Button>
+            <Button
+              variant={previewMode ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => { flushSerialize(); setPreviewMode(true) }}
+              className="gap-1 rounded-full"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              미리보기
+            </Button>
+          </div>
         </div>
       </div>
 
       {isScratchProject && (
-        <div className="shrink-0 border-b bg-surface-container-low px-4 py-3">
-          <div className="flex flex-col gap-3 rounded-xl bg-surface-container px-4 py-3 md:flex-row md:items-center md:justify-between">
+        <div className="shrink-0 px-6 pt-4">
+          <div className="flex flex-col gap-3 rounded-[24px] bg-surface-container px-4 py-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-sm font-medium text-foreground">
                 현재 문서는 임시 작업공간에 저장 중입니다.
@@ -1237,9 +1680,10 @@ export default function DocumentEditor({
             </div>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => router.push('/projects')}
+              className="bg-surface-container-lowest"
             >
               프로젝트 관리 열기
             </Button>
@@ -1248,8 +1692,8 @@ export default function DocumentEditor({
       )}
 
       {needsReassemble && (
-        <div className="shrink-0 px-4 py-3 bg-surface-container-low">
-          <div className="flex items-start gap-3 rounded-xl bg-surface-container px-4 py-3">
+        <div className="shrink-0 px-6 pt-4">
+          <div className="flex items-start gap-3 rounded-[24px] bg-surface-container px-4 py-4">
             <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div className="min-w-0 space-y-1">
               <p className="text-sm font-medium text-foreground">
@@ -1265,8 +1709,8 @@ export default function DocumentEditor({
       )}
 
       {documentConflict && (
-        <div className="shrink-0 px-4 py-3 bg-amber-50">
-          <div className="flex items-start gap-3 rounded-xl bg-amber-100 px-4 py-3 text-amber-950">
+        <div className="shrink-0 px-6 pt-4">
+          <div className="flex items-start gap-3 rounded-[24px] bg-amber-100 px-4 py-4 text-amber-950">
             <div className="min-w-0 flex-1 space-y-1">
               <p className="text-sm font-medium">
                 다른 탭에서 이 문서가 먼저 저장되었습니다.
@@ -1278,8 +1722,9 @@ export default function DocumentEditor({
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant="secondary"
               onClick={() => applyLoadedDocument(documentConflict)}
+              className="bg-white/80 text-amber-950 hover:bg-white"
             >
               최신 버전 불러오기
             </Button>
@@ -1288,9 +1733,9 @@ export default function DocumentEditor({
       )}
 
       {/* 메인 영역 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 gap-4 px-6 py-4">
         {/* 좌측: 섹션 목록 */}
-        <div className="w-56 shrink-0 border-r p-3 overflow-y-auto">
+        <div className="w-[280px] shrink-0 overflow-y-auto rounded-[28px] bg-surface-container-low p-4">
           <DocumentSectionList
             sections={doc.sections}
             activeSectionId={activeSectionId}
@@ -1303,11 +1748,61 @@ export default function DocumentEditor({
         </div>
 
         {/* 중앙: 편집/프리뷰 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="min-w-0 flex-1 overflow-y-auto rounded-[32px] bg-surface-container-lowest px-8 py-7">
           {activeSection ? (
-            <div className="max-w-3xl mx-auto space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-bold">{activeSection.title}</h2>
+            <div className="mx-auto max-w-3xl space-y-5">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    현재 섹션
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {doc.sections.findIndex((section) => section.id === activeSection.id) + 1} / {doc.sections.length}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-semibold tracking-tight text-on-surface">{activeSection.title}</h2>
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                  >
+                    {activeSection.generatedBy === 'llm'
+                      ? 'AI 작성'
+                      : activeSection.generatedBy === 'template'
+                        ? '자동 구조'
+                        : '직접 작성'}
+                  </Badge>
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                  >
+                    원본 {activeSection.sourceRefs.length}
+                  </Badge>
+                  {activeSectionSupportBindings.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                    >
+                      문헌 {activeSectionSupportBindings.length}
+                    </Badge>
+                  )}
+                  {(activeSection.tables?.length ?? 0) > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                    >
+                      표 {activeSection.tables?.length ?? 0}
+                    </Badge>
+                  )}
+                  {(activeSection.figures?.length ?? 0) > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                    >
+                      그림 {activeSection.figures?.length ?? 0}
+                    </Badge>
+                  )}
+                </div>
                 {sectionWritingStatusLabel && (
                   <Badge
                     variant={activeSectionWritingState?.status === 'failed' ? 'destructive' : 'secondary'}
@@ -1325,15 +1820,23 @@ export default function DocumentEditor({
               />
 
               {activeSectionSourceLinks.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/30 px-3 py-2">
-                  <span className="text-xs font-medium text-muted-foreground">원본</span>
+                <div className="rounded-[24px] bg-surface px-4 py-4">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      연결된 원본
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      이 섹션이 참조하는 원본으로 바로 이동합니다.
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
                   {activeSectionSourceLinks.map((link) => (
                     <Button
                       key={link.key}
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
-                      className="h-7 gap-1 text-xs"
+                      className="h-8 gap-1 rounded-full bg-surface-container px-3 text-xs"
                       onClick={() => router.push(link.href)}
                     >
                       <span>{link.kindLabel}</span>
@@ -1341,21 +1844,143 @@ export default function DocumentEditor({
                     </Button>
                   ))}
                   {needsReassemble && (
-                    <Badge variant="secondary" className="ml-auto text-[10px]">
+                    <Badge
+                      variant="secondary"
+                      className="ml-auto rounded-full bg-secondary-container px-2.5 py-1 text-[10px] font-medium text-secondary"
+                    >
                       소스 변경 감지
                     </Badge>
                   )}
+                  </div>
+                </div>
+              )}
+
+              {activeSectionSupportBindings.length > 0 && (
+                <div className="rounded-[24px] bg-surface px-4 py-4">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      섹션 작성 근거
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      이 섹션 작성에 연결된 문헌과 해석 근거입니다.
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {activeSectionSupportBindings.map((binding) => {
+                      const matchedCitation = citations.find((record) => record.id === binding.sourceId)
+                        ?? citations.find((record) => (binding.citationIds ?? []).includes(record.id))
+                      return (
+                        <div
+                          key={binding.id}
+                          className="rounded-2xl bg-surface-container px-3 py-3"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className="rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                            >
+                              {DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[binding.role]}
+                            </Badge>
+                            {matchedCitation && (
+                              <span className="text-xs text-muted-foreground">
+                                {renderInlineCitation(matchedCitation)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-on-surface">
+                            {binding.label ?? matchedCitation?.item.title ?? binding.sourceId}
+                          </p>
+                          <div className="mt-3 space-y-2">
+                            <div className="space-y-1">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                핵심 메모
+                              </p>
+                              <Textarea
+                                key={`${binding.id}:summary:${binding.summary ?? ''}`}
+                                defaultValue={binding.summary ?? ''}
+                                placeholder="이 문헌에서 이 섹션에 쓸 핵심 주장이나 요약을 적어두세요."
+                                aria-label="핵심 메모"
+                                className="min-h-[72px] resize-none border-0 bg-surface px-3 py-2 text-xs leading-relaxed shadow-none"
+                                onBlur={(event) => {
+                                  handleUpdateSupportBindingNotes(binding.id, {
+                                    summary: event.currentTarget.value,
+                                    excerpt: binding.excerpt,
+                                  })
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                발췌 메모
+                              </p>
+                              <Textarea
+                                key={`${binding.id}:excerpt:${binding.excerpt ?? ''}`}
+                                defaultValue={binding.excerpt ?? ''}
+                                placeholder="초록이나 PDF 원문에서 남겨둘 문장, 비교 포인트, 인용 메모를 적어두세요."
+                                aria-label="발췌 메모"
+                                className="min-h-[72px] resize-none border-0 bg-surface px-3 py-2 text-xs leading-relaxed shadow-none"
+                                onBlur={(event) => {
+                                  handleUpdateSupportBindingNotes(binding.id, {
+                                    summary: binding.summary,
+                                    excerpt: event.currentTarget.value,
+                                  })
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                            {Array.from(new Set([binding.role, ...activeSectionSupportRoleOptions])).map((roleOption) => (
+                              <Button
+                                key={`${binding.id}-${roleOption}`}
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className={cn(
+                                  'h-7 rounded-full px-2.5 text-[11px]',
+                                  roleOption === binding.role
+                                    ? 'bg-surface-container-high text-on-surface'
+                                    : 'bg-surface text-on-surface-variant',
+                                )}
+                                onClick={() => handleUpdateSupportBindingRole(binding.id, roleOption)}
+                                disabled={roleOption === binding.role}
+                              >
+                                {DOCUMENT_SECTION_SUPPORT_ROLE_LABELS[roleOption]}
+                              </Button>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 rounded-full px-2.5 text-[11px] text-muted-foreground hover:bg-surface"
+                              onClick={() => handleDuplicateSupportBinding(binding.id)}
+                            >
+                              같은 문헌 근거 추가
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="ml-auto h-7 rounded-full px-2.5 text-[11px] text-muted-foreground hover:bg-surface"
+                              onClick={() => handleDetachSupportBinding(binding.id)}
+                            >
+                              섹션에서 해제
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
               {previewMode ? (
-                <div className="prose dark:prose-invert max-w-none">
+                <div className="prose max-w-none rounded-[24px] bg-surface px-6 py-5">
                   <Suspense fallback={<p className="text-muted-foreground">로딩 중...</p>}>
                     <ReactMarkdown
                       remarkPlugins={MARKDOWN_CONFIG.remarkPlugins}
                       rehypePlugins={MARKDOWN_CONFIG.rehypePlugins}
                     >
-                      {activeSection.content || '*내용 없음*'}
+                      {activeSectionPreviewContent}
                     </ReactMarkdown>
                   </Suspense>
                 </div>
@@ -1374,16 +1999,16 @@ export default function DocumentEditor({
                     <div
                       key={table.id ?? i}
                       data-doc-target={table.id ? `table:${table.id}` : undefined}
-                      className="border rounded-lg overflow-hidden"
+                      className="overflow-hidden rounded-[24px] bg-surface"
                     >
-                      <div className="flex items-center gap-2 bg-muted/50 p-2">
+                      <div className="flex items-center gap-2 bg-surface-container px-3 py-3">
                         <p className="min-w-0 flex-1 text-xs font-medium">{table.caption}</p>
                         {sourceAnalysisId && (
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
-                            className="h-7 text-xs"
+                            className="h-7 rounded-full bg-surface-container-high px-3 text-xs"
                             onClick={() => router.push(buildAnalysisHistoryUrl(sourceAnalysisId))}
                           >
                             통계 열기
@@ -1391,30 +2016,35 @@ export default function DocumentEditor({
                         )}
                       </div>
                       {table.sourceAnalysisLabel && (
-                        <div className="px-2 pb-2 text-xs text-muted-foreground">
+                        <div className="px-3 pb-3 text-xs text-muted-foreground">
                           관련 분석: {table.sourceAnalysisLabel}
                         </div>
                       )}
                       {table.htmlContent ? (
                         <div
-                          className="p-2 text-sm overflow-x-auto"
+                          className="overflow-x-auto px-3 pb-3 text-sm"
                           dangerouslySetInnerHTML={{ __html: table.htmlContent }}
                         />
                       ) : (
-                        <div className="p-2 overflow-x-auto">
-                          <table className="text-xs w-full">
+                        <div className="overflow-x-auto px-3 pb-3">
+                          <table className="w-full text-xs tabular-nums">
                             <thead>
                               <tr>
                                 {table.headers.map((h, hi) => (
-                                  <th key={hi} className="border px-2 py-1 bg-muted/30 text-left">{h}</th>
+                                  <th
+                                    key={hi}
+                                    className="bg-surface-container px-3 py-2 text-left font-medium text-on-surface-variant"
+                                  >
+                                    {h}
+                                  </th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody>
                               {table.rows.map((row, ri) => (
-                                <tr key={ri}>
+                                <tr key={ri} className={ri % 2 === 0 ? 'bg-surface-container-low/60' : ''}>
                                   {row.map((cell, ci) => (
-                                    <td key={ci} className="border px-2 py-1">{cell}</td>
+                                    <td key={ci} className="px-3 py-2">{cell}</td>
                                   ))}
                                 </tr>
                               ))}
@@ -1438,7 +2068,7 @@ export default function DocumentEditor({
                     <div
                       key={fig.entityId}
                       data-doc-target={`figure:${fig.entityId}`}
-                      className="rounded border bg-muted/20 p-2 text-sm"
+                      className="rounded-[24px] bg-surface px-4 py-4 text-sm"
                     >
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{fig.label}</span>
@@ -1447,9 +2077,9 @@ export default function DocumentEditor({
                           {relatedAnalysisId && (
                             <Button
                               type="button"
-                              variant="ghost"
+                              variant="secondary"
                               size="sm"
-                              className="h-7 text-xs"
+                              className="h-7 rounded-full bg-surface-container px-3 text-xs"
                               onClick={() => router.push(buildAnalysisHistoryUrl(relatedAnalysisId))}
                             >
                               통계 열기
@@ -1457,9 +2087,9 @@ export default function DocumentEditor({
                           )}
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
-                            className="h-7 text-xs"
+                            className="h-7 rounded-full bg-surface-container px-3 text-xs"
                             onClick={() => router.push(buildGraphStudioProjectUrl(fig.entityId))}
                           >
                             Graph Studio
@@ -1482,27 +2112,36 @@ export default function DocumentEditor({
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="flex h-full items-center justify-center rounded-[24px] bg-surface text-muted-foreground">
               좌측에서 섹션을 선택하세요
             </div>
           )}
         </div>
 
         {/* 우측: 재료 팔레트 */}
-        <div className="w-52 shrink-0 border-l p-3 overflow-y-auto">
+        <div className="w-[340px] shrink-0 overflow-y-auto rounded-[28px] bg-surface-container-low p-4">
           <MaterialPalette
             projectId={doc.projectId}
+            documentId={doc.id}
+            activeSectionId={activeSectionId}
+            activeSectionTitle={activeSection?.title ?? null}
             onInsertAnalysis={handleInsertAnalysis}
             onInsertFigure={handleInsertFigure}
             citations={citations}
             onDeleteCitation={handleDeleteCitation}
+            onAttachCitationToSection={handleAttachCitationToSection}
+            onDetachCitationFromSection={handleDetachCitationRoleFromSection}
+            onInsertInlineCitation={handleInsertInlineCitation}
+            attachedCitationRoleCounts={activeSectionAttachedCitationRoleCounts}
           />
         </div>
       </div>
 
       {/* 하단: 내보내기 */}
-      <div className="shrink-0 px-4 pb-3">
-        <DocumentExportBar document={doc} onBeforeExport={prepareDocumentForExport} />
+      <div className="shrink-0 px-6 pb-6">
+        <div className="rounded-[24px] bg-surface-container px-4 py-3">
+          <DocumentExportBar document={doc} onBeforeExport={prepareDocumentForExport} />
+        </div>
       </div>
     </div>
   )
