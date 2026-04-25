@@ -7,6 +7,8 @@ import {
   createDocumentSourceRef,
   type DocumentBlueprint,
 } from '../document-blueprint-types'
+import { getDocumentNumericClaims } from '../document-claim-evidence'
+import { buildSourceEvidenceIndex } from '../document-source-evidence'
 
 function makeDocument(overrides: Partial<DocumentBlueprint> = {}): DocumentBlueprint {
   return {
@@ -104,6 +106,37 @@ describe('document-preflight-rules', () => {
         sectionId: 'results',
         evidence: [expect.objectContaining({
           label: expect.stringContaining('p < 0.01'),
+          observedValue: '0.03',
+          expectedValue: 'p < 0.01',
+        })],
+      }),
+    ])
+  })
+
+  it('converts conservative free-text numeric claims into source findings', () => {
+    const document = makeDocument({
+      sections: [{
+        ...makeDocument().sections[0],
+        content: 'Treatment was significant (p < .01).',
+      }],
+    })
+    const evidenceIndex = buildSourceEvidenceIndex(document)
+    const report = runDocumentPreflightRules(document, {
+      reportId: 'report-1',
+      generatedAt: '2026-04-25T02:00:00.000Z',
+      evidenceIndex,
+      numericClaims: getDocumentNumericClaims(document, {
+        evidenceIndex,
+        includeFreeText: true,
+      }),
+    })
+
+    expect(report.findings).toEqual([
+      expect.objectContaining({
+        ruleId: 'claim.numeric.mismatch',
+        sectionId: 'results',
+        evidence: [expect.objectContaining({
+          label: expect.stringContaining('p < .01'),
           observedValue: '0.03',
           expectedValue: 'p < 0.01',
         })],

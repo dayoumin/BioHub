@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { DocumentBlueprint } from '../document-blueprint-types'
-import { checkNumericClaimEvidence, getDocumentNumericClaims } from '../document-claim-evidence'
+import {
+  checkNumericClaimEvidence,
+  getDocumentNumericClaims,
+} from '../document-claim-evidence'
 import { buildSourceEvidenceIndex } from '../document-source-evidence'
 
 function makeDocument(): DocumentBlueprint {
@@ -152,5 +155,130 @@ describe('checkNumericClaimEvidence', () => {
       metricLabel: 'p',
       operator: '<=',
     })])
+  })
+
+  it('conservatively collects free-text p and n claims with likely table evidence', () => {
+    const document = makeDocument()
+    document.sections[0] = {
+      ...document.sections[0],
+      content: 'Treatment was significant (p < .05) with n = 42.',
+      tables: [{
+        id: 'table-1',
+        caption: 'Model results',
+        headers: ['term', 'p', 'n'],
+        rows: [['Treatment', '0.03', '42']],
+        sourceAnalysisId: 'analysis-1',
+      }],
+    }
+    const index = buildSourceEvidenceIndex(document)
+
+    const claims = getDocumentNumericClaims(document, {
+      evidenceIndex: index,
+      includeFreeText: true,
+    })
+
+    expect(claims).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sectionId: 'results',
+        text: 'p < .05',
+        metricLabel: 'p',
+        operator: '<',
+        value: 0.05,
+        evidenceKeys: ['doc:doc-1:section:results:table:table-1'],
+      }),
+      expect.objectContaining({
+        sectionId: 'results',
+        text: 'n = 42',
+        metricLabel: 'n',
+        operator: '=',
+        value: 42,
+        evidenceKeys: ['doc:doc-1:section:results:table:table-1'],
+      }),
+    ]))
+  })
+
+  it('skips free-text claims when no same-section metric table exists', () => {
+    const document = makeDocument()
+    document.sections[0] = {
+      ...document.sections[0],
+      content: 'The difference was reported as t = 2.1.',
+    }
+    const index = buildSourceEvidenceIndex(document)
+
+    const claims = getDocumentNumericClaims(document, {
+      evidenceIndex: index,
+      includeFreeText: true,
+    })
+
+    expect(claims).toEqual([])
+  })
+
+  it('skips free-text claims when metric evidence is not unique enough', () => {
+    const document = makeDocument()
+    document.sections[0] = {
+      ...document.sections[0],
+      content: 'Treatment was significant (p < .05).',
+      tables: [{
+        id: 'table-1',
+        caption: 'Model results',
+        headers: ['term', 'p'],
+        rows: [['Treatment', '0.03'], ['Control', '0.90']],
+        sourceAnalysisId: 'analysis-1',
+      }],
+    }
+    const index = buildSourceEvidenceIndex(document)
+
+    expect(getDocumentNumericClaims(document, {
+      evidenceIndex: index,
+      includeFreeText: true,
+    })).toEqual([])
+  })
+
+  it('does not collect broad numeric prose as free-text claims', () => {
+    const document = makeDocument()
+    document.sections[0] = {
+      ...document.sections[0],
+      content: 'There were 12 samples across 3 tanks, and the analysis finished in 2 minutes.',
+    }
+    const index = buildSourceEvidenceIndex(document)
+
+    expect(getDocumentNumericClaims(document, {
+      evidenceIndex: index,
+      includeFreeText: true,
+    })).toEqual([])
+  })
+
+  it('collects conservative effect-size style claims when matching metric headers exist', () => {
+    const document = makeDocument()
+    document.sections[0] = {
+      ...document.sections[0],
+      content: 'The association was modest (r = .31), while the odds ratio was OR = 1.8.',
+      tables: [{
+        id: 'table-1',
+        caption: 'Model results',
+        headers: ['term', 'r', 'OR'],
+        rows: [['Treatment', '0.31', '1.8']],
+        sourceAnalysisId: 'analysis-1',
+      }],
+    }
+    const index = buildSourceEvidenceIndex(document)
+
+    const claims = getDocumentNumericClaims(document, {
+      evidenceIndex: index,
+      includeFreeText: true,
+    })
+
+    expect(claims).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        text: 'r = .31',
+        metricLabel: 'r',
+        value: 0.31,
+      }),
+      expect.objectContaining({
+        text: 'OR = 1.8',
+        metricLabel: 'OR',
+        value: 1.8,
+      }),
+    ]))
   })
 })

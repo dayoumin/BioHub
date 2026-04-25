@@ -32,6 +32,11 @@ export interface NumericClaimEvidenceCheck {
   expectedValue: string
 }
 
+export interface GetDocumentNumericClaimsOptions {
+  includeFreeText?: boolean
+  evidenceIndex?: SourceEvidenceIndex
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -73,7 +78,7 @@ function normalizeNumericClaim(value: unknown): NumericDocumentClaimEvidence | n
   }
 }
 
-export function getDocumentNumericClaims(document: DocumentBlueprint): NumericDocumentClaimEvidence[] {
+function getStructuredDocumentNumericClaims(document: DocumentBlueprint): NumericDocumentClaimEvidence[] {
   const metadata = document.metadata
   if (!isRecord(metadata) || !Array.isArray(metadata.numericClaims)) {
     return []
@@ -83,6 +88,116 @@ export function getDocumentNumericClaims(document: DocumentBlueprint): NumericDo
     const normalized = normalizeNumericClaim(claim)
     return normalized ? [normalized] : []
   })
+}
+
+function normalizeClaimNumber(value: string): number | null {
+  const normalized = value.trim().replace(/,/g, '')
+  const number = Number(normalized)
+  return Number.isFinite(number) ? number : null
+}
+
+function normalizeFreeTextOperator(value: string | undefined): NumericClaimOperator {
+  if (value === '<' || value === '<=' || value === '>' || value === '>=') {
+    return value
+  }
+
+  return '='
+}
+
+function findHighConfidenceEvidenceKeysForMetric(
+  index: SourceEvidenceIndex,
+  sectionId: string,
+  metricLabel: string,
+): string[] {
+  const normalizedMetric = normalizeMetricLabel(metricLabel)
+  const candidateKeys = (index.bySectionId[sectionId] ?? []).filter((key) => {
+    const item = index.byKey[key]
+    if (!item || item.kind !== 'table' || !item.table) {
+      return false
+    }
+
+    return item.table.rows.length === 1
+      && item.table.headers.some((header) => normalizeMetricLabel(header) === normalizedMetric)
+  })
+
+  return candidateKeys.length === 1 ? candidateKeys : []
+}
+
+function toFreeTextClaimId(sectionId: string, metricLabel: string, offset: number): string {
+  return ['free-text-numeric-claim', sectionId, metricLabel, String(offset)]
+    .map((part) => encodeURIComponent(part))
+    .join(':')
+}
+
+function collectFreeTextNumericClaims(
+  document: DocumentBlueprint,
+  evidenceIndex: SourceEvidenceIndex,
+): NumericDocumentClaimEvidence[] {
+  const patterns: Array<{ metricLabel: string; pattern: RegExp }> = [
+    { metricLabel: 'p', pattern: /\bp(?:\s*[- ]?value)?\s*(<=|>=|=|<|>)\s*(\d+(?:\.\d+)?|\.\d+)/gi },
+    { metricLabel: 'n', pattern: /\bn\s*=\s*(\d+(?:\.\d+)?|\.\d+)/gi },
+    { metricLabel: 'mean', pattern: /\bmean\s*=\s*(-?\d+(?:\.\d+)?|-?\.\d+)/gi },
+    { metricLabel: 'SD', pattern: /\bSD\s*=\s*(\d+(?:\.\d+)?|\.\d+)/g },
+    { metricLabel: 't', pattern: /\bt\s*=\s*(-?\d+(?:\.\d+)?|-?\.\d+)/g },
+    { metricLabel: 'F', pattern: /\bF\s*=\s*(\d+(?:\.\d+)?|\.\d+)/g },
+    { metricLabel: 'r', pattern: /\br\s*=\s*(-?\d+(?:\.\d+)?|-?\.\d+)/g },
+    { metricLabel: 'OR', pattern: /\bOR\s*=\s*(\d+(?:\.\d+)?|\.\d+)/g },
+    { metricLabel: 'chi2', pattern: /(?:\bchi\s*-?\s?square\b|\bchi2\b|χ2)\s*=\s*(\d+(?:\.\d+)?|\.\d+)/gi },
+  ]
+
+  const claims: NumericDocumentClaimEvidence[] = []
+  for (const section of document.sections) {
+    for (const { metricLabel, pattern } of patterns) {
+      pattern.lastIndex = 0
+      let match = pattern.exec(section.content)
+      while (match) {
+        const operator = normalizeFreeTextOperator(match[1])
+        const rawValue = match[2] ?? match[1] ?? ''
+        const value = normalizeClaimNumber(rawValue)
+        const evidenceKeys = findHighConfidenceEvidenceKeysForMetric(evidenceIndex, section.id, metricLabel)
+        if (value !== null && evidenceKeys.length > 0) {
+          claims.push({
+            claimId: toFreeTextClaimId(section.id, metricLabel, match.index),
+            documentId: document.id,
+            sectionId: section.id,
+            text: match[0],
+            evidenceKeys,
+            metricLabel,
+            operator,
+            value,
+          })
+        }
+        match = pattern.exec(section.content)
+      }
+    }
+  }
+
+  return claims
+}
+
+export function getDocumentNumericClaims(
+  document: DocumentBlueprint,
+  options: GetDocumentNumericClaimsOptions = {},
+): NumericDocumentClaimEvidence[] {
+  const structuredClaims = getStructuredDocumentNumericClaims(document)
+  if (!options.includeFreeText) {
+    return structuredClaims
+  }
+
+  const evidenceIndex = options.evidenceIndex ?? {
+    documentId: document.id,
+    projectId: document.projectId,
+    documentUpdatedAt: document.updatedAt,
+    items: [],
+    byKey: {},
+    bySectionId: {},
+    bySourceKey: {},
+  }
+
+  return [
+    ...structuredClaims,
+    ...collectFreeTextNumericClaims(document, evidenceIndex),
+  ]
 }
 
 function normalizeMetricLabel(value: string): string {

@@ -131,7 +131,8 @@
 - [x] **Finding 선택 적용 1차 구현**: `suggestion.canAutoApply` + `sectionId` + `targetRange` + 현재 섹션 hash 일치 + 유효 offset일 때만 replacement를 적용하는 순수 helper를 추가했다. `DocumentEditor` 적용 경로는 section content를 갱신하고 stale `plateValue`를 비우며, 활성 섹션이면 Plate value도 즉시 갱신한다. 적용 후 report는 자동 resolved 처리하지 않고 문서 변경으로 stale이 되도록 둔다. (`document-quality-suggestion-apply.ts`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
 - [x] **source-bound numeric claim 대조 1차 구현**: 본문 free-text 파싱은 보류하고, 명시적으로 연결된 numeric claim과 `SourceEvidenceIndex` table snapshot을 대조하는 순수 helper를 추가했다. `linked/missing/ambiguous/mismatch` 결과와 observed/expected 값을 반환하며, preflight finding 변환은 다음 단계로 분리한다. (`document-claim-evidence.ts`, `document-source-evidence.ts`, 관련 테스트, 2026-04-25)
 - [x] **source-bound numeric claim preflight 변환 1차 구현**: `runDocumentPreflightRules()`가 명시적 `numericClaims` 옵션을 받아 `linked`는 통과시키고 `missing/ambiguous/mismatch`는 source finding으로 변환한다. observed/expected evidence를 포함해 기존 패널 비교 UI가 표시할 수 있게 했다. claim 수집/free-text 파싱은 후속으로 둔다. (`document-preflight-rules.ts`, 관련 테스트, 2026-04-25)
-- [ ] **numeric claim 자동 수집/free-text 파싱 후속**: 1차는 metadata의 명시적 `numericClaims`만 검증한다. 후속에서는 writer가 생성한 source-bound claim을 structured metadata로 기록하고, 제한된 패턴(`p`, `n`, 평균/SD, F/t/chi2 등)만 본문에서 보수적으로 수집해 `확인 불가/ambiguous`를 우선 반환한다.
+- [x] **numeric claim 자동 수집/free-text 파싱 1차 구현**: preflight 실행 시 metadata의 명시적 `numericClaims`에 더해 본문 free-text에서 제한 패턴(`p`, `n`, mean/SD, `t`, `F`, `r`, `OR`, `chi2`)을 보수적으로 수집한다. 같은 section의 단일 row table 1개와 metric header가 명확히 일치하는 경우에만 자동 claim으로 검증하고, 근거가 없거나 후보가 복수인 문장은 noisy error를 피하기 위해 수집하지 않는다. (`document-claim-evidence.ts`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
+- [ ] **numeric claim 수집 고도화 후속**: writer가 생성한 source-bound claim을 structured metadata로 기록하고, row label/table reference를 명시적으로 붙여 multi-row/multi-table evidence도 안전하게 검증한다. free-text 단독 추론은 `확인 불가/ambiguous` 정보성 finding으로 분리하는 UX를 검토한다.
 - [ ] **finding 액션 설계**: `섹션으로 이동`, `원본 보기`, `차이 비교`, `선택 적용`, `무시/사유 기록`, `재검사`, `보고서 다운로드`, `위험 확인 후 export` 액션을 정의한다.
 - [ ] **Finding 수정/무시 UX 설계**: bulk apply보다 finding 단위 선택 적용을 기본으로 하고, 사용자가 직접 수정한 finding은 stale 또는 needs-recheck로 표시한다. 무시 사유는 export report에 포함할 수 있게 한다.
 - [ ] **export preflight gating 설계**: 최신 report가 없거나 stale이면 재검사 CTA를 우선 노출한다. critical mismatch가 있으면 경고와 명시적 확인 후 export를 허용하고, report 생성 실패 시 fallback UX를 정의한다.
@@ -331,3 +332,25 @@
 - [ ] AI 해석 카드의 섹션 pill/전체 보기 동작을 모바일과 긴 텍스트 기준으로 추가 검토 *(모바일 보류 — 배포 후)*
 - [x] Data Exploration Step에서 업로드 교체 상태와 경고 배너의 시각적 우선순위 재검토 (`500dc963`, 2026-04-12)
 - [x] 실제 사용자 시나리오 기준으로 Hub → Step 1 → Result 전체 흐름 e2e 스모크 테스트 추가 (`c91cff4c`, 2026-04-13 (부분 — 사이드바+smoke-test.mjs))
+
+## 9. Paper Workflow 장기 제품 전략: 축적 자산, 락인, 네트워크 효과 (2026-04-25)
+
+> 방향: 폐쇄적 락인이 아니라, 연구 자료/작성 이력/투고 지식이 BioHub 안에 쌓일수록 더 편해지는 **생산성 락인**을 목표로 한다. Export와 외부 도구 연동은 열어두되, source trace, preflight, journal profile, revision history 때문에 다시 돌아오게 만드는 구조가 장기 경쟁력이다.
+
+### 놓치기 쉬운 축적 자산
+- [ ] **Project Memory**: 프로젝트별 가설, 변수명, 분석 해석, 용어, 선호 표현을 저장해 다음 문서/수정 작업에 재사용한다.
+- [ ] **Evidence Trace 강화**: 문장마다 분석 결과, 표, 그림, citation, source snapshot을 연결해 AI 작성 문장을 연구자가 검증 가능한 상태로 유지한다.
+- [ ] **Lab Style Profile**: 연구실/지도교수/공저자별 문체, 금지 표현, preferred terminology, figure/table caption 스타일을 profile로 저장한다.
+- [ ] **Journal Profile Library**: 저널별 투고 기준, word limit, reference style, reporting checklist, required statements를 재사용 가능한 profile로 관리한다.
+- [ ] **Accepted Pattern Learning**: 사용자가 accept된 원고나 통과한 수정본을 표시하면 다음 원고의 checklist/style suggestion에 반영할 수 있는 구조를 검토한다.
+
+### 네트워크 효과 후보
+- [ ] **공유 가능한 Journal/Institution Template**: KCI/SCI 저널, 학회, 학위논문, 기관 양식 profile을 import/export/share 가능한 단위로 설계한다.
+- [ ] **Reporting Guideline Profile**: CONSORT, STROBE, PRISMA, ARRIVE 등 분야별 reporting guideline을 preflight profile로 붙일 수 있게 한다.
+- [ ] **Reviewer Response Workflow**: reviewer comment → 수정 계획 → 문단 diff → response letter를 연결해 revision 작업 이력을 자산화한다.
+- [ ] **Submission Packet**: manuscript, cover letter, checklist, figures/tables, response letter, supplementary files를 하나의 투고 패키지로 관리한다.
+
+### 제품 원칙
+- [ ] **좋은 락인만 허용**: DOCX/HWPX/Markdown/LaTeX/Zotero/Overleaf 등 외부 이동성은 유지하고, BioHub 내부에서는 provenance와 검증 자동화로 재방문 가치를 만든다.
+- [ ] **로컬 LLM + 선택적 API 리뷰 하이브리드**: 8B급 로컬 모델은 초안/부분 점검/문체 보조에 쓰고, 전체 논리 검토·투고 적합성·최종 리뷰는 대형 API 모델 fallback을 제공한다.
+- [ ] **AI 대체 작성보다 책임 가능한 작성**: AI가 대신 써주는 기능보다, 사용자가 근거·수치·출처·저널 기준을 확인하고 책임질 수 있는 workflow를 우선한다.

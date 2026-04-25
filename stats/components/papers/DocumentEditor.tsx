@@ -1216,7 +1216,10 @@ export default function DocumentEditor({
         reportId: generateId('dqreport'),
         generatedAt,
         evidenceIndex,
-        numericClaims: getDocumentNumericClaims(currentDoc),
+        numericClaims: getDocumentNumericClaims(currentDoc, {
+          evidenceIndex,
+          includeFreeText: true,
+        }),
         sourceSnapshotHashes,
         targetJournalProfileVersion: getDocumentTargetJournalProfileVersion(currentDoc),
       })
