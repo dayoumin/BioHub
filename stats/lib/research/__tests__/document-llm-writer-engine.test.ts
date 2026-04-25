@@ -67,6 +67,7 @@ function makeContext(): SectionWritingContext {
     supportMarkdown: '',
     citationIds: ['citation_1'],
     writingGoal: 'Discuss the result.',
+    journalRequirements: [],
   }
 }
 

@@ -77,6 +77,23 @@ export interface DocumentSectionBlueprintDefinition {
   generatedBy: 'template' | 'llm' | 'user'
 }
 
+export type TargetJournalStylePreset = 'general' | 'imrad' | 'apa' | 'kci' | 'manual'
+
+export interface TargetJournalRequirementProfileSnapshot {
+  id: string
+  version: string
+  label: string
+  stylePreset: TargetJournalStylePreset
+  targetJournal?: string
+  articleType?: string
+  abstractWordLimit?: number
+  mainTextWordLimit?: number
+  referenceStyle?: string
+  requiredStatements?: string[]
+  figureTableRequirements?: string[]
+  manualRequirements?: string[]
+}
+
 // ── 섹션 ──
 
 export interface DocumentSection {
@@ -113,6 +130,7 @@ export interface DocumentWritingState {
 
 export interface PaperMetadata {
   targetJournal?: string
+  targetJournalProfile?: TargetJournalRequirementProfileSnapshot
   sectionBlueprints?: DocumentSectionBlueprintDefinition[]
 }
 
@@ -126,6 +144,8 @@ export type DocumentMetadata =
   | ReportMetadata
   | (Record<string, unknown> & {
     sectionBlueprints?: DocumentSectionBlueprintDefinition[]
+    targetJournal?: string
+    targetJournalProfile?: TargetJournalRequirementProfileSnapshot
   })
 
 // ── 문서 전체 ──

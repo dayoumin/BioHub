@@ -37,6 +37,7 @@ function makeContext(): SectionWritingContext {
     supportMarkdown: '### Narrative Support Notes\n\n- 비교: Smith 2025',
     citationIds: ['citation_1'],
     writingGoal: 'Interpret the findings against the attached literature.',
+    journalRequirements: ['Style preset: imrad'],
   }
 }
 
@@ -52,6 +53,7 @@ describe('templateDocumentWriterEngine', () => {
     expect(result.content).toContain('Discussion Writing Input')
     expect(result.content).toContain('Group differences were significant.')
     expect(result.content).toContain('Smith 2025')
+    expect(result.content).toContain('Style preset: imrad')
     expect(result.content).not.toContain('Narrative Support Notes')
   })
 })

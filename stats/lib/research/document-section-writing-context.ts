@@ -8,6 +8,10 @@ import {
   type DocumentSectionSupportBinding,
 } from './document-support-asset-types'
 import { renderSectionSupportMarkdown } from './document-support-renderer'
+import {
+  formatTargetJournalProfileForWriting,
+  getDocumentTargetJournalProfileSnapshot,
+} from './document-journal-profile'
 import type { NormalizedWritingSource } from './document-writing-source-types'
 
 export type DocumentWritingSectionKind =
@@ -58,6 +62,7 @@ export interface SectionWritingContext {
   supportMarkdown: string
   citationIds: string[]
   writingGoal: string
+  journalRequirements: string[]
 }
 
 interface BuildSectionWritingContextOptions {
@@ -193,5 +198,8 @@ export function buildSectionWritingContext(
     supportMarkdown: renderSectionSupportMarkdown(section, document.language),
     citationIds: collectCitationIds(supportItems),
     writingGoal: getWritingGoal(sectionKind, document.language),
+    journalRequirements: formatTargetJournalProfileForWriting(
+      getDocumentTargetJournalProfileSnapshot(document),
+    ),
   }
 }

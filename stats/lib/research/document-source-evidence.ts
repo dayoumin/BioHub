@@ -38,6 +38,10 @@ export interface SourceEvidenceItem {
   artifactLabel?: string
   contentHash: string
   summary?: string
+  table?: {
+    headers: string[]
+    rows: string[][]
+  }
 }
 
 export interface SourceEvidenceIndex {
@@ -190,6 +194,10 @@ function buildTableEvidenceItems(
         sourceAnalysisId: table.sourceAnalysisId,
       }),
       summary: table.headers.join(', '),
+      table: {
+        headers: [...table.headers],
+        rows: table.rows.map((row) => [...row]),
+      },
     }
   })
 }

@@ -48,6 +48,7 @@ function createTemplateDraft(context: SectionWritingContext): string {
   const goalLabel = context.language === 'ko' ? '작성 목표' : 'Writing goal'
   const sourceLabel = context.language === 'ko' ? '연결 자료' : 'Linked sources'
   const supportLabel = context.language === 'ko' ? '문헌/근거 메모' : 'Literature support'
+  const journalLabel = context.language === 'ko' ? '투고/스타일 요구사항' : 'Journal/style requirements'
 
   const blocks = [
     heading,
@@ -58,6 +59,10 @@ function createTemplateDraft(context: SectionWritingContext): string {
   const sourceSummaries = listSourceSummaries(context)
   if (sourceSummaries.length > 0) {
     blocks.push('', `#### ${sourceLabel}`, '', sourceSummaries.join('\n'))
+  }
+
+  if (context.journalRequirements.length > 0) {
+    blocks.push('', `#### ${journalLabel}`, '', context.journalRequirements.map((item) => `- ${item}`).join('\n'))
   }
 
   const supportClaims = listSupportClaims(context)

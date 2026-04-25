@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { PRESET_REGISTRY, createSectionBlueprints } from '@/lib/research/document-preset-registry'
 import { assembleDocument } from '@/lib/research/document-assembler'
 import { saveDocumentBlueprint } from '@/lib/research/document-blueprint-storage'
+import { createTargetJournalProfileSnapshot } from '@/lib/research/document-journal-profile'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
@@ -172,6 +173,13 @@ export default function DocumentAssemblyDialog({
           sectionBlueprints: normalizedSectionBlueprints,
           metadata: {
             sectionBlueprints: normalizedSectionBlueprints,
+            targetJournalProfile: selectedPreset === 'paper'
+              ? createTargetJournalProfileSnapshot({
+                  stylePreset: 'imrad',
+                  label: 'IMRAD manuscript',
+                  articleType: 'research article',
+                })
+              : undefined,
           },
         },
         {

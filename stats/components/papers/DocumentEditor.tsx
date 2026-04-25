@@ -124,6 +124,7 @@ import {
   buildSourceSnapshotHashes,
   type SourceEvidenceIndex,
 } from '@/lib/research/document-source-evidence'
+import { getDocumentTargetJournalProfileVersion } from '@/lib/research/document-journal-profile'
 import {
   DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION,
   runDocumentPreflightRules,
@@ -1074,6 +1075,7 @@ export default function DocumentEditor({
         generatedAt,
         evidenceIndex,
         sourceSnapshotHashes,
+        targetJournalProfileVersion: getDocumentTargetJournalProfileVersion(currentDoc),
       })
       const savedReport = await saveDocumentQualityReport(report)
       setQualityReport(savedReport)
@@ -1595,6 +1597,7 @@ export default function DocumentEditor({
     return getDocumentQualityFreshness(doc, qualityReport, {
       ruleEngineVersion: DOCUMENT_PREFLIGHT_RULE_ENGINE_VERSION,
       sourceSnapshotHashes,
+      targetJournalProfileVersion: getDocumentTargetJournalProfileVersion(doc),
     })
   }, [doc, needsReassemble, qualityReport])
   const handleSelectPreflightSection = useCallback((sectionId: string): void => {
