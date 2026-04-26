@@ -1,16 +1,16 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
-import { ArrowLeft, Eye, PenLine, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Eye, Info, PenLine, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlateEditor } from 'platejs/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   type DocumentBlueprintsChangedDetail,
@@ -251,14 +251,31 @@ function JournalProfilePanel({
 
   return (
     <section className="rounded-[24px] bg-surface px-4 py-4">
-      <div className="space-y-1">
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Journal Profile
-        </p>
-        <h3 className="text-sm font-semibold text-on-surface">투고/스타일 기준</h3>
-        <p className="text-xs text-on-surface-variant">
-          초안 작성과 preflight가 같은 기준을 사용합니다.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Journal Profile
+          </p>
+          <h3 className="text-sm font-semibold text-on-surface">투고/스타일 기준</h3>
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full text-muted-foreground"
+                aria-label="투고 기준 설명"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-64 text-xs leading-relaxed">
+              초안 작성과 preflight가 같은 저널/스타일 기준을 사용합니다.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -266,11 +283,16 @@ function JournalProfilePanel({
           <Button
             key={option.value}
             type="button"
-            variant={stylePreset === option.value ? 'secondary' : 'outline'}
+            variant="secondary"
             size="sm"
             disabled={disabled}
             onClick={() => setStylePreset(option.value)}
-            className="h-8 rounded-full px-3 text-xs"
+            className={cn(
+              'h-8 rounded-full px-3 text-xs',
+              stylePreset === option.value
+                ? 'bg-surface-container-high text-on-surface'
+                : 'bg-surface-container text-on-surface-variant',
+            )}
           >
             {option.label}
           </Button>
@@ -2394,7 +2416,6 @@ export default function DocumentEditor({
             <ArrowLeft className="w-4 h-4" />
             목록
           </Button>
-          <Separator orientation="vertical" className="h-5 bg-outline/30" />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Writing Workspace
@@ -2407,15 +2428,17 @@ export default function DocumentEditor({
             writingStatus={documentWritingState?.status}
             onRetry={handleRetryWriting}
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleReassemble}
-            className="gap-1 rounded-full bg-surface-container-high px-3"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {needsReassemble ? '재조립 필요' : '재조립'}
-          </Button>
+          {needsReassemble && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleReassemble}
+              className="gap-1 rounded-full bg-surface-container-high px-3"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              재조립
+            </Button>
+          )}
           <div className="flex rounded-full bg-surface-container p-1">
             <Button
               variant={previewMode ? 'ghost' : 'secondary'}
@@ -2527,11 +2550,8 @@ export default function DocumentEditor({
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    현재 섹션
+                    Section {doc.sections.findIndex((section) => section.id === activeSection.id) + 1} / {doc.sections.length}
                   </p>
-                  <span className="text-xs text-muted-foreground">
-                    {doc.sections.findIndex((section) => section.id === activeSection.id) + 1} / {doc.sections.length}
-                  </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-2xl font-semibold tracking-tight text-on-surface">{activeSection.title}</h2>
@@ -2594,13 +2614,11 @@ export default function DocumentEditor({
 
               {activeSectionSourceLinks.length > 0 && (
                 <div className="rounded-[24px] bg-surface px-4 py-4">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                       연결된 원본
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      이 섹션이 참조하는 원본으로 바로 이동합니다.
-                    </span>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" aria-label="섹션 원본 바로가기" />
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                   {activeSectionSourceLinks.map((link) => (
@@ -2630,13 +2648,11 @@ export default function DocumentEditor({
 
               {activeSectionSupportBindings.length > 0 && (
                 <div className="rounded-[24px] bg-surface px-4 py-4">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                       섹션 작성 근거
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      이 섹션 작성에 연결된 문헌과 해석 근거입니다.
-                    </span>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" aria-label="섹션 작성 근거" />
                   </div>
                   <div className="space-y-2">
                     {activeSectionSupportBindings.map((binding) => {
@@ -2893,7 +2909,7 @@ export default function DocumentEditor({
 
         {/* 우측: 재료 팔레트 */}
         <div className="w-[340px] shrink-0 overflow-y-auto rounded-[28px] bg-surface-container-low p-4">
-          <div className="space-y-4">
+          <div className="space-y-3">
             <DocumentPreflightPanel
               report={qualityReport}
               freshness={preflightFreshness}
@@ -2909,26 +2925,40 @@ export default function DocumentEditor({
               onApplySuggestion={handleApplyPreflightSuggestion}
             />
             {doc.preset === 'paper' ? (
-              <JournalProfilePanel
-                document={doc}
-                disabled={Boolean(documentConflict)}
-                onUpdate={handleUpdateJournalProfile}
-              />
+              <details className="rounded-[24px] bg-surface-container" open>
+                <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-on-surface">
+                  투고 기준
+                </summary>
+                <div className="px-0 pb-0">
+                  <JournalProfilePanel
+                    document={doc}
+                    disabled={Boolean(documentConflict)}
+                    onUpdate={handleUpdateJournalProfile}
+                  />
+                </div>
+              </details>
             ) : null}
-            <MaterialPalette
-              projectId={doc.projectId}
-              documentId={doc.id}
-              activeSectionId={activeSectionId}
-              activeSectionTitle={activeSection?.title ?? null}
-              onInsertAnalysis={handleInsertAnalysis}
-              onInsertFigure={handleInsertFigure}
-              citations={citations}
-              onDeleteCitation={handleDeleteCitation}
-              onAttachCitationToSection={handleAttachCitationToSection}
-              onDetachCitationFromSection={handleDetachCitationRoleFromSection}
-              onInsertInlineCitation={handleInsertInlineCitation}
-              attachedCitationRoleCounts={activeSectionAttachedCitationRoleCounts}
-            />
+            <details className="rounded-[24px] bg-surface-container" open>
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-on-surface">
+                재료
+              </summary>
+              <div className="px-4 pb-4">
+                <MaterialPalette
+                  projectId={doc.projectId}
+                  documentId={doc.id}
+                  activeSectionId={activeSectionId}
+                  activeSectionTitle={activeSection?.title ?? null}
+                  onInsertAnalysis={handleInsertAnalysis}
+                  onInsertFigure={handleInsertFigure}
+                  citations={citations}
+                  onDeleteCitation={handleDeleteCitation}
+                  onAttachCitationToSection={handleAttachCitationToSection}
+                  onDetachCitationFromSection={handleDetachCitationRoleFromSection}
+                  onInsertInlineCitation={handleInsertInlineCitation}
+                  attachedCitationRoleCounts={activeSectionAttachedCitationRoleCounts}
+                />
+              </div>
+            </details>
           </div>
         </div>
       </div>

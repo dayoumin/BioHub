@@ -1,9 +1,10 @@
 'use client'
 
-import { AlertTriangle, CheckCircle2, FileSearch, Loader2, RefreshCw } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileSearch, Info, Loader2, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type {
   DocumentQualityFreshness,
   DocumentQualityReport,
@@ -144,6 +145,9 @@ export default function DocumentPreflightPanel({
   const statusLabel = getPanelStatusLabel(report, freshness)
   const hasFindings = findings.length > 0
   const hasVisibleFindings = visibleFindings.length > 0
+  const totalFindingCount = report?.summary.totalFindings ?? 0
+  const openFindingCount = report?.summary.openFindings ?? 0
+  const criticalFindingCount = report?.summary.unresolvedCritical ?? 0
 
   return (
     <section className="rounded-[24px] bg-surface px-4 py-4">
@@ -168,18 +172,38 @@ export default function DocumentPreflightPanel({
         </Badge>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <div className="rounded-2xl bg-surface-container px-3 py-2">
-          <p className="text-[10px] text-muted-foreground">전체</p>
-          <p className="text-sm font-semibold text-on-surface">{report?.summary.totalFindings ?? 0}</p>
+      <div className="mt-4 rounded-2xl bg-surface-container px-3 py-2">
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <span className="text-muted-foreground">전체</span>
+          <span className="font-semibold text-on-surface">{totalFindingCount}</span>
         </div>
-        <div className="rounded-2xl bg-surface-container px-3 py-2">
-          <p className="text-[10px] text-muted-foreground">열림</p>
-          <p className="text-sm font-semibold text-on-surface">{report?.summary.openFindings ?? 0}</p>
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <span className="text-muted-foreground">열린 항목</span>
+          <span className="font-semibold text-on-surface">{openFindingCount}</span>
         </div>
-        <div className="rounded-2xl bg-surface-container px-3 py-2">
-          <p className="text-[10px] text-muted-foreground">중요</p>
-          <p className="text-sm font-semibold text-on-surface">{report?.summary.unresolvedCritical ?? 0}</p>
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+          <span className="flex items-center gap-1 text-muted-foreground">
+            중요
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 rounded-full text-muted-foreground"
+                    aria-label="중요 항목 설명"
+                  >
+                    <Info className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-60 text-xs leading-relaxed">
+                  내보내기 전에 직접 확인해야 하는 critical finding 수입니다.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+          <span className="font-semibold text-on-surface">{criticalFindingCount}</span>
         </div>
       </div>
 
@@ -218,7 +242,7 @@ export default function DocumentPreflightPanel({
         </div>
       )}
 
-      <div className="mt-4 max-h-[280px] space-y-2 overflow-y-auto pr-1">
+      <div className="mt-4 max-h-[240px] space-y-2 overflow-y-auto pr-1">
         {!hasFindings && freshness === 'fresh' && (
           <div className="flex items-center gap-2 rounded-2xl bg-surface-container px-3 py-3 text-xs text-on-surface-variant">
             <CheckCircle2 className="h-4 w-4 text-secondary" />

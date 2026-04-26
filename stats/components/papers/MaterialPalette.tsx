@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { BarChart3, BookOpen, FileText, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import {
   type ResearchProjectEntityRefsChangedDetail,
@@ -44,6 +45,8 @@ interface MaterialPaletteProps {
   attachedCitationRoleCounts?: Map<string, Map<DocumentSectionSupportRole, number>>
 }
 
+type MaterialTab = 'analyses' | 'figures' | 'citations'
+
 export default function MaterialPalette({
   projectId,
   documentId,
@@ -62,6 +65,7 @@ export default function MaterialPalette({
   const [projectAnalyses, setProjectAnalyses] = useState<HistoryRecord[]>([])
   const [projectGraphs, setProjectGraphs] = useState<GraphProject[]>([])
   const [selectedRolesByCitation, setSelectedRolesByCitation] = useState<Record<string, DocumentSectionSupportRole>>({})
+  const [activeTab, setActiveTab] = useState<MaterialTab>('citations')
 
   const refreshMaterials = useCallback((): void => {
     const refs = listProjectEntityRefs(projectId)
@@ -83,6 +87,20 @@ export default function MaterialPalette({
   useEffect(() => {
     setSelectedRolesByCitation({})
   }, [activeSectionId])
+
+  useEffect(() => {
+    if (citations.length > 0) {
+      setActiveTab('citations')
+      return
+    }
+    if (projectGraphs.length > 0) {
+      setActiveTab('figures')
+      return
+    }
+    if (projectAnalyses.length > 0) {
+      setActiveTab('analyses')
+    }
+  }, [citations.length, projectAnalyses.length, projectGraphs.length])
 
   useEffect((): (() => void) => {
     const isCurrentProjectEntityRefChange = (event: Event): boolean => {
@@ -155,17 +173,28 @@ export default function MaterialPalette({
   const defaultRole = inferDocumentSectionSupportRole(activeSectionId)
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-muted-foreground">재료</h3>
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MaterialTab)} className="gap-3">
+      <TabsList className="grid h-9 w-full grid-cols-3 rounded-full bg-surface-container p-1">
+        <TabsTrigger value="analyses" className="rounded-full text-[11px]">
+          <FileText className="h-3.5 w-3.5" />
+          <span className="sr-only">분석</span>
+          <span aria-hidden="true">{projectAnalyses.length}</span>
+        </TabsTrigger>
+        <TabsTrigger value="figures" className="rounded-full text-[11px]">
+          <BarChart3 className="h-3.5 w-3.5" />
+          <span className="sr-only">그래프</span>
+          <span aria-hidden="true">{projectGraphs.length}</span>
+        </TabsTrigger>
+        <TabsTrigger value="citations" className="rounded-full text-[11px]">
+          <BookOpen className="h-3.5 w-3.5" />
+          <span className="sr-only">문헌</span>
+          <span aria-hidden="true">{citations.length}</span>
+        </TabsTrigger>
+      </TabsList>
 
-      {/* 분석 결과 */}
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-          <FileText className="w-3 h-3" />
-          분석 ({projectAnalyses.length})
-        </p>
+      <TabsContent value="analyses" className="space-y-1">
         {projectAnalyses.length === 0 && (
-          <p className="text-xs text-muted-foreground/60 py-2">
+          <p className="py-2 text-xs text-muted-foreground/70">
             프로젝트에 연결된 분석이 없습니다.{' '}
             <Link href="/" className="text-primary hover:underline">분석 실행하기</Link>
           </p>
@@ -176,8 +205,8 @@ export default function MaterialPalette({
             type="button"
             onClick={() => onInsertAnalysis(record)}
             className={cn(
-              'flex items-center gap-2 w-full p-2 rounded-md text-left',
-              'hover:bg-muted/50 transition-colors text-xs',
+              'flex w-full items-center gap-2 rounded-xl p-2 text-left',
+              'text-xs transition-colors hover:bg-surface-container',
             )}
           >
             <div className="min-w-0 flex-1 truncate">
@@ -186,16 +215,11 @@ export default function MaterialPalette({
             <Plus className="w-3 h-3 shrink-0 text-muted-foreground" />
           </button>
         ))}
-      </div>
+      </TabsContent>
 
-      {/* 그래프 */}
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-          <BarChart3 className="w-3 h-3" />
-          그래프 ({projectGraphs.length})
-        </p>
+      <TabsContent value="figures" className="space-y-1">
         {projectGraphs.length === 0 && (
-          <p className="text-xs text-muted-foreground/60 py-2">프로젝트에 연결된 그래프가 없습니다</p>
+          <p className="py-2 text-xs text-muted-foreground/70">연결된 그래프가 없습니다</p>
         )}
         {projectGraphs.map(graph => (
           <button
@@ -203,32 +227,27 @@ export default function MaterialPalette({
             type="button"
             onClick={() => onInsertFigure(graph)}
             className={cn(
-              'flex items-center gap-2 w-full p-2 rounded-md text-left',
-              'hover:bg-muted/50 transition-colors text-xs',
+              'flex w-full items-center gap-2 rounded-xl p-2 text-left',
+              'text-xs transition-colors hover:bg-surface-container',
             )}
           >
             <div className="min-w-0 flex-1 truncate">{graph.name}</div>
-            <Badge variant="outline" className="text-[10px] shrink-0">
+            <Badge variant="secondary" className="shrink-0 rounded-full bg-surface-container px-2 text-[10px]">
               {graph.chartSpec?.chartType ?? 'chart'}
             </Badge>
             <Plus className="w-3 h-3 shrink-0 text-muted-foreground" />
           </button>
         ))}
-      </div>
+      </TabsContent>
 
-      {/* 문헌 인용 */}
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-          <BookOpen className="w-3 h-3" />
-          문헌 ({citations.length})
-        </p>
+      <TabsContent value="citations" className="space-y-1">
         {activeSectionId && (
-          <p className="text-[11px] text-muted-foreground/80">
+          <p className="rounded-xl bg-surface-container px-2 py-1.5 text-[11px] text-muted-foreground/80">
             현재 섹션: <span className="font-medium text-foreground">{activeSectionTitle ?? activeSectionId}</span>
           </p>
         )}
         {citations.length === 0 && (
-          <p className="text-xs text-muted-foreground/60 py-2">
+          <p className="py-2 text-xs text-muted-foreground/70">
             저장된 인용이 없습니다.{' '}
             <button
               type="button"
@@ -344,7 +363,7 @@ export default function MaterialPalette({
             <Plus className="w-3 h-3" /> 더 추가
           </button>
         )}
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   )
 }

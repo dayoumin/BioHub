@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
-import { BookOpen, FileText, Layers, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { BookOpen, FileText, Info, Layers, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { PRESET_REGISTRY, createSectionBlueprints } from '@/lib/research/document-preset-registry'
 import { assembleDocument } from '@/lib/research/document-assembler'
@@ -223,11 +224,11 @@ export default function DocumentAssemblyDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100vh-48px)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>새 문서 만들기</DialogTitle>
           <DialogDescription>
-            {projectName} 프로젝트의 분석 결과를 문서로 조립합니다
+            {projectName} 프로젝트의 분석 결과를 조립합니다
           </DialogDescription>
         </DialogHeader>
 
@@ -244,43 +245,62 @@ export default function DocumentAssemblyDialog({
                     key={preset.id}
                     type="button"
                     onClick={() => setSelectedPreset(preset.id)}
+                    aria-pressed={isSelected}
                     className={cn(
-                      'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                      'flex flex-col items-center gap-2 rounded-lg bg-surface-container p-4 transition-colors',
                       isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-muted hover:border-primary/30',
+                        ? 'bg-surface-container-high text-on-surface'
+                        : 'text-muted-foreground hover:bg-surface-container-high',
                     )}
                   >
-                    <Icon className={cn('w-5 h-5', isSelected ? 'text-primary' : 'text-muted-foreground')} />
-                    <span className={cn('text-xs font-medium', isSelected ? 'text-primary' : 'text-muted-foreground')}>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-xs font-medium">
                       {preset.label.ko}
                     </span>
                   </button>
                 )
               })}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {PRESET_REGISTRY.find(p => p.id === selectedPreset)?.description.ko}
-            </p>
           </div>
 
           {selectedPreset === 'paper' && (
             <div className="space-y-3">
-              <div>
+              <div className="flex items-center gap-2">
                 <Label>Journal/style profile</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  초안 작성과 preflight가 같은 기준을 사용합니다.
-                </p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 rounded-full text-muted-foreground"
+                        aria-label="Journal style profile 설명"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-64 text-xs leading-relaxed">
+                      초안 작성과 preflight가 같은 저널/스타일 기준을 사용합니다.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <div className="flex flex-wrap gap-2">
                 {JOURNAL_STYLE_OPTIONS.map((option) => (
                   <Button
                     key={option.value}
                     type="button"
-                    variant={journalStylePreset === option.value ? 'default' : 'outline'}
+                    variant="secondary"
                     size="sm"
                     onClick={() => setJournalStylePreset(option.value)}
-                    className="h-8"
+                    aria-pressed={journalStylePreset === option.value}
+                    className={cn(
+                      'h-8 rounded-full',
+                      journalStylePreset === option.value
+                        ? 'bg-surface-container-high text-on-surface'
+                        : 'bg-surface-container text-on-surface-variant',
+                    )}
                   >
                     {option.label}
                   </Button>
@@ -297,18 +317,33 @@ export default function DocumentAssemblyDialog({
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="flex items-center gap-2">
                 <Label>목차 구성</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  서론, 고찰, 결론 같은 섹션 이름을 바꾸거나 새 섹션을 미리 추가해 둘 수 있습니다.
-                </p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 rounded-full text-muted-foreground"
+                        aria-label="목차 구성 설명"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-64 text-xs leading-relaxed">
+                      섹션 이름을 바꾸거나 새 섹션을 미리 추가할 수 있습니다.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={resetSectionBlueprints}
-                className="gap-1"
+                className="gap-1 rounded-full bg-surface-container"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 기본값 복원
@@ -343,23 +378,32 @@ export default function DocumentAssemblyDialog({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(['user', 'template', 'llm'] as const).map((generatedBy) => (
-                      <Button
-                        key={generatedBy}
-                        type="button"
-                        variant={section.generatedBy === generatedBy ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleSectionGeneratedByChange(index, generatedBy)}
-                        className="h-8"
-                      >
-                        {SECTION_GENERATOR_LABELS[generatedBy]}
-                      </Button>
-                    ))}
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {SECTION_GENERATOR_HELP[section.generatedBy]}
-                  </p>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer list-none text-[11px] font-medium text-muted-foreground">
+                      작성 방식: {SECTION_GENERATOR_LABELS[section.generatedBy]}
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(['user', 'template', 'llm'] as const).map((generatedBy) => (
+                        <Button
+                          key={generatedBy}
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleSectionGeneratedByChange(index, generatedBy)}
+                          aria-pressed={section.generatedBy === generatedBy}
+                          className={cn(
+                            'h-8 rounded-full',
+                            section.generatedBy === generatedBy
+                              ? 'bg-surface-container-high text-on-surface'
+                              : 'bg-surface text-on-surface-variant',
+                          )}
+                          title={SECTION_GENERATOR_HELP[generatedBy]}
+                        >
+                          {SECTION_GENERATOR_LABELS[generatedBy]}
+                        </Button>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               ))}
               <Button

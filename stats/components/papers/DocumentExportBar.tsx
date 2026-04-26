@@ -332,7 +332,9 @@ export default function DocumentExportBar({
         <div className="flex min-w-0 items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span className="shrink-0 font-medium">{exportPreflightStatus.label}</span>
-          <span className="truncate text-muted-foreground">{exportPreflightStatus.message}</span>
+          {exportPreflightStatus.tone !== 'ready' && (
+            <span className="truncate text-muted-foreground">{exportPreflightStatus.message}</span>
+          )}
         </div>
         {showPreflightAction && (
           <Button
@@ -348,45 +350,50 @@ export default function DocumentExportBar({
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5 rounded-full bg-surface">
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           {copied ? '복사됨' : '마크다운 복사'}
         </Button>
-        <Button variant="outline" size="sm" onClick={handleDownloadHtml} disabled={!hasContent} className="gap-1.5">
+        <Button variant="secondary" size="sm" onClick={handleDownloadHtml} disabled={!hasContent} className="gap-1.5 rounded-full bg-surface">
           <Download className="w-4 h-4" />
           HTML 다운로드
         </Button>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           disabled={!hasContent || docxLoading}
           onClick={handleDownloadDocx}
-          className="gap-1.5"
+          className="gap-1.5 rounded-full bg-surface"
         >
           {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
           {docxLoading ? '생성 중...' : 'DOCX 다운로드'}
         </Button>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           disabled={!hasContent || hwpxLoading}
           onClick={handleDownloadHwpx}
-          className="gap-1.5"
+          className="gap-1.5 rounded-full bg-surface"
         >
           {hwpxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
           {hwpxLoading ? '생성 중...' : 'HWPX 다운로드'}
         </Button>
         {qualityReport && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadPreflightReport}
-            className="gap-1.5"
-          >
-            <FileDown className="w-4 h-4" />
-            점검 리포트
-          </Button>
+          <details className="ml-auto">
+            <summary className="cursor-pointer list-none rounded-full px-2 text-[11px] text-muted-foreground hover:bg-surface">
+              리포트 옵션
+            </summary>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleDownloadPreflightReport}
+              className="mt-2 gap-1.5 rounded-full bg-surface"
+            >
+              <FileDown className="w-4 h-4" />
+              점검 리포트
+            </Button>
+          </details>
         )}
       </div>
     </div>
