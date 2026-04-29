@@ -8,6 +8,10 @@ import {
   getSupplementaryWriterPromotionQueue,
   SUPPLEMENTARY_GENERIC_FALLBACK_CONSTRAINTS,
 } from '../document-writing-supplementary-policy'
+import {
+  buildDocumentWritingDevelopmentChecklist,
+  summarizeBioToolWriterReadiness,
+} from '../document-writing-development-checklist'
 
 describe('document writing supplementary writer policy', () => {
   it('keeps existing genetics writers marked as dedicated', () => {
@@ -77,5 +81,51 @@ describe('document writing supplementary writer policy', () => {
       'survival',
       'vbgf',
     ])
+  })
+
+  it('summarizes writer readiness for the Papers development checklist', () => {
+    const checklist = buildDocumentWritingDevelopmentChecklist()
+
+    expect(checklist.summary.attentionItems).toBe(0)
+    expect(checklist.summary.readyBioToolCount).toBe(15)
+    expect(checklist.summary.dedicatedReadyBioToolCount).toBe(15)
+    expect(checklist.summary.genericReadyBioToolIds).toEqual([])
+    expect(checklist.sections.map((section) => section.id)).toEqual([
+      'bio-tools',
+      'source-contracts',
+    ])
+  })
+
+  it('marks ready Bio-Tools without dedicated writers as attention items', () => {
+    const readiness = summarizeBioToolWriterReadiness(
+      [
+        { id: 'alpha-diversity', status: 'ready' },
+        { id: 'species-validation', status: 'ready' },
+      ],
+      {
+        'alpha-diversity': BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['alpha-diversity'],
+        'species-validation': BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['species-validation'],
+      },
+    )
+
+    expect(readiness.dedicatedReadyToolIds).toEqual(['alpha-diversity'])
+    expect(readiness.genericReadyToolIds).toEqual(['species-validation'])
+    expect(readiness.comingSoonDedicatedToolIds).toEqual([])
+  })
+
+  it('marks duplicate Bio-Tool registry IDs as drift', () => {
+    const readiness = summarizeBioToolWriterReadiness(
+      [
+        { id: 'alpha-diversity', status: 'ready' },
+        { id: 'alpha-diversity', status: 'ready' },
+      ],
+      {
+        'alpha-diversity': BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['alpha-diversity'],
+      },
+    )
+
+    expect(readiness.duplicateRegistryToolIds).toEqual(['alpha-diversity'])
+    expect(readiness.missingPolicyToolIds).toEqual([])
+    expect(readiness.stalePolicyToolIds).toEqual([])
   })
 })

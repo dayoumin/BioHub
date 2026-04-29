@@ -48,8 +48,10 @@ import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { toast } from 'sonner'
 import StartWritingButton from './StartWritingButton'
 import WritingEntrySurface from './WritingEntrySurface'
+import PaperWritingDevelopmentChecklist from './PaperWritingDevelopmentChecklist'
 
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
+const SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST = process.env.NODE_ENV !== 'production'
 
 // ── 프리셋 라벨 매핑 ──
 
@@ -482,6 +484,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST && <PaperWritingDevelopmentChecklist />}
           {activeProject && onOpenPackage && (
             <Button
               variant="outline"

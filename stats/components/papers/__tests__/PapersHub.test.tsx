@@ -210,6 +210,17 @@ describe('PapersHub', () => {
     expect(onOpenPackage).toHaveBeenCalledWith('new', 'proj-1')
   })
 
+  it('shows the paper writing development checklist in the hero actions', async () => {
+    render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '자료 작성 개발 점검 열기' }))
+
+    expect(await screen.findByText('자료 작성 개발 점검')).toBeInTheDocument()
+    expect(screen.getByText('Bio-Tools writer sync')).toBeInTheDocument()
+    expect(screen.getByText('Source-backed writing')).toBeInTheDocument()
+    expect(screen.getByText(/ready Bio-Tools 15개 중 15개 전용 writer 적용/)).toBeInTheDocument()
+  })
+
   it('shows bio/genetics quick-start cards and opens a writing session', async () => {
     const onOpenDocument = vi.fn()
 
