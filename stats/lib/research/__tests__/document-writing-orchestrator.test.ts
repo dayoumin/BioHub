@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DocumentBlueprint } from '../document-blueprint-types'
+import type { DocumentBlueprint, GeneratedArtifactProvenance } from '../document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 
 function createDeferred<T>(): {
@@ -24,8 +24,7 @@ const {
   mockLoadAnalysisHistory,
   mockLoadGeneticsHistory,
   mockListProjectEntityRefs,
-  mockGeneratePaperDraft,
-  mockConvertToStatisticalResult,
+  mockSafelyBuildAnalysisWritingDraftFromHistory,
 } = vi.hoisted(() => ({
   mockLoadDocumentBlueprint: vi.fn(),
   mockSaveDocumentBlueprint: vi.fn(),
@@ -34,8 +33,7 @@ const {
   mockLoadAnalysisHistory: vi.fn(),
   mockLoadGeneticsHistory: vi.fn(),
   mockListProjectEntityRefs: vi.fn(),
-  mockGeneratePaperDraft: vi.fn(),
-  mockConvertToStatisticalResult: vi.fn(),
+  mockSafelyBuildAnalysisWritingDraftFromHistory: vi.fn(),
 }))
 
 vi.mock('../document-blueprint-storage', () => ({
@@ -68,12 +66,10 @@ vi.mock('../project-storage', () => ({
   listProjectEntityRefs: () => mockListProjectEntityRefs(),
 }))
 
-vi.mock('@/lib/services', () => ({
-  generatePaperDraft: (...args: unknown[]) => mockGeneratePaperDraft(...args),
-}))
-
-vi.mock('@/lib/statistics/result-converter', () => ({
-  convertToStatisticalResult: (...args: unknown[]) => mockConvertToStatisticalResult(...args),
+vi.mock('../analysis-writing-draft', () => ({
+  safelyBuildAnalysisWritingDraftFromHistory: (...args: unknown[]) => (
+    mockSafelyBuildAnalysisWritingDraftFromHistory(...args)
+  ),
 }))
 
 import { ensureDocumentWriting, retryDocumentWriting } from '../document-writing-orchestrator'
@@ -172,8 +168,7 @@ describe('document writing orchestrator', () => {
     mockLoadAnalysisHistory.mockReset()
     mockLoadGeneticsHistory.mockReset()
     mockListProjectEntityRefs.mockReset()
-    mockGeneratePaperDraft.mockReset()
-    mockConvertToStatisticalResult.mockReset()
+    mockSafelyBuildAnalysisWritingDraftFromHistory.mockReset()
 
     mockLoadDocumentBlueprint.mockImplementation(async () => currentDocument)
     mockSaveDocumentBlueprint.mockImplementation(async (document: DocumentBlueprint) => {
@@ -188,8 +183,7 @@ describe('document writing orchestrator', () => {
     mockLoadAnalysisHistory.mockReturnValue([])
     mockLoadGeneticsHistory.mockReturnValue([])
     mockListProjectEntityRefs.mockReturnValue([])
-    mockConvertToStatisticalResult.mockReturnValue({ pValue: 0.01 })
-    mockGeneratePaperDraft.mockReturnValue({
+    mockSafelyBuildAnalysisWritingDraftFromHistory.mockReturnValue({
       methods: '방법 초안',
       results: '결과 초안',
       captions: null,
@@ -224,6 +218,80 @@ describe('document writing orchestrator', () => {
     expect(result?.sections.find((section) => section.id === 'results')?.tables?.[0]?.caption).toBe('표 1. 검정 결과')
     expect(result?.writingState?.sectionStates.methods?.status).toBe('patched')
     expect(result?.writingState?.sectionStates.results?.status).toBe('patched')
+    const generatedArtifacts = (result?.metadata as { generatedArtifacts?: GeneratedArtifactProvenance[] }).generatedArtifacts ?? []
+    expect(generatedArtifacts.map((artifact) => artifact.artifactKind)).toEqual(['methods', 'results'])
+    expect(generatedArtifacts.every((artifact) => artifact.sourceRefs.some((sourceRef) => sourceRef.sourceId === 'hist_1'))).toBe(true)
+  })
+
+  it('does not insert needs-review drafts into document sections without confirmation', async () => {
+    mockSafelyBuildAnalysisWritingDraftFromHistory.mockReturnValue({
+      methods: '검토 필요 방법 초안',
+      results: '결과 초안',
+      captions: null,
+      discussion: null,
+      tables: [],
+      language: 'ko',
+      postHocDisplay: 'significant-only',
+      generatedAt: '2026-04-24T00:00:00.000Z',
+      model: null,
+      context: {
+        variableLabels: { length: 'length', group: 'group' },
+        variableUnits: {},
+        groupLabels: { A: 'A', B: 'B' },
+        dependentVariable: 'length',
+      },
+      methodsReadiness: {
+        canGenerateDraft: true,
+        shouldReviewBeforeInsert: true,
+      } as never,
+    })
+
+    const result = await ensureDocumentWriting('doc_1')
+
+    expect(result).toBeNull()
+    expect(currentDocument.writingState?.status).toBe('failed')
+    expect(currentDocument.writingState?.sectionStates.methods?.status).toBe('failed')
+    expect(currentDocument.writingState?.sectionStates.methods?.message).toBe('사용자 확인이 필요한 초안이라 문서에 자동 반영하지 않았습니다.')
+    expect(currentDocument.sections.find((section) => section.id === 'methods')?.content).toBe('')
+    expect((currentDocument.metadata as { generatedArtifacts?: GeneratedArtifactProvenance[] }).generatedArtifacts).toBeUndefined()
+  })
+
+  it('records artifact provenance only for sources that produced draft content', async () => {
+    currentDocument = makeDocument({
+      sections: [
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '',
+          sourceRefs: [
+            createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' }),
+            createDocumentSourceRef('analysis', 'hist_missing', { label: 'Missing analysis' }),
+          ],
+          editable: true,
+          generatedBy: 'template',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '',
+          sourceRefs: [
+            createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' }),
+            createDocumentSourceRef('analysis', 'hist_missing', { label: 'Missing analysis' }),
+          ],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const result = await ensureDocumentWriting('doc_1')
+    const generatedArtifacts = (result?.metadata as { generatedArtifacts?: GeneratedArtifactProvenance[] }).generatedArtifacts ?? []
+
+    expect(generatedArtifacts).toHaveLength(2)
+    expect(generatedArtifacts.flatMap((artifact) => artifact.sourceRefs.map((sourceRef) => sourceRef.sourceId))).toEqual([
+      'hist_1',
+      'hist_1',
+    ])
   })
 
   it('renders richer supplementary result summaries for linked bio and genetics entities', async () => {
@@ -432,6 +500,57 @@ describe('document writing orchestrator', () => {
       }),
       makeHistoryRecord(),
     ])
+    mockSafelyBuildAnalysisWritingDraftFromHistory
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce({
+        methods: '방법 초안',
+        results: '결과 초안',
+        captions: null,
+        discussion: null,
+        tables: [
+          {
+            id: 'test-result',
+            title: '표 1. 검정 결과',
+            htmlContent: '<table></table>',
+            plainText: '항목\t값\nF\t5.2',
+          },
+        ],
+        language: 'ko',
+        postHocDisplay: 'significant-only',
+        generatedAt: '2026-04-24T00:00:00.000Z',
+        model: null,
+        context: {
+          variableLabels: { length: 'length', group: 'group' },
+          variableUnits: {},
+          groupLabels: { A: 'A', B: 'B' },
+          dependentVariable: 'length',
+        },
+      })
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce({
+        methods: '방법 초안',
+        results: '결과 초안',
+        captions: null,
+        discussion: null,
+        tables: [
+          {
+            id: 'test-result',
+            title: '표 1. 검정 결과',
+            htmlContent: '<table></table>',
+            plainText: '항목\t값\nF\t5.2',
+          },
+        ],
+        language: 'ko',
+        postHocDisplay: 'significant-only',
+        generatedAt: '2026-04-24T00:00:00.000Z',
+        model: null,
+        context: {
+          variableLabels: { length: 'length', group: 'group' },
+          variableUnits: {},
+          groupLabels: { A: 'A', B: 'B' },
+          dependentVariable: 'length',
+        },
+      })
 
     const result = await ensureDocumentWriting('doc_1')
 

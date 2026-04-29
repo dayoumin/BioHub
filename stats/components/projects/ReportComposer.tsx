@@ -106,10 +106,14 @@ export function ReportComposer({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>보고서 만들기</DialogTitle>
+          <DialogTitle>빠른 요약 내보내기</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2">
+          <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+            선택한 항목을 한 번에 요약해 복사하거나 HTML로 저장합니다. 문서 초안 생성, 섹션 편집, 저장은 자료 작성 문서 흐름에서 진행하세요.
+          </div>
+
           {/* 제목 */}
           <div>
             <label htmlFor="report-title" className="mb-1 block text-sm font-medium">
@@ -176,11 +180,11 @@ export function ReportComposer({
           <div className="flex-1" />
           <Button variant="outline" size="sm" onClick={handleCopy}>
             <Copy className="mr-1.5 h-3.5 w-3.5" />
-            클립보드 복사
+            Markdown 복사
           </Button>
           <Button size="sm" onClick={handleDownloadHtml}>
             <Download className="mr-1.5 h-3.5 w-3.5" />
-            HTML 저장
+            HTML 다운로드
           </Button>
         </DialogFooter>
       </DialogContent>

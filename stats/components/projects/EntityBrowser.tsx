@@ -308,11 +308,16 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
       {/* 하단 고정 바 */}
       {selectedEntities.length > 0 && (
         <div className="sticky bottom-0 mt-4 flex items-center justify-between rounded-lg border bg-card/95 backdrop-blur px-4 py-3 shadow-sm">
-          <span className="text-sm text-muted-foreground">
-            {selectedEntities.length}개 선택됨
-          </span>
+          <div>
+            <p className="text-sm text-muted-foreground">
+              {selectedEntities.length}개 선택됨
+            </p>
+            <p className="text-xs text-muted-foreground">
+              빠른 요약 export 전용입니다. 자료 작성은 항목별 `자료 작성` 버튼을 사용하세요.
+            </p>
+          </div>
           <Button size="sm" onClick={() => setReportOpen(true)}>
-            보고서 만들기
+            빠른 내보내기
           </Button>
         </div>
       )}

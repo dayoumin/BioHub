@@ -155,7 +155,7 @@ function PackageCard({ pkg, onClick }: PackageCardProps): React.ReactElement {
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-sm truncate">{pkg.overview.title || '제목 없는 패키지'}</p>
         <p className="text-xs text-muted-foreground truncate">
-          AI 입력용 · v{pkg.version} · {pkg.items.filter(item => item.included).length}개 항목 포함
+          외부 AI 입력용 · v{pkg.version} · {pkg.items.filter(item => item.included).length}개 항목 포함
         </p>
       </div>
       <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
@@ -489,7 +489,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
               className="gap-2"
             >
               <Package className="w-4 h-4" />
-              AI 입력 패키지
+              외부 AI 입력 패키지
             </Button>
           )}
           <TooltipProvider>
@@ -523,7 +523,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                     className="gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    프로젝트 조립
+                    프로젝트 결과로 문서 만들기
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -593,10 +593,10 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         <section className="space-y-3">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Package className="w-5 h-5" />
-            AI 입력 패키지
+            외부 AI 입력 패키지
           </h2>
           <p className="text-sm text-muted-foreground">
-            자료 작성 문서와 별도로, 외부 AI에 전달할 입력 묶음을 관리합니다.
+            문서 편집/자동 작성과 별도로, 외부 AI에 붙여 넣을 입력 묶음을 관리합니다.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {packages.map(pkg => (
@@ -635,7 +635,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         <EmptyState
           icon={PenTool}
           title="아직 작성한 문서가 없습니다"
-          description="분석 결과를 조립하여 논문 초안을 만들어 보세요"
+          description="새 문서를 만들거나 프로젝트 결과를 문서 초안으로 조립해 보세요"
           variant="inline"
           action={
             <div className="flex items-center gap-2">
@@ -650,7 +650,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
               />
               <Button variant="outline" onClick={() => setAssemblyOpen(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
-                프로젝트 조립
+                프로젝트 결과로 문서 만들기
               </Button>
             </div>
           }

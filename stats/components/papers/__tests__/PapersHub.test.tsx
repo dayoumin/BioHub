@@ -159,7 +159,7 @@ describe('PapersHub', () => {
 
     render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: 'AI 입력 패키지' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '외부 AI 입력 패키지' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
 
@@ -205,7 +205,7 @@ describe('PapersHub', () => {
 
     render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={onOpenPackage} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'AI 입력 패키지' }))
+    fireEvent.click(screen.getByRole('button', { name: '외부 AI 입력 패키지' }))
 
     expect(onOpenPackage).toHaveBeenCalledWith('new', 'proj-1')
   })

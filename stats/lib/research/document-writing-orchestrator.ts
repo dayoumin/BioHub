@@ -1,5 +1,3 @@
-import type { AnalysisResult } from '@/types/analysis'
-import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import { getAllHistory } from '@/lib/utils/storage'
 import { loadBioToolHistory, type BioToolHistoryEntry } from '@/lib/bio-tools'
@@ -14,14 +12,14 @@ import {
   type SimilarityHistoryEntry,
   type TranslationHistoryEntry,
 } from '@/lib/genetics'
-import { generatePaperDraft } from '@/lib/services'
-import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { generateId } from '@/lib/utils/generate-id'
 import { listProjectEntityRefs } from './project-storage'
 import { loadDocumentBlueprint, saveDocumentBlueprint, DocumentBlueprintConflictError } from './document-blueprint-storage'
 import {
   convertPaperTable,
+  createGeneratedArtifactProvenance,
   createDocumentSourceRef,
+  upsertGeneratedArtifactProvenance,
   type DocumentBlueprint,
   type DocumentSection,
   type DocumentSourceRef,
@@ -32,8 +30,9 @@ import {
   updateDocumentSectionWritingState,
   updateDocumentWritingState,
 } from './document-writing'
-import type { DraftContext, PaperDraft } from '@/lib/services/paper-draft/paper-types'
+import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
 import type { ProjectEntityRef } from '@biohub/types'
+import { safelyBuildAnalysisWritingDraftFromHistory } from './analysis-writing-draft'
 import {
   createNormalizedAnalysisWritingSource,
   createNormalizedFigureWritingSource,
@@ -56,130 +55,12 @@ interface SupplementaryDataMaps extends SupplementaryWritingSourceMaps {
   projectRefsByEntityId: Map<string, ProjectEntityRef>
 }
 
+interface DocumentSectionDraftPatch extends Partial<DocumentSection> {
+  skippedForReview?: boolean
+}
+
 function buildEntryMap<T extends { id: string }>(entries: readonly T[]): Map<string, T> {
   return new Map(entries.map((entry) => [entry.id, entry] as const))
-}
-
-function collectMappedVariables(variableMapping: VariableMapping | null | undefined): string[] {
-  const variables = new Set<string>()
-  const addValue = (value: string | string[] | undefined): void => {
-    if (!value) {
-      return
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        if (item) {
-          variables.add(item)
-        }
-      }
-      return
-    }
-    variables.add(value)
-  }
-
-  addValue(variableMapping?.dependentVar)
-  addValue(variableMapping?.independentVar)
-  addValue(variableMapping?.variables)
-  addValue(variableMapping?.covariate)
-  addValue(variableMapping?.within)
-  addValue(variableMapping?.between)
-  addValue(variableMapping?.groupVar)
-  addValue(variableMapping?.timeVar)
-
-  return Array.from(variables)
-}
-
-function getDependentVariable(variableMapping: VariableMapping | null | undefined): string | undefined {
-  if (!variableMapping?.dependentVar) {
-    return undefined
-  }
-  return Array.isArray(variableMapping.dependentVar)
-    ? variableMapping.dependentVar[0]
-    : variableMapping.dependentVar
-}
-
-function buildDefaultDraftContext(record: HistoryRecord, analysisResult: AnalysisResult): DraftContext {
-  const variableMapping = record.variableMapping ?? null
-  const mappedVariables = collectMappedVariables(variableMapping)
-  const variableLabels = Object.fromEntries(mappedVariables.map((variableName) => [variableName, variableName]))
-  const groupLabels = Object.fromEntries(
-    (analysisResult.groupStats ?? [])
-      .map((groupStat) => groupStat.name ?? '')
-      .filter((groupName): groupName is string => groupName.length > 0)
-      .map((groupName) => [groupName, groupName]),
-  )
-  const dependentVariable = getDependentVariable(variableMapping)
-
-  return {
-    variableLabels,
-    variableUnits: {},
-    groupLabels,
-    dependentVariable: dependentVariable ? variableLabels[dependentVariable] ?? dependentVariable : undefined,
-    researchContext: record.analysisPurpose ?? record.purpose ?? undefined,
-  }
-}
-
-function safelyBuildPaperDraftFromHistory(
-  record: HistoryRecord,
-  language: 'ko' | 'en',
-): PaperDraft | null {
-  try {
-    return buildPaperDraftFromHistory(record, language)
-  } catch (error) {
-    console.warn('[document-writing] skipped invalid analysis source:', record.id, error)
-    return null
-  }
-}
-
-function buildPaperDraftFromHistory(
-  record: HistoryRecord,
-  language: 'ko' | 'en',
-): PaperDraft {
-  if (record.paperDraft) {
-    return record.paperDraft
-  }
-
-  const analysisResult = record.results as AnalysisResult | null
-  if (!analysisResult || !record.method?.id) {
-    throw new Error(`분석 ${record.id}의 초안 생성 입력이 부족합니다.`)
-  }
-
-  const mappedVariables = collectMappedVariables(record.variableMapping ?? null)
-  const statisticalResult = convertToStatisticalResult(analysisResult, {
-    sampleSize: record.dataRowCount,
-    groups: analysisResult.groupStats?.length,
-    variables: mappedVariables.length > 0 ? mappedVariables : undefined,
-    timestamp: new Date(record.timestamp),
-  })
-
-  return generatePaperDraft(
-    {
-      analysisResult,
-      statisticalResult,
-      aiInterpretation: record.aiInterpretation ?? null,
-      apaFormat: record.apaFormat ?? null,
-      exportOptions: {
-        includeInterpretation: false,
-        includeRawData: false,
-        includeMethodology: false,
-        includeReferences: false,
-        language,
-      },
-      dataInfo: {
-        fileName: record.dataFileName,
-        totalRows: record.dataRowCount,
-        columnCount: record.columnInfo?.length ?? mappedVariables.length,
-        variables: record.columnInfo?.map((column) => column.name) ?? mappedVariables,
-      },
-      rawDataRows: null,
-    },
-    buildDefaultDraftContext(record, analysisResult),
-    record.method.id,
-    {
-      language,
-      postHocDisplay: 'significant-only',
-    },
-  )
 }
 
 function collectAnalysisSourceRefs(section: DocumentSection): DocumentSourceRef[] {
@@ -217,25 +98,41 @@ function dedupeSourceRefs(sourceRefs: readonly DocumentSourceRef[]): DocumentSou
   return Array.from(deduped.values())
 }
 
+function canInsertMethodsDraft(draft: PaperDraft): boolean {
+  if (draft.methodsReadiness?.canGenerateDraft === false) return false
+  return draft.methodsReadiness?.shouldReviewBeforeInsert !== true
+}
+
+function canInsertResultsDraft(draft: PaperDraft): boolean {
+  if (draft.resultsReadiness?.canGenerateDraft === false) return false
+  return draft.resultsReadiness?.shouldReviewBeforeInsert !== true
+}
+
 function buildMethodsSectionPatch(
   projectId: string,
   section: DocumentSection,
   historyById: Map<string, HistoryRecord>,
   language: 'ko' | 'en',
-): Partial<DocumentSection> {
+): DocumentSectionDraftPatch {
   const analysisRefs = collectAnalysisSourceRefs(section)
   const parts: string[] = []
+  const usedSourceRefs: DocumentSourceRef[] = []
+  let skippedForReview = false
 
   for (const sourceRef of analysisRefs) {
     const record = historyById.get(sourceRef.sourceId)
     if (!record) {
       continue
     }
-    const draft = safelyBuildPaperDraftFromHistory(record, language)
+    const draft = safelyBuildAnalysisWritingDraftFromHistory(record, language)
     if (!draft) {
       continue
     }
     if (!draft.methods) {
+      continue
+    }
+    if (!canInsertMethodsDraft(draft)) {
+      skippedForReview = true
       continue
     }
     const normalizedSource = createNormalizedAnalysisWritingSource({
@@ -251,12 +148,14 @@ function buildMethodsSectionPatch(
     ].filter((value): value is string => value !== null)
     const prefix = meta.length > 0 ? `> ${meta.join(' · ')}\n\n` : ''
     parts.push(`### ${normalizedSource.title}\n\n${prefix}${methodsBody}`)
+    usedSourceRefs.push(sourceRef)
   }
 
   return {
     content: parts.join('\n\n'),
-    sourceRefs: dedupeSourceRefs(analysisRefs),
+    sourceRefs: dedupeSourceRefs(usedSourceRefs),
     generatedBy: 'template',
+    skippedForReview,
   }
 }
 
@@ -266,19 +165,24 @@ function buildResultsSectionPatch(
   historyById: Map<string, HistoryRecord>,
   supplementaryMaps: SupplementaryDataMaps,
   language: 'ko' | 'en',
-): Partial<DocumentSection> {
+): DocumentSectionDraftPatch {
   const analysisRefs = collectAnalysisSourceRefs(section)
-  const supplementaryRefs = collectSupplementarySourceRefs(section, supplementaryMaps.projectRefsByEntityId)
   const parts: string[] = []
   const tables = []
+  const usedSourceRefs: DocumentSourceRef[] = []
+  let skippedForReview = false
 
   for (const sourceRef of analysisRefs) {
     const record = historyById.get(sourceRef.sourceId)
     if (!record) {
       continue
     }
-    const draft = safelyBuildPaperDraftFromHistory(record, language)
+    const draft = safelyBuildAnalysisWritingDraftFromHistory(record, language)
     if (!draft) {
+      continue
+    }
+    if (!canInsertResultsDraft(draft)) {
+      skippedForReview = true
       continue
     }
     const convertedTables = (draft.tables ?? []).map((table) => (
@@ -305,19 +209,28 @@ function buildResultsSectionPatch(
         : ''
       parts.push(`### ${normalizedSource.title}\n\n${detailBlock}${resultsBody}`)
     }
-    tables.push(...(normalizedSource.artifacts.tables ?? []))
+    const normalizedTables = normalizedSource.artifacts.tables ?? []
+    tables.push(...normalizedTables)
+    if (draft.results || normalizedTables.length > 0) {
+      usedSourceRefs.push(sourceRef)
+    }
   }
 
   if ((section.figures ?? []).length > 0) {
     const figureLines = (section.figures ?? []).map((figure) => {
+      const figureSourceRef = createDocumentSourceRef('figure', figure.entityId, {
+        label: figure.caption,
+      })
       const normalizedSource = createNormalizedFigureWritingSource({
         projectId,
-        sourceRef: createDocumentSourceRef('figure', figure.entityId, {
-          label: figure.caption,
-        }),
+        sourceRef: figureSourceRef,
         figure,
       })
-      return writeNormalizedSourceBlock(normalizedSource, 'results', { language })
+      const figureLine = writeNormalizedSourceBlock(normalizedSource, 'results', { language })
+      if (figureLine) {
+        usedSourceRefs.push(figureSourceRef)
+      }
+      return figureLine
     }).filter((value): value is string => value !== null)
     if (figureLines.length > 0) {
       parts.push(`${getWritingSectionHeading('figures', { language })}\n\n${figureLines.join('\n')}`)
@@ -325,21 +238,17 @@ function buildResultsSectionPatch(
   }
 
   const supplementaryBlock = buildSupplementaryResultsBlock(section, supplementaryMaps, language)
-  if (supplementaryBlock) {
-    parts.push(supplementaryBlock)
+  if (supplementaryBlock.content) {
+    parts.push(supplementaryBlock.content)
+    usedSourceRefs.push(...supplementaryBlock.sourceRefs)
   }
 
   return {
     content: parts.join('\n\n'),
-    sourceRefs: dedupeSourceRefs([
-      ...analysisRefs,
-      ...supplementaryRefs,
-      ...((section.figures ?? []).map((figure) => createDocumentSourceRef('figure', figure.entityId, {
-        label: figure.caption,
-      }))),
-    ]),
+    sourceRefs: dedupeSourceRefs(usedSourceRefs),
     tables: tables.length > 0 ? tables : undefined,
     generatedBy: 'template',
+    skippedForReview,
   }
 }
 
@@ -347,13 +256,14 @@ function buildSupplementaryResultsBlock(
   section: DocumentSection,
   supplementaryMaps: SupplementaryDataMaps,
   language: 'ko' | 'en',
-): string {
+): { content: string; sourceRefs: DocumentSourceRef[] } {
   const supplementarySourceRefs = collectSupplementarySourceRefs(section, supplementaryMaps.projectRefsByEntityId)
   if (supplementarySourceRefs.length === 0) {
-    return ''
+    return { content: '', sourceRefs: [] }
   }
 
   const lines: string[] = [getWritingSectionHeading('supplementary', { language }), '']
+  const usedSourceRefs: DocumentSourceRef[] = []
 
   for (const sourceRef of supplementarySourceRefs) {
     const entityRef = supplementaryMaps.projectRefsByEntityId.get(sourceRef.sourceId)
@@ -369,9 +279,13 @@ function buildSupplementaryResultsBlock(
       maps: supplementaryMaps,
     })
     lines.push(writeNormalizedSourceBlock(source, 'supplementary', { language }) ?? `- ${entityRef.label ?? sourceRef.label ?? entityRef.entityId}`)
+    usedSourceRefs.push(sourceRef)
   }
 
-  return lines.join('\n')
+  return {
+    content: lines.join('\n'),
+    sourceRefs: dedupeSourceRefs(usedSourceRefs),
+  }
 }
 
 function hasRequestedSectionSources(section: DocumentSection): boolean {
@@ -438,7 +352,7 @@ async function patchDocumentSection(
   documentId: string,
   jobId: string,
   sectionId: 'methods' | 'results',
-  buildPatch: (section: DocumentSection, document: DocumentBlueprint) => Partial<DocumentSection>,
+  buildPatch: (section: DocumentSection, document: DocumentBlueprint) => DocumentSectionDraftPatch,
 ): Promise<DocumentBlueprint | null> {
   return mutateDocumentWithRetry(documentId, (document) => {
     const section = document.sections.find((item) => item.id === sectionId)
@@ -451,7 +365,9 @@ async function patchDocumentSection(
     const patch = buildPatch(section, document)
     if (hasRequestedSectionSources(section) && !patchProducesWritableContent(patch)) {
       return updateDocumentSectionWritingState(document, sectionId, 'failed', {
-        message: '연결된 자료에서 초안 내용을 생성하지 못했습니다.',
+        message: patch.skippedForReview
+          ? '사용자 확인이 필요한 초안이라 문서에 자동 반영하지 않았습니다.'
+          : '연결된 자료에서 초안 내용을 생성하지 못했습니다.',
       })
     }
 
@@ -461,11 +377,35 @@ async function patchDocumentSection(
         ? mergeDocumentSectionPatch(item, patch)
         : item
     ))
+    const now = new Date().toISOString()
+    const patchedSection = nextSections.find((item) => item.id === sectionId)
 
-    const updatedDocument = {
+    let updatedDocument: DocumentBlueprint = {
       ...document,
       sections: nextSections,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
+    }
+
+    if (!shouldSkipBodyPatch && patchProducesWritableContent(patch) && patchedSection) {
+      const artifactSourceRefs = patch.sourceRefs ?? patchedSection.sourceRefs
+      updatedDocument = {
+        ...updatedDocument,
+        metadata: upsertGeneratedArtifactProvenance(
+          updatedDocument.metadata,
+          createGeneratedArtifactProvenance({
+            artifactKind: sectionId,
+            generatedAt: now,
+            generator: {
+              type: 'template',
+              id: 'document-writing-orchestrator',
+            },
+            sourceRefs: artifactSourceRefs,
+            options: {
+              language: document.language,
+            },
+          }),
+        ),
+      }
     }
 
     return updateDocumentSectionWritingState(updatedDocument, sectionId, shouldSkipBodyPatch ? 'skipped' : 'patched', {

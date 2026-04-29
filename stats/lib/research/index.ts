@@ -21,6 +21,9 @@ export * from './citation-storage';
 /** APA 포맷 인용 문자열 빌더 */
 export * from './citation-apa-formatter';
 
+/** Introduction/Discussion/References citation 사용 계약 */
+export * from './citation-source-contract';
+
 // ── 문서 블루프린트 ─────────────────────────────────────────
 /** 문서 블루프린트 타입 (섹션, 테이블, 메타데이터) */
 export * from './document-blueprint-types';
@@ -36,6 +39,9 @@ export * from './document-writing-source-types';
 
 /** 자료 작성 source adapter + writer registry */
 export * from './document-writing-source-registry';
+
+/** supplementary writer 승격 정책 */
+export * from './document-writing-supplementary-policy';
 
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';

@@ -12,9 +12,16 @@ import {
   generateDocumentId,
   normalizeDocumentBlueprint,
   createDocumentSourceRef,
+  buildDocumentAuthoringPlanFromStudySchema,
+  buildGeneratedArtifactId,
+  createGeneratedArtifactProvenance,
+  getDocumentAuthoringPlan,
+  getDocumentSourceRefKey,
+  upsertGeneratedArtifactProvenance,
 } from '../document-blueprint-types'
 import type { DocumentBlueprint } from '../document-blueprint-types'
 import type { PaperTable } from '@/lib/services/paper-draft/paper-types'
+import type { StudySchema } from '@/lib/services/paper-draft/study-schema'
 import type { GraphProject } from '@/types/graph-studio'
 
 const makeGraphProject = (
@@ -28,6 +35,83 @@ const makeGraphProject = (
   updatedAt: '2026-01-01',
   ...overrides,
 })
+
+const makeStudySchema = (
+  options: {
+    historyId?: string
+    methodName?: string
+    sourceFingerprint?: string
+  } = {},
+): StudySchema => {
+  const now = '2026-04-29T00:00:00.000Z'
+  const methodName = options.methodName ?? '독립표본 t-검정'
+
+  return {
+    version: 1,
+    generatedAt: now,
+    language: 'ko',
+    study: {},
+    source: {
+      historyId: options.historyId,
+      variables: [],
+      warnings: [],
+      errors: [],
+      sourceFingerprint: options.sourceFingerprint ?? `v1:${options.historyId ?? 'test'}`,
+    },
+    variables: [],
+    groups: [],
+    materials: {
+      sources: [],
+      sampling: {
+        equipment: [],
+        reagents: [],
+      },
+      prohibitedAutoClaims: [
+        'equipment-name',
+        'reagent-name',
+        'ethics-approval',
+        'collection-location',
+        'storage-condition',
+        'verified-species-identity',
+      ],
+      warnings: [],
+      errors: [],
+    },
+    preprocessing: {
+      validation: {
+        missingValues: 0,
+        duplicateRows: 0,
+        warnings: [],
+        errors: [],
+      },
+      steps: [],
+      prohibitedAutoClaims: [
+        'outlier-removal',
+        'mcar',
+        'mar',
+        'variable-transform',
+        'standardization',
+        'exclusion-criteria',
+      ],
+      warnings: [],
+      errors: [],
+    },
+    assumptions: [],
+    analysis: {
+      methodId: 'two-sample-t',
+      methodName,
+      statistic: 2,
+      pValue: 0.03,
+      postHocCount: 0,
+      coefficientCount: 0,
+      groupStatCount: 0,
+      options: [],
+    },
+    reporting: {},
+    issues: [],
+    readiness: { methods: true, results: true, captions: true },
+  }
+}
 
 describe('convertPaperTable', () => {
   it('should parse tab-separated plainText into headers and rows', () => {
@@ -306,6 +390,223 @@ describe('normalizeDocumentBlueprint', () => {
     expect(normalized.sections[0]?.sourceRefs).toEqual([
       { kind: 'supplementary', sourceId: 'legacy_1', label: 'Legacy ref' },
       { kind: 'supplementary', sourceId: 'legacy_2', label: undefined },
+    ])
+  })
+
+  it('should default invalid legacy metadata to an empty object', () => {
+    const now = new Date().toISOString()
+    const legacyDocument = {
+      id: 'doc_4',
+      projectId: 'proj_1',
+      preset: 'paper',
+      title: 'Legacy metadata document',
+      language: 'ko',
+      metadata: null,
+      createdAt: now,
+      updatedAt: now,
+      sections: [],
+    } as unknown as DocumentBlueprint
+
+    const normalized = normalizeDocumentBlueprint(legacyDocument)
+
+    expect(normalized.metadata).toEqual({})
+  })
+
+  it('should preserve paper study schema metadata when present', () => {
+    const now = new Date().toISOString()
+    const studySchema: StudySchema = {
+      version: 1,
+      generatedAt: now,
+      language: 'ko',
+      study: {},
+      source: {
+        variables: [],
+        warnings: [],
+        errors: [],
+        sourceFingerprint: 'v1:test',
+      },
+      variables: [],
+      groups: [],
+      materials: {
+        sources: [],
+        sampling: {
+          equipment: [],
+          reagents: [],
+        },
+        prohibitedAutoClaims: [
+          'equipment-name',
+          'reagent-name',
+          'ethics-approval',
+          'collection-location',
+          'storage-condition',
+          'verified-species-identity',
+        ],
+        warnings: [],
+        errors: [],
+      },
+      preprocessing: {
+        validation: {
+          missingValues: 0,
+          duplicateRows: 0,
+          warnings: [],
+          errors: [],
+        },
+        steps: [],
+        prohibitedAutoClaims: [
+          'outlier-removal',
+          'mcar',
+          'mar',
+          'variable-transform',
+          'standardization',
+          'exclusion-criteria',
+        ],
+        warnings: [],
+        errors: [],
+      },
+      assumptions: [],
+      analysis: {
+        methodId: 't-test',
+        methodName: 't-test',
+        statistic: 2,
+        pValue: 0.03,
+        postHocCount: 0,
+        coefficientCount: 0,
+        groupStatCount: 0,
+        options: [],
+      },
+      reporting: {},
+      issues: [],
+      readiness: { methods: true, results: true, captions: true },
+    }
+
+    const normalized = normalizeDocumentBlueprint({
+      id: 'doc_5',
+      projectId: 'proj_1',
+      preset: 'paper',
+      title: 'Study schema document',
+      language: 'ko',
+      metadata: { studySchema },
+      createdAt: now,
+      updatedAt: now,
+      sections: [],
+    })
+
+    expect('studySchema' in normalized.metadata).toBe(true)
+    expect((normalized.metadata as { studySchema?: typeof studySchema }).studySchema).toBe(studySchema)
+  })
+
+  it('should build a source-keyed authoring plan from a study schema', () => {
+    const studySchema = makeStudySchema({
+      historyId: 'hist_1',
+      methodName: '일원분산분석',
+      sourceFingerprint: 'v1:hist-1',
+    })
+
+    const plan = buildDocumentAuthoringPlanFromStudySchema(studySchema)
+
+    expect(plan.mode).toBe('single-source')
+    expect(plan.primarySourceRef).toEqual({
+      kind: 'analysis',
+      sourceId: 'hist_1',
+      label: '일원분산분석',
+    })
+    expect(plan.sources).toHaveLength(1)
+    expect(plan.sources[0]?.role).toBe('primary-analysis')
+    expect(plan.sources[0]?.sourceFingerprint).toBe('v1:hist-1')
+    expect(plan.sources[0]?.studySchema).toBe(studySchema)
+  })
+
+  it('should keep study schemas per source when an authoring plan has multiple analyses', () => {
+    const firstSchema = makeStudySchema({
+      historyId: 'hist_1',
+      methodName: '일원분산분석',
+      sourceFingerprint: 'v1:hist-1',
+    })
+    const secondSchema = makeStudySchema({
+      historyId: 'hist_2',
+      methodName: '선형 회귀',
+      sourceFingerprint: 'v1:hist-2',
+    })
+    const firstPlan = buildDocumentAuthoringPlanFromStudySchema(firstSchema)
+    const mergedPlan = buildDocumentAuthoringPlanFromStudySchema(secondSchema, firstPlan)
+    const normalized = normalizeDocumentBlueprint({
+      id: 'doc_6',
+      projectId: 'proj_1',
+      preset: 'paper',
+      title: 'Multi-analysis document',
+      language: 'ko',
+      metadata: { authoringPlan: mergedPlan },
+      createdAt: firstSchema.generatedAt,
+      updatedAt: secondSchema.generatedAt,
+      sections: [],
+    })
+    const plan = getDocumentAuthoringPlan(normalized.metadata)
+
+    expect(plan?.mode).toBe('multi-source')
+    expect(plan?.primarySourceRef).toEqual({
+      kind: 'analysis',
+      sourceId: 'hist_1',
+      label: '일원분산분석',
+    })
+    expect(plan?.sources.map((source) => getDocumentSourceRefKey(source.sourceRef))).toEqual([
+      'analysis:hist_1',
+      'analysis:hist_2',
+    ])
+    expect(plan?.sources[0]?.role).toBe('primary-analysis')
+    expect(plan?.sources[1]?.role).toBe('secondary-analysis')
+    expect(plan?.sources[0]?.studySchema).toBe(firstSchema)
+    expect(plan?.sources[1]?.studySchema).toBe(secondSchema)
+  })
+
+  it('should create deterministic generated artifact provenance from source refs', () => {
+    const sourceRefs = [
+      createDocumentSourceRef('analysis', 'hist_2'),
+      createDocumentSourceRef('analysis', 'hist_1'),
+    ]
+
+    const artifact = createGeneratedArtifactProvenance({
+      artifactKind: 'results',
+      generatedAt: '2026-04-29T00:00:00.000Z',
+      generator: {
+        type: 'template',
+        id: 'document-writing-orchestrator',
+      },
+      sourceRefs,
+    })
+
+    expect(artifact.artifactId).toBe(buildGeneratedArtifactId('results', sourceRefs))
+    expect(artifact.artifactId).toBe(buildGeneratedArtifactId('results', [...sourceRefs].reverse()))
+    expect(artifact.generator.id).toBe('document-writing-orchestrator')
+  })
+
+  it('should connect generated artifact provenance back to authoring plan sources and sections', () => {
+    const firstSchema = makeStudySchema({
+      historyId: 'hist_1',
+      methodName: '일원분산분석',
+    })
+    const authoringPlan = buildDocumentAuthoringPlanFromStudySchema(firstSchema)
+    const sourceRef = createDocumentSourceRef('analysis', 'hist_1', { label: '일원분산분석' })
+    const artifact = createGeneratedArtifactProvenance({
+      artifactKind: 'methods',
+      generatedAt: '2026-04-29T00:00:00.000Z',
+      generator: {
+        type: 'template',
+        id: 'document-writing-orchestrator',
+      },
+      sourceRefs: [sourceRef],
+    })
+
+    const metadata = upsertGeneratedArtifactProvenance({ authoringPlan }, artifact)
+    const plan = getDocumentAuthoringPlan(metadata)
+
+    expect((metadata as { generatedArtifacts?: unknown[] }).generatedArtifacts).toEqual([artifact])
+    expect(plan?.sources[0]?.generatedArtifactIds).toEqual([artifact.artifactId])
+    expect(plan?.sectionPlans).toEqual([
+      {
+        sectionId: 'methods',
+        sourceRefs: [sourceRef],
+        generatedArtifactIds: [artifact.artifactId],
+      },
     ])
   })
 })

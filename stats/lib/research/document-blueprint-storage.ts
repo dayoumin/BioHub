@@ -9,10 +9,14 @@
  */
 
 import {
+  buildDocumentAuthoringPlanFromStudySchema,
+  getDocumentAuthoringPlan,
+  normalizeDocumentMetadata,
   normalizeDocumentBlueprint,
   type DocumentBlueprint,
   type DocumentSourceRef,
 } from './document-blueprint-types'
+import type { StudySchema } from '@/lib/services/paper-draft/study-schema'
 import {
   upsertProjectEntityRef,
   removeProjectEntityRef,
@@ -211,6 +215,32 @@ export async function loadAllDocumentBlueprints(): Promise<DocumentBlueprint[]> 
   const db = await openDB()
   const documents = await txGetAll<DocumentBlueprint>(db, STORE_NAME)
   return documents.map((document) => normalizeDocumentBlueprint(document))
+}
+
+export async function setDocumentStudySchema(
+  documentId: string,
+  studySchema: StudySchema,
+  options?: SaveDocumentBlueprintOptions,
+): Promise<DocumentBlueprint | undefined> {
+  const document = await loadDocumentBlueprint(documentId)
+  if (!document) return undefined
+  const metadata = normalizeDocumentMetadata(document.metadata)
+
+  return saveDocumentBlueprint(
+    {
+      ...document,
+      metadata: {
+        ...metadata,
+        studySchema,
+        authoringPlan: buildDocumentAuthoringPlanFromStudySchema(
+          studySchema,
+          getDocumentAuthoringPlan(metadata),
+        ),
+      },
+      updatedAt: new Date().toISOString(),
+    },
+    options,
+  )
 }
 
 /**

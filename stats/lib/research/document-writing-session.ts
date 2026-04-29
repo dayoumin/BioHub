@@ -5,10 +5,13 @@ import type { ProjectEntityRef } from '@biohub/types'
 import { listProjectEntityRefs } from './project-storage'
 import { createEmptySections } from './document-preset-registry'
 import {
+  buildDocumentAuthoringPlanFromSourceRefs,
   buildFigureRef,
   createDocumentSourceRef,
   generateDocumentId,
+  getDocumentAuthoringPlan,
   getGraphPrimaryAnalysisId,
+  normalizeDocumentMetadata,
   type DocumentBlueprint,
   type DocumentMetadata,
   type DocumentPreset,
@@ -204,6 +207,10 @@ function hasWritableSourceBindings(sections: readonly DocumentSection[]): boolea
   ))
 }
 
+function collectSectionSourceRefs(sections: readonly DocumentSection[]): DocumentSourceRef[] {
+  return dedupeSourceRefs(sections.flatMap((section) => section.sourceRefs ?? []))
+}
+
 async function createManualBlankDocument(
   input: StartManualBlankWritingSessionInput,
 ): Promise<DocumentBlueprint> {
@@ -247,6 +254,12 @@ async function createSourceBoundWritingDocument(
   if (!hasWritableSourceBindings(sections)) {
     throw new Error('선택한 결과를 문서 초안 자료로 연결하지 못했습니다.')
   }
+  const metadata = normalizeDocumentMetadata(input.metadata)
+  const authoringPlan = buildDocumentAuthoringPlanFromSourceRefs(
+    collectSectionSourceRefs(sections),
+    getDocumentAuthoringPlan(metadata),
+    { updatedAt: now },
+  )
 
   let document: DocumentBlueprint = {
     id: generateDocumentId(),
@@ -256,7 +269,10 @@ async function createSourceBoundWritingDocument(
     authors: input.authors,
     language: input.language ?? 'ko',
     sections,
-    metadata: input.metadata ?? {},
+    metadata: {
+      ...metadata,
+      authoringPlan,
+    },
     writingState: undefined,
     createdAt: now,
     updatedAt: now,
