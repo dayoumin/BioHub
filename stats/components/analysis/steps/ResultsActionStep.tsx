@@ -218,6 +218,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }),
     [analysisOptions, methodRequirements, canonicalSelectedMethod?.id, suggestedSettings, t.language, variableMapping],
   )
+  const paperDraftAnalysisOptions = useMemo<Record<string, unknown> | null>(
+    () => analysisOptions ? Object.fromEntries(Object.entries(analysisOptions)) : null,
+    [analysisOptions],
+  )
   // variableMapping → 변수 이름 배열 (statisticalResult, handleInterpretation 공유)
   const mappedVariables = useMemo(() => {
     const vars: string[] = []
@@ -378,6 +382,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   } = useResultsPaperDraft({
     draftExportCtx,
     selectedMethodId: canonicalSelectedMethod?.id,
+    variableMapping,
+    validationResults,
+    analysisOptions: paperDraftAnalysisOptions,
+    projectId: activeProject?.id,
   })
 
   const {

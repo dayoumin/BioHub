@@ -21,8 +21,8 @@ type PapersTab = 'docs' | 'literature'
  *
  * - 쿼리 없음 → PapersHub (문서 목록 + 기존 결과 정리)
  * - ?doc=<id> → DocumentEditor
- * - ?pkg=<id> → PackageBuilder (기존 패키지)
- * - ?pkg=new&projectId=xxx → PackageBuilder (새 패키지)
+ * - ?pkg=<id> → PackageBuilder (외부 AI 입력 패키지)
+ * - ?pkg=new&projectId=xxx → PackageBuilder (새 외부 AI 입력 패키지)
  *
  * window.location.search 사용 (useSearchParams 아님, static export 호환)
  */

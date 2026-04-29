@@ -87,4 +87,41 @@ describe('EntityBrowser', () => {
       expect(shared.onNavigate).toHaveBeenCalledWith('/papers?doc=doc-created')
     })
   })
+
+  it('labels bulk export as quick export instead of writing', () => {
+    const entities: ResolvedEntity[] = [
+      {
+        ref: {
+          id: 'ref-1',
+          projectId: 'proj-1',
+          entityKind: 'protein-result',
+          entityId: 'protein-1',
+          label: 'Protein result',
+          createdAt: '2026-04-24T00:00:00.000Z',
+        },
+        loaded: true,
+        summary: {
+          title: 'Protein properties',
+          subtitle: '321 aa',
+          date: 'today',
+          timestamp: Date.now(),
+        },
+      },
+    ]
+
+    render(
+      <EntityBrowser
+        entities={entities}
+        projectId="proj-1"
+        projectName="Project One"
+        onNavigate={shared.onNavigate}
+        onUnlink={shared.onUnlink}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('checkbox'))
+
+    expect(screen.getByRole('button', { name: '빠른 내보내기' })).toBeInTheDocument()
+    expect(screen.getByText('빠른 요약 export 전용입니다. 자료 작성은 항목별 `자료 작성` 버튼을 사용하세요.')).toBeInTheDocument()
+  })
 })

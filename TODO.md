@@ -1,4 +1,4 @@
-﻿# BioHub ?듦퀎 UI/UX 怨좊룄??& 由ы뙥?곕쭅 ?붿뿬 ?묒뾽
+# BioHub ?듦퀎 UI/UX 怨좊룄??& 由ы뙥?곕쭅 ?붿뿬 ?묒뾽
 
 ## 0. Graph Studio / Papers follow-up (2026-04-12)
 - [x] Graph Studio intentional gap 재검토: `encoding.color.scale`, `encoding.shape`, `encoding.size`, `scale.type=sqrt|symlog` 유지 여부와 renderer 지원 계획 정리 (defense-in-depth 유지 — 2026-04-14 재검토, 스키마 코멘트 추가)
@@ -7,50 +7,47 @@
 - [x] PackageBuilder Step 2 자동 수집 후속 점검: same-tab entity/graph 변경 시 기존 item 재수집 정책과 사용자 수동 편집 충돌 여부 검토 (`a3d73407`, 2026-04-13)
 
 ### 자료 작성 플로우 재설계 점검 (2026-04-24)
-- [ ] **목표 UX 확정**: 통계 / Graph Studio / Bio-Tools / 유전적 분석 결과 화면에서 `자료 작성` 클릭 시, 문서가 즉시 생성되고 `DocumentEditor`로 바로 진입하며 상단 또는 섹션 헤더에 `작성 중...` 상태가 보여야 한다.
-- [ ] **현재 플로우 분리 문제 해소**: `ResultsActionStep`의 `결과 요약` 시트, `PapersHub`의 `새 문서`, `ReportComposer`, `PackageBuilder`가 서로 다른 작성 흐름으로 분리되어 있는 상태를 정리하고, 사용자 관점의 단일 진입 흐름을 정의한다.
-- [ ] **1차 범위 고정**: 1차 구현은 통계 결과 + Graph Studio를 대상으로 하고, 문서 skeleton 생성 → 에디터 자동 진입 → section별 초안 반영 → 완료/실패 상태 표시까지를 MVP로 확정한다.
-- [ ] **2차 범위 고정**: Bio-Tools와 유전적 분석(`blast/protein/seq-stats/similarity/phylogeny/bold/translation`)은 공통 `DocumentSourceBundle` 설계 후 확장한다. 1차 구현에 generic fallback만 얹고 전용 writer는 2차로 미룰지 결정한다.
-- [ ] **세션 상태 모델 설계**: `idle -> collecting -> drafting -> patching -> done | failed` 수준의 문서 작성 job/state machine을 추가하고, `DocumentEditor`가 이를 구독해 상태를 노출하도록 한다.
-- [ ] **문서 우선 생성 원칙 채택**: AI/템플릿 생성이 끝난 뒤 문서를 여는 방식이 아니라, 빈 `DocumentBlueprint`를 먼저 만들고 편집기로 이동한 뒤 초안을 patch하는 구조로 고정한다.
-- [ ] **섹션 patch 계약 정의**: Methods / Results / Figure caption / Discussion 등 어떤 섹션이 자동 생성 대상인지, section별 overwrite 규칙과 `generatedBy: template | llm | user` 보존 정책을 명확히 한다.
-- [ ] **기존 사용자 편집 보존**: 재실행 / 재조립 / 후속 결과 반영 시 사용자가 직접 수정한 문단, 표, figure link가 덮어써지지 않도록 section 단위 merge 계약과 conflict UX를 설계한다.
-- [ ] **작성 중 UI 점검**: 전역 배너, section skeleton, 진행 단계 텍스트, 실패 시 retry CTA, 완료 후 상태 배지 등 작성 상태를 에디터 내에서 충분히 보여주는지 점검한다.
-- [ ] **스트리밍 vs 배치 결정**: 초안을 문단 단위로 스트리밍할지, section 완성본 단위 patch로 반영할지 결정한다. 1차는 section 단위 patch가 구현 복잡도 대비 안전한지 검토한다.
-- [ ] **통계 초안 생성기 역할 정리**: 현재 `generatePaperDraft()`는 템플릿 기반 즉시 생성 + `discussion: null` 구조이므로, 이를 문서 작성 파이프라인의 초기 writer로 재사용할지, 별도 writer adapter를 둘지 결정한다.
-- [ ] **Graph Studio 연결 규칙 정리**: figure source, related analysis, pattern summary, chart image/export provenance가 문서 figure ref와 어떻게 연결되는지 정의하고, 그래프 수정 후 문서 갱신 정책도 정한다.
-- [ ] **Bio-Tools 결과 정규화**: `bio-tool-result`가 현재는 summary 수준만 제공하므로, 도구별 결과 표/해석/그래프 메타를 문서 작성에 넘길 최소 contract를 정의한다.
-- [ ] **유전적 분석 결과 정규화**: `blast-result` 외에 `protein-result`, `seq-stats-result`, `similarity-result`, `phylogeny-result`, `bold-result`, `translation-result`를 문서 작성용 구조화 데이터로 승격할지와 우선순위를 정한다.
-- [ ] **프로젝트 문서 조립기 역할 재정의**: `DocumentAssemblyDialog`는 현재 프로젝트 결과를 조립하는 skeleton generator에 가깝다. AI 작성 세션의 entrypoint로 승격할지, 프로젝트 기반 bulk assembly 전용으로 유지할지 결정한다.
-- [ ] **ReportComposer 역할 제한**: `ReportComposer`는 클립보드/HTML 내보내기용 빠른 요약 도구로 제한하고, 본격 문서 작성 UX와 혼동되지 않도록 라벨과 진입점을 재검토한다.
-- [ ] **PackageBuilder 역할 제한**: `AI 패키지 조립`은 외부 LLM 입력 패키지 제작 워크플로우로 남기고, 일반 사용자의 즉시 자료 작성 흐름과 분리된다는 점을 UI/정보 구조에서 명확히 한다.
-- [ ] **저장/히스토리 연동 점검**: 작성 도중 문서 autosave, 결과 히스토리 link, 문서 source usage, 프로젝트 entity ref 생성/삭제, 재접속 복원 경로를 end-to-end로 점검한다.
-- [ ] **오류/복구 시나리오 점검**: source 누락, graph relink warning, draft generation 실패, 문서 conflict, partial section failure, history restore 후 재작성 같은 복구 시나리오를 명시적으로 설계한다.
-- [ ] **테스트 전략 확정**: 최소 L1/L2 범위로 `문서 생성 직후 에디터 진입`, `작성 중 상태 표시`, `section patch 반영`, `user-edit 보존`, `graph/bio/genetics source 연결`, `failure + retry`를 회귀 테스트로 고정한다.
-- [ ] **성공 기준 명문화**: 사용자가 어떤 결과 화면에서 시작하든 3초 내 편집기가 열리고, 작성 진행 상태를 볼 수 있으며, 초안이 눈앞에서 채워지고, 수동 편집이 안전하게 보존되는 것을 자료 작성 기능의 완료 기준으로 삼는다.
+- [x] **목표 UX 확정**: 1차 기준 `ResultsActionStep` / `GraphStudioHeader` / `PapersHub`에서 `자료 작성`을 시작하면 빈 `DocumentBlueprint`가 먼저 생성되고 `DocumentEditor`로 즉시 진입하며, 헤더/섹션에 `작성 중` 상태를 노출한다.
+- [x] **현재 플로우 분리 문제 해소**: `ResultsActionStep` / `GraphStudioHeader` / `PapersHub`는 공통 작성 세션으로 정리했고, `ReportComposer`는 빠른 요약 export, `PackageBuilder`는 외부 AI 입력 패키지로 라벨과 설명을 분리했다.
+- [x] **1차 범위 고정**: 1차 구현은 통계 결과 + Graph Studio를 중심으로 하고, 문서 skeleton 생성 → 에디터 자동 진입 → section별 초안 반영 → 완료/실패 상태 표시까지를 MVP로 고정했다.
+- [x] **2차 범위 고정**: Bio-Tools와 유전적 분석(`blast/protein/seq-stats/similarity/phylogeny/bold/translation`)은 공통 supplementary contract + generic fallback으로 먼저 수용하고, 전용 writer 확장은 후속으로 분리했다.
+- [x] **세션 상태 모델 설계**: `idle -> collecting -> drafting -> patching -> completed | failed` 문서 상태와 섹션 상태 모델을 추가하고 `DocumentEditor`에서 이를 구독한다.
+- [x] **문서 우선 생성 원칙 채택**: AI/템플릿 생성 완료 후 문서를 여는 구조가 아니라, 빈 `DocumentBlueprint`를 먼저 만들고 편집기로 이동한 뒤 초안을 patch하는 구조로 전환했다.
+- [x] **섹션 patch 계약 정의**: 1차 자동 patch 대상은 `Methods`, `Results`, `Figures` 계열로 고정했고, `generatedBy` / section state / merge helper 기준을 문서와 코드에 함께 반영했다.
+- [x] **기존 사용자 편집 보존**: 사용자가 먼저 편집한 섹션은 즉시 `user/skipped`로 전환해 background patch를 막고, sidecar 병합은 보수적으로만 수행한다.
+- [x] **작성 중 UI 점검**: 헤더 상태 배지, 섹션 상태 배지, drafting 배너, 실패/재시도 CTA를 에디터에 추가했다.
+- [x] **스트리밍 vs 배치 결정**: 1차는 문단 스트리밍 대신 section 단위 patch로 고정했다.
+- [x] **통계 초안 생성기 역할 정리**: `generatePaperDraft()`는 저수준 호환 adapter로만 유지하고, 제품 경로는 `generateAnalysisPaperDraft()` / `generatePaperDraftFromSchema()` / document-writing adapter로 고정했다.
+- [x] **Graph Studio 연결 규칙 정리**: figure source와 related analysis provenance를 문서 source binding에 포함하고, graph 기반 문서 시작 경로를 공통 세션으로 맞췄다.
+- [x] **Bio-Tools 결과 정규화**: `bio-tool-result`는 supplementary source로 정규화하고 generic supplementary writer 경로에 연결했다.
+- [x] **유전적 분석 결과 정규화**: `blast-result`, `protein-result`, `seq-stats-result`, `similarity-result`, `phylogeny-result`, `bold-result`, `translation-result`를 supplementary contract로 정규화했다.
+- [x] **프로젝트 문서 조립기 역할 재정의**: `DocumentAssemblyDialog`는 bulk assembly / skeleton generator 성격으로 유지하고, 작성 세션은 별도 entry flow로 분리했다.
+- [x] **ReportComposer 역할 제한**: `ReportComposer`를 빠른 요약 export 전용으로 라벨링하고 자료 작성 문서 흐름과 구분했다.
+- [x] **PackageBuilder 역할 제한**: `AI 패키지 조립`을 외부 AI 입력 패키지로 명시하고, 자료 작성 문서에 자동 반영되지 않는 별도 흐름으로 설명했다.
+- [x] **저장/히스토리 연동 점검**: autosave, source usage, project entity/source binding, 문서 재진입/복원 경로를 현재 writing state 모델 기준으로 연결했다.
+- [x] **오류/복구 시나리오 점검**: retry, stale write 차단, 첫 user edit 우선, partial section failure, supplementary fallback 등 핵심 복구 경로를 구현과 테스트로 고정했다.
+- [x] **테스트 전략 확정**: 문서 생성 직후 에디터 진입, 작성 중 상태, section patch, user-edit 보존, supplementary source 연결, failure/retry를 회귀 테스트로 고정했다.
+- [x] **자료 작성 UI/UX 정리 완료**: Gate 1~7에서 `DocumentEditor`/`PapersHub` 계열 자료 작성 화면을 Axiom Slate 기준으로 점검하고, 주요 작업 1개 + 보조 정보 접기 + 설명은 tooltip 원칙으로 header/right rail/create dialog/material palette/export 노출을 정리했다. 원격 `paper-writing-supplementary-writers` 병합 후에는 새 supplementary writer 중심 구조를 기준으로 유지한다. (`a5c3cdaf`, 2026-04-26)
 
 ### 자료 작성 편집기 플랫폼 결정 기준 (2026-04-24)
-- [ ] **기본 방침 고정**: 1차 자료 작성 재설계는 `Plate 유지`를 기본안으로 진행한다. 현재 `DocumentEditor`/`PlateEditor`/공용 editor UI/수식 요소/테스트가 이미 Plate 기반이므로, 편집기 교체보다 문서 상태 모델 통합을 우선한다.
-- [ ] **Plate 유지 적합성 검증**: 다음 1차 요구를 Plate 위에서 해결 가능한지 확인한다. `문서 자동 진입`, `문서 레벨 작성 상태`, `section patch`, `표/수식 유지`, `user edit 보존`, `autosave + conflict 처리`.
-- [ ] **문서 상태 모델 우선 원칙**: 편집기 엔진 부족으로 오해하지 않도록, 현재 핵심 문제를 `paperDraft`와 `DocumentBlueprint` 파이프라인 분리로 명시한다. 엔진 변경 없이 해결 가능한 범위를 먼저 닫는다.
-- [ ] **Plate 유지 시 필수 점검**: `DocumentSection.generatedBy`, section별 patch 규칙, Plate value 직렬화/복원, markdown/html/docx export 정합성, equation/table node 보존, editor remount 없이 background patch 반영 가능 여부를 점검한다.
-- [ ] **Plate 유지 시 UX 점검**: `작성 중...`, `반영 완료`, `실패`, `재시도` 상태를 에디터 헤더/섹션 수준에서 표현할 때 Plate selection/focus를 깨지 않는지 확인한다.
-- [ ] **Plate 유지 시 테스트 점검**: `DocumentEditor.export-freshness.test.tsx` 기반으로 background patch, user edit 후 patch skip/merge, conflict, section reorder 없는 incremental update 회귀 테스트를 추가한다.
-- [ ] **Tiptap 재평가 트리거 정의**: 아래 조건 중 2개 이상이 실제 요구로 들어오면 Tiptap 전환 검토를 다시 연다. `실시간 협업`, `댓글/제안 모드`, `강한 문서 schema 제약`, `Notion/Google Docs 급 장기 문서 제품화`, `HTML/Markdown/DOCX round-trip 정합성 강화`.
-- [ ] **Tiptap 스파이크 범위 정의**: 재평가 시에는 전면 전환이 아니라 `Methods + Results + Table + Equation + background AI patch`만 포함한 최소 spike를 별도 브랜치에서 검증한다. 현 본선 구현과 섞지 않는다.
-- [ ] **Lexical / ProseMirror 제외 근거 고정**: 현 단계에서는 `Lexical`은 low-level 구현 비용, `ProseMirror 직접 사용`은 프레임워크 구축 비용이 커서 채택 후보에서 제외한다. Plate 또는 Tiptap만 비교 대상으로 유지한다.
-- [ ] **최종 성공 기준**: 편집기 플랫폼 결정의 성공 기준은 “자료 작성 1차 MVP를 가장 짧은 시간 안에 안정적으로 출시하는가”로 둔다. 미래 잠재력보다 현재 통합 비용과 제품 진행 속도를 우선한다.
+- [x] **기본 방침 고정**: 1차 자료 작성 재설계는 `Plate 유지`를 기본안으로 진행한다. 현재 `DocumentEditor`/`PlateEditor`/공용 editor UI/수식 요소/테스트가 이미 Plate 기반이므로, 편집기 교체보다 문서 상태 모델 통합을 우선한다.
+- [x] **Plate 유지 적합성 검증**: `문서 자동 진입`, `문서 레벨 작성 상태`, `section patch`, `표/수식 유지`, `user edit 보존`, `autosave + conflict 처리`를 현재 Plate 기반 편집기에서 구현했다.
+- [x] **문서 상태 모델 우선 원칙**: 핵심 문제를 `paperDraft`와 `DocumentBlueprint` 파이프라인 분리로 정의하고, 엔진 교체 없이 먼저 상태 모델을 통합했다.
+- [x] **Plate 유지 시 필수 점검**: `DocumentSection.generatedBy`, patch 규칙, 직렬화/복원, background patch 반영, source lineage 보존을 문서/코드/테스트 기준으로 맞췄다.
+- [x] **Plate 유지 시 UX 점검**: 헤더/섹션 상태 UI가 selection/focus를 깨지 않도록 구현하고 관련 회귀 테스트를 추가했다.
+- [x] **Plate 유지 시 테스트 점검**: `DocumentEditor.export-freshness.test.tsx`와 관련 unit/integration 테스트로 background patch, user edit skip, retry/conflict 케이스를 고정했다.
+- [x] **Tiptap 재평가 트리거 정의**: `실시간 협업`, `댓글/제안 모드`, `강한 schema 제약`, `장기 문서 제품화`, `round-trip 정합성 강화`를 재검토 트리거로 문서화했다.
+- [x] **Tiptap 스파이크 범위 정의**: 필요 시 `Methods + Results + Table + Equation + background AI patch`만 포함한 최소 spike로 검증한다는 기준을 고정했다.
+- [x] **Lexical / ProseMirror 제외 근거 고정**: 현 단계에서는 구현 비용이 커서 비교 대상에서 제외하고 Plate/Tiptap만 후보로 유지한다.
+- [x] **최종 성공 기준**: 편집기 플랫폼 결정은 “자료 작성 1차 MVP를 가장 짧은 시간 안에 안정적으로 출시하는가”를 기준으로 판단하기로 고정했다.
 
 ### 자료 작성 1차 구현 명세 (Plate 유지안, 2026-04-24)
-- [ ] 공통 모듈/공통 컴포넌트/registry 확장 전략 계획 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md)
-- [ ] agent 리뷰 반영 핵심 계약 정리: 상태/저장/동시성 계약, `DocumentSection` merge matrix, `NormalizedWritingSource`, `manualBlank/sourceBoundDraft` entry mode, Phase 0 테스트 게이트를 위 계획 문서 기준으로 고정
-- [ ] **문헌 지원 1차 우선순위 고정**: `sectionSupportBindings` 기반 section-level literature binding, `citation / reference-package / deep-research-note` 역할 분리, `CSL/citeproc-js` 기반 인라인 인용/References 렌더링을 OpenAlex 연동보다 먼저 닫는다.
-- [ ] **OpenAlex 연동 후순위 명시**: 회사에 이미 있는 OpenAlex 코드를 재사용하는 방향으로 가되, 1차에서는 직접 연동하지 않는다. 우선은 문헌 자산 저장/섹션 바인딩/인용 표시를 먼저 안정화하고, OpenAlex discovery 연동은 Phase 2.5 이후 별도 작업으로 둔다.
-- [ ] **외부 연구 스택 활용 원칙 고정**: Zotero는 라이브러리 관리, `BibTeX/RIS/JSON import-export`는 1차 입력 경로, `GROBID` 계열 PDF 추출은 선택적 후속, OpenAlex는 후순위 discovery 계층으로 역할을 분리한다.
-- [ ] 상태/저장/동시성 계약 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md)
-- [ ] `DocumentSection` merge matrix 문서: [`stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md`](stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md)
-- [ ] **Step 1. 구현 명세 고정**: 1차 구현 범위를 `analysis + figure + blast/protein`, 진입점은 `ResultsActionStep + GraphStudioHeader`, 산출물은 `DocumentBlueprint`, 편집기는 `DocumentEditor(Plate)`로 고정한다.
-- [ ] **Step 1-A. 변경 파일 목록 고정**
+- [x] 공통 모듈/공통 컴포넌트/registry 확장 전략 계획 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md)
+- [x] agent 리뷰 반영 핵심 계약 정리: 상태/저장/동시성 계약, `DocumentSection` merge matrix, `NormalizedWritingSource`, `manualBlank/sourceBoundDraft` entry mode, Phase 0 테스트 게이트를 위 계획 문서 기준으로 고정
+- [x] 상태/저장/동시성 계약 문서: [`stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-STATE-CONTRACT.md)
+- [x] `DocumentSection` merge matrix 문서: [`stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md`](stats/docs/papers/PLAN-DOCUMENT-SECTION-MERGE-MATRIX.md)
+- [x] **Step 1. 구현 명세 고정**: 1차 구현 범위를 `analysis + figure + blast/protein`, 진입점은 `ResultsActionStep + GraphStudioHeader`, 산출물은 `DocumentBlueprint`, 편집기는 `DocumentEditor(Plate)`로 고정한다.
+- [x] **Step 1-A. 변경 파일 목록 고정**
   - `stats/lib/research/document-blueprint-types.ts`
   - `stats/lib/research/document-blueprint-storage.ts`
   - `stats/components/papers/DocumentEditor.tsx`
@@ -59,35 +56,35 @@
   - `stats/lib/research/document-assembler.ts`
   - `stats/__tests__/components/papers/DocumentEditor.export-freshness.test.tsx`
   - 신규 최소 테스트 2~3개
-- [ ] **Step 1-B. 1차 비포함 범위 명시**: 실시간 협업, 댓글/제안모드, 완전한 bio-tools writer, seq-stats/similarity/phylogeny/bold/translation 전용 writer, Tiptap 전환 spike는 1차 구현에서 제외한다.
-- [ ] **Step 2. 문서 상태 모델 확정**: `DocumentBlueprint`에 문서 레벨 작성 상태와 섹션 레벨 상태를 추가한다. 최소 후보: `writingState`, `writingJob`, `sectionStatuses`.
-- [ ] **Step 2-A. 상태 전이 정의**: 문서 레벨은 `idle -> collecting -> drafting -> patching -> completed | failed`, 섹션 레벨은 `idle -> drafting -> patched | skipped | failed`로 고정한다.
-- [ ] **Step 2-B. 저장 계약 정의**: 작성 상태도 문서 본문과 함께 IndexedDB에 저장하고, `loadDocumentBlueprint()` 시 normalize default를 적용한다. cross-tab 이벤트는 기존 `saved` 이벤트를 재사용한다.
-- [ ] **Step 2-C. 충돌 정책 정의**: `updatedAt` 기반 optimistic conflict는 유지하되, 1차에서는 문서 전체 conflict만 처리하고 섹션별 충돌 병합은 하지 않는다.
-- [ ] **Step 3. 진입점 통합 설계**
+- [x] **Step 1-B. 1차 비포함 범위 명시**: 실시간 협업, 댓글/제안모드, 완전한 bio-tools writer, seq-stats/similarity/phylogeny/bold/translation 전용 writer, Tiptap 전환 spike는 1차 구현에서 제외한다.
+- [x] **Step 2. 문서 상태 모델 확정**: `DocumentBlueprint`에 문서 레벨 작성 상태와 섹션 레벨 상태를 추가한다. 최소 후보: `writingState`, `writingJob`, `sectionStatuses`.
+- [x] **Step 2-A. 상태 전이 정의**: 문서 레벨은 `idle -> collecting -> drafting -> patching -> completed | failed`, 섹션 레벨은 `idle -> drafting -> patched | skipped | failed`로 고정한다.
+- [x] **Step 2-B. 저장 계약 정의**: 작성 상태도 문서 본문과 함께 IndexedDB에 저장하고, `loadDocumentBlueprint()` 시 normalize default를 적용한다. cross-tab 이벤트는 기존 `saved` 이벤트를 재사용한다.
+- [x] **Step 2-C. 충돌 정책 정의**: `updatedAt` 기반 optimistic conflict는 유지하되, 1차에서는 문서 전체 conflict만 처리하고 섹션별 충돌 병합은 하지 않는다.
+- [x] **Step 3. 진입점 통합 설계**
   - `ResultsActionStep`: 기존 `결과 요약` CTA를 `문서에서 작성` 시작점으로 승격할지 결정
   - `GraphStudioHeader`: 기존 문서 링크 옆에 `자료 작성` CTA 추가
   - `/papers`: 문서 허브 역할 유지, 결과/그래프에서 직접 생성된 문서를 열 수 있어야 함
-- [ ] **Step 3-A. 생성 경로 정의**: 클릭 즉시 빈 `DocumentBlueprint`를 만들고 `?doc=`로 이동한 뒤 background drafting을 시작한다.
-- [ ] **Step 3-B. source binding 정의**: 통계는 `historyId`, 그래프는 `graph project id`를 문서 source/provenance에 즉시 연결한다.
-- [ ] **Step 4. section patch / merge 정책 확정**
+- [x] **Step 3-A. 생성 경로 정의**: 클릭 즉시 빈 `DocumentBlueprint`를 만들고 `?doc=`로 이동한 뒤 background drafting을 시작한다.
+- [x] **Step 3-B. source binding 정의**: 통계는 `historyId`, 그래프는 `graph project id`를 문서 source/provenance에 즉시 연결한다.
+- [x] **Step 4. section patch / merge 정책 확정**
   - patch 단위는 `DocumentSection`
   - 1차는 `Methods`, `Results`, `Figure caption/figures`만 자동 patch
   - `Discussion`은 보류 또는 placeholder
-- [ ] **Step 4-A. user edit 보존 정책**: 사용자가 손댄 섹션은 1차에서 본문 patch를 skip하고, structured sidecar(`tables`, `figures`, `sourceRefs`)만 보수적으로 병합한다.
-- [ ] **Step 4-B. patch 적용 규칙**: 섹션 상태가 `patched`여도 신규 결과가 오면 같은 job 내 재patch는 허용하고, 다른 job이면 명시적 재작성 액션 전까지 자동 재patch하지 않는다.
-- [ ] **Step 4-C. 실패 규칙**: 일부 섹션 실패는 문서 전체 실패로 올리지 않고 `sectionStatuses[sectionId].status='failed'` + 문서 레벨 `patching` 또는 `failed`로 노출한다.
-- [ ] **Step 5. 테스트 명세 확정**
+- [x] **Step 4-A. user edit 보존 정책**: 사용자가 손댄 섹션은 1차에서 본문 patch를 skip하고, structured sidecar(`tables`, `figures`, `sourceRefs`)만 보수적으로 병합한다.
+- [x] **Step 4-B. patch 적용 규칙**: 섹션 상태가 `patched`여도 신규 결과가 오면 같은 job 내 재patch는 허용하고, 다른 job이면 명시적 재작성 액션 전까지 자동 재patch하지 않는다.
+- [x] **Step 4-C. 실패 규칙**: 일부 섹션 실패는 문서 전체 실패로 올리지 않고 `sectionStatuses[sectionId].status='failed'` + 문서 레벨 `patching` 또는 `failed`로 노출한다.
+- [x] **Step 5. 테스트 명세 확정**
   - 결과 화면에서 문서 생성 후 에디터 진입
   - 문서 레벨 `작성 중` 상태 표시
   - 섹션 patch 반영 후 상태 전이
   - user edit 있는 섹션 patch skip
   - background patch 중 conflict / retry
-- [ ] **Step 5-A. 최소 구현 테스트 세트**
+- [x] **Step 5-A. 최소 구현 테스트 세트**
   - `DocumentEditor` 상태 배지/patch 회귀
   - `document-blueprint-types` normalize/unit 테스트
   - 진입점 helper 또는 생성 workflow 테스트 1건
-- [ ] **Step 6. 1차 구현 순서**
+- [x] **Step 6. 1차 구현 순서**
   1. 타입/normalize/storage 스캐폴딩
   2. `DocumentEditor` 상태 UI
   3. 문서 생성 helper
@@ -95,74 +92,10 @@
   5. `GraphStudioHeader` 진입 연결
   6. background patch + 테스트
 
-### 자료 작성 품질/투고 점검 계획 (2026-04-25)
-- [x] **계획 문서 반영 완료**: 초안 생성 후 품질 점검과 투고 준비도 기능 방향을 [`stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md`](stats/docs/papers/PLAN-DOCUMENT-WRITING-ARCHITECTURE.md)의 `Review / Preflight Layer`와 `Phase 2.75`로 정리했다. (2026-04-25)
-- [x] **agent 점검 반영 완료**: 제품/UX, 아키텍처/데이터 모델, 테스트/리스크 관점 리뷰를 반영해 Phase 2.75 MVP 범위, freshness, evidence index, sidecar storage, 테스트 matrix 보강 방향을 계획 문서에 추가했다. (2026-04-25)
-- [x] **Phase 2.75 MVP 범위 고정**: 1차는 `내보내기 전 기술/근거 점검`으로 좁힌다. 포함: 수치 불일치, 표/그림 본문 호출 누락, caption 누락, 필수 statement 누락, reference/citation consistency, stale report 감지. 제외: journal fit 추천, 실제 submission tracking. Gate 5~6에서 preflight panel/export warning/report sidecar까지 구현했고, Gate 7 agent 점검으로 journal fit/submission tracking은 후속으로 유지한다. (2026-04-25)
-- [x] **제품 원칙 고정**: "투고 성공률", "합격 가능성", "acceptance probability", 단일 점수, 확률, 저널 1위 추천처럼 보이는 표현을 금지한다. UI는 `투고 전 체크리스트`, `저널 요구사항 대조`, `연구 범위 일치 신호` 중심으로 표현한다. `submission-readiness-terminology.ts`와 회귀 테스트로 금지/권장 표현 1차 가드를 추가했다. (2026-04-25)
-- [ ] **경쟁/참고 도구 기준 반영**: Paperpal Preflight(technical compliance), Writefull(편집기 내 학술 문체 교정), Trinka Journal Finder(scope match), Elsevier/Wiley Journal Finder(title/abstract matching)를 참고하되, BioHub 1차 범위는 source-bound pre-export check로 제한한다.
-- [ ] **Review/Preflight sidecar 저장 계약 설계**: `DocumentQualityReport`, `DocumentReviewFinding`, `DocumentReviewJobState`, `SubmissionReadinessReport`를 `DocumentBlueprint` 본문과 분리된 sidecar로 저장한다. 후보 store: `document-review-jobs`, `document-quality-reports`, `target-journal-profiles`, `submission-attempts`.
-- [ ] **freshness/stale 계약 설계**: report에 `baseDocumentUpdatedAt`, `documentContentHash`, `sectionHashes`, `sourceSnapshotHashes`, `targetJournalProfileVersion`, `ruleEngineVersion`을 저장하고, 문서/source/profile/rule version이 바뀌면 기존 report를 `stale`로 표시한다.
-- [ ] **review job lifecycle 설계**: `idle | running | partial | completed | stale | failed` 상태, `jobId`, retry, late job overwrite 방지, deterministic rule 성공 + LLM 실패 시 partial report 보존을 정의한다.
-- [ ] **투고 기준 프로필 설계**: `TargetJournalProfile`에 target journal, article type, abstract/main text word limit, reference style, figure/table format, ethics/COI/funding/data availability 요구사항을 담는다. 1차는 manual profile + APA/IMRAD/KCI/general preset으로 시작한다.
-- [x] **초안 작성 시작 시 저널 요구사항 주입 1차 구현**: `자료 작성`에서 논문 문서 생성 시 기본 IMRAD profile snapshot을 metadata에 고정하고, writer context/prompt와 preflight freshness가 같은 `targetJournalProfileVersion`을 참조하도록 연결했다. manual target journal/profile preset UI와 저널별 deterministic rule은 후속으로 둔다. (`document-journal-profile.ts`, `document-section-writing-context.ts`, `DocumentAssemblyDialog.tsx`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [x] **저널 profile 선택 UI 1차 구현**: `DocumentAssemblyDialog`에서 논문 문서 생성 시 IMRAD/APA/KCI/general/manual style preset과 optional target journal을 선택해 profile snapshot에 저장한다. 기존 문서 profile 수정 UI와 별도 profile store는 후속으로 둔다. (`DocumentAssemblyDialog.tsx`, 관련 테스트, 2026-04-25)
-- [x] **기존 문서 저널 profile 수정 UI 1차 구현**: `DocumentEditor` 우측 rail에서 style preset/target journal을 수정해 `metadata.targetJournalProfile` snapshot을 patch하고, profile version 변경 시 기존 preflight report가 stale로 표시되도록 했다. 별도 profile store와 세부 요구사항 편집 UI는 후속으로 둔다. (`DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [ ] **저널 profile 상세 요구사항 UI 후속**: 기존 문서 설정에서 abstract/main word limit, reference style, required statements, figure/table requirements, manual requirements를 편집하고, 생성 단계와 preflight가 같은 profile schema를 공유하도록 확장한다.
-- [ ] **SubmissionAttempt 경계 설계**: 실제 제출 로그는 live profile 참조가 아니라 `profileSnapshot`, `readinessReportId`, `exportArtifactId/hash`, `submittedAt`, `statusHistory`, `decisionNote`를 저장한다.
-- [ ] **초안 자체 점검 rule engine 설계**: IMRAD 흐름, 섹션 누락, 빈 문단, 반복/모순, figure/table 본문 호출 누락, caption 누락, 참고문헌 미사용/미인용, disclosure 누락을 deterministic check로 정의하고 rule id를 고정한다.
-- [ ] **SourceEvidenceIndex 설계**: source-bound 검증을 free-text 파싱에만 의존하지 않도록 `SourceEvidenceIndex` 또는 `DocumentClaimEvidence`를 정의한다. 후보 필드: `metricId`, `sourceId`, `resultPath`, `statisticKind`, `value`, `formattedValue`, `tolerance`, `tableCellRef`, `figureRef`, `sectionId`.
-- [ ] **BioHub 고유 source-bound 검증 설계**: 본문에 등장한 `p`, `F`, `t`, `chi2`, `n`, 평균/SD, 표/그림 번호를 source analysis, `DocumentTable`, `FigureRef`, Graph Studio provenance와 대조한다. `확인 불가` 등급과 반올림/부등호/locale 허용 규칙을 포함한다.
-- [x] **LLM 리뷰 범위 제한 + sanitizer 1차 구현**: LLM은 전체 흐름, 문체, 논리 점프, 과잉 주장, 오탈자 suggestion만 담당한다. LLM finding이 `content`, `plateValue`, source-bound statistic, citation/reference patch를 직접 바꾸려 하면 drop한다. LLM suggestion은 자동 적용하지 않고 `canAutoApply: false`, `requiresUserConfirmation: true`로 정규화한다. (`document-llm-review-sanitizer.ts`, 관련 테스트, 2026-04-25)
-- [x] **LLM 리뷰 report 병합 1차 구현**: sanitized LLM finding을 deterministic preflight report에 병합하는 순수 helper를 추가했다. LLM 실패 시 deterministic finding은 보존하고 report status를 `partial`로 낮추며, summary를 재계산한다. 실제 모델 호출/비동기 job orchestration은 다음 단계로 분리한다. (`document-llm-review-report.ts`, 관련 테스트, 2026-04-25)
-- [x] **LLM 리뷰 실행 1차 연결**: 기존 preflight 실행 흐름에서 deterministic report를 만든 뒤 LLM review runner를 호출하고, raw JSON 응답을 sanitizer/report merge로 연결한다. LLM 실패나 빈 응답은 deterministic finding을 보존한 `partial` report로 저장한다. late job overwrite guard와 별도 job store는 후속으로 둔다. (`document-llm-review-runner.ts`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [x] **LLM review job store/진행 상태 1차 구현**: `DocumentReviewJobState` sidecar store(`document-review-jobs`, IndexedDB v7)를 추가해 preflight/LLM review 진행 상태를 report artifact와 분리했다. `DocumentEditor` 실행 흐름은 deterministic → LLM 단계별 `running/completed/partial/failed/discarded`를 저장하고, cross-tab event로 최신 job state를 reload하며, panel/export CTA에는 현재 단계 label을 표시한다. (`document-review-job-storage.ts`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [ ] **LLM review job runner/재시도 고도화 후속**: 현재 1차는 `DocumentEditor` inline 실행 흐름에 sidecar job state를 붙인 형태다. 다음 단계에서는 `document-review-job-runner.ts`로 orchestration을 분리하고 retry, timeout, stale discard policy, cross-tab 중복 실행 방지, 오래된 running job 정리 UX를 추가한다.
-- [ ] **DocumentEditor 점검 패널 UX 설계**: `통과 / 주의 / 수정 필요 / 확인 불가` finding list, stale/partial/failed 상태, source mismatch warning, export 전 preflight report CTA를 에디터 안에 배치한다.
-- [ ] **Review/Preflight UI/UX 정보 구조 설계**: 작성 상태와 점검 상태를 분리하고, 점검 패널은 편집을 방해하지 않는 side panel 또는 inspector 형태로 검토한다. export 영역에는 최신 preflight 상태와 unresolved blocker만 요약한다.
-- [x] **자료 작성 UI/UX 정리 Gate 1. 현황 감사 및 분할 계획 고정**: `DocumentEditor`, `DocumentPreflightPanel`, `DocumentAssemblyDialog`, `MaterialPalette`, `DocumentExportBar`의 현재 노출 정보를 점검했다. 1차 원칙은 기능 삭제가 아니라 `주요 작업 1개 + 보조 정보 접기 + 설명은 tooltip` 구조로 정리하는 것이다. Axiom Slate 기준으로 border 중심 구획은 톤 차이로 바꾸고, 논문 작성/점검/원본 첨부/내보내기 상태가 한 rail에서 경쟁하지 않도록 단계별로 줄인다. (2026-04-26)
-- [x] **자료 작성 UI/UX 정리 Gate 2. DocumentEditor shell/header 단순화**: 상단은 문서명, 작성/저장 상태, 편집/미리보기 전환 중심으로 줄이고, 재조립 CTA는 실제 필요할 때만 노출한다. 섹션 헤더의 보조 메타는 compact badge 중심으로 유지하고 원본/근거 설명문은 icon hint로 축소했다. (`DocumentEditor.tsx`, 2026-04-26)
-- [x] **자료 작성 UI/UX 정리 Gate 3. 우측 rail 정보 구조 재정리**: `Preflight`를 우선 노출하고 `Journal profile`, `MaterialPalette`는 접을 수 있는 rail section으로 분리했다. 점검 패널은 compact summary와 주요 CTA 중심으로 줄이고 중요 항목 설명은 tooltip로 이동했다. (`DocumentEditor.tsx`, `DocumentPreflightPanel.tsx`, 2026-04-26)
-- [x] **자료 작성 UI/UX 정리 Gate 4. 생성 다이얼로그 단순화**: 템플릿/저널 profile/목차 구성의 긴 설명문을 줄이고 필요한 설명은 tooltip/title로 옮겼다. preset/style/section generator 선택은 border 대신 surface tone 기반 active 상태로 바꿨고, section generator 옵션은 접힘 영역으로 이동했다. (`DocumentAssemblyDialog.tsx`, 2026-04-26)
-- [x] **자료 작성 UI/UX 정리 Gate 5. MaterialPalette 재설계**: 분석/그래프/문헌을 segmented tab으로 분리하고 빈 상태 문구를 줄였다. 문헌 추가/역할/본문 인용/근거 연결 기능은 유지하면서 active section 정보와 리스트 밀도를 낮췄다. (`MaterialPalette.tsx`, 관련 테스트, 2026-04-26)
-- [x] **자료 작성 UI/UX 정리 Gate 6. Export/Preflight 마무리 UX 정돈**: export bar의 ready 상태 설명을 숨기고 warning/danger일 때만 메시지를 노출한다. 다운로드 버튼은 tonal secondary pill로 통일하고 sidecar 점검 리포트 다운로드는 접힘 액션으로 낮췄다. (`DocumentExportBar.tsx`, 2026-04-26)
-- [x] **자료 작성 UI/UX 정리 Gate 7. 시각 QA 및 agent 리뷰**: agent 리뷰로 리포트 다운로드 중복 라벨, count-only material tab 접근성, 비포커스 tooltip trigger, 선택 상태 semantics, rail nested surface 이슈를 점검하고 반영했다. 1440x900 PC viewport에서 편집기/생성 다이얼로그 screenshot QA를 수행해 가로 overflow가 없고 긴 설명문이 기본 노출되지 않음을 확인했으며, 생성 다이얼로그에는 `max-height + 내부 스크롤`을 추가해 화면 안에 들어오도록 보정했다. (`DocumentAssemblyDialog.tsx`, `DocumentEditor.tsx`, `DocumentExportBar.tsx`, `DocumentPreflightPanel.tsx`, `MaterialPalette.tsx`, 관련 테스트, 2026-04-26)
-- [ ] **Review/Preflight UI 상태 모델 설계**: `검사 전`, `검사 중`, `검사 완료`, `부분 완료`, `검사 실패`, `오래된 결과`, `원본 변경됨`, `확인 불가`, `무시됨` 상태와 각각의 badge/CTA/empty state를 정의한다.
-- [ ] **Finding 탐색 UX 설계**: severity, category, section, source availability 기준 filter/sort를 정의하고, finding 선택 시 해당 섹션/문장/표/그림으로 이동하며 원본 evidence와 비교값을 함께 보여주는 흐름을 설계한다.
-- [x] **Finding 섹션 이동 1차 구현**: `DocumentPreflightPanel`의 section-level finding을 클릭하면 `DocumentEditor` active section으로 이동한다. document-level finding은 `문서 전체`로 표시하고 이동하지 않으며, stale report가 삭제된 sectionId를 들고 있어도 active section을 바꾸지 않도록 방어했다. (`DocumentPreflightPanel.tsx`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [x] **Finding 상태 액션 1차 구현**: finding list를 open/ignored/resolved 상태가 보이는 inspector 항목으로 확장하고, fresh report에서 `무시`/`다시 열기`를 저장소에 반영한다. 상태 변경은 `DocumentQualityReport` sidecar 안에서 finding/report `updatedAt`과 summary를 재계산하며, stale/pending/conflict 상태에서는 액션을 비활성화한다. (`document-quality-types.ts`, `document-quality-storage.ts`, `DocumentPreflightPanel.tsx`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [x] **Finding evidence 요약 1차 구현**: finding 항목 안에 read-only compact evidence 요약을 추가했다. `label`, `sourceKind/sourceId`, `observedValue`, `expectedValue`를 방어적으로 표시하고, 우측 rail 과밀화를 막기 위해 기본 2개까지만 노출한다. stale/ignored finding에서도 evidence는 보이지만 상태 액션 비활성화 규칙은 유지한다. (`DocumentPreflightPanel.tsx`, 관련 테스트, 2026-04-25)
-- [x] **Finding 상태 필터 1차 구현**: preflight 패널에 `전체/열림/무시됨/해결됨` 상태 필터를 추가해 ignored/resolved 항목을 숨기지 않으면서 필요한 상태만 빠르게 볼 수 있게 했다. 필터가 비어 있으면 empty state를 보여주고, 상단 summary count는 전체 report 기준으로 유지한다. (`DocumentPreflightPanel.tsx`, 관련 테스트, 2026-04-25)
-- [x] **Finding evidence 원본 이동 1차 구현**: evidence row에 열 수 있는 원본(`analysis`, `figure`, supported project entity, supplementary fallback)만 `원본` 버튼을 표시하고, `DocumentEditor`에서 기존 source navigation URL로 이동시킨다. `document-artifact`, citation/reference/deep-research/unknown source는 버튼을 숨겨 잘못된 외부 이동을 막는다. (`DocumentPreflightPanel.tsx`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [x] **Finding observed/expected 비교 UI 1차 구현**: evidence에 `observedValue`/`expectedValue`가 있으면 `비교` 블록으로 관찰/기대 값을 나눠 보여주고, 정규화 기준 `일치/불일치/확인 필요` 상태를 표시한다. 자동 수정/patch 적용과는 분리해 AI 초안 오류 판단용 read-only UI로 제한한다. (`DocumentPreflightPanel.tsx`, 관련 테스트, 2026-04-25)
-- [x] **Finding suggestion preview 1차 구현**: `DocumentReviewFinding.suggestion`이 있는 open finding에 read-only 제안 미리보기를 표시한다. `canAutoApply`/`requiresUserConfirmation`은 배지와 안내문으로만 보여주고, 실제 선택 적용은 `content`/`plateValue` 동기화와 `targetRange.sectionHash` 검증이 필요하므로 다음 단계로 분리한다. (`DocumentPreflightPanel.tsx`, `document-quality-storage.test.ts`, 2026-04-25)
-- [x] **Finding 선택 적용 1차 구현**: `suggestion.canAutoApply` + `sectionId` + `targetRange` + 현재 섹션 hash 일치 + 유효 offset일 때만 replacement를 적용하는 순수 helper를 추가했다. `DocumentEditor` 적용 경로는 section content를 갱신하고 stale `plateValue`를 비우며, 활성 섹션이면 Plate value도 즉시 갱신한다. 적용 후 report는 자동 resolved 처리하지 않고 문서 변경으로 stale이 되도록 둔다. (`document-quality-suggestion-apply.ts`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [x] **source-bound numeric claim 대조 1차 구현**: 본문 free-text 파싱은 보류하고, 명시적으로 연결된 numeric claim과 `SourceEvidenceIndex` table snapshot을 대조하는 순수 helper를 추가했다. `linked/missing/ambiguous/mismatch` 결과와 observed/expected 값을 반환하며, preflight finding 변환은 다음 단계로 분리한다. (`document-claim-evidence.ts`, `document-source-evidence.ts`, 관련 테스트, 2026-04-25)
-- [x] **source-bound numeric claim preflight 변환 1차 구현**: `runDocumentPreflightRules()`가 명시적 `numericClaims` 옵션을 받아 `linked`는 통과시키고 `missing/ambiguous/mismatch`는 source finding으로 변환한다. observed/expected evidence를 포함해 기존 패널 비교 UI가 표시할 수 있게 했다. claim 수집/free-text 파싱은 후속으로 둔다. (`document-preflight-rules.ts`, 관련 테스트, 2026-04-25)
-- [x] **numeric claim 자동 수집/free-text 파싱 1차 구현**: preflight 실행 시 metadata의 명시적 `numericClaims`에 더해 본문 free-text에서 제한 패턴(`p`, `n`, mean/SD, `t`, `F`, `r`, `OR`, `chi2`)을 보수적으로 수집한다. 같은 section의 단일 row table 1개와 metric header가 명확히 일치하는 경우에만 자동 claim으로 검증하고, 근거가 없거나 후보가 복수인 문장은 noisy error를 피하기 위해 수집하지 않는다. (`document-claim-evidence.ts`, `DocumentEditor.tsx`, 관련 테스트, 2026-04-25)
-- [ ] **numeric claim 수집 고도화 후속**: writer가 생성한 source-bound claim을 structured metadata로 기록하고, row label/table reference를 명시적으로 붙여 multi-row/multi-table evidence도 안전하게 검증한다. free-text 단독 추론은 `확인 불가/ambiguous` 정보성 finding으로 분리하는 UX를 검토한다.
-- [ ] **finding 액션 설계**: `섹션으로 이동`, `원본 보기`, `차이 비교`, `선택 적용`, `무시/사유 기록`, `재검사`, `보고서 다운로드`, `위험 확인 후 export` 액션을 정의한다.
-- [ ] **Finding 수정/무시 UX 설계**: bulk apply보다 finding 단위 선택 적용을 기본으로 하고, 사용자가 직접 수정한 finding은 stale 또는 needs-recheck로 표시한다. 무시 사유는 export report에 포함할 수 있게 한다.
-- [ ] **export preflight gating 설계**: 최신 report가 없거나 stale이면 재검사 CTA를 우선 노출한다. critical mismatch가 있으면 경고와 명시적 확인 후 export를 허용하고, report 생성 실패 시 fallback UX를 정의한다.
-- [x] **Export 전 점검 UX 설계**: export를 기본적으로 막지는 않되 critical finding/stale report가 있으면 확인 단계를 둔다. preflight report는 점수보다 남은 위험과 확인 불가 항목을 요약한다. Gate 6에서 export bar warning/confirm/report sidecar로 구현했다. (2026-04-25)
-- [x] **금지/권장 UI copy 설계**: `합격 가능성`, `투고 성공률`, `저널 추천 1위` 같은 금지 표현과 `투고 전 체크리스트`, `저널 요구사항 대조`, `연구 범위 일치 신호` 같은 권장 표현을 terminology에 고정한다. (`submission-readiness-terminology.ts`, 2026-04-25)
-- [x] **저널 적합도/투고 추적 후속 범위**: OpenAlex 기반 유사 논문/저널 후보는 Phase 2.5 이후 discovery 계층과 연결하고, 실제 투고 상태는 `SubmissionAttempt` log로 submitted/under review/revision/accepted/rejected를 기록한다. Phase 2.75 MVP에는 넣지 않는다. Gate 7 agent 점검 결과, 지금은 `TargetJournalProfile`/`SubmissionAttempt` 타입·store·ProjectEntityKind를 추가하지 않고 문서 경계와 terminology guard만 유지한다. (2026-04-25)
-- [ ] **L1 테스트 matrix 추가**: deterministic rule engine golden fixtures, source-bound numeric/provenance mismatch fixtures, LLM finding sanitizer, review job freshness/stale/retry/partial failure, export preflight service를 순수 함수/서비스 테스트로 고정한다.
-- [ ] **L2 테스트 matrix 추가**: `DocumentEditor` 점검 패널 finding list, stale warning, retry, user edit 보존, `DocumentExportBar` preflight CTA/report/stale warning/critical confirm을 data-testid 중심으로 검증한다.
-- [ ] **L3 테스트 matrix 추가**: 결과 문서 생성 → 사용자 수정 → review retry → export preflight 흐름의 happy path와 critical mismatch path 각 1개만 유지한다.
-- [x] **금지 문구 회귀 테스트 추가**: `투고 성공률`, `합격 가능성`, `acceptance probability` 같은 금지 표현이 readiness/scope fit UI에 노출되지 않도록 terminology 문자열 assertion을 추가했다. readiness/scope fit UI가 실제로 생기면 같은 helper를 UI 문자열 테스트에 연결한다. (2026-04-25)
-- [ ] **단계별 agent gate 진행 원칙 고정**: Review/Preflight는 논문 초안 작성 후반 품질 게이트이므로 `구현 전 agent 계획 점검 → 구현 → 1차 로컬 검토 → agent 리뷰 → 문서/TODO 갱신 → 다음 단계` 루프로 진행한다.
-- [x] **Gate 1. 작성 파이프라인 안정화 점검**: `DocumentBlueprint`, writing job/state, section patch, user edit 보존을 먼저 닫고, 아키텍처/동시성/UX agent 점검을 받았다. Gate 1-1~1-4 후속까지 반영 완료. (2026-04-25)
-- [x] **Gate 1-1. 섹션 단위 직접 편집/중단 계약 구현**: 직접 편집 또는 `이 섹션 중단`은 현재 섹션만 `skipped`/`generatedBy: user`로 보호하고 같은 job의 다른 drafting 섹션은 계속 작성되도록 수정했다. 빈 skipped 섹션이 background patch 또는 retry로 다시 채워지는 race도 차단했다. (`DocumentEditor.tsx`, `SectionWritingBanner.tsx`, `document-writing-orchestrator.ts`, `document-writing-session.ts`, 관련 테스트, 2026-04-25)
-- [x] **Gate 1-2. active section background patch 표시**: 현재 보고 있는 섹션에 외부 저장/background patch가 도착하면 로컬 미저장 변경이 없을 때 Plate editor를 최신 snapshot으로 갱신한다. programmatic `setValue`가 사용자 편집/섹션 중단으로 오인되지 않도록 guard를 추가했다. (`DocumentEditor.tsx`, freshness 테스트, 2026-04-25)
-- [x] **Gate 1-3. 부분 실패/부분 완료 상태 모델 정리**: 별도 persisted `partial` status는 추가하지 않고 `sectionStates`에서 header summary를 파생한다. `completed` 안에 `patched/skipped/failed`가 섞이면 `일부 반영`, `일부 실패`로 요약한다. (`DocumentEditor.tsx`, freshness 테스트, 2026-04-25)
-- [x] **Gate 1-4. 섹션 목록 작성 상태 표시**: `DocumentSectionList`에 `drafting/patched/skipped/failed` 칩과 실패/보존 상태를 노출해 비활성 섹션 상태를 발견 가능하게 만들었다. (`DocumentSectionList.tsx`, 컴포넌트 테스트, 2026-04-25)
-- [x] **Gate 2. Review/Preflight 기반 계약 점검**: `DocumentQualityReport`, `DocumentReviewFinding`, stale/freshness, sidecar IndexedDB store 계약을 agent 점검 후 1차 구현했다. 문서 snapshot hash, source/journal/rule version freshness, summary 정규화, report CRUD/list/latest, finding identity/range guard를 L1 테스트로 고정했다. (`document-quality-types.ts`, `document-quality-storage.ts`, `indexeddb-adapter.ts`, 관련 테스트, 2026-04-25)
-- [x] **Gate 3. Source evidence 점검**: `SourceEvidenceIndex`와 `DocumentClaimEvidence` 1차 모델을 추가하고, `DocumentBlueprint`에서 section source, table, figure, included support binding evidence를 순수 파생한다. stable key와 content hash를 분리하고, source kind/id lookup, duplicate key 방지, legacy sourceRef normalization, citation lineage 포함을 L1 테스트로 고정했다. (`document-source-evidence.ts`, 관련 테스트, 2026-04-25)
-- [x] **Gate 4. deterministic preflight 점검**: LLM 없이 실행되는 1차 preflight rule runner를 추가했다. table/figure caption 누락, table source 누락, support source/citation 이상, source evidence 없음 규칙을 `DocumentQualityReport` finding으로 변환하고, 외부 `SourceEvidenceIndex` mismatch guard, deterministic finding id, artifact evidence, snapshot/summary 계약을 L1 테스트로 고정했다. (`document-preflight-rules.ts`, `document-source-evidence.ts`, 관련 테스트, 2026-04-25)
-- [x] **Gate 5. DocumentEditor UI/UX 점검**: `DocumentPreflightPanel`을 우측 inspector rail 상단에 추가하고, 문서 점검 실행 → deterministic preflight runner → report 저장 → freshness/summary/finding 표시 흐름을 연결했다. stale/missing/fresh 상태, open finding 전체 스크롤 목록, 충돌 중 실행 비활성화, MaterialPalette와의 정보 구조 배치를 agent 점검으로 정리했으며, panel 단위 테스트와 `DocumentEditor` 통합 테스트로 고정했다. (2026-04-25)
-- [x] **Gate 6. export preflight 점검**: `DocumentExportBar`에 preflight 상태 요약을 추가하고 `DocumentEditor`의 최신 report/freshness/run 상태를 전달한다. missing/stale report는 export 전 확인을 요구하고 재점검 CTA를 제공하며, fresh report라도 unresolved critical finding이 있으면 명시 확인 후 export하도록 했다. 점검 report는 원고 본문에 섞지 않고 sidecar JSON(`*_preflight-report.json`)으로 저장하는 UX를 추가했으며, export bar 단위 테스트와 `DocumentEditor` 통합 테스트로 회귀를 고정했다. (2026-04-25)
-- [x] **Gate 7. journal fit / submission tracking 후속 점검**: OpenAlex 기반 scope signal과 `SubmissionAttempt` log를 제품 표현/오해 방지/데이터 경계 관점으로 agent 점검했다. 결론: OpenAlex는 discovery 메타데이터로만 사용하고 acceptance prediction/단일 점수/저널 1위 추천 표현은 금지한다. `SubmissionAttempt` store와 `TargetJournalProfile` 정식 타입은 export artifact/hash와 manual profile UX가 생긴 뒤 추가하며, 현재는 terminology guard와 TODO 경계만 유지한다. (2026-04-25)
+### 자료 작성 남은 후속 작업 (2026-04-24 기준)
+- [x] `ReportComposer`와 `PackageBuilder`를 자료 작성 주 흐름과 더 명확히 분리했다.
+- [x] `generatePaperDraft()` 직접 사용 경로를 문서 작성 writer 체계와 정리했다. 공식 제품 경로는 `generateAnalysisPaperDraft()` / `generatePaperDraftFromSchema()` / document-writing adapter로 고정한다.
+- [x] supplementary 결과 타입의 전용 writer 우선순위를 다시 정하고, generic fallback에서 어디까지 승격할지 결정했다.
 
 ### Graph Studio scoring follow-up (2026-04-14, 커밋 `9ae32a41` 후속)
 - [x] **[P1] 기본 차트 타입 휴리스틱 재검토**: 샘플 데이터(`species`/`length_cm`/`weight_g`/`year`)에서 scatter를 기본값으로 선택하도록 `suggestChartType()` 기준을 정리하고 `ChartSetupPanel.defaultType`도 같은 경로를 사용하도록 통일. (`chart-spec-utils.ts`, `ChartSetupPanel.tsx`, `chart-spec-utils.test.ts`, 2026-04-14)
@@ -341,24 +274,53 @@
 - [x] Data Exploration Step에서 업로드 교체 상태와 경고 배너의 시각적 우선순위 재검토 (`500dc963`, 2026-04-12)
 - [x] 실제 사용자 시나리오 기준으로 Hub → Step 1 → Result 전체 흐름 e2e 스모크 테스트 추가 (`c91cff4c`, 2026-04-13 (부분 — 사이드바+smoke-test.mjs))
 
-## 9. Paper Workflow 장기 제품 전략: 축적 자산, 락인, 네트워크 효과 (2026-04-25)
+## 9. 논문 작성 반자동화 메모 (2026-04-27)
 
-> 방향: 폐쇄적 락인이 아니라, 연구 자료/작성 이력/투고 지식이 BioHub 안에 쌓일수록 더 편해지는 **생산성 락인**을 목표로 한다. Export와 외부 도구 연동은 열어두되, source trace, preflight, journal profile, revision history 때문에 다시 돌아오게 만드는 구조가 장기 경쟁력이다.
-
-### 놓치기 쉬운 축적 자산
-- [ ] **Project Memory**: 프로젝트별 가설, 변수명, 분석 해석, 용어, 선호 표현을 저장해 다음 문서/수정 작업에 재사용한다.
-- [ ] **Evidence Trace 강화**: 문장마다 분석 결과, 표, 그림, citation, source snapshot을 연결해 AI 작성 문장을 연구자가 검증 가능한 상태로 유지한다.
-- [ ] **Lab Style Profile**: 연구실/지도교수/공저자별 문체, 금지 표현, preferred terminology, figure/table caption 스타일을 profile로 저장한다.
-- [ ] **Journal Profile Library**: 저널별 투고 기준, word limit, reference style, reporting checklist, required statements를 재사용 가능한 profile로 관리한다.
-- [ ] **Accepted Pattern Learning**: 사용자가 accept된 원고나 통과한 수정본을 표시하면 다음 원고의 checklist/style suggestion에 반영할 수 있는 구조를 검토한다.
-
-### 네트워크 효과 후보
-- [ ] **공유 가능한 Journal/Institution Template**: KCI/SCI 저널, 학회, 학위논문, 기관 양식 profile을 import/export/share 가능한 단위로 설계한다.
-- [ ] **Reporting Guideline Profile**: CONSORT, STROBE, PRISMA, ARRIVE 등 분야별 reporting guideline을 preflight profile로 붙일 수 있게 한다.
-- [ ] **Reviewer Response Workflow**: reviewer comment → 수정 계획 → 문단 diff → response letter를 연결해 revision 작업 이력을 자산화한다.
-- [ ] **Submission Packet**: manuscript, cover letter, checklist, figures/tables, response letter, supplementary files를 하나의 투고 패키지로 관리한다.
-
-### 제품 원칙
-- [ ] **좋은 락인만 허용**: DOCX/HWPX/Markdown/LaTeX/Zotero/Overleaf 등 외부 이동성은 유지하고, BioHub 내부에서는 provenance와 검증 자동화로 재방문 가치를 만든다.
-- [ ] **로컬 LLM + 선택적 API 리뷰 하이브리드**: 8B급 로컬 모델은 초안/부분 점검/문체 보조에 쓰고, 전체 논리 검토·투고 적합성·최종 리뷰는 대형 API 모델 fallback을 제공한다.
-- [ ] **AI 대체 작성보다 책임 가능한 작성**: AI가 대신 써주는 기능보다, 사용자가 근거·수치·출처·저널 기준을 확인하고 책임질 수 있는 workflow를 우선한다.
+- [x] 방향 문서 작성: [`docs/PLAN-PAPER-WRITING-SEMIAUTOMATION.md`](docs/PLAN-PAPER-WRITING-SEMIAUTOMATION.md)
+- [x] `Analysis` 결과를 논문 작성용 `study schema`로 승격하는 타입 초안 작성 (`stats/lib/services/paper-draft/study-schema.ts`, `stats/lib/research/document-blueprint-types.ts`, 2026-04-29)
+- [x] 결과 패널/히스토리 초안 생성 경로에 `studySchema` 보존 추가 (`PaperDraft.studySchema`, `generatePaperDraftFromSchema`, `generateAnalysisPaperDraft` schemaOptions, 2026-04-29)
+- [x] 큰 관점 consistency 리뷰 반영: `DraftContext`는 사용자 확인 원본, `StudySchema`는 파생 스냅샷으로 고정하고 `sourceFingerprint`/언어/방법/데이터 소스 guard 및 lifecycle 시뮬레이션 테스트 추가 (2026-04-29)
+- [x] Methods 사용자 UX 계약 추가: `ready / needs-review / blocked` 준비도, 체크리스트, 사용자 확인 질문, 결과 패널 준비도 카드 (`methods-readiness.ts`, `PaperDraftPanel`, 2026-04-29)
+- [x] 프로젝트 원칙 고정: `많이 써주는 AI`보다 `틀린 말을 하지 않는 보수적 자동화`를 논문 작성 반자동화의 기본 원칙으로 문서화 (2026-04-29)
+- [x] 자료 작성 문서 허브 추가: `stats/docs/papers/README.md`에 원칙, 기준 문서, 코드 위치, source-of-truth 정리 (2026-04-29)
+- [x] 섹션별 자동화 범위 SSOT 추가: `SECTION-SCOPE.md`에 Introduction/Materials and Methods/Results/Discussion/References별 자동화 가능·사용자 확인·금지·gate·테스트 기준 정리 (2026-04-29)
+- [x] `Statistical Methods` 자동 작성 범위 정의: 분석군별 자동 작성 가능 항목, 사용자 확인 항목, 금지 표현, gate rule을 `methods-scope.ts`와 테스트로 고정 (2026-04-29)
+- [x] `Methods` 템플릿 문장 점검: `methods-scope.ts` 금지 표현과 기존 `paper-templates.ts` golden snapshot 정합성 보강 (2026-04-29)
+- [x] `Results` 자동 작성 범위 정의: 통계량/p-value/source provenance 차단, 효과크기/CI/model fit/post-hoc 검토 gate, 금지 표현 테스트 고정 (`results-scope.ts`, `results-readiness.ts`, 2026-04-29)
+- [x] Figure/Table caption 자동 생성 규칙 정의: source provenance 차단, figure message/panel review, 장비·배율·패턴 추론 금지, 실제 생성 표 기준 caption 테스트 고정 (`captions-scope.ts`, `captions-readiness.ts`, 2026-04-29)
+- [x] `Materials/Samples` source contract 1차 구현: 데이터셋/시료/species source provenance와 verification 상태를 `StudySchema.materials`에 보존하고, 검증되지 않은 species source는 Methods 작성 gate에서 차단 (`materials-source-contract.ts`, `study-schema.ts`, `methods-readiness.ts`, 2026-04-29)
+- [x] citation source contract 1차 시뮬레이션: DOI와 문헌 요약 source가 없는 문헌은 Introduction/Discussion 본문 citation에서 차단하고 References 후보로만 제한 (`citation-source-contract.ts`, `citation-source-contract.test.ts`, 2026-04-29)
+- [x] `Preprocessing` source contract 1차 구현: 결측/중복 validation evidence와 변환·표준화·제외·imputation step을 `StudySchema.preprocessing`에 보존하고, validation error는 차단, 처리 rationale 누락은 review gate로 처리 (`preprocessing-source-contract.ts`, `methods-readiness.ts`, 2026-04-29)
+- [x] 가정 위반, 결측 처리, 다중비교 보정 누락 시 생성 게이트 설계: Methods는 가정/결측 사용자 판단 누락을 `needs-review`, validation error와 post-hoc 보정 방법 누락을 `blocked`로 처리하고, Results는 보정 방법 누락을 수치 기반 `needs-review`로 남기도록 테스트 시뮬레이션까지 고정 (`methods-readiness.test.ts`, `results-readiness.test.ts`, `paper-draft-service.test.ts`, 2026-04-29)
+- [x] 다중 분석 문서용 `DocumentBlueprint` authoring plan 설계: `metadata.studySchema`는 기존 단일 분석 문서 호환용으로 유지하고, 새 기준은 `metadata.authoringPlan.sources[]`에 `DocumentSourceRef`별 `StudySchema`/`sourceFingerprint`를 보존하는 source-keyed plan으로 결정 (`document-blueprint-types.ts`, `document-blueprint-storage.ts`, `document-blueprint-types.test.ts`, 2026-04-29)
+- [x] `DocumentBlueprint.metadata.generatedArtifacts` 기반 artifact-level provenance 연결: Methods/Results section patch 성공 시 deterministic artifact id와 sourceRefs/generator/options를 metadata에 기록하고, authoring plan source/section plan에서 artifact id를 역참조하도록 연결 (`document-blueprint-types.ts`, `document-writing-orchestrator.ts`, 2026-04-29)
+- [x] `generatePaperDraft()` 직접 사용 경로 정리: 제품 경로는 `generateAnalysisPaperDraft()` / `generatePaperDraftFromSchema()` / document-writing adapter로 고정하고, `generatePaperDraft()`는 저수준 호환 adapter로만 유지. analysis schema 재사용 조건을 `isReusableAnalysisStudySchema()`로 분리하고 fingerprint parity/stale context 테스트 추가 (`analysis-paper-draft.ts`, `analysis-writing-draft.test.ts`, 2026-04-29)
+- [x] 자료 작성 핵심 작업 체크포인트 정리: 핵심 엔진은 1차 완료 상태로 보고, 남은 작업을 `ReportComposer`/`PackageBuilder` UX 분리와 supplementary 전용 writer 우선순위 결정으로 분리 (`stats/docs/papers/README.md`, `SECTION-SCOPE.md`, 2026-04-29)
+- [x] `ReportComposer` / `PackageBuilder` UX 분리 완료: 빠른 요약 export, 외부 AI 입력 패키지, 자료 작성 문서 흐름의 역할을 UI 문구와 테스트로 구분 (`ReportComposer.tsx`, `PackageBuilder.tsx`, `PapersHub.tsx`, 2026-04-29)
+- [x] supplementary writer 승격 정책 고정: 현재 전용 writer는 `blast-result`/`bold-result`/`protein-result`/`seq-stats-result`/`translation-result`/`similarity-result`/`phylogeny-result`, `bio-tool-result`는 `BioToolId`별 타입 가드 전까지 broad generic 유지 (`document-writing-supplementary-policy.ts`, 2026-04-29)
+- [x] `bold-result` 전용 supplementary writer 추가: BOLD 결과는 후보 동정, 최고 유사도, BIN, DB, search mode, hit count만 문장화하고 확정 동정 표현은 금지 (`document-writing-supplementary-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `seq-stats-result` 전용 supplementary writer 추가: sequence count, mean length, GC content만 문장화하고 서열 품질/기능/종 동정 해석은 금지 (`document-writing-supplementary-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `translation-result` 전용 supplementary writer 추가: sequence length, genetic code, analysis mode, ORF count만 문장화하고 단백질 기능/coding potential/ORF 생물학적 의미 해석은 금지 (`document-writing-supplementary-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `similarity-result` 전용 supplementary writer 추가: sequence count, distance model, alignment length, mean distance만 문장화하고 종 경계/clustering/계통 해석은 금지 (`document-writing-supplementary-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `phylogeny-result` 제한 supplementary writer 추가: sequence count, tree method, distance model, alignment length만 문장화하고 분기군/지지도/진화 관계 해석은 금지 (`document-writing-supplementary-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] supplementary 전용/제한 writer 판단 기준 문서화: 저장 스키마 안정성, source-backed 출력, 해석 금지 범위, deterministic template writer 원칙을 README와 SECTION-SCOPE에 고정 (2026-04-29)
+- [x] supplementary writer 향후 개선 메모 추가: 구현 파일, dispatch, 정책, 핵심 테스트, 새 writer 추가 체크리스트를 README/SECTION-SCOPE에 정리 (2026-04-29)
+- [x] `fst` Bio-Tools supplementary writer 추가: `FstResult` 타입 가드 후 Global Fst, pairwise matrix, population labels, permutation/bootstrap 수치만 문장화하고 기존 interpretation 문자열은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `hardy-weinberg` Bio-Tools supplementary writer 추가: `HardyWeinbergResult` 타입 가드 후 allele frequency, observed/expected counts, chi-square/exact p-value만 문장화하고 interpretation/평형·이탈 판정 문구는 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] Bio-Tools 추가/삭제 대응 정책 보강: `BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL`에서 모든 `BioToolId`를 `dedicated / candidate / generic-only`로 분류하고, registry와 정책 record 동기화를 테스트로 확인 (2026-04-29)
+- [x] `alpha-diversity` Bio-Tools supplementary writer 추가: `AlphaDiversityResult` 타입 가드 후 site/species count, Shannon/Simpson 등 지수 요약, 사이트별 주요 수치만 문장화하고 diversity 높고 낮음/생태학적 의미/군집 차이 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `beta-diversity` Bio-Tools supplementary writer 추가: `BetaDiversityResult` 타입 가드 후 distance metric, site labels, 쌍별 거리만 문장화하고 clustering/group separation/ecological distance interpretation은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `rarefaction` Bio-Tools supplementary writer 추가: `RarefactionResult` 타입 가드 후 curve count, site labels, 곡선별 최종 n/expected species/point count만 문장화하고 표본 충분성/포화 여부/richness 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `condition-factor` Bio-Tools supplementary writer 추가: `ConditionFactorResult` 타입 가드 후 K 기술통계, 그룹별 기술통계, 선택적 비교 검정 수치만 문장화하고 condition의 좋고 나쁨/생리 상태/그룹 차이 유의성 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `roc-auc` Bio-Tools supplementary writer 추가: `RocAucResult` 타입 가드 후 AUC, AUC CI, threshold, sensitivity, specificity, ROC point count만 문장화하고 threshold는 중립 라벨로 표기하며 진단 성능 우수/불량, 임상적 유용성, 최적 cut-off 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `meta-analysis` Bio-Tools supplementary writer 추가: `MetaAnalysisResult` 타입 가드 후 pooled effect, CI, z/p, Q/Q p, I²/τ², study-level effect/CI/weight만 문장화하고 효과의 의미/유의성/이질성 높고 낮음/모델 선택 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `icc` Bio-Tools supplementary writer 추가: `IccResult` 타입 가드 후 ICC type, ICC, CI, F/df/p, mean squares, 대상 수/평가자 수만 문장화하고 interpretation 문자열/신뢰도 품질 판정은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `vbgf` Bio-Tools supplementary writer 추가: `VbgfResult` 타입 가드 후 L∞, K, t₀, parameter table, R²/AIC, predicted/residual counts, N만 문장화하고 성장 양상 평가/생물학적 의미/모델 적합성 좋고 나쁨 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `survival` Bio-Tools supplementary writer 추가: `SurvivalResult` 타입 가드 후 Kaplan-Meier 곡선 수, log-rank p-value, 중앙 생존 시간, 그룹별 N/event/censor/endpoint 수치만 문장화하고 그룹 간 차이 유의성/생존 우수·불량/치료 효과·위험 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `nmds` Bio-Tools supplementary writer 추가: `NmdsResult` 타입 가드 후 stress, 차원 수, 지점 수, optional group count, 좌표만 문장화하고 stressInterpretation 문자열/군집 분리/gradient/생태학적 의미 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `species-validation` Bio-Tools supplementary writer 승격 보류 고정: 현재 coming-soon이고 result schema/API provenance가 없으므로 generic-only로 유지하며, 실제 status enum/match confidence/protected-species fields가 고정되기 전에는 학명 확정·보호종 여부·매칭 신뢰도 문장을 자동 생성하지 않도록 테스트와 문서에 반영 (`document-writing-supplementary-policy.ts`, `document-writing-source-registry.test.ts`, 2026-04-29)
+- [x] `length-weight` Bio-Tools supplementary writer 추가: `LengthWeightResult` 타입 가드 후 회귀 방정식, a/b, b SE, R², 등성장 검정 t/p, N만 문장화하고 growthType 판정/유의성 판단/축·단위 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `permanova` Bio-Tools supplementary writer 추가: `PermanovaResult` 타입 가드 후 pseudo-F, p-value, R², permutations, SS 항목만 문장화하고 집단 차이 유의성/effect interpretation/group factor 의미 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] `mantel-test` Bio-Tools supplementary writer 추가: `MantelResult` 타입 가드 후 Mantel r, p-value, permutations, method만 문장화하고 상관 강도/유의성/거리 행렬 간 생물학적 의미/인과 해석은 자동 본문에서 제외 (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] Bio-Tools supplementary writer 리팩터링: Bio-Tools type guard/writer를 `document-writing-bio-tool-writers.ts`로 분리하고, registry dispatch contract, generic fallback, malformed snapshot 테스트는 그대로 유지했다. (`document-writing-bio-tool-writers.ts`, `document-writing-source-registry.ts`, 2026-04-29)
+- [x] 자료 작성 개발 점검 메뉴 추가: Bio-Tools registry/policy 동기화, ready 도구 전용 writer 적용 여부, coming-soon 보수 처리, generic fallback 제약, 유전/서열 writer queue를 개발 환경 Papers 상단에서 확인하도록 하고, 중복 registry ID와 ready generic drift를 테스트로 감지 (`document-writing-development-checklist.ts`, `PaperWritingDevelopmentChecklist.tsx`, 2026-04-29)

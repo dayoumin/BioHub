@@ -149,8 +149,9 @@ function generatePostHocTable(
   if (!postHoc || postHoc.length === 0) return null
 
   const isKo = lang === 'ko'
-  const method = result.postHocMethod ?? 'Post-hoc'
-  const title = isKo ? `사후검정 (${method})` : `Post-hoc Comparisons (${method})`
+  const title = result.postHocMethod
+    ? isKo ? `사후검정 (${result.postHocMethod})` : `Post-hoc Comparisons (${result.postHocMethod})`
+    : isKo ? '사후 비교' : 'Post-hoc Comparisons'
 
   const filtered = postHocDisplay === 'significant-only'
     ? postHoc.filter((ph: PostHocResult) => ph.significant)

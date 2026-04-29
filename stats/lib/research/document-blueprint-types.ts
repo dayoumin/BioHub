@@ -6,6 +6,7 @@
  */
 
 import type { PaperTable } from '@/lib/services/paper-draft/paper-types'
+import type { StudySchema } from '@/lib/services/paper-draft/study-schema'
 import type { GraphProject } from '@/types/graph-studio'
 import { getGraphProjectAnalysisSourceRefs } from '@/lib/graph-studio/project-lineage'
 import type { DocumentSectionSupportBinding } from './document-support-asset-types'
@@ -70,6 +71,8 @@ export interface FigureRef {
   patternSummary?: string
 }
 
+// ── 섹션 ──
+
 export interface DocumentSectionBlueprintDefinition {
   id?: string
   title: string
@@ -93,8 +96,6 @@ export interface TargetJournalRequirementProfileSnapshot {
   figureTableRequirements?: string[]
   manualRequirements?: string[]
 }
-
-// ── 섹션 ──
 
 export interface DocumentSection {
   id: string
@@ -128,10 +129,68 @@ export interface DocumentWritingState {
 
 // ── 메타데이터 ──
 
+export type GeneratedArtifactKind = 'methods' | 'results' | 'caption'
+
+export interface GeneratedArtifactProvenance {
+  artifactKind: GeneratedArtifactKind
+  artifactId: string
+  generatedAt: string
+  generator: {
+    type: 'template' | 'llm'
+    id: string
+    version?: string
+  }
+  sourceRefs: DocumentSourceRef[]
+  options?: {
+    language?: 'ko' | 'en'
+    methodId?: string
+    postHocDisplay?: 'significant-only' | 'all'
+  }
+}
+
+export type DocumentAuthoringMode = 'single-source' | 'multi-source'
+
+export type DocumentAuthoringSourceRole =
+  | 'primary-analysis'
+  | 'secondary-analysis'
+  | 'figure'
+  | 'supplementary'
+
+export interface DocumentAuthoringSource {
+  sourceRef: DocumentSourceRef
+  role: DocumentAuthoringSourceRole
+  label?: string
+  studySchema?: StudySchema
+  sourceFingerprint?: string
+  generatedArtifactIds?: string[]
+}
+
+export interface DocumentAuthoringSectionPlan {
+  sectionId: string
+  sourceRefs: DocumentSourceRef[]
+  generatedArtifactIds?: string[]
+}
+
+export interface DocumentAuthoringPlan {
+  version: 1
+  mode: DocumentAuthoringMode
+  primarySourceRef?: DocumentSourceRef
+  sources: DocumentAuthoringSource[]
+  sectionPlans: DocumentAuthoringSectionPlan[]
+  updatedAt?: string
+}
+
 export interface PaperMetadata {
   targetJournal?: string
   targetJournalProfile?: TargetJournalRequirementProfileSnapshot
   sectionBlueprints?: DocumentSectionBlueprintDefinition[]
+  /**
+   * Legacy single-analysis snapshot.
+   * New multi-source documents should use authoringPlan.sources instead.
+   */
+  studySchema?: StudySchema
+  authoringPlan?: DocumentAuthoringPlan
+  generatedArtifacts?: GeneratedArtifactProvenance[]
 }
 
 export interface ReportMetadata {
@@ -148,6 +207,15 @@ export type DocumentMetadata =
     targetJournalProfile?: TargetJournalRequirementProfileSnapshot
     numericClaims?: unknown
   })
+
+export function normalizeDocumentMetadata(
+  metadata: DocumentMetadata | null | undefined,
+): DocumentMetadata {
+  if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
+    return {}
+  }
+  return { ...metadata }
+}
 
 // ── 문서 전체 ──
 
@@ -232,9 +300,225 @@ export function getDocumentSourceId(ref: LegacyDocumentSourceRef): string {
   return typeof ref === 'string' ? ref : ref.sourceId
 }
 
+export function getDocumentSourceRefKey(ref: DocumentSourceRef): string {
+  return `${ref.kind}:${ref.sourceId}`
+}
+
+function isDocumentAuthoringPlan(value: unknown): value is DocumentAuthoringPlan {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const record = value as Partial<DocumentAuthoringPlan>
+  return record.version === 1
+    && Array.isArray(record.sources)
+    && Array.isArray(record.sectionPlans)
+}
+
+export function getDocumentAuthoringPlan(
+  metadata: DocumentMetadata | null | undefined,
+): DocumentAuthoringPlan | undefined {
+  if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) return undefined
+  const candidate = (metadata as Partial<PaperMetadata>).authoringPlan
+  return isDocumentAuthoringPlan(candidate) ? candidate : undefined
+}
+
+export function getStudySchemaSourceRef(studySchema: StudySchema): DocumentSourceRef {
+  return createDocumentSourceRef(
+    'analysis',
+    studySchema.source.historyId ?? studySchema.source.sourceFingerprint,
+    { label: studySchema.analysis.methodName },
+  )
+}
+
+export function buildDocumentAuthoringPlanFromStudySchema(
+  studySchema: StudySchema,
+  existingPlan?: DocumentAuthoringPlan,
+): DocumentAuthoringPlan {
+  const sourceRef = getStudySchemaSourceRef(studySchema)
+  const sourceKey = getDocumentSourceRefKey(sourceRef)
+  const existingSources = existingPlan?.sources ?? []
+  const existingPrimaryKey = existingPlan?.primarySourceRef
+    ? getDocumentSourceRefKey(existingPlan.primarySourceRef)
+    : undefined
+  const updatedSource: DocumentAuthoringSource = {
+    sourceRef,
+    role: !existingPrimaryKey || existingPrimaryKey === sourceKey
+      ? 'primary-analysis'
+      : 'secondary-analysis',
+    label: studySchema.analysis.methodName,
+    studySchema,
+    sourceFingerprint: studySchema.source.sourceFingerprint,
+  }
+  const sources = [
+    ...existingSources.filter((source) => getDocumentSourceRefKey(source.sourceRef) !== sourceKey),
+    updatedSource,
+  ]
+  const primarySourceRef = existingPlan?.primarySourceRef ?? sourceRef
+
+  return {
+    version: 1,
+    mode: sources.length > 1 ? 'multi-source' : 'single-source',
+    primarySourceRef,
+    sources,
+    sectionPlans: existingPlan?.sectionPlans ?? [],
+    updatedAt: studySchema.generatedAt,
+  }
+}
+
+function getAuthoringSourceRole(
+  sourceRef: DocumentSourceRef,
+  primarySourceKey: string | undefined,
+): DocumentAuthoringSourceRole {
+  if (sourceRef.kind === 'figure') return 'figure'
+  if (sourceRef.kind === 'supplementary') return 'supplementary'
+  return primarySourceKey === getDocumentSourceRefKey(sourceRef)
+    ? 'primary-analysis'
+    : 'secondary-analysis'
+}
+
+export function buildDocumentAuthoringPlanFromSourceRefs(
+  sourceRefs: readonly DocumentSourceRef[],
+  existingPlan?: DocumentAuthoringPlan,
+  options?: {
+    updatedAt?: string
+  },
+): DocumentAuthoringPlan {
+  const dedupedSourceRefs = new Map<string, DocumentSourceRef>()
+  for (const sourceRef of sourceRefs) {
+    dedupedSourceRefs.set(getDocumentSourceRefKey(sourceRef), sourceRef)
+  }
+
+  const existingSourcesByKey = new Map(
+    (existingPlan?.sources ?? []).map((source) => [
+      getDocumentSourceRefKey(source.sourceRef),
+      source,
+    ] as const),
+  )
+  const primarySourceRef = existingPlan?.primarySourceRef
+    ?? Array.from(dedupedSourceRefs.values()).find((sourceRef) => sourceRef.kind === 'analysis')
+    ?? Array.from(dedupedSourceRefs.values())[0]
+  const primarySourceKey = primarySourceRef ? getDocumentSourceRefKey(primarySourceRef) : undefined
+  const sources = Array.from(dedupedSourceRefs.entries()).map(([sourceKey, sourceRef]) => {
+    const existingSource = existingSourcesByKey.get(sourceKey)
+    return {
+      ...existingSource,
+      sourceRef,
+      role: getAuthoringSourceRole(sourceRef, primarySourceKey),
+      label: sourceRef.label ?? existingSource?.label,
+    }
+  })
+
+  return {
+    version: 1,
+    mode: sources.length > 1 ? 'multi-source' : 'single-source',
+    primarySourceRef,
+    sources,
+    sectionPlans: existingPlan?.sectionPlans ?? [],
+    updatedAt: options?.updatedAt ?? existingPlan?.updatedAt,
+  }
+}
+
+export function buildGeneratedArtifactId(
+  artifactKind: GeneratedArtifactKind,
+  sourceRefs: readonly DocumentSourceRef[],
+): string {
+  const sourceKey = sourceRefs
+    .map((sourceRef) => getDocumentSourceRefKey(sourceRef))
+    .sort()
+    .join('|')
+  return `${artifactKind}_${hashDocumentArtifact(sourceKey || 'no-source')}`
+}
+
+export function createGeneratedArtifactProvenance(
+  artifact: Omit<GeneratedArtifactProvenance, 'artifactId'> & {
+    artifactId?: string
+  },
+): GeneratedArtifactProvenance {
+  return {
+    ...artifact,
+    artifactId: artifact.artifactId ?? buildGeneratedArtifactId(
+      artifact.artifactKind,
+      artifact.sourceRefs,
+    ),
+  }
+}
+
+function dedupeStrings(values: readonly string[]): string[] {
+  return Array.from(new Set(values))
+}
+
+function getArtifactSectionId(artifactKind: GeneratedArtifactKind): string {
+  return artifactKind === 'caption' ? 'captions' : artifactKind
+}
+
+export function upsertGeneratedArtifactProvenance(
+  metadata: DocumentMetadata | null | undefined,
+  artifact: GeneratedArtifactProvenance,
+): DocumentMetadata {
+  const normalizedMetadata = normalizeDocumentMetadata(metadata)
+  const existingArtifacts = (normalizedMetadata as Partial<PaperMetadata>).generatedArtifacts ?? []
+  const generatedArtifacts = [
+    ...existingArtifacts.filter((item) => !(
+      item.artifactKind === artifact.artifactKind
+      && item.artifactId === artifact.artifactId
+    )),
+    artifact,
+  ]
+  const existingPlan = getDocumentAuthoringPlan(normalizedMetadata)
+  const sourceKeys = new Set(artifact.sourceRefs.map((sourceRef) => getDocumentSourceRefKey(sourceRef)))
+
+  if (!existingPlan) {
+    return {
+      ...normalizedMetadata,
+      generatedArtifacts,
+    }
+  }
+
+  const sectionId = getArtifactSectionId(artifact.artifactKind)
+  const existingSectionPlan = existingPlan.sectionPlans.find((sectionPlan) => sectionPlan.sectionId === sectionId)
+  const mergedSectionSourceRefs = new Map<string, DocumentSourceRef>()
+  for (const sourceRef of [
+    ...(existingSectionPlan?.sourceRefs ?? []),
+    ...artifact.sourceRefs,
+  ]) {
+    mergedSectionSourceRefs.set(getDocumentSourceRefKey(sourceRef), sourceRef)
+  }
+  const sectionPlans = [
+    ...existingPlan.sectionPlans.filter((sectionPlan) => sectionPlan.sectionId !== sectionId),
+    {
+      sectionId,
+      sourceRefs: Array.from(mergedSectionSourceRefs.values()),
+      generatedArtifactIds: dedupeStrings([
+        ...(existingSectionPlan?.generatedArtifactIds ?? []),
+        artifact.artifactId,
+      ]),
+    },
+  ]
+
+  return {
+    ...normalizedMetadata,
+    generatedArtifacts,
+    authoringPlan: {
+      ...existingPlan,
+      sources: existingPlan.sources.map((source) => (
+        sourceKeys.has(getDocumentSourceRefKey(source.sourceRef))
+          ? {
+              ...source,
+              generatedArtifactIds: dedupeStrings([
+                ...(source.generatedArtifactIds ?? []),
+                artifact.artifactId,
+              ]),
+            }
+          : source
+      )),
+      sectionPlans,
+      updatedAt: artifact.generatedAt,
+    },
+  }
+}
+
 export function normalizeDocumentBlueprint(document: DocumentBlueprint): DocumentBlueprint {
   return {
     ...document,
+    metadata: normalizeDocumentMetadata(document.metadata),
     writingState: normalizeDocumentWritingState(document.writingState),
     sections: document.sections.map((section) => {
       const sectionSupportBindings = normalizeDocumentSectionSupportBindings(section.sectionSupportBindings)

@@ -662,7 +662,9 @@ function Step5({ pkg, result, onAssemble }: Step5Props): React.ReactElement {
   if (!result) {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
-        <p className="text-sm text-muted-foreground">패키지를 조립하면 AI에게 보낼 마크다운이 생성됩니다.</p>
+        <p className="text-sm text-muted-foreground">
+          패키지를 조립하면 외부 AI나 편집기에 붙여 넣을 마크다운 입력본이 생성됩니다. 자료 작성 문서에는 자동 반영되지 않습니다.
+        </p>
         <Button onClick={onAssemble} className="gap-2">
           패키지 조립하기
         </Button>
@@ -1044,11 +1046,16 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={onBack} className="p-1.5 rounded hover:bg-muted">
+      <div className="flex items-start gap-3">
+        <button type="button" onClick={onBack} className="mt-0.5 p-1.5 rounded hover:bg-muted">
           <X className="w-4 h-4" />
         </button>
-        <h1 className="text-xl font-bold">AI 패키지 조립</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold">외부 AI 입력 패키지 조립</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            문서 작성 세션과 별도로, 결과와 참고문헌을 외부 AI에 전달할 입력 묶음으로 정리합니다.
+          </p>
+        </div>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           {steps.map(s => (

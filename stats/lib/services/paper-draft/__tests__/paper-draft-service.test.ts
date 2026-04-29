@@ -9,9 +9,10 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { generatePaperDraft } from '../paper-draft-service'
+import { generatePaperDraft, generatePaperDraftFromSchema } from '../paper-draft-service'
 import type { DraftContext } from '../paper-types'
 import type { ExportContext } from '@/lib/services/export/export-types'
+import { buildStudySchema } from '../study-schema'
 
 // ─── 픽스처 ───────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,22 @@ function makeExportCtx(overrides: Partial<ExportContext['analysisResult']> = {})
     },
     dataInfo: null,
     rawDataRows: null,
+  }
+}
+
+function makeReadySchemaParams(exportCtx: ExportContext): Parameters<typeof buildStudySchema>[0] {
+  return {
+    exportContext: exportCtx,
+    draftContext: draftCtx,
+    methodId: exportCtx.analysisResult.canonicalMethodId ?? exportCtx.analysisResult.method,
+    variableMapping: {
+      dependentVar: 'body_len',
+      groupVar: 'sex',
+    },
+    researchQuestion: '사료 처리에 따라 체장이 달라지는가?',
+    dataDescription: '대조군과 처리군 각 15개체의 체장을 비교했다.',
+    assumptionDecision: '가정 검정 결과를 확인하고 해당 검정을 유지했다.',
+    language: 'ko',
   }
 }
 
@@ -104,7 +121,8 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
 
     expect(draft.language).toBe('en')
     expect(draft.postHocDisplay).toBe('all')
-    expect(draft.methods).toContain('t-test')
+    expect(draft.methods).toBeNull()
+    expect(draft.methodsReadiness?.status).toBe('blocked')
   })
 
   it('영문 stub: postHocDisplay 미전달 → 기본값 "significant-only"', () => {
@@ -152,6 +170,152 @@ describe('generatePaperDraft — context 보존 (재생성 시 유지)', () => {
 
     expect(draft.discussion).toBeNull()
     expect(draft.model).toBeNull()
+  })
+
+  it('draft.studySchema에 생성 입력 스키마를 보존한다', () => {
+    const draft = generatePaperDraft(
+      makeExportCtx(),
+      draftCtx,
+      'two-sample-t',
+      { language: 'ko', postHocDisplay: 'significant-only' }
+    )
+
+    expect(draft.studySchema?.analysis.methodId).toBe('two-sample-t')
+    expect(draft.studySchema?.reporting.dependentVariableLabel).toBe('체장')
+    expect(draft.methodsReadiness?.status).toBe('blocked')
+    expect(draft.methodsReadiness?.canGenerateDraft).toBe(false)
+    expect(draft.resultsReadiness?.status).toBe('ready')
+    expect(draft.results).not.toBeNull()
+    expect(draft.captionsReadiness?.status).toBe('ready')
+    expect(draft.captions).not.toBeNull()
+  })
+
+  it('StudySchema 기반 생성 경로가 동일한 context를 복원해 사용한다', () => {
+    const exportCtx = makeExportCtx()
+    const schema = buildStudySchema({
+      exportContext: exportCtx,
+      draftContext: draftCtx,
+      methodId: 'two-sample-t',
+      variableMapping: {
+        dependentVar: 'body_len',
+        groupVar: 'sex',
+      },
+      language: 'ko',
+    })
+
+    const draft = generatePaperDraftFromSchema(
+      exportCtx,
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )
+
+    expect(draft.context.dependentVariable).toBe('체장')
+    expect(draft.context.variableLabels.body_len).toBe('체장')
+    expect(draft.studySchema?.variables.map((variable) => variable.columnKey)).toEqual(['body_len', 'weight', 'sex'])
+  })
+
+  it('StudySchema와 현재 분석 결과가 다르면 혼합 초안을 생성하지 않는다', () => {
+    const exportCtx = makeExportCtx()
+    const schema = buildStudySchema({
+      exportContext: exportCtx,
+      draftContext: draftCtx,
+      methodId: 'two-sample-t',
+      variableMapping: {
+        dependentVar: 'body_len',
+        groupVar: 'sex',
+      },
+      language: 'ko',
+    })
+
+    expect(() => generatePaperDraftFromSchema(
+      makeExportCtx({ statistic: 9.99 }),
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )).toThrow('StudySchema와 현재 분석 결과가 일치하지 않아 논문 초안을 생성할 수 없습니다.')
+  })
+
+  it('StudySchema와 현재 분석 방법이 다르면 혼합 초안을 생성하지 않는다', () => {
+    const exportCtx = makeExportCtx({
+      method: 'two-sample-t',
+      canonicalMethodId: 'two-sample-t',
+      displayMethodName: '독립표본 t-검정',
+    })
+    const schema = buildStudySchema({
+      exportContext: exportCtx,
+      draftContext: draftCtx,
+      methodId: 'two-sample-t',
+      variableMapping: {
+        dependentVar: 'body_len',
+        groupVar: 'sex',
+      },
+      language: 'ko',
+    })
+
+    expect(() => generatePaperDraftFromSchema(
+      makeExportCtx({
+        method: 'one-way-anova',
+        canonicalMethodId: 'one-way-anova',
+        displayMethodName: '일원분산분석',
+      }),
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )).toThrow('StudySchema와 현재 분석 방법이 일치하지 않아 논문 초안을 생성할 수 없습니다.')
+  })
+
+  it('StudySchema와 현재 데이터 소스가 다르면 혼합 초안을 생성하지 않는다', () => {
+    const exportCtx: ExportContext = {
+      ...makeExportCtx(),
+      dataInfo: {
+        fileName: 'growth.csv',
+        totalRows: 30,
+        columnCount: 3,
+        variables: ['body_len', 'weight', 'sex'],
+      },
+    }
+    const schema = buildStudySchema({
+      exportContext: exportCtx,
+      draftContext: draftCtx,
+      methodId: 'two-sample-t',
+      variableMapping: {
+        dependentVar: 'body_len',
+        groupVar: 'sex',
+      },
+      language: 'ko',
+    })
+
+    expect(() => generatePaperDraftFromSchema(
+      {
+        ...exportCtx,
+        dataInfo: {
+          fileName: 'different.csv',
+          totalRows: 30,
+          columnCount: 3,
+          variables: ['body_len', 'weight', 'sex'],
+        },
+      },
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )).toThrow('StudySchema와 현재 데이터 소스가 일치하지 않아 논문 초안을 생성할 수 없습니다.')
+  })
+
+  it('StudySchema 언어와 요청 언어가 다르면 혼합 초안을 생성하지 않는다', () => {
+    const exportCtx = makeExportCtx()
+    const schema = buildStudySchema({
+      exportContext: exportCtx,
+      draftContext: draftCtx,
+      methodId: 'two-sample-t',
+      variableMapping: {
+        dependentVar: 'body_len',
+        groupVar: 'sex',
+      },
+      language: 'ko',
+    })
+
+    expect(() => generatePaperDraftFromSchema(
+      exportCtx,
+      schema,
+      { language: 'en', postHocDisplay: 'significant-only' },
+    )).toThrow('StudySchema 언어와 요청 언어가 일치하지 않아 논문 초안을 생성할 수 없습니다.')
   })
 })
 
@@ -210,6 +374,114 @@ describe('generatePaperDraft — 히스토리 복원 후 재생성 시뮬레이�
     )
 
     expect(regenerated.postHocDisplay).toBe('significant-only')
-    expect(regenerated.methods).toBeTruthy()
+    expect(regenerated.methods).toBeNull()
+    expect(regenerated.methodsReadiness?.status).toBe('blocked')
+  })
+
+  it('핵심 통계량이 없으면 Results 초안을 생성하지 않는다', () => {
+    const draft = generatePaperDraft(
+      makeExportCtx({ statistic: Number.NaN }),
+      draftCtx,
+      'two-sample-t',
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )
+
+    expect(draft.results).toBeNull()
+    expect(draft.resultsReadiness?.status).toBe('blocked')
+    expect(draft.resultsReadiness?.blockingGateRules).toEqual(['missing-core-statistic'])
+  })
+})
+
+describe('generatePaperDraft — Methods/Results 생성 게이트 시뮬레이션', () => {
+  it('가정 위반 판단 메모가 없으면 Methods 초안은 생성하되 문서 반영 전 검토 상태로 둔다', () => {
+    const exportCtx = makeExportCtx()
+    const schema = {
+      ...buildStudySchema({
+        ...makeReadySchemaParams(exportCtx),
+        assumptionDecision: undefined,
+      }),
+      assumptions: [
+        {
+          category: 'normality' as const,
+          testName: 'Shapiro-Wilk',
+          statistic: 0.83,
+          pValue: 0.004,
+          passed: false,
+        },
+      ],
+    }
+
+    const draft = generatePaperDraftFromSchema(
+      exportCtx,
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )
+
+    expect(draft.methods).not.toBeNull()
+    expect(draft.methodsReadiness?.status).toBe('needs-review')
+    expect(draft.methodsReadiness?.canGenerateDraft).toBe(true)
+    expect(draft.methodsReadiness?.shouldReviewBeforeInsert).toBe(true)
+    expect(draft.methodsReadiness?.reviewGateRules).toContain('missing-assumption-decision')
+  })
+
+  it('결측값이 있는데 처리 방식이 없으면 Methods 초안은 생성하되 검토 gate를 남긴다', () => {
+    const exportCtx = makeExportCtx()
+    const schema = buildStudySchema({
+      ...makeReadySchemaParams(exportCtx),
+      missingDataHandling: undefined,
+      validationResults: {
+        isValid: true,
+        totalRows: 30,
+        columnCount: 3,
+        missingValues: 2,
+        duplicateRows: 0,
+        dataType: 'tabular',
+        variables: ['body_len', 'weight', 'sex'],
+        warnings: [],
+        errors: [],
+      },
+    })
+
+    const draft = generatePaperDraftFromSchema(
+      exportCtx,
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )
+
+    expect(draft.methods).not.toBeNull()
+    expect(draft.methodsReadiness?.status).toBe('needs-review')
+    expect(draft.methodsReadiness?.canGenerateDraft).toBe(true)
+    expect(draft.methodsReadiness?.reviewGateRules).toContain('missing-data-handling')
+  })
+
+  it('사후검정 결과가 있는데 보정 방법이 없으면 Methods는 막고 Results는 검토 상태로만 생성한다', () => {
+    const exportCtx = makeExportCtx({
+      method: 'one-way-anova',
+      canonicalMethodId: 'one-way-anova',
+      displayMethodName: '일원분산분석',
+      statistic: 5.42,
+      pValue: 0.009,
+      postHoc: [
+        { group1: 'M', group2: 'F', pvalue: 0.012, significant: true },
+        { group1: 'M', group2: 'control', pvalue: 0.031, significant: true },
+      ],
+      postHocMethod: undefined,
+    })
+    const schema = buildStudySchema(makeReadySchemaParams(exportCtx))
+
+    const draft = generatePaperDraftFromSchema(
+      exportCtx,
+      schema,
+      { language: 'ko', postHocDisplay: 'significant-only' },
+    )
+
+    expect(draft.methods).toBeNull()
+    expect(draft.methodsReadiness?.status).toBe('blocked')
+    expect(draft.methodsReadiness?.canGenerateDraft).toBe(false)
+    expect(draft.methodsReadiness?.blockingGateRules).toContain('missing-post-hoc-method')
+    expect(draft.results).not.toBeNull()
+    expect(draft.resultsReadiness?.status).toBe('needs-review')
+    expect(draft.resultsReadiness?.canGenerateDraft).toBe(true)
+    expect(draft.resultsReadiness?.reviewGateRules).toContain('missing-post-hoc-method')
   })
 })

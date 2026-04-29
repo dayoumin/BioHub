@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { generatePaperDraft } from '@/lib/services'
+import { generateAnalysisPaperDraft } from '@/lib/services'
 import { useHistoryStore } from '@/lib/stores/history-store'
+import type { VariableMapping } from '@/lib/statistics/variable-mapping'
+import type { ValidationResults } from '@/types/analysis'
 import type {
   DiscussionState,
   DraftContext,
@@ -18,6 +20,10 @@ interface DraftOptions {
 interface UseResultsPaperDraftOptions {
   draftExportCtx: ExportContext | null
   selectedMethodId?: string
+  variableMapping?: VariableMapping | null
+  validationResults?: ValidationResults | null
+  analysisOptions?: Record<string, unknown> | null
+  projectId?: string
 }
 
 interface UseResultsPaperDraftResult {
@@ -43,6 +49,10 @@ const DEFAULT_DRAFT_OPTIONS: DraftOptions = {
 export function useResultsPaperDraft({
   draftExportCtx,
   selectedMethodId,
+  variableMapping,
+  validationResults,
+  analysisOptions,
+  projectId,
 }: UseResultsPaperDraftOptions): UseResultsPaperDraftResult {
   const [draftEditorOpen, setDraftEditorOpen] = useState(false)
   const [paperDraftOpen, setPaperDraftOpen] = useState(false)
@@ -88,9 +98,15 @@ export function useResultsPaperDraft({
     setLastDraftContext(context)
     setLastDraftOptions(options)
 
-    const draft = generatePaperDraft(draftExportCtx, context, selectedMethodId ?? '', {
+    const draft = generateAnalysisPaperDraft(draftExportCtx, context, selectedMethodId ?? '', {
       language: options.language,
       postHocDisplay: options.postHocDisplay,
+    }, {
+      variableMapping: variableMapping ?? null,
+      validationResults,
+      analysisOptions,
+      projectId,
+      historyId: currentHistoryId ?? undefined,
     })
 
     setPaperDraft(draft)
@@ -100,7 +116,7 @@ export function useResultsPaperDraft({
     if (currentHistoryId) {
       patchHistoryPaperDraft(currentHistoryId, draft).catch(console.error)
     }
-  }, [draftExportCtx, selectedMethodId, currentHistoryId, patchHistoryPaperDraft])
+  }, [draftExportCtx, selectedMethodId, variableMapping, validationResults, analysisOptions, projectId, currentHistoryId, patchHistoryPaperDraft])
 
   const handleDraftLanguageChange = useCallback((language: 'ko' | 'en') => {
     if (!draftExportCtx || !lastDraftContext) return
@@ -111,9 +127,16 @@ export function useResultsPaperDraft({
     }
     setLastDraftOptions(nextOptions)
 
-    const draft = generatePaperDraft(draftExportCtx, lastDraftContext, selectedMethodId ?? '', {
+    const draft = generateAnalysisPaperDraft(draftExportCtx, lastDraftContext, selectedMethodId ?? '', {
       language,
       postHocDisplay: nextOptions.postHocDisplay,
+    }, {
+      variableMapping: variableMapping ?? null,
+      validationResults,
+      analysisOptions,
+      projectId,
+      historyId: currentHistoryId ?? undefined,
+      studySchema: paperDraft?.studySchema,
     })
 
     setPaperDraft(draft)
@@ -122,7 +145,7 @@ export function useResultsPaperDraft({
     if (currentHistoryId) {
       patchHistoryPaperDraft(currentHistoryId, draft).catch(console.error)
     }
-  }, [draftExportCtx, lastDraftContext, lastDraftOptions, selectedMethodId, currentHistoryId, patchHistoryPaperDraft])
+  }, [draftExportCtx, lastDraftContext, lastDraftOptions, selectedMethodId, variableMapping, validationResults, analysisOptions, projectId, currentHistoryId, paperDraft?.studySchema, patchHistoryPaperDraft])
 
   return {
     draftEditorOpen,

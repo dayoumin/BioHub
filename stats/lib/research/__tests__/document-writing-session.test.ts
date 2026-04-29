@@ -234,6 +234,18 @@ describe('createDocumentWritingSession', () => {
         patternSummary: undefined,
       },
     ])
+    expect((result.metadata as {
+      authoringPlan?: {
+        mode: string
+        sources: Array<{ sourceRef: { kind: string; sourceId: string }; role: string }>
+      }
+    }).authoringPlan).toMatchObject({
+      mode: 'multi-source',
+      sources: [
+        { sourceRef: { kind: 'analysis', sourceId: 'analysis_1' }, role: 'primary-analysis' },
+        { sourceRef: { kind: 'figure', sourceId: 'figure_1' }, role: 'figure' },
+      ],
+    })
   })
 
   it('marks the document as collecting and section drafting immediately', async () => {

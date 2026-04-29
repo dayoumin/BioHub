@@ -21,11 +21,8 @@ export * from './citation-storage';
 /** APA 포맷 인용 문자열 빌더 */
 export * from './citation-apa-formatter';
 
-/** CSL/citeproc 기반 인용 렌더러 */
-export * from './citation-csl';
-
-/** 섹션별 narrative support 자산 타입 */
-export * from './document-support-asset-types';
+/** Introduction/Discussion/References citation 사용 계약 */
+export * from './citation-source-contract';
 
 // ── 문서 블루프린트 ─────────────────────────────────────────
 /** 문서 블루프린트 타입 (섹션, 테이블, 메타데이터) */
@@ -43,35 +40,14 @@ export * from './document-writing-source-types';
 /** 자료 작성 source adapter + writer registry */
 export * from './document-writing-source-registry';
 
-/** 섹션별 작성 context builder */
-export * from './document-section-writing-context';
-
-/** provider-agnostic document writer engine contract */
-export * from './document-writer-engine';
-
-/** document writer provider registry + settings resolution */
-export * from './document-writer-engine-registry';
-
-/** OpenRouter/Ollama document writer engines */
-export * from './document-llm-writer-engine';
-
-/** 문서 품질 점검 report/finding 타입 + sidecar 저장 */
-export * from './document-quality-types';
-export * from './document-quality-storage';
-export * from './document-quality-suggestion-apply';
-export * from './document-review-job-storage';
-export * from './document-llm-review-sanitizer';
-export * from './document-llm-review-report';
-export * from './document-llm-review-runner';
-export * from './document-journal-profile';
-export * from './document-claim-evidence';
+/** supplementary writer 승격 정책 */
+export * from './document-writing-supplementary-policy';
 
 /** 문서 조립 엔진 (블루프린트 → 완성 문서) */
 export * from './document-assembler';
 
 /** 근거(evidence) 레코드 팩토리 */
 export * from './evidence-factory';
-export * from './submission-readiness-terminology';
 
 // ── 논문 패키지 ─────────────────────────────────────────────
 /** 논문 패키지 타입 (아이템, 참조, 저널 프리셋) */

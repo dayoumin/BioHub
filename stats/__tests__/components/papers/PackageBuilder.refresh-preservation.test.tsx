@@ -164,7 +164,7 @@ function createDeferred<T>(): { promise: Promise<T>; resolve: (value: T) => void
 }
 
 async function openStep2(): Promise<void> {
-  await screen.findByText('AI 패키지 조립')
+  await screen.findByText('외부 AI 입력 패키지 조립')
   fireEvent.click(screen.getByRole('button', { name: '2' }))
 }
 

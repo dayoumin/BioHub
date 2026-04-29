@@ -5,13 +5,13 @@ import { useHistoryStore } from '@/lib/stores/history-store'
 import type { ExportContext } from '@/lib/services'
 import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
 
-const generatePaperDraftMock = vi.fn()
+const generateAnalysisPaperDraftMock = vi.fn()
 
 vi.mock('@/lib/services', async () => {
   const actual = await vi.importActual<typeof import('@/lib/services')>('@/lib/services')
   return {
     ...actual,
-    generatePaperDraft: (...args: unknown[]) => generatePaperDraftMock(...args),
+    generateAnalysisPaperDraft: (...args: unknown[]) => generateAnalysisPaperDraftMock(...args),
   }
 })
 
@@ -97,7 +97,7 @@ describe('useResultsPaperDraft', () => {
     const patchHistoryPaperDraft = vi.fn().mockResolvedValue(undefined)
     useHistoryStore.setState({ patchHistoryPaperDraft })
 
-    generatePaperDraftMock
+    generateAnalysisPaperDraftMock
       .mockReturnValueOnce(makeDraft({ methods: 'First Draft', language: 'ko' }))
       .mockReturnValueOnce(makeDraft({ methods: 'English Draft', language: 'en' }))
 
@@ -131,12 +131,16 @@ describe('useResultsPaperDraft', () => {
     })
 
     expect(result.current.paperDraft?.methods).toBe('English Draft')
-    expect(generatePaperDraftMock).toHaveBeenNthCalledWith(
+    expect(generateAnalysisPaperDraftMock).toHaveBeenNthCalledWith(
       2,
       EXPORT_CONTEXT,
       expect.objectContaining({ variableLabels: { score: '점수' } }),
       't-test',
       expect.objectContaining({ language: 'en' }),
+      expect.objectContaining({
+        historyId: 'history-1',
+        variableMapping: null,
+      }),
     )
     expect(patchHistoryPaperDraft).toHaveBeenLastCalledWith(
       'history-1',

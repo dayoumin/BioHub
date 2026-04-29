@@ -462,7 +462,9 @@ describe('assembleDocument', () => {
     expect(results?.content).toContain('#### HBB protein summary')
     expect(results?.content).toContain('Stable globin profile.')
     expect(results?.content).toContain('COI sequence statistics')
-    expect(results?.content).toContain('12 seq')
+    expect(results?.content).toContain('서열 수: 12')
+    expect(results?.content).toContain('평균 길이: 642')
+    expect(results?.content).toContain('전체 GC 함량: 46.1%')
     expect(results?.sourceRefs).toEqual([
       createDocumentSourceRef('supplementary', 'protein_1', {
         label: 'HBB protein summary',
