@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md) · **디자인**: [.impeccable.md](.impeccable.md) · [DESIGN.md](stats/DESIGN.md)
+**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md) · **비전/제품 원칙**: [PLATFORM_VISION.md](docs/PLATFORM_VISION.md) · **자료 작성**: [papers README](stats/docs/papers/README.md) · **디자인**: [.impeccable.md](.impeccable.md) · [DESIGN.md](stats/DESIGN.md)
 
 ## 디자인 시스템 참조 (Axiom Slate)
 

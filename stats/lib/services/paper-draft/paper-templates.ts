@@ -11,6 +11,7 @@
 
 import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
 import type { DraftContext, FlatAssumption, GroupedAssumptions, CaptionItem, PaperDraftOptions } from './paper-types'
+import type { StudySchema } from './study-schema'
 import { getMethodDisplayName } from './terminology-utils'
 
 // ─── 포맷 헬퍼 ──────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ function buildNormalityText(normTests: FlatAssumption[], lang: 'ko' | 'en', embe
     const grp = a.group ? `[${a.group}] ` : ''
     return `${grp}${base}${p}`.trim()
   })
-  return `${testName} 검정으로 정규성을 확인하였다(${parts.join('; ')}).`
+  return `${testName} 검정으로 정규성을 평가하였다(${parts.join('; ')}).`
 }
 
 /** 등분산 가정 텍스트 생성 (Methods용) */
@@ -124,7 +125,7 @@ function buildHomogeneityText(homoTests: FlatAssumption[], lang: 'ko' | 'en'): s
   if (lang === 'en') {
     return `Homogeneity of variance was examined using ${a.testName}'s test (${statPart}${pPart}).`
   }
-  return `${a.testName} 검정으로 등분산성을 확인하였다(${statPart}${pPart}).`
+  return `${a.testName} 검정으로 등분산성을 평가하였다(${statPart}${pPart}).`
 }
 
 /** 구형성 가정 텍스트 생성 (Methods용) */
@@ -137,15 +138,15 @@ function buildSphericityText(spherTests: FlatAssumption[], lang: 'ko' | 'en'): s
   if (lang === 'en') {
     return `Sphericity was tested using Mauchly's test (${statPart}${pPart}).`
   }
-  return `Mauchly 검정으로 구형성을 확인하였다(${statPart}${pPart}).`
+  return `Mauchly 검정으로 구형성을 평가하였다(${statPart}${pPart}).`
 }
 
 /** alpha + 소프트웨어 인용 문구 */
 function buildAlphaSoftware(alpha: number, lang: 'ko' | 'en'): string {
   if (lang === 'en') {
-    return `The significance level was set at α = ${alpha}. All analyses were performed using BioHub (SciPy-based).`
+    return `The significance level was set at α = ${alpha}. Analyses were performed using the BioHub statistical engine.`
   }
-  return `유의수준은 α = ${alpha}로 설정하였다. 통계 분석은 BioHub(SciPy 기반)를 사용하여 수행하였다.`
+  return `유의수준은 α = ${alpha}로 설정하였다. 통계 분석은 BioHub 통계 엔진을 사용하여 수행하였다.`
 }
 
 /** 집단별 기술통계 문장 (t-test, nonparametric용) */
@@ -199,7 +200,6 @@ function buildPostHocText(
 ): string {
   const ph = r.postHoc
   if (!ph?.length) return ''
-  const method = r.postHocMethod ?? '사후검정'
   const pairs = mode === 'significant-only' ? ph.filter(p => p.significant) : ph
 
   if (!pairs.length) return ''
@@ -212,9 +212,15 @@ function buildPostHocText(
   })
 
   if (lang === 'en') {
-    return ` Post hoc comparisons using ${method} indicated significant differences between: ${pairTexts.join(', ')}.`
+    if (r.postHocMethod) {
+      return ` Post hoc comparisons using ${r.postHocMethod} indicated significant differences between: ${pairTexts.join(', ')}.`
+    }
+    return ` Post hoc comparisons indicated significant differences between: ${pairTexts.join(', ')}.`
   }
-  return ` ${method} 사후검정 결과, 다음 집단 간에 유의한 차이가 있었다: ${pairTexts.join(', ')}.`
+  if (r.postHocMethod) {
+    return ` ${r.postHocMethod} 사후검정 결과, 다음 집단 간에 유의한 차이가 있었다: ${pairTexts.join(', ')}.`
+  }
+  return ` 사후 비교 결과, 다음 집단 간에 유의한 차이가 있었다: ${pairTexts.join(', ')}.`
 }
 
 function isWelchAnovaResult(r: AnalysisResult, methodId: string): boolean {
@@ -241,46 +247,46 @@ function buildFigureCaption(
 
   const descriptions: Record<string, { ko: string; en: string }> = {
     boxplot: {
-      ko: `집단별 ${depVar}${unit} 분포. 상자는 사분위 범위, 가운데 선은 중앙값, 수염은 1.5×IQR 범위를 나타낸다.`,
-      en: `Distribution of ${depVar}${unit} by group. Box represents IQR, center line is median, whiskers extend to 1.5×IQR.`,
+      ko: `집단별 ${depVar}${unit} 분포를 나타낸 source-linked boxplot.`,
+      en: `Source-linked boxplot of ${depVar}${unit} by group.`,
     },
     scatter: {
-      ko: `변수 간 산점도. 각 점은 관측치, 실선은 회귀직선을 나타낸다.`,
-      en: `Scatterplot of variables. Each dot represents an observation; solid line indicates the regression line.`,
+      ko: `변수 간 관계를 나타낸 source-linked scatterplot.`,
+      en: `Source-linked scatterplot of the selected variables.`,
     },
     bar: {
-      ko: `집단별 ${depVar}${unit} 평균. 오차막대는 표준오차를 나타낸다.`,
-      en: `Mean ${depVar}${unit} by group. Error bars represent standard error.`,
+      ko: `집단별 ${depVar}${unit} 요약값을 나타낸 source-linked bar chart.`,
+      en: `Source-linked bar chart summarizing ${depVar}${unit} by group.`,
     },
     histogram: {
-      ko: `${depVar}${unit} 분포 히스토그램. 막대는 빈도를 나타낸다.`,
-      en: `Histogram of ${depVar}${unit}. Bars represent frequency counts.`,
+      ko: `${depVar}${unit} 분포를 나타낸 source-linked histogram.`,
+      en: `Source-linked histogram of ${depVar}${unit}.`,
     },
     line: {
-      ko: `시계열 추이. 선은 관측값의 시간적 변화를 나타낸다.`,
-      en: `Time series plot. Line represents observed values over time.`,
+      ko: `시간 순서에 따른 값을 나타낸 source-linked line chart.`,
+      en: `Source-linked line chart of values over time.`,
     },
     heatmap: {
-      ko: `상관계수 히트맵. 색상은 Pearson *r* 값의 크기를 나타낸다.`,
-      en: `Correlation heatmap. Color intensity represents the magnitude of Pearson *r*.`,
+      ko: `분석 결과 행렬을 나타낸 source-linked heatmap.`,
+      en: `Source-linked heatmap of the analysis result matrix.`,
     },
     'pca-biplot': {
-      ko: `주성분 분석 바이플롯. 화살표는 주성분 적재량을 나타낸다.`,
-      en: `PCA biplot. Arrows represent principal component loadings.`,
+      ko: `주성분 분석 결과를 나타낸 source-linked biplot.`,
+      en: `Source-linked biplot of PCA results.`,
     },
     'roc-curve': {
-      ko: `ROC 곡선. 점선은 무정보 모형(AUC = 0.5)을 나타낸다.`,
-      en: `ROC curve. Dashed line indicates the no-information model (AUC = 0.5).`,
+      ko: `ROC 분석 결과를 나타낸 source-linked curve.`,
+      en: `Source-linked curve of ROC analysis results.`,
     },
     survival: {
-      ko: `Kaplan-Meier 생존 곡선. 계단 함수는 생존률 추정값, 십자 표시는 중도절단을 나타낸다.`,
-      en: `Kaplan-Meier survival curve. Step function shows estimated survival probability; crosses indicate censored observations.`,
+      ko: `생존 분석 결과를 나타낸 source-linked survival curve.`,
+      en: `Source-linked survival curve of the analysis results.`,
     },
   }
 
   const desc = descriptions[vizType] ?? {
-    ko: `분석 결과 그래프.`,
-    en: `Analysis result chart.`,
+    ko: `source-linked 분석 결과 그래프.`,
+    en: `Source-linked analysis result chart.`,
   }
   return lang === 'ko' ? desc.ko : desc.en
 }
@@ -296,6 +302,7 @@ export interface TemplateInput {
   lang: 'ko' | 'en'
   methodId: string
   options: PaperDraftOptions
+  schema?: StudySchema
 }
 
 /** 카테고리 템플릿 인터페이스 */
@@ -307,20 +314,20 @@ export interface CategoryTemplate {
 
 // ─── 공통 캡션 빌더 ──────────────────────────────────────────────────────────
 
-function buildCaptions(input: TemplateInput, tableText = ''): CaptionItem[] {
+function buildCaptions(input: TemplateInput, _tableText = ''): CaptionItem[] {
   const { r, ctx, lang } = input
   const items: CaptionItem[] = []
   const depVar = ctx.dependentVariable ?? ''
   const unit = depUnit(ctx)
 
-  if (tableText) {
-    items.push({ kind: 'table', label: 'Table 1', text: tableText })
-  } else if (r.groupStats?.length) {
-    const txt = lang === 'ko'
-      ? `집단별 ${depVar}${unit}의 기술통계량. 값은 평균 ± 표준편차로 표시하였다.`
-      : `Descriptive statistics of ${depVar}${unit} by group. Values are presented as mean ± SD.`
-    items.push({ kind: 'table', label: 'Table 1', text: txt })
-  }
+  const tableText = r.groupStats?.length
+    ? lang === 'ko'
+      ? `생성된 표의 집단별 ${depVar}${unit} 기술통계 및 분석 결과 요약.`
+      : `Generated table summary of group-level ${depVar}${unit} descriptive statistics and analysis results.`
+    : lang === 'ko'
+      ? `생성된 표의 분석 결과 요약.`
+      : `Generated table summary of analysis results.`
+  items.push({ kind: 'table', label: 'Table 1', text: tableText })
 
   const vizType = r.visualizationData?.type
   if (vizType) {
@@ -408,8 +415,8 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
       if (normTests.length || homoTests.length) {
         const allPassed = [...normTests, ...homoTests].every(a => a.passed)
         parts.push(allPassed
-          ? 'All assumptions were satisfied.'
-          : 'Some assumptions were not met; however, the analysis proceeded.')
+          ? 'The checked assumption tests met their criteria.'
+          : 'At least one checked assumption test did not meet its criterion.')
       }
       return [intro, parts.join(' '), buildAlphaSoftware(alpha, lang)].join(' ')
     }
@@ -424,8 +431,8 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
     if (normTests.length || homoTests.length) {
       const allPassed = [...normTests, ...homoTests].every(a => a.passed)
       parts.push(allPassed
-        ? '모든 가정이 충족되었다.'
-        : '일부 가정이 충족되지 않았으나 분석을 진행하였다.')
+        ? '확인된 가정 검정은 모두 기준을 충족하였다.'
+        : '일부 가정 검정에서 기준 미충족 결과가 확인되었다.')
     }
 
     return [intro, parts.join(' '), buildAlphaSoftware(alpha, lang)].join(' ')
@@ -546,7 +553,7 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
     if (lang === 'en') {
       const intro = `A paired samples t-test was conducted to examine the difference in ${depVar} between pre- and post-treatment.`
       const parts = [intro]
-      if (normTests.length) parts.push(`Normality of the difference scores was verified: ${buildNormalityText(normTests, lang, true)}`)
+      if (normTests.length) parts.push(`Normality of the difference scores was assessed: ${buildNormalityText(normTests, lang, true)}`)
       parts.push(buildAlphaSoftware(alpha, lang))
       return parts.filter(Boolean).join(' ')
     }
@@ -811,20 +818,18 @@ const CORRELATION_TEMPLATE: CategoryTemplate = {
     const es = esValue(r.effectSize) ?? r.statistic
 
     if (lang === 'en') {
-      const strength = Math.abs(es) >= 0.7 ? 'strong' : Math.abs(es) >= 0.4 ? 'moderate' : 'weak'
       const direction = es >= 0 ? 'positive' : 'negative'
       let text = `The correlation analysis revealed a ${significant ? '' : 'non-significant '}`
-      text += `${strength} ${direction} correlation between the variables `
+      text += `${direction} correlation between the variables `
       text += `(*r* = ${fmt(es)}, *p* ${fmtP(r.pValue)}).`
       text += buildCIText(r, lang)
       return text
     }
 
-    const strength = Math.abs(es) >= 0.7 ? '강한' : Math.abs(es) >= 0.4 ? '중간 수준의' : '약한'
     const direction = es >= 0 ? '정적' : '부적'
 
     let text = `상관분석 결과, 변수 간에 ${significant ? '' : '통계적으로 유의하지 않은 '}`
-    text += `${direction} ${strength} 상관관계가 ${significant ? '있었다' : '확인되었다'} `
+    text += `${direction} 상관관계가 ${significant ? '있었다' : '확인되었다'} `
     text += `(*r* = ${fmt(es)}, *p* ${fmtP(r.pValue)}).`
     text += buildCIText(r, lang)
     return text
@@ -855,7 +860,10 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
       const intro = ctx.researchContext
         ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
         : `${articleA(methodName)} ${methodName} was conducted to build a predictive model for ${depVar}.`
-      const parts = ['Assumptions of linearity, normality and homoscedasticity of residuals, and independence were examined prior to analysis.']
+      const parts: string[] = []
+      if (normTests.length || homoTests.length || indepTests.length) {
+        parts.push('Available model diagnostics were reviewed prior to analysis.')
+      }
       if (normTests.length) parts.push(buildNormalityText(normTests, lang))
       if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
       if (indepTests.length) {
@@ -863,14 +871,17 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
         parts.push(`Independence was assessed using the Durbin-Watson test (*DW* = ${fmt(d.statistic)}).`)
       }
       parts.push(buildAlphaSoftware(alpha, lang))
-      return [intro, parts.join(' ')].join(' ')
+      return [intro, parts.join(' ')].filter(Boolean).join(' ')
     }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
       : `${depVar}에 대한 예측 모형을 구축하기 위해 ${methodName}을 실시하였다.`
 
-    const parts = [`분석에 앞서 선형성, 잔차의 정규성 및 등분산성, 독립성 가정을 확인하였다.`]
+    const parts: string[] = []
+    if (normTests.length || homoTests.length || indepTests.length) {
+      parts.push(`분석에 앞서 사용 가능한 모형 진단을 검토하였다.`)
+    }
     if (normTests.length) parts.push(buildNormalityText(normTests, lang))
     if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
     if (indepTests.length) {
@@ -878,7 +889,7 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
       parts.push(`독립성은 Durbin-Watson 검정으로 확인하였다(*DW* = ${fmt(d.statistic)}).`)
     }
     parts.push(buildAlphaSoftware(alpha, lang))
-    return [intro, parts.join(' ')].join(' ')
+    return [intro, parts.join(' ')].filter(Boolean).join(' ')
   },
 
   results({ r, ctx, lang }) {
@@ -895,7 +906,9 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
       if (rSq !== undefined) text += `, *R*² = ${fmt(rSq)}`
       if (adjRSq !== undefined) text += `, adjusted *R*² = ${fmt(adjRSq)}`
       text += ').'
-      text += ` The model explained ${rSq !== undefined ? fmt(rSq * 100) : '—'}% of the variance in ${depVar}.`
+      if (rSq !== undefined) {
+        text += ` The model explained ${fmt(rSq * 100)}% of the variance in ${depVar}.`
+      }
       if (r.coefficients?.length) {
         const sigCoefs = r.coefficients.filter(c => c.pvalue < alpha)
         if (sigCoefs.length) {
@@ -913,7 +926,9 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
     if (rSq !== undefined) text += `, *R*² = ${fmt(rSq)}`
     if (adjRSq !== undefined) text += `, 수정 *R*² = ${fmt(adjRSq)}`
     text += ').'
-    text += ` 모형은 ${depVar} 분산의 ${rSq !== undefined ? fmt(rSq * 100) : '—'}%를 설명하였다.`
+    if (rSq !== undefined) {
+      text += ` 모형은 ${depVar} 분산의 ${fmt(rSq * 100)}%를 설명하였다.`
+    }
 
     if (r.coefficients?.length) {
       const sigCoefs = r.coefficients.filter(c => c.pvalue < alpha)
@@ -951,7 +966,7 @@ const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
         : `${articleA(methodName)} ${methodName} was conducted to test the independence between categorical variables.`
       const parts = [
         intro,
-        'Prior to analysis, all cells were confirmed to have expected frequencies of 5 or greater.',
+        'Expected cell frequencies were reviewed prior to analysis.',
         buildAlphaSoftware(alpha, lang),
       ]
       return parts.join(' ')
@@ -963,7 +978,7 @@ const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
 
     const parts = [
       intro,
-      `분석에 앞서 모든 셀의 기대빈도가 5 이상인지 확인하였다.`,
+      `분석에 앞서 기대빈도 조건을 검토하였다.`,
       buildAlphaSoftware(alpha, lang),
     ]
     return parts.join(' ')
@@ -1043,9 +1058,11 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
         parts.push(`Median (*Mdn*) = ${fmt(add.median)}, interquartile range (IQR) = ${fmt(add.iqr)}.`)
       }
       if (add.skewness !== undefined) {
-        const normalJudge = r.pValue > alpha ? 'approximately normally distributed' : 'not normally distributed'
+        const normalJudge = r.pValue > alpha ? 'did not provide evidence against normality' : 'provided evidence against normality'
         parts.push(`Skewness = ${fmt(add.skewness)}, kurtosis = ${fmt(add.kurtosis)}.`)
-        parts.push(`The Shapiro-Wilk test indicated that the data were ${normalJudge} (*p* ${fmtP(r.pValue)}).`)
+        if (Number.isFinite(r.pValue)) {
+          parts.push(`The Shapiro-Wilk test ${normalJudge} (*p* ${fmtP(r.pValue)}).`)
+        }
       }
       return parts.join(' ')
     }
@@ -1059,9 +1076,11 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
       parts.push(`중앙값(*Mdn*) = ${fmt(add.median)}, 사분위 범위(IQR) = ${fmt(add.iqr)}.`)
     }
     if (add.skewness !== undefined) {
-      const normalJudge = r.pValue > alpha ? '정규분포에 가깝다' : '정규분포를 따르지 않는다'
+      const normalJudge = r.pValue > alpha ? '정규성 이탈 근거가 크지 않았다' : '정규성 이탈 근거가 있었다'
       parts.push(`왜도 = ${fmt(add.skewness)}, 첨도 = ${fmt(add.kurtosis)}.`)
-      parts.push(`Shapiro-Wilk 검정 결과, 데이터는 ${normalJudge}(*p* ${fmtP(r.pValue)}).`)
+      if (Number.isFinite(r.pValue)) {
+        parts.push(`Shapiro-Wilk 검정 결과, ${normalJudge}(*p* ${fmtP(r.pValue)}).`)
+      }
     }
 
     return parts.join(' ')
@@ -1171,7 +1190,7 @@ const SURVIVAL_TEMPLATE: CategoryTemplate = {
 
     const parts = [intro]
     if (hazardTests.length) {
-      parts.push(`비례위험 가정은 Schoenfeld 잔차 검정으로 확인하였다.`)
+      parts.push(`비례위험 가정은 Schoenfeld 잔차 검정으로 평가하였다.`)
     }
     parts.push(buildAlphaSoftware(alpha, lang))
     return parts.filter(Boolean).join(' ')
@@ -1336,17 +1355,25 @@ const POWER_ANALYSIS_TEMPLATE: CategoryTemplate = {
     const add = r.additional ?? {}
 
     if (lang === 'en') {
-      const analysisType = add.analysisType === 'post-hoc' ? 'post hoc' : 'a priori'
+      const analysisType = add.analysisType === 'post-hoc'
+        ? 'post hoc '
+        : add.analysisType === 'a-priori'
+          ? 'a priori '
+          : ''
       const intro = ctx.researchContext
-        ? `An ${analysisType} power analysis was conducted to ${ctx.researchContext}.`
-        : `An ${analysisType} power analysis was conducted to determine the appropriate sample size.`
+        ? `${analysisType ? 'An' : 'A'} ${analysisType}power analysis was conducted to ${ctx.researchContext}.`
+        : `${analysisType ? 'An' : 'A'} ${analysisType}power analysis was conducted to determine the appropriate sample size.`
       return intro
     }
 
-    const analysisType = add.analysisType === 'post-hoc' ? '사후' : '사전'
+    const analysisType = add.analysisType === 'post-hoc'
+      ? '사후 '
+      : add.analysisType === 'a-priori'
+        ? '사전 '
+        : ''
     const intro = ctx.researchContext
-      ? `${ctx.researchContext}를 위해 ${analysisType} 검정력 분석을 실시하였다.`
-      : `적절한 표본 크기를 결정하기 위해 ${analysisType} 검정력 분석을 실시하였다.`
+      ? `${ctx.researchContext}를 위해 ${analysisType}검정력 분석을 실시하였다.`
+      : `적절한 표본 크기를 결정하기 위해 ${analysisType}검정력 분석을 실시하였다.`
 
     return intro
   },

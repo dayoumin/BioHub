@@ -148,7 +148,8 @@ describe('t-test 템플릿', () => {
     })
     expect(caps.find(c => c.kind === 'table')).toBeTruthy()
     expect(caps.find(c => c.kind === 'figure')).toBeTruthy()
-    expect(caps.find(c => c.kind === 'figure')?.text).toContain('사분위 범위')
+    expect(caps.find(c => c.kind === 'figure')?.text).toContain('source-linked boxplot')
+    expect(caps.find(c => c.kind === 'figure')?.text).not.toContain('수염')
   })
 })
 
@@ -200,6 +201,23 @@ describe('anova 템플릿', () => {
     expect(text).toContain('*F*(2, 42) = 4.87')
     expect(text).toContain('*p* = .012')
     expect(text).toContain('수컷–암컷')
+  })
+
+  it('Results — 사후검정 보정 방법이 없으면 방법명을 꾸며 쓰지 않음', () => {
+    const text = getTemplate('anova', 'anova').results(makeInput('anova', {
+      method: 'anova',
+      statistic: 4.87,
+      pValue: 0.012,
+      df: [2, 42],
+      postHocMethod: undefined,
+      postHoc: [
+        { group1: 'M', group2: 'F', pvalue: 0.008, significant: true },
+      ],
+    }))
+
+    expect(text).toContain('사후 비교 결과')
+    expect(text).not.toContain('Tukey')
+    expect(text).not.toContain('Bonferroni')
   })
 
   it('Welch ANOVA methods/results 문구를 명시한다', () => {
@@ -257,12 +275,13 @@ describe('correlation 템플릿', () => {
     const text = tmpl.results(input)
     expect(text).toContain('*r* = 0.72')
     expect(text).toContain('정적')
-    expect(text).toContain('강한')
+    expect(text).not.toContain('강한')
   })
 
   it('Captions — 상관계수 행렬', () => {
     const caps = tmpl.captions(input)
-    expect(caps[0]?.text).toContain('상관계수')
+    expect(caps[0]?.text).toContain('생성된 표')
+    expect(caps[0]?.text).not.toContain('상관계수 행렬')
   })
 })
 
@@ -284,10 +303,11 @@ describe('regression 템플릿', () => {
   }, [])
   const tmpl = getTemplate('simple-regression', 'regression')
 
-  it('Methods — 가정 목록 포함', () => {
+  it('Methods — 검증 결과가 없으면 가정 점검을 꾸며 쓰지 않음', () => {
     const text = tmpl.methods(input)
-    expect(text).toContain('선형성')
-    expect(text).toContain('잔차')
+    expect(text).toContain('선형 회귀')
+    expect(text).not.toContain('선형성')
+    expect(text).not.toContain('잔차')
   })
 
   it('Results — R², 계수, 유의성', () => {
@@ -296,6 +316,19 @@ describe('regression 템플릿', () => {
     expect(text).toContain('수정 *R*² = 0.28')
     expect(text).toContain('체중')
     expect(text).toContain('β = 0.42')
+  })
+
+  it('Results — R²가 없으면 분산 설명률 placeholder를 쓰지 않음', () => {
+    const text = tmpl.results(makeInput('simple-regression', {
+      method: 'simple regression',
+      statistic: 12.3,
+      pValue: 0.002,
+      df: [1, 28],
+      additional: {},
+    }, []))
+
+    expect(text).not.toContain('—%')
+    expect(text).not.toContain('분산의 —')
   })
 })
 
@@ -412,7 +445,8 @@ describe('survival 템플릿', () => {
 
   it('Captions — HR/CI 설명', () => {
     const caps = tmpl.captions(input)
-    expect(caps[0]?.text).toContain('HR')
+    expect(caps[0]?.text).toContain('생성된 표')
+    expect(caps[0]?.text).not.toContain('HR')
   })
 })
 
@@ -596,7 +630,7 @@ describe('영문 템플릿', () => {
     expect(results).toContain('Descriptive statistics')
     expect(results).toContain('*M*) = 14.20')
     expect(results).toContain('*SD*) = 2.50')
-    expect(results).toContain('approximately normally distributed')
+    expect(results).toContain('did not provide evidence against normality')
   })
 
   it('영문 correlation — 방향/강도 포함', () => {
@@ -604,7 +638,7 @@ describe('영문 템플릿', () => {
     const tmpl = getTemplate('correlation', 'correlation')
     const results = tmpl.results(input)
     expect(results).toMatch(/positive|negative/)
-    expect(results).toMatch(/strong|moderate|weak/)
+    expect(results).not.toMatch(/strong|moderate|weak/)
   })
 
   it('영문 timeseries — ADF/AIC/BIC 포함', () => {
@@ -712,5 +746,39 @@ describe('영문 템플릿', () => {
     const fig = caps.find(c => c.kind === 'figure')
     expect(fig?.text).toContain('집단별')
     expect(fig?.text).not.toContain('성별')
+  })
+
+  it('t-test methods — 확인된 가정만 기준 충족으로 표현한다', () => {
+    const input: TemplateInput = { ...makeInput('t-test') }
+    const tmpl = getTemplate('t-test', 't-test')
+    const methods = tmpl.methods(input)
+
+    expect(methods).toContain('확인된 가정 검정은 모두 기준을 충족하였다.')
+    expect(methods).not.toContain('모든 가정이 충족되었다')
+  })
+
+  it('power-analysis methods — analysisType 없으면 사전/사후를 추론하지 않는다', () => {
+    const input = makeInput('power-analysis', {
+      method: 'power-analysis',
+      statistic: 0.5,
+      pValue: 1,
+      effectSize: 0.5,
+      additional: {
+        requiredSampleSize: 52,
+        power: 0.8,
+        alpha: 0.05,
+      },
+    }, [])
+    const tmpl = getTemplate('power-analysis', 'design')
+
+    const koMethods = tmpl.methods(input)
+    const enMethods = tmpl.methods({ ...input, lang: 'en' })
+
+    expect(koMethods).toContain('검정력 분석')
+    expect(koMethods).not.toContain('사전 검정력')
+    expect(koMethods).not.toContain('사후 검정력')
+    expect(enMethods).toContain('power analysis')
+    expect(enMethods).not.toContain('a priori power analysis')
+    expect(enMethods).not.toContain('post hoc power analysis')
   })
 })

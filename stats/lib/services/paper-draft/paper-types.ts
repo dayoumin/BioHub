@@ -3,6 +3,11 @@
  * 계획서: stats/docs/PLAN-PAPER-DRAFT-GENERATION.md
  */
 
+import type { StudySchema } from './study-schema'
+import type { MethodsDraftReadiness } from './methods-readiness'
+import type { ResultsDraftReadiness } from './results-readiness'
+import type { CaptionsDraftReadiness } from './captions-readiness'
+
 export type PaperSection = 'methods' | 'results' | 'captions' | 'discussion'
 
 export interface PaperDraftOptions {
@@ -49,6 +54,10 @@ export interface PaperDraft {
   generatedAt: string
   model: string | null  // Discussion 생성 시에만 모델명
   context: DraftContext // 생성에 사용된 컨텍스트 (재생성 시 유지)
+  studySchema?: StudySchema // 논문 작성용 정규화 입력 (복원/검증/문서 연결용)
+  methodsReadiness?: MethodsDraftReadiness // Methods UX용 체크리스트/보완 질문
+  resultsReadiness?: ResultsDraftReadiness // Results UX용 체크리스트/보완 질문
+  captionsReadiness?: CaptionsDraftReadiness // Captions UX용 source/provenance 체크리스트
 }
 
 /** Discussion 스트리밍 상태 (UI용) */
