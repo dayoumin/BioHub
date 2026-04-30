@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { toast } from 'sonner'
 import DocumentExportBar from '@/components/papers/DocumentExportBar'
 import {
   createDocumentSourceRef,
@@ -218,6 +219,86 @@ describe('DocumentExportBar', () => {
     expect(html).not.toMatch(/<[^>]+\sonerror=/i)
     expect(html).toContain('&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;')
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  })
+
+  it('allows only safe table markup from htmlContent', async () => {
+    const user = userEvent.setup()
+    const doc = makeDocument('표 문서', '본문')
+    doc.sections[0] = {
+      ...doc.sections[0],
+      tables: [
+        {
+          caption: 'HTML table',
+          headers: [],
+          rows: [],
+          htmlContent: '<table onclick="alert(1)"><tr><td colspan="2">safe</td><td><iframe srcdoc="<script>alert(1)</script>">bad</iframe><object data="x"></object><span data-x="1">ok</span></td></tr></table><meta http-equiv="refresh" content="0">',
+        },
+      ],
+    }
+
+    render(<DocumentExportBar document={doc} />)
+
+    await user.click(screen.getByRole('button', { name: 'HTML 다운로드' }))
+
+    const [blob] = mockDownloadBlob.mock.calls[0] as [Blob, string]
+    const html = await readBlobText(blob)
+    expect(html).toContain('<table>')
+    expect(html).toContain('<td colspan="2">safe</td>')
+    expect(html).toContain('<span>ok</span>')
+    expect(html).not.toContain('onclick')
+    expect(html).not.toContain('<iframe')
+    expect(html).not.toContain('srcdoc')
+    expect(html).not.toContain('<object')
+    expect(html).not.toContain('http-equiv')
+  })
+
+  it('shows export errors when document preparation fails before markdown copy', async () => {
+    const user = userEvent.setup()
+    const errorSpy = vi.spyOn(toast, 'error').mockImplementation(() => 'toast-id')
+
+    try {
+      render(
+        <DocumentExportBar
+          document={makeDocument('초기 문서', '이전 내용')}
+          onBeforeExport={async () => {
+            throw new Error('prepare failed')
+          }}
+        />,
+      )
+
+      await user.click(screen.getByRole('button', { name: '마크다운 복사' }))
+
+      await waitFor(() => {
+        expect(errorSpy).toHaveBeenCalledWith('클립보드에 복사할 수 없습니다')
+      })
+    } finally {
+      errorSpy.mockRestore()
+    }
+  })
+
+  it('shows export errors when document preparation fails before HTML download', async () => {
+    const user = userEvent.setup()
+    const errorSpy = vi.spyOn(toast, 'error').mockImplementation(() => 'toast-id')
+
+    try {
+      render(
+        <DocumentExportBar
+          document={makeDocument('초기 문서', '이전 내용')}
+          onBeforeExport={async () => {
+            throw new Error('prepare failed')
+          }}
+        />,
+      )
+
+      await user.click(screen.getByRole('button', { name: 'HTML 다운로드' }))
+
+      await waitFor(() => {
+        expect(errorSpy).toHaveBeenCalledWith('HTML 생성에 실패했습니다')
+      })
+      expect(mockDownloadBlob).not.toHaveBeenCalled()
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 
   it('downloads HTML for documents with structured provenance sidecars', async () => {

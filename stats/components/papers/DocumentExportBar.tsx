@@ -29,12 +29,87 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
-function sanitizeInlineHtml(value: string): string {
-  return value
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/\son\w+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s(href|src)=(?:"javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]+)/gi, '')
+const ALLOWED_TABLE_HTML_TAGS = new Set([
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'tr',
+  'th',
+  'td',
+  'caption',
+  'colgroup',
+  'col',
+  'p',
+  'strong',
+  'em',
+  'span',
+  'br',
+  'sup',
+  'sub',
+])
+
+const ALLOWED_TABLE_HTML_ATTRIBUTES = new Set([
+  'colspan',
+  'rowspan',
+  'scope',
+  'align',
+])
+
+function isSafeTableAttribute(name: string, value: string): boolean {
+  if (!ALLOWED_TABLE_HTML_ATTRIBUTES.has(name)) {
+    return false
+  }
+  if ((name === 'colspan' || name === 'rowspan') && !/^[1-9]\d{0,2}$/.test(value)) {
+    return false
+  }
+  if (name === 'scope' && !['col', 'row', 'colgroup', 'rowgroup'].includes(value)) {
+    return false
+  }
+  if (name === 'align' && !['left', 'center', 'right'].includes(value)) {
+    return false
+  }
+  return true
+}
+
+function sanitizeTableHtml(value: string): string {
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+    return escapeHtml(value)
+  }
+
+  const parsed = new DOMParser().parseFromString(value, 'text/html')
+  const sanitizeNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return escapeHtml(node.textContent ?? '')
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return ''
+    }
+
+    const element = node as Element
+    const tagName = element.tagName.toLowerCase()
+    const children = Array.from(element.childNodes).map(sanitizeNode).join('')
+    if (!ALLOWED_TABLE_HTML_TAGS.has(tagName)) {
+      return children
+    }
+
+    const attributes = Array.from(element.attributes)
+      .map((attribute) => ({
+        name: attribute.name.toLowerCase(),
+        value: attribute.value.toLowerCase(),
+        rawValue: attribute.value,
+      }))
+      .filter((attribute) => isSafeTableAttribute(attribute.name, attribute.value))
+      .map((attribute) => ` ${attribute.name}="${escapeHtml(attribute.rawValue)}"`)
+      .join('')
+
+    if (tagName === 'br' || tagName === 'col') {
+      return `<${tagName}${attributes}>`
+    }
+    return `<${tagName}${attributes}>${children}</${tagName}>`
+  }
+
+  return Array.from(parsed.body.childNodes).map(sanitizeNode).join('')
 }
 
 function documentToMarkdown(doc: DocumentBlueprint): string {
@@ -83,7 +158,7 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
 function renderTableHtml(table: DocumentTable): string {
   const provenanceHtml = renderHtmlProvenance(getTableProvenanceLines(table))
   const caption = escapeHtml(table.caption)
-  if (table.htmlContent) return `<p><strong>${caption}</strong></p>${provenanceHtml}${sanitizeInlineHtml(table.htmlContent)}`
+  if (table.htmlContent) return `<p><strong>${caption}</strong></p>${provenanceHtml}${sanitizeTableHtml(table.htmlContent)}`
   if (table.headers.length === 0) return ''
   const thead = `<thead><tr>${table.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`
   const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`
@@ -157,9 +232,9 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
   }, [doc, onBeforeExport])
 
   const handleCopyMarkdown = useCallback(async () => {
-    const exportDoc = await resolveExportDocument()
-    const md = documentToMarkdown(exportDoc)
     try {
+      const exportDoc = await resolveExportDocument()
+      const md = documentToMarkdown(exportDoc)
       await navigator.clipboard.writeText(md)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -169,8 +244,8 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
   }, [resolveExportDocument])
 
   const handleDownloadHtml = useCallback(async () => {
-    const exportDoc = await resolveExportDocument()
     try {
+      const exportDoc = await resolveExportDocument()
       const html = documentToHtml(exportDoc)
       const blob = new Blob([html], { type: 'text/html' })
       const safeName = exportDoc.title.replace(/[/\\?%*:|"<>]/g, '_')

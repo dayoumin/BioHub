@@ -343,5 +343,6 @@
 - [ ] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, snapshot excerpt를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다.
 - [ ] 자료 작성 revision retention 개선: 자동 snapshot 반복이 사용자 수동 저장 지점을 밀어내지 않도록 manual revision 보호 또는 reason별 quota를 적용한다.
 - [x] 자료 작성 export 안전성 개선: HTML export의 title/content/caption/table cell/provenance를 escape/sanitize하고, empty-but-reassemblable 문서와 HWPX/clipboard prepared-document export path를 테스트로 고정 (2026-04-30)
+- [x] 자료 작성 export agent 리뷰 반영: `table.htmlContent`를 strict allowlist sanitizer로 제한하고, Markdown/HTML export 준비 실패가 toast 경로로 처리되도록 보강했으며, HWPX provenance fixture 경로를 workspace 하드코딩에서 패키지 기준 경로로 정리 (2026-04-30)
 - [ ] 자료 작성 regeneration guard 테스트 확장: body-preserving refresh, destructive regeneration, conflict before persistLatestDocument, regenerateDocumentSection 이후 concurrent local edit 방어를 통합 테스트로 고정한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄이고, source loading도 `DocumentEditor`/`useDocumentSourceLinks`/assembler/export provenance에 중복되지 않도록 공통 adapter로 모은다.
