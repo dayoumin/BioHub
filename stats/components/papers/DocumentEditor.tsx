@@ -22,14 +22,13 @@ import {
   loadResearchProject,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
 } from '@/lib/research/project-storage'
-import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import {
   type GraphProjectsChangedDetail,
   GRAPH_PROJECTS_CHANGED_EVENT,
   listProjects as listGraphProjects,
 } from '@/lib/graph-studio/project-storage'
-import { loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
+import { BIO_HISTORY_CHANGE_EVENT, loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
 import type {
   BoldHistoryEntry,
   PhylogenyHistoryEntry,
@@ -38,13 +37,16 @@ import type {
   SimilarityHistoryEntry,
   TranslationHistoryEntry,
 } from '@/lib/genetics/analysis-history'
-import { loadAnalysisHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
+import {
+  HISTORY_CHANGE_EVENT as GENETICS_HISTORY_CHANGE_EVENT,
+  loadAnalysisHistory,
+  loadGeneticsHistory,
+} from '@/lib/genetics/analysis-history'
 import {
   convertPaperTable,
   buildFigureRef,
   createDocumentSourceRef,
   getGraphPrimaryAnalysisId,
-  getDocumentSourceId,
   type DocumentWritingSectionStatus,
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
@@ -64,7 +66,6 @@ import type { GraphProject } from '@/types/graph-studio'
 import {
   buildAnalysisHistoryUrl,
   buildGraphStudioProjectUrl,
-  buildProjectEntityNavigationUrl,
 } from '@/lib/research/source-navigation'
 import type { CitationRecord } from '@/lib/research/citation-types'
 import {
@@ -86,10 +87,8 @@ import DocumentSectionRegenerationControls from './DocumentSectionRegenerationCo
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
-import {
-  getDocumentWritingSourceReadiness,
-  type DocumentWritingSourceReadiness,
-} from '@/lib/research/document-writing-source-readiness'
+import type { DocumentWritingSourceReadiness } from '@/lib/research/document-writing-source-readiness'
+import { useDocumentSourceLinks } from './useDocumentSourceLinks'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -151,6 +150,7 @@ export default function DocumentEditor({
   const [loading, setLoading] = useState(true)
   const [citations, setCitations] = useState<CitationRecord[]>([])
   const [needsReassemble, setNeedsReassemble] = useState(false)
+  const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
   const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
   const [sectionRegenerationMode, setSectionRegenerationMode] = useState<DocumentSectionRegenerationMode | null>(null)
   const documentConflictRef = useRef<DocumentBlueprint | null>(null)
@@ -497,14 +497,31 @@ export default function DocumentEditor({
       void reloadCitations(currentProjectId)
     }
 
+    const handleSupplementaryHistoryChange = (): void => {
+      const currentDoc = docRef.current
+      if (!currentDoc) return
+
+      const hasSupplementarySource = currentDoc.sections.some((section) => (
+        section.sourceRefs.some((sourceRef) => sourceRef.kind === 'supplementary')
+      ))
+      if (!hasSupplementarySource) return
+
+      setSourceLinksRefreshKey((current) => current + 1)
+      setNeedsReassemble(true)
+    }
+
     window.addEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
     window.addEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
     window.addEventListener(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, handleCitationChange)
+    window.addEventListener(BIO_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
+    window.addEventListener(GENETICS_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
 
     return (): void => {
       window.removeEventListener(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, handleEntityRefChange)
       window.removeEventListener(GRAPH_PROJECTS_CHANGED_EVENT, handleGraphProjectChange)
       window.removeEventListener(RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT, handleCitationChange)
+      window.removeEventListener(BIO_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
+      window.removeEventListener(GENETICS_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
     }
   }, [reloadCitations])
 
@@ -1110,126 +1127,13 @@ export default function DocumentEditor({
     }
     void retryDocumentWriting(doc.id)
   }, [doc])
-  const activeSectionSourceLinks = useMemo(() => {
-    if (!doc || !activeSection) return []
-
-    const projectRefs = listProjectEntityRefs(doc.projectId)
-    const refByEntityId = new Map(projectRefs.map((ref) => [ref.entityId, ref] as const))
-    const historyById = new Map(analysisHistory.map((record) => [record.id, record]))
-    const graphById = new Map(listGraphProjects().map((graph) => [graph.id, graph]))
-    const bioToolById = new Map(loadBioToolHistory().map((entry) => [entry.id, entry] as const))
-    const geneticsById = new Map(loadGeneticsHistory().map((entry) => [entry.id, entry] as const))
-    const links = new Map<string, {
-      key: string
-      label: string
-      href: string
-      kind: 'analysis' | 'figure' | 'supplementary'
-      kindLabel: string
-      readiness: DocumentWritingSourceReadiness
-    }>()
-
-    const inferSupplementaryEntityKind = (sourceId: string): typeof projectRefs[number]['entityKind'] | null => {
-      if (bioToolById.has(sourceId)) {
-        return 'bio-tool-result'
-      }
-      const geneticsEntry = geneticsById.get(sourceId)
-      if (!geneticsEntry) {
-        return null
-      }
-      switch (geneticsEntry.type) {
-        case 'seq-stats':
-          return 'seq-stats-result'
-        case 'similarity':
-          return 'similarity-result'
-        case 'phylogeny':
-          return 'phylogeny-result'
-        case 'bold':
-          return 'bold-result'
-        case 'translation':
-          return 'translation-result'
-        case 'protein':
-          return 'protein-result'
-        default:
-          return 'blast-result'
-      }
-    }
-
-    for (const sourceRef of activeSection.sourceRefs) {
-      const sourceId = getDocumentSourceId(sourceRef)
-      const entityRef = refByEntityId.get(sourceId)
-      const entityKind = entityRef?.entityKind ?? inferSupplementaryEntityKind(sourceId)
-      if (entityKind === 'analysis' || historyById.has(sourceId)) {
-        const record = historyById.get(sourceId)
-        links.set(`analysis:${sourceId}`, {
-          key: `analysis:${sourceId}`,
-          label: record?.method?.name ?? record?.name ?? '원본 분석',
-          href: buildAnalysisHistoryUrl(sourceId),
-          kind: 'analysis',
-          kindLabel: '통계',
-          readiness: getDocumentWritingSourceReadiness({
-            sourceKind: 'analysis',
-            sectionId: activeSection.id,
-            needsReassemble,
-          }),
-        })
-        continue
-      }
-
-      if (entityKind === 'figure' || graphById.has(sourceId)) {
-        const graph = graphById.get(sourceId)
-        links.set(`figure:${sourceId}`, {
-          key: `figure:${sourceId}`,
-          label: graph?.name ?? 'Graph Studio',
-          href: buildGraphStudioProjectUrl(sourceId),
-          kind: 'figure',
-          kindLabel: '그래프',
-          readiness: getDocumentWritingSourceReadiness({
-            sourceKind: 'figure',
-            needsReassemble,
-          }),
-        })
-        continue
-      }
-
-      if (entityKind) {
-        const bioToolEntry = bioToolById.get(sourceId)
-        const geneticsEntry = geneticsById.get(sourceId)
-        const href = buildProjectEntityNavigationUrl(entityKind, sourceId, {
-          bioToolId: bioToolEntry?.toolId,
-        })
-        if (!href) {
-          continue
-        }
-        const tabEntry = getTabEntry(entityKind)
-        const entryLabel = geneticsEntry && 'analysisName' in geneticsEntry
-          ? geneticsEntry.analysisName
-          : geneticsEntry && 'sampleName' in geneticsEntry
-            ? geneticsEntry.sampleName
-            : bioToolEntry?.toolNameKo ?? bioToolEntry?.toolNameEn
-
-        links.set(`supplementary:${sourceId}`, {
-          key: `supplementary:${sourceId}`,
-          label: sourceRef.label ?? entityRef?.label ?? entryLabel ?? sourceId,
-          href,
-          kind: 'supplementary',
-          kindLabel: tabEntry?.label ?? '보조 결과',
-          readiness: getDocumentWritingSourceReadiness({
-            sourceKind: 'supplementary',
-            entityKind,
-            needsReassemble,
-            bioTool: bioToolEntry
-              ? {
-                toolId: bioToolEntry.toolId,
-                results: bioToolEntry.results,
-              }
-              : undefined,
-          }),
-        })
-      }
-    }
-
-    return Array.from(links.values())
-  }, [activeSection, analysisHistory, doc, needsReassemble])
+  const activeSectionSourceLinks = useDocumentSourceLinks({
+    projectId: doc?.projectId ?? null,
+    activeSection,
+    analysisHistory,
+    needsReassemble,
+    refreshKey: sourceLinksRefreshKey,
+  })
   const activeSectionReviewSourceCount = activeSectionSourceLinks.filter((link) => link.readiness.status !== 'ready').length
 
   useEffect(() => {

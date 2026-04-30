@@ -330,6 +330,7 @@
 - [x] 자료 작성 섹션 재생성 UX 계약을 개발 점검에 추가: Methods/Results 범위, 본문 보존/본문 교체 모드 분리, 확인 다이얼로그와 진행 중 편집 보호를 `document-section-regeneration-contract.ts`와 개발 점검 테스트로 고정 (2026-04-30)
 - [x] 자료 작성 전체 UX/Architecture agent 리뷰 1차 반영: source readiness stale 표시 누락을 수정하고, 섹션 재생성 지원 범위는 `DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS`를 재사용하도록 정리 (2026-04-30)
 - [x] 자료 작성 Hub 정보구조 재정렬: `작성 흐름` 단계 카드로 빈 문서/프로젝트 결과 조립/바이오·유전 결과 연결을 묶고, 외부 AI 입력 패키지와 개발 점검은 보조 영역으로 분리해 CTA 혼란을 줄임 (2026-04-30)
-- [ ] `DocumentEditor` 리팩터링: `useDocumentBlueprintAutosave`, `useDocumentCitations`, `useDocumentSourceLinks`, `useDocumentSectionRegeneration`, artifact table/figure list 컴포넌트로 분리해 저장·충돌·재생성 로직의 결합도를 낮춘다.
+- [x] `DocumentEditor` source link 계산 1차 분리: active section source readiness/link 계산을 `useDocumentSourceLinks`로 추출하고, Bio-Tools/Genetics history 변경 시 supplementary source도 stale로 재계산되도록 회귀 테스트 추가 (2026-04-30)
+- [ ] `DocumentEditor` 추가 리팩터링: `useDocumentBlueprintAutosave`, `useDocumentCitations`, `useDocumentSectionRegeneration`, artifact table/figure list 컴포넌트로 분리해 저장·충돌·재생성 로직의 결합도를 낮춘다.
 - [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄인다.

@@ -30,6 +30,8 @@ const {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT,
+  BIO_HISTORY_CHANGE_EVENT,
+  GENETICS_HISTORY_CHANGE_EVENT,
 } = vi.hoisted(() => ({
   mockDocumentToDocx: vi.fn(async (_doc: DocumentBlueprint) => undefined),
   mockSaveDocumentBlueprint: vi.fn(async (doc: DocumentBlueprint) => doc),
@@ -49,6 +51,8 @@ const {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT: 'document-blueprints-changed',
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT: 'research-project-citations-changed',
   RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT: 'research-project-entity-refs-changed',
+  BIO_HISTORY_CHANGE_EVENT: 'bio-tools-history-changed',
+  GENETICS_HISTORY_CHANGE_EVENT: 'genetics-history-changed',
 }))
 
 vi.mock('platejs/react', () => ({
@@ -155,11 +159,13 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/genetics/analysis-history', () => ({
+  HISTORY_CHANGE_EVENT: GENETICS_HISTORY_CHANGE_EVENT,
   loadAnalysisHistory: () => [],
   loadGeneticsHistory: () => mockLoadGeneticsHistory(),
 }))
 
 vi.mock('@/lib/bio-tools/bio-tool-history', () => ({
+  BIO_HISTORY_CHANGE_EVENT,
   loadBioToolHistory: () => mockLoadBioToolHistory(),
 }))
 
@@ -698,6 +704,42 @@ describe('DocumentEditor export freshness', () => {
 
     await userEvent.click(link)
     expect(mockRouterPush).toHaveBeenCalledWith('/genetics/protein?history=protein-1')
+  })
+
+  it('marks supplementary source readiness as stale when bio or genetics history changes', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('보조 결과 stale', {
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '보조 결과 stale',
+          sourceRefs: [
+            createDocumentSourceRef('supplementary', 'bio-1', { label: 'Fst 분석' }),
+          ],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockListProjectEntityRefs.mockReturnValue([
+      { entityKind: 'bio-tool-result', entityId: 'bio-1', label: 'Fst 분석' },
+    ])
+    mockLoadBioToolHistory.mockReturnValue([
+      { id: 'bio-1', toolId: 'fst', toolNameEn: 'Fst', toolNameKo: 'Fst', csvFileName: 'fst.csv', columnConfig: {}, results: {}, createdAt: Date.now() },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getByText('결과 shape 확인 필요')).toBeInTheDocument()
+
+    act(() => {
+      window.dispatchEvent(new Event(BIO_HISTORY_CHANGE_EVENT))
+    })
+
+    await screen.findByText('프로젝트 분석 또는 그래프가 변경되었습니다.')
+    expect(screen.getByText('원본 자료 변경이 감지되었습니다. 재조립 후 자동 작성 내용을 다시 확인하세요.')).toBeInTheDocument()
+    expect(screen.queryByText('결과 shape 확인 필요')).not.toBeInTheDocument()
   })
 
   it('opens the section requested from the document route', async () => {
