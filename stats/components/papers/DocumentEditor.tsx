@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
-import { ArrowLeft, Eye, PenLine, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, Eye, PenLine, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlateEditor } from 'platejs/react'
 import { toast } from 'sonner'
@@ -75,6 +75,10 @@ import SectionWritingBanner from './SectionWritingBanner'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
+import {
+  getDocumentWritingSourceReadiness,
+  type DocumentWritingSourceReadiness,
+} from '@/lib/research/document-writing-source-readiness'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -93,6 +97,33 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+
+function getReadinessBadgeClass(readiness: DocumentWritingSourceReadiness): string {
+  switch (readiness.status) {
+    case 'ready':
+      return 'bg-sky-100 text-sky-900'
+    case 'stale':
+      return 'bg-amber-100 text-amber-950'
+    case 'review':
+      return 'bg-surface-container-high text-muted-foreground'
+  }
+}
+
+function SourceReadinessIcon({
+  readiness,
+}: {
+  readiness: DocumentWritingSourceReadiness
+}): React.ReactElement {
+  if (readiness.status === 'ready') {
+    return <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-700" />
+  }
+
+  if (readiness.status === 'stale') {
+    return <RefreshCw className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" />
+  }
+
+  return <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+}
 
 export default function DocumentEditor({
   documentId,
@@ -952,6 +983,7 @@ export default function DocumentEditor({
       href: string
       kind: 'analysis' | 'figure' | 'supplementary'
       kindLabel: string
+      readiness: DocumentWritingSourceReadiness
     }>()
 
     const inferSupplementaryEntityKind = (sourceId: string): typeof projectRefs[number]['entityKind'] | null => {
@@ -992,6 +1024,10 @@ export default function DocumentEditor({
           href: buildAnalysisHistoryUrl(sourceId),
           kind: 'analysis',
           kindLabel: '통계',
+          readiness: getDocumentWritingSourceReadiness({
+            sourceKind: 'analysis',
+            sectionId: activeSection.id,
+          }),
         })
         continue
       }
@@ -1004,6 +1040,9 @@ export default function DocumentEditor({
           href: buildGraphStudioProjectUrl(sourceId),
           kind: 'figure',
           kindLabel: '그래프',
+          readiness: getDocumentWritingSourceReadiness({
+            sourceKind: 'figure',
+          }),
         })
         continue
       }
@@ -1030,6 +1069,16 @@ export default function DocumentEditor({
           href,
           kind: 'supplementary',
           kindLabel: tabEntry?.label ?? '보조 결과',
+          readiness: getDocumentWritingSourceReadiness({
+            sourceKind: 'supplementary',
+            entityKind,
+            bioTool: bioToolEntry
+              ? {
+                toolId: bioToolEntry.toolId,
+                results: bioToolEntry.results,
+              }
+              : undefined,
+          }),
         })
       }
     }
@@ -1219,26 +1268,54 @@ export default function DocumentEditor({
               />
 
               {activeSectionSourceLinks.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/30 px-3 py-2">
-                  <span className="text-xs font-medium text-muted-foreground">원본</span>
-                  {activeSectionSourceLinks.map((link) => (
-                    <Button
-                      key={link.key}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1 text-xs"
-                      onClick={() => router.push(link.href)}
-                    >
-                      <span>{link.kindLabel}</span>
-                      <span className="max-w-40 truncate">{link.label}</span>
-                    </Button>
-                  ))}
-                  {needsReassemble && (
-                    <Badge variant="secondary" className="ml-auto text-[10px]">
-                      소스 변경 감지
-                    </Badge>
-                  )}
+                <div className="rounded-2xl bg-surface-container-low p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold text-foreground">원본 자료 자동 작성 범위</p>
+                      <p className="text-[11px] leading-4 text-muted-foreground">
+                        source별로 자동 반영 가능한 범위와 사용자 확인이 필요한 부분을 표시합니다.
+                      </p>
+                    </div>
+                    {needsReassemble && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        소스 변경 감지
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid gap-2">
+                    {activeSectionSourceLinks.map((link) => (
+                      <div
+                        key={link.key}
+                        className="flex items-start gap-3 rounded-xl bg-surface-container-lowest px-3 py-2"
+                      >
+                        <SourceReadinessIcon readiness={link.readiness} />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto min-w-0 gap-1 px-0 py-0 text-xs font-medium hover:bg-transparent"
+                              onClick={() => router.push(link.href)}
+                            >
+                              <span>{link.kindLabel}</span>
+                              <span className="max-w-52 truncate">{link.label}</span>
+                            </Button>
+                            <Badge
+                              variant="secondary"
+                              className={cn('text-[10px]', getReadinessBadgeClass(link.readiness))}
+                            >
+                              {link.readiness.label}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] leading-4 text-muted-foreground">
+                            {link.readiness.detail}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
