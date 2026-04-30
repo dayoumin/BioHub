@@ -41,6 +41,15 @@ import {
   type SupplementaryWritingSourceMaps,
   writeNormalizedSourceBlock,
 } from './document-writing-source-registry'
+import {
+  DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
+  DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
+  isDocumentSectionRegenerationSectionId,
+  type DocumentSectionRegenerationMode,
+  type DocumentSectionRegenerationSectionId,
+} from './document-section-regeneration-contract'
+
+export type { DocumentSectionRegenerationMode } from './document-section-regeneration-contract'
 
 const runningDocumentJobs = new Map<string, Promise<DocumentBlueprint | null>>()
 const runningSectionJobs = new Map<string, Promise<DocumentBlueprint | null>>()
@@ -60,14 +69,38 @@ interface DocumentSectionDraftPatch extends Partial<DocumentSection> {
   skippedForReview?: boolean
 }
 
-export type DocumentSectionRegenerationMode = 'regenerate' | 'refresh-linked-sources'
-
 interface PatchDocumentSectionOptions {
   preserveBody?: boolean
   expectedSectionSnapshot?: {
     content: string
     plateValue?: unknown
     generatedBy: DocumentSection['generatedBy']
+  }
+}
+
+function assertNeverDocumentSectionRegenerationMode(mode: never): never {
+  throw new Error(`지원하지 않는 섹션 재생성 모드입니다: ${String(mode)}`)
+}
+
+function getSectionRegenerationDraftingMessage(mode: DocumentSectionRegenerationMode): string {
+  switch (mode) {
+    case DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE:
+      return '사용자 편집 본문은 유지하고 연결 자료를 갱신합니다.'
+    case DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE:
+      return '섹션 초안을 다시 생성합니다.'
+    default:
+      return assertNeverDocumentSectionRegenerationMode(mode)
+  }
+}
+
+function shouldPreserveBodyForSectionRegeneration(mode: DocumentSectionRegenerationMode): boolean {
+  switch (mode) {
+    case DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE:
+      return true
+    case DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE:
+      return false
+    default:
+      return assertNeverDocumentSectionRegenerationMode(mode)
   }
 }
 
@@ -449,7 +482,7 @@ async function mutateDocumentWithRetry(
 async function patchDocumentSection(
   documentId: string,
   jobId: string,
-  sectionId: 'methods' | 'results',
+  sectionId: DocumentSectionRegenerationSectionId,
   buildPatch: (section: DocumentSection, document: DocumentBlueprint) => DocumentSectionDraftPatch,
   options: PatchDocumentSectionOptions = {},
 ): Promise<DocumentBlueprint | null> {
@@ -479,9 +512,15 @@ async function patchDocumentSection(
     const shouldSkipBodyPatch = options.preserveBody ?? shouldSkipDocumentSectionBodyPatch(section)
     const nextSections = document.sections.map((item) => (
       item.id === sectionId
-        ? mergeDocumentSectionPatch(
-          shouldSkipBodyPatch ? item : { ...item, generatedBy: 'template' },
-          patch,
+        ? (
+          shouldSkipBodyPatch
+            ? {
+              ...mergeDocumentSectionPatch({ ...item, generatedBy: 'user' }, patch),
+              content: item.content,
+              plateValue: item.plateValue,
+              generatedBy: item.generatedBy,
+            }
+            : mergeDocumentSectionPatch({ ...item, generatedBy: 'template' }, patch)
         )
         : item
     ))
@@ -674,12 +713,8 @@ export function retryDocumentWriting(documentId: string): Promise<DocumentBluepr
   return restartJob
 }
 
-function isRegeneratableSectionId(sectionId: string): sectionId is 'methods' | 'results' {
-  return sectionId === 'methods' || sectionId === 'results'
-}
-
 function buildSectionPatchForRegeneration(
-  sectionId: 'methods' | 'results',
+  sectionId: DocumentSectionRegenerationSectionId,
   document: DocumentBlueprint,
   section: DocumentSection,
   historyById: Map<string, HistoryRecord>,
@@ -697,7 +732,7 @@ export function regenerateDocumentSection(
   sectionId: string,
   mode: DocumentSectionRegenerationMode,
 ): Promise<DocumentBlueprint | null> {
-  if (!isRegeneratableSectionId(sectionId)) {
+  if (!isDocumentSectionRegenerationSectionId(sectionId)) {
     return Promise.reject(new Error('Methods/Results 섹션만 자동 재생성을 지원합니다.'))
   }
 
@@ -741,9 +776,7 @@ export function regenerateDocumentSection(
       await saveDocumentBlueprint(updateDocumentSectionWritingState(draftingDocument, sectionId, 'drafting', {
         jobId,
         updatedAt: now,
-        message: mode === 'refresh-linked-sources'
-          ? '사용자 편집 본문은 유지하고 연결 자료를 갱신합니다.'
-          : '섹션 초안을 다시 생성합니다.',
+        message: getSectionRegenerationDraftingMessage(mode),
       }), {
         expectedUpdatedAt: currentDocument.updatedAt,
       })
@@ -768,7 +801,7 @@ export function regenerateDocumentSection(
           supplementaryMaps,
         ),
         {
-          preserveBody: mode === 'refresh-linked-sources',
+          preserveBody: shouldPreserveBodyForSectionRegeneration(mode),
           expectedSectionSnapshot,
         },
       )

@@ -707,6 +707,40 @@ describe('document writing orchestrator', () => {
     expect(methods?.generatedBy).toBe('user')
   })
 
+  it('refreshes a template-owned section without replacing its body', async () => {
+    currentDocument = makeDocument({
+      sections: [
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '기존 템플릿 방법 본문',
+          plateValue: [{ type: 'p', children: [{ text: '기존 템플릿 방법 본문' }] }],
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '기존 결과',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const refreshed = await regenerateDocumentSection('doc_1', 'methods', 'refresh-linked-sources')
+    const methods = refreshed?.sections.find((section) => section.id === 'methods')
+
+    expect(refreshed?.writingState?.status).toBe('completed')
+    expect(refreshed?.writingState?.sectionStates.methods?.status).toBe('skipped')
+    expect(methods?.content).toBe('기존 템플릿 방법 본문')
+    expect(methods?.plateValue).toEqual([{ type: 'p', children: [{ text: '기존 템플릿 방법 본문' }] }])
+    expect(methods?.generatedBy).toBe('template')
+    expect(methods?.sourceRefs.some((sourceRef) => sourceRef.sourceId === 'hist_1')).toBe(true)
+  })
+
   it('rejects overlapping section regeneration jobs for the same document', async () => {
     const pendingSave = createDeferred<DocumentBlueprint>()
     let saveCallCount = 0

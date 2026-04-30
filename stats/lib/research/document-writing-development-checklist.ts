@@ -33,6 +33,11 @@ import {
 import { ENTITY_TAB_REGISTRY } from './entity-tab-registry'
 import { getMethodsAutomationScope } from '@/lib/services/paper-draft/methods-scope'
 import { getResultsAutomationScope } from '@/lib/services/paper-draft/results-scope'
+import {
+  DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
+  DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
+  DOCUMENT_SECTION_REGENERATION_UX_CONTRACT,
+} from './document-section-regeneration-contract'
 
 export type DocumentWritingChecklistStatus = 'pass' | 'attention'
 
@@ -61,6 +66,7 @@ export interface DocumentWritingChecklistSummary {
   trackedVariableRequirementOnlyCount: number
   projectEntityKindCount: number
   bioToolResultContractFixtureCount: number
+  sectionRegenerationUxItemCount: number
 }
 
 export interface DocumentWritingDevelopmentChecklist {
@@ -113,6 +119,28 @@ interface BioToolResultShapeContractSummary {
   duplicateFixtureToolIds: readonly BioToolId[]
   invalidFixtureToolIds: readonly BioToolId[]
   disallowedResultKeyPaths: readonly string[]
+}
+
+interface SectionRegenerationUxContractSummary {
+  supportedSectionIds: readonly string[]
+  destructiveMode: string
+  bodyPreservingMode: string
+  hasMethodsAndResultsOnlyScope: boolean
+  separatesDestructiveAndBodyPreservingModes: boolean
+  destructiveModeRequiresConfirmation: boolean
+  bodyPreservingModePreservesBody: boolean
+  editorDisabledWhilePending: boolean
+  blocksConcurrentSectionJobs: boolean
+}
+
+interface SectionRegenerationUxContractInput {
+  supportedSectionIds: readonly string[]
+  destructiveMode: string
+  bodyPreservingMode: string
+  destructiveModeRequiresConfirmation: boolean
+  bodyPreservingModePreservesBody: boolean
+  editorDisabledWhilePending: boolean
+  blocksConcurrentSectionJobs: boolean
 }
 
 const STAGE_LABELS: Record<SupplementaryWriterStage, string> = {
@@ -191,6 +219,33 @@ function findDuplicateStrings(values: readonly string[]): readonly string[] {
 
 function sortStrings(values: readonly string[]): readonly string[] {
   return [...values].sort()
+}
+
+export function summarizeSectionRegenerationUxContract(
+  contract: SectionRegenerationUxContractInput = DOCUMENT_SECTION_REGENERATION_UX_CONTRACT,
+): SectionRegenerationUxContractSummary {
+  const supportedSectionIds = [...contract.supportedSectionIds]
+  const sortedSupportedSectionIds = sortStrings(supportedSectionIds)
+
+  return {
+    supportedSectionIds: sortedSupportedSectionIds,
+    destructiveMode: contract.destructiveMode,
+    bodyPreservingMode: contract.bodyPreservingMode,
+    hasMethodsAndResultsOnlyScope: (
+      sortedSupportedSectionIds.length === 2
+      && sortedSupportedSectionIds[0] === 'methods'
+      && sortedSupportedSectionIds[1] === 'results'
+    ),
+    separatesDestructiveAndBodyPreservingModes: (
+      contract.destructiveMode === DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE
+      && contract.bodyPreservingMode === DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE
+      && String(contract.destructiveMode) !== String(contract.bodyPreservingMode)
+    ),
+    destructiveModeRequiresConfirmation: contract.destructiveModeRequiresConfirmation,
+    bodyPreservingModePreservesBody: contract.bodyPreservingModePreservesBody,
+    editorDisabledWhilePending: contract.editorDisabledWhilePending,
+    blocksConcurrentSectionJobs: contract.blocksConcurrentSectionJobs,
+  }
 }
 
 function collectDisallowedResultKeyPaths(value: unknown, path: string, seen: WeakSet<object>): string[] {
@@ -386,6 +441,7 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
     ENTITY_TAB_REGISTRY.map((entry) => entry.id),
   )
   const resultShapeContracts = summarizeBioToolResultShapeContracts()
+  const sectionRegenerationUx = summarizeSectionRegenerationUxContract()
   const registeredToolIds = BIO_TOOLS.map((tool) => tool.id).sort()
   const broadBioToolPolicy = getSupplementaryWriterPolicy('bio-tool-result')
   const promotionQueue = getSupplementaryWriterPromotionQueue()
@@ -585,6 +641,37 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
         ),
       ],
     },
+    {
+      id: 'section-regeneration-ux',
+      title: 'Section regeneration UX',
+      description: '사용자 편집을 보호하면서 Methods/Results 섹션만 명시적으로 다시 생성하도록 유지합니다.',
+      items: [
+        createItem(
+          'section-regeneration-scope',
+          '섹션 재생성 범위는 Methods/Results로 제한됨',
+          sectionRegenerationUx.hasMethodsAndResultsOnlyScope,
+          `지원 섹션: ${sectionRegenerationUx.supportedSectionIds.join(', ')}`,
+          `지원 섹션 범위 확인 필요: ${sectionRegenerationUx.supportedSectionIds.join(', ')}`,
+        ),
+        createItem(
+          'section-regeneration-mode-separation',
+          '본문 보존 갱신과 본문 교체 재생성이 분리됨',
+          sectionRegenerationUx.separatesDestructiveAndBodyPreservingModes
+            && sectionRegenerationUx.bodyPreservingModePreservesBody,
+          `본문 보존: ${sectionRegenerationUx.bodyPreservingMode}, 본문 교체: ${sectionRegenerationUx.destructiveMode}`,
+          '본문 보존 모드와 본문 교체 모드 계약이 불명확함',
+        ),
+        createItem(
+          'section-regeneration-destructive-guards',
+          '본문 교체 재생성은 확인과 편집 보호를 요구함',
+          sectionRegenerationUx.destructiveModeRequiresConfirmation
+            && sectionRegenerationUx.editorDisabledWhilePending
+            && sectionRegenerationUx.blocksConcurrentSectionJobs,
+          '확인 다이얼로그, 진행 중 편집 비활성화, 동시 작업 차단 계약 유지',
+          '본문 교체 재생성의 확인/편집 보호/동시 작업 차단 계약 확인 필요',
+        ),
+      ],
+    },
   ]
 
   const items = sections.flatMap((section) => section.items)
@@ -602,6 +689,8 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
       trackedVariableRequirementOnlyCount: statisticalSync.trackedRequirementOnlyIds.length,
       projectEntityKindCount: entitySync.knownEntityKinds.length,
       bioToolResultContractFixtureCount: resultShapeContracts.fixtureToolIds.length,
+      sectionRegenerationUxItemCount: sections
+        .find((section) => section.id === 'section-regeneration-ux')?.items.length ?? 0,
     },
     sections,
   }

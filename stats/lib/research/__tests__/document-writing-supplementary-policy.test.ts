@@ -12,6 +12,7 @@ import {
 } from '../document-writing-supplementary-policy'
 import {
   buildDocumentWritingDevelopmentChecklist,
+  summarizeSectionRegenerationUxContract,
   summarizeProjectEntitySync,
   summarizeStatisticalMethodSync,
   summarizeBioToolWriterReadiness,
@@ -99,12 +100,47 @@ describe('document writing supplementary writer policy', () => {
     expect(checklist.summary.statisticalMethodCount).toBe(getAllMethods().length)
     expect(checklist.summary.trackedVariableRequirementOnlyCount).toBeGreaterThan(0)
     expect(checklist.summary.projectEntityKindCount).toBeGreaterThan(0)
+    expect(checklist.summary.sectionRegenerationUxItemCount).toBe(3)
     expect(checklist.sections.map((section) => section.id)).toEqual([
       'bio-tools',
       'source-contracts',
       'statistics-methods',
       'project-entities',
+      'section-regeneration-ux',
     ])
+  })
+
+  it('keeps section regeneration UX contract conservative for user-edited drafts', () => {
+    const summary = summarizeSectionRegenerationUxContract()
+
+    expect(summary.supportedSectionIds).toEqual(['methods', 'results'])
+    expect(summary.destructiveMode).toBe('regenerate')
+    expect(summary.bodyPreservingMode).toBe('refresh-linked-sources')
+    expect(summary.hasMethodsAndResultsOnlyScope).toBe(true)
+    expect(summary.separatesDestructiveAndBodyPreservingModes).toBe(true)
+    expect(summary.destructiveModeRequiresConfirmation).toBe(true)
+    expect(summary.bodyPreservingModePreservesBody).toBe(true)
+    expect(summary.editorDisabledWhilePending).toBe(true)
+    expect(summary.blocksConcurrentSectionJobs).toBe(true)
+  })
+
+  it('simulates section regeneration UX drift for checklist attention cases', () => {
+    const summary = summarizeSectionRegenerationUxContract({
+      supportedSectionIds: ['methods', 'results', 'discussion'],
+      destructiveMode: 'regenerate',
+      bodyPreservingMode: 'regenerate',
+      destructiveModeRequiresConfirmation: false,
+      bodyPreservingModePreservesBody: false,
+      editorDisabledWhilePending: false,
+      blocksConcurrentSectionJobs: false,
+    })
+
+    expect(summary.hasMethodsAndResultsOnlyScope).toBe(false)
+    expect(summary.separatesDestructiveAndBodyPreservingModes).toBe(false)
+    expect(summary.destructiveModeRequiresConfirmation).toBe(false)
+    expect(summary.bodyPreservingModePreservesBody).toBe(false)
+    expect(summary.editorDisabledWhilePending).toBe(false)
+    expect(summary.blocksConcurrentSectionJobs).toBe(false)
   })
 
   it('marks ready Bio-Tools without dedicated writers as attention items', () => {

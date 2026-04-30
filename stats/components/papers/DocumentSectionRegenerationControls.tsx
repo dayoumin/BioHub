@@ -14,7 +14,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import type { DocumentSectionRegenerationMode } from '@/lib/research/document-writing-orchestrator'
+import {
+  DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
+  DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
+  type DocumentSectionRegenerationMode,
+} from '@/lib/research/document-section-regeneration-contract'
 
 interface DocumentSectionRegenerationControlsProps {
   sectionTitle: string
@@ -42,11 +46,12 @@ export default function DocumentSectionRegenerationControls({
         variant="outline"
         size="sm"
         className="h-8 gap-1 text-xs"
+        data-testid="paper-section-refresh-sources-btn"
         disabled={disabled}
         onClick={onRefreshLinkedSources}
       >
         <RefreshCw className="h-3.5 w-3.5" />
-        {pendingMode === 'refresh-linked-sources' ? '갱신 중' : '본문 보존 갱신'}
+        {pendingMode === DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE ? '갱신 중' : '본문 보존 갱신'}
       </Button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
@@ -55,13 +60,14 @@ export default function DocumentSectionRegenerationControls({
             variant="secondary"
             size="sm"
             className="h-8 gap-1 text-xs"
+            data-testid="paper-section-regenerate-btn"
             disabled={disabled}
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            {pendingMode === 'regenerate' ? '재생성 중' : '섹션 다시 생성'}
+            {pendingMode === DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE ? '재생성 중' : '섹션 다시 생성'}
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="paper-section-regenerate-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>섹션 본문을 새 초안으로 교체할까요?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -81,7 +87,10 @@ export default function DocumentSectionRegenerationControls({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={onRegenerateSection}>
+            <AlertDialogAction
+              data-testid="paper-section-regenerate-confirm-btn"
+              onClick={onRegenerateSection}
+            >
               본문 교체하고 재생성
             </AlertDialogAction>
           </AlertDialogFooter>

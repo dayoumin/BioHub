@@ -49,11 +49,16 @@ import {
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
 import {
-  type DocumentSectionRegenerationMode,
   ensureDocumentWriting,
   regenerateDocumentSection,
   retryDocumentWriting,
 } from '@/lib/research/document-writing-orchestrator'
+import {
+  DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
+  DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
+  isDocumentSectionRegenerationSectionId,
+  type DocumentSectionRegenerationMode,
+} from '@/lib/research/document-section-regeneration-contract'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import {
@@ -779,12 +784,12 @@ export default function DocumentEditor({
   }, [flushSerialize, scheduleImmediateSave])
 
   const handleRegenerateActiveSection = useCallback(async (): Promise<void> => {
-    if (!activeSectionId || (activeSectionId !== 'methods' && activeSectionId !== 'results')) {
+    if (!activeSectionId || !isDocumentSectionRegenerationSectionId(activeSectionId)) {
       return
     }
 
-    sectionRegenerationModeRef.current = 'regenerate'
-    setSectionRegenerationMode('regenerate')
+    sectionRegenerationModeRef.current = DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE
+    setSectionRegenerationMode(DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE)
     try {
       const canContinue = await persistLatestDocumentBeforeSectionRegeneration()
       if (!canContinue) {
@@ -793,7 +798,11 @@ export default function DocumentEditor({
       }
 
       const savedLocalEditRevision = localEditRevisionRef.current
-      const updated = await regenerateDocumentSection(docRef.current?.id ?? documentId, activeSectionId, 'regenerate')
+      const updated = await regenerateDocumentSection(
+        docRef.current?.id ?? documentId,
+        activeSectionId,
+        DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
+      )
       if (
         localEditRevisionRef.current !== savedLocalEditRevision
         || pendingSaveRevisionRef.current !== null
@@ -820,12 +829,12 @@ export default function DocumentEditor({
   }, [activeSectionId, applyLoadedDocument, documentId, persistLatestDocumentBeforeSectionRegeneration])
 
   const handleRefreshActiveSectionSources = useCallback(async (): Promise<void> => {
-    if (!activeSectionId || (activeSectionId !== 'methods' && activeSectionId !== 'results')) {
+    if (!activeSectionId || !isDocumentSectionRegenerationSectionId(activeSectionId)) {
       return
     }
 
-    sectionRegenerationModeRef.current = 'refresh-linked-sources'
-    setSectionRegenerationMode('refresh-linked-sources')
+    sectionRegenerationModeRef.current = DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE
+    setSectionRegenerationMode(DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE)
     try {
       const canContinue = await persistLatestDocumentBeforeSectionRegeneration()
       if (!canContinue) {
@@ -834,7 +843,11 @@ export default function DocumentEditor({
       }
 
       const savedLocalEditRevision = localEditRevisionRef.current
-      const updated = await regenerateDocumentSection(docRef.current?.id ?? documentId, activeSectionId, 'refresh-linked-sources')
+      const updated = await regenerateDocumentSection(
+        docRef.current?.id ?? documentId,
+        activeSectionId,
+        DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
+      )
       if (
         localEditRevisionRef.current !== savedLocalEditRevision
         || pendingSaveRevisionRef.current !== null
@@ -1079,7 +1092,9 @@ export default function DocumentEditor({
         return null
     }
   }, [activeSectionWritingState?.status])
-  const canRegenerateActiveSection = activeSection?.id === 'methods' || activeSection?.id === 'results'
+  const canRegenerateActiveSection = activeSection
+    ? isDocumentSectionRegenerationSectionId(activeSection.id)
+    : false
   const isActiveSectionDrafting = activeSectionWritingState?.status === 'drafting'
   const hasActiveDocumentWritingJob = ['collecting', 'drafting', 'patching'].includes(documentWritingState?.status ?? 'idle')
   const isSectionRegenerationPending = sectionRegenerationMode !== null
