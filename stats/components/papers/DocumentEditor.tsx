@@ -1169,6 +1169,7 @@ export default function DocumentEditor({
           readiness: getDocumentWritingSourceReadiness({
             sourceKind: 'analysis',
             sectionId: activeSection.id,
+            needsReassemble,
           }),
         })
         continue
@@ -1184,6 +1185,7 @@ export default function DocumentEditor({
           kindLabel: '그래프',
           readiness: getDocumentWritingSourceReadiness({
             sourceKind: 'figure',
+            needsReassemble,
           }),
         })
         continue
@@ -1214,6 +1216,7 @@ export default function DocumentEditor({
           readiness: getDocumentWritingSourceReadiness({
             sourceKind: 'supplementary',
             entityKind,
+            needsReassemble,
             bioTool: bioToolEntry
               ? {
                 toolId: bioToolEntry.toolId,

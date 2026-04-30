@@ -468,6 +468,36 @@ describe('DocumentEditor export freshness', () => {
     })
   })
 
+  it('marks active section source readiness as stale when linked project materials change', async () => {
+    mockListProjectEntityRefs.mockReturnValue([
+      {
+        id: 'pref-analysis-1',
+        projectId: 'project-1',
+        entityKind: 'analysis',
+        entityId: 'analysis-1',
+        label: 'ANOVA',
+        createdAt: '2026-04-30T00:00:00.000Z',
+        updatedAt: '2026-04-30T00:00:00.000Z',
+      },
+    ])
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    expect(screen.getByText('Results 자동 작성 가능')).toBeInTheDocument()
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, {
+        detail: { projectIds: ['project-1'], entityIds: ['analysis-1'] },
+      }))
+    })
+
+    await screen.findByText('프로젝트 분석 또는 그래프가 변경되었습니다.')
+    expect(screen.getAllByText('재조립 필요').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('원본 자료 변경이 감지되었습니다. 재조립 후 자동 작성 내용을 다시 확인하세요.')).toBeInTheDocument()
+    expect(screen.queryByText('Results 자동 작성 가능')).not.toBeInTheDocument()
+  })
+
   it('ignores stale citation reload responses when newer citation changes finish first', async () => {
     const firstReload = createDeferred<CitationRecord[]>()
     const secondReload = createDeferred<CitationRecord[]>()

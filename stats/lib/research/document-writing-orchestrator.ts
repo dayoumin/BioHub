@@ -44,6 +44,7 @@ import {
 import {
   DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
   DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
+  DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS,
   isDocumentSectionRegenerationSectionId,
   type DocumentSectionRegenerationMode,
   type DocumentSectionRegenerationSectionId,
@@ -571,7 +572,7 @@ async function failDocumentWriting(documentId: string, jobId: string, message: s
       errorMessage: message,
     })
 
-    for (const sectionId of ['methods', 'results'] as const) {
+    for (const sectionId of DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS) {
       const currentStatus = updatedDocument.writingState?.sectionStates[sectionId]?.status
       if (currentStatus === 'patched' || currentStatus === 'skipped') {
         continue
@@ -692,7 +693,7 @@ export function retryDocumentWriting(documentId: string): Promise<DocumentBluepr
       errorMessage: undefined,
     })
 
-    for (const sectionId of ['methods', 'results'] as const) {
+    for (const sectionId of DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS) {
       restartedDocument = updateDocumentSectionWritingState(restartedDocument, sectionId, 'drafting', {
         jobId: nextJobId,
         updatedAt: now,

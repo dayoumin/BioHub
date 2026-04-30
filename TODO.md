@@ -328,3 +328,8 @@
 - [x] 자료 작성 source readiness UX 추가: `DocumentEditor` 원본 자료 영역에서 source별 자동 작성 가능/확인 필요/재조립 필요 상태와 보수적 자동화 설명을 표시하고, 판정 로직을 순수 함수로 분리해 테스트로 고정 (`document-writing-source-readiness.ts`, `DocumentEditor.tsx`, 2026-04-30)
 - [x] 자료 작성 섹션 재생성 UX 추가: Methods/Results 섹션에서 `섹션 다시 생성`과 `본문 보존 갱신`을 분리하고, orchestrator에 section-level regeneration API와 수동 편집 보존 테스트를 추가 (`document-writing-orchestrator.ts`, `DocumentEditor.tsx`, 2026-04-30)
 - [x] 자료 작성 섹션 재생성 UX 계약을 개발 점검에 추가: Methods/Results 범위, 본문 보존/본문 교체 모드 분리, 확인 다이얼로그와 진행 중 편집 보호를 `document-section-regeneration-contract.ts`와 개발 점검 테스트로 고정 (2026-04-30)
+- [x] 자료 작성 전체 UX/Architecture agent 리뷰 1차 반영: source readiness stale 표시 누락을 수정하고, 섹션 재생성 지원 범위는 `DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS`를 재사용하도록 정리 (2026-04-30)
+- [ ] 자료 작성 Hub 정보구조 재정렬: `새 문서` / `프로젝트 결과로 문서 만들기` / `바이오·유전 결과에서 바로 작성` / `외부 AI 입력 패키지`를 단계형 작성 워크플로우와 보조 기능으로 재배치해 CTA 혼란을 줄인다.
+- [ ] `DocumentEditor` 리팩터링: `useDocumentBlueprintAutosave`, `useDocumentCitations`, `useDocumentSourceLinks`, `useDocumentSectionRegeneration`, artifact table/figure list 컴포넌트로 분리해 저장·충돌·재생성 로직의 결합도를 낮춘다.
+- [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다.
+- [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄인다.

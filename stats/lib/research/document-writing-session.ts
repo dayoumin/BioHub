@@ -21,6 +21,7 @@ import {
 import { loadDocumentBlueprint, saveDocumentBlueprint } from './document-blueprint-storage'
 import { updateDocumentSectionWritingState, updateDocumentWritingState } from './document-writing'
 import { retryDocumentWriting } from './document-writing-orchestrator'
+import { DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS } from './document-section-regeneration-contract'
 import type {
   RetryWritingSessionInput,
   StartManualBlankWritingSessionInput,
@@ -284,7 +285,7 @@ async function createSourceBoundWritingDocument(
     updatedAt: now,
   })
 
-  for (const sectionId of ['methods', 'results']) {
+  for (const sectionId of DOCUMENT_SECTION_REGENERATION_SUPPORTED_SECTION_IDS) {
     document = updateDocumentSectionWritingState(document, sectionId, 'drafting', {
       jobId,
       updatedAt: now,
