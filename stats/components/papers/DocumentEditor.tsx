@@ -52,15 +52,9 @@ import {
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
 import {
   ensureDocumentWriting,
-  regenerateDocumentSection,
   retryDocumentWriting,
 } from '@/lib/research/document-writing-orchestrator'
-import {
-  DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
-  DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
-  isDocumentSectionRegenerationSectionId,
-  type DocumentSectionRegenerationMode,
-} from '@/lib/research/document-section-regeneration-contract'
+import { isDocumentSectionRegenerationSectionId } from '@/lib/research/document-section-regeneration-contract'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import {
@@ -89,6 +83,7 @@ import { updateDocumentSectionWritingState } from '@/lib/research/document-writi
 import type { DocumentWritingSourceReadiness } from '@/lib/research/document-writing-source-readiness'
 import { useDocumentSourceLinks } from './useDocumentSourceLinks'
 import { useDocumentCitations } from './useDocumentCitations'
+import { useDocumentSectionRegeneration } from './useDocumentSectionRegeneration'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -151,9 +146,7 @@ export default function DocumentEditor({
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
   const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
-  const [sectionRegenerationMode, setSectionRegenerationMode] = useState<DocumentSectionRegenerationMode | null>(null)
   const documentConflictRef = useRef<DocumentBlueprint | null>(null)
-  const sectionRegenerationModeRef = useRef<DocumentSectionRegenerationMode | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
@@ -164,6 +157,7 @@ export default function DocumentEditor({
   const lastSavedUpdatedAtRef = useRef<string | null>(null)
   const hasLocalChangesRef = useRef(false)
   const pendingArtifactTargetRef = useRef<string | null>(null)
+  const loadedSectionRef = useRef<string | null>(null)
   const {
     citations,
     latestCitationsRef,
@@ -693,34 +687,6 @@ export default function DocumentEditor({
     }
   }, [editor, scheduleSave])
 
-  // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
-  const handlePlateChange = useCallback(() => {
-    if (!activeSectionId) return
-    if (sectionRegenerationModeRef.current !== null) return
-    const plateValue = editor.children
-    if (shouldTakeOwnershipForWritingSection(activeSectionId)) {
-      takeSectionOwnershipForEditing(activeSectionId, plateValue)
-    } else {
-      updateSection(activeSectionId, { plateValue, generatedBy: 'user' })
-    }
-
-    pendingSerializeSectionRef.current = activeSectionId
-    if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
-    serializeTimerRef.current = setTimeout(() => {
-      serializeTimerRef.current = null
-      // ref에서 섹션 ID를 읽음 — closure의 activeSectionId는 stale할 수 있음
-      const targetSection = pendingSerializeSectionRef.current
-      pendingSerializeSectionRef.current = null
-      if (!targetSection) return
-      try {
-        const markdown = editor.api.markdown.serialize()
-        updateSection(targetSection, { content: markdown })
-      } catch {
-        // serialize 실패 시 무시
-      }
-    }, 500)
-  }, [editor, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
-
   const handleTakeSectionOwnership = useCallback((): void => {
     if (!activeSectionId) {
       return
@@ -752,98 +718,67 @@ export default function DocumentEditor({
     return documentConflictRef.current === null
   }, [flushSerialize, scheduleImmediateSave])
 
-  const handleRegenerateActiveSection = useCallback(async (): Promise<void> => {
-    if (!activeSectionId || !isDocumentSectionRegenerationSectionId(activeSectionId)) {
-      return
+  const getCurrentDocumentIdForSectionRegeneration = useCallback((): string | null => (
+    docRef.current?.id ?? null
+  ), [])
+
+  const getLocalEditRevisionForSectionRegeneration = useCallback((): number => (
+    localEditRevisionRef.current
+  ), [])
+
+  const hasPendingSaveOrConflictForSectionRegeneration = useCallback((): boolean => (
+    pendingSaveRevisionRef.current !== null || documentConflictRef.current !== null
+  ), [])
+
+  const applyRegeneratedDocument = useCallback((updated: DocumentBlueprint): void => {
+    loadedSectionRef.current = null
+    applyLoadedDocument(updated)
+  }, [applyLoadedDocument])
+
+  const {
+    sectionRegenerationMode,
+    sectionRegenerationModeRef,
+    refreshActiveSectionSources: handleRefreshActiveSectionSources,
+    regenerateActiveSection: handleRegenerateActiveSection,
+  } = useDocumentSectionRegeneration({
+    documentId,
+    activeSectionId,
+    getCurrentDocumentId: getCurrentDocumentIdForSectionRegeneration,
+    getLocalEditRevision: getLocalEditRevisionForSectionRegeneration,
+    hasPendingSaveOrConflict: hasPendingSaveOrConflictForSectionRegeneration,
+    persistLatestDocument: persistLatestDocumentBeforeSectionRegeneration,
+    applyRegeneratedDocument,
+  })
+
+  // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
+  const handlePlateChange = useCallback(() => {
+    if (!activeSectionId) return
+    if (sectionRegenerationModeRef.current !== null) return
+    const plateValue = editor.children
+    if (shouldTakeOwnershipForWritingSection(activeSectionId)) {
+      takeSectionOwnershipForEditing(activeSectionId, plateValue)
+    } else {
+      updateSection(activeSectionId, { plateValue, generatedBy: 'user' })
     }
 
-    sectionRegenerationModeRef.current = DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE
-    setSectionRegenerationMode(DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE)
-    try {
-      const canContinue = await persistLatestDocumentBeforeSectionRegeneration()
-      if (!canContinue) {
-        toast.error('저장 충돌을 먼저 해결한 뒤 섹션을 다시 생성하세요.')
-        return
+    pendingSerializeSectionRef.current = activeSectionId
+    if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
+    serializeTimerRef.current = setTimeout(() => {
+      serializeTimerRef.current = null
+      // ref에서 섹션 ID를 읽음 — closure의 activeSectionId는 stale할 수 있음
+      const targetSection = pendingSerializeSectionRef.current
+      pendingSerializeSectionRef.current = null
+      if (!targetSection) return
+      try {
+        const markdown = editor.api.markdown.serialize()
+        updateSection(targetSection, { content: markdown })
+      } catch {
+        // serialize 실패 시 무시
       }
-
-      const savedLocalEditRevision = localEditRevisionRef.current
-      const updated = await regenerateDocumentSection(
-        docRef.current?.id ?? documentId,
-        activeSectionId,
-        DOCUMENT_SECTION_REGENERATION_DESTRUCTIVE_MODE,
-      )
-      if (
-        localEditRevisionRef.current !== savedLocalEditRevision
-        || pendingSaveRevisionRef.current !== null
-        || documentConflictRef.current !== null
-      ) {
-        toast.error('섹션 재생성 중 문서 편집이 감지되어 자동 반영을 중단했습니다.')
-        return
-      }
-      if (updated) {
-        loadedSectionRef.current = null
-        applyLoadedDocument(updated)
-        toast.success('섹션 초안을 다시 생성했습니다.')
-        return
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '섹션 재생성에 실패했습니다.')
-      return
-    } finally {
-      sectionRegenerationModeRef.current = null
-      setSectionRegenerationMode(null)
-    }
-
-    toast.error('섹션 재생성에 실패했습니다.')
-  }, [activeSectionId, applyLoadedDocument, documentId, persistLatestDocumentBeforeSectionRegeneration])
-
-  const handleRefreshActiveSectionSources = useCallback(async (): Promise<void> => {
-    if (!activeSectionId || !isDocumentSectionRegenerationSectionId(activeSectionId)) {
-      return
-    }
-
-    sectionRegenerationModeRef.current = DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE
-    setSectionRegenerationMode(DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE)
-    try {
-      const canContinue = await persistLatestDocumentBeforeSectionRegeneration()
-      if (!canContinue) {
-        toast.error('저장 충돌을 먼저 해결한 뒤 연결 자료를 갱신하세요.')
-        return
-      }
-
-      const savedLocalEditRevision = localEditRevisionRef.current
-      const updated = await regenerateDocumentSection(
-        docRef.current?.id ?? documentId,
-        activeSectionId,
-        DOCUMENT_SECTION_REGENERATION_BODY_PRESERVING_MODE,
-      )
-      if (
-        localEditRevisionRef.current !== savedLocalEditRevision
-        || pendingSaveRevisionRef.current !== null
-        || documentConflictRef.current !== null
-      ) {
-        toast.error('연결 자료 갱신 중 문서 편집이 감지되어 자동 반영을 중단했습니다.')
-        return
-      }
-      if (updated) {
-        loadedSectionRef.current = null
-        applyLoadedDocument(updated)
-        toast.success('본문은 유지하고 연결 자료를 갱신했습니다.')
-        return
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '연결 자료 갱신에 실패했습니다.')
-      return
-    } finally {
-      sectionRegenerationModeRef.current = null
-      setSectionRegenerationMode(null)
-    }
-
-    toast.error('연결 자료 갱신에 실패했습니다.')
-  }, [activeSectionId, applyLoadedDocument, documentId, persistLatestDocumentBeforeSectionRegeneration])
+    }, 500)
+  }, [activeSectionId, editor, sectionRegenerationModeRef, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
 
   // 섹션 전환 시 Plate 에디터에 content 로드
-  const loadedSectionRef = useRef<string | null>(null)
   useEffect(() => {
     if (!activeSectionId || !doc) return
     if (loadedSectionRef.current === activeSectionId) return
