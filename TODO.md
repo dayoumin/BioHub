@@ -342,6 +342,6 @@
 - [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다. revision restore/export freshness/autosave debounce reload도 포함한다.
 - [ ] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, snapshot excerpt를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다.
 - [ ] 자료 작성 revision retention 개선: 자동 snapshot 반복이 사용자 수동 저장 지점을 밀어내지 않도록 manual revision 보호 또는 reason별 quota를 적용한다.
-- [ ] 자료 작성 export 안전성 개선: HTML export의 title/content/caption/table cell/provenance를 escape/sanitize하고, empty-but-reassemblable 문서와 HWPX/clipboard prepared-document export path를 테스트한다.
+- [x] 자료 작성 export 안전성 개선: HTML export의 title/content/caption/table cell/provenance를 escape/sanitize하고, empty-but-reassemblable 문서와 HWPX/clipboard prepared-document export path를 테스트로 고정 (2026-04-30)
 - [ ] 자료 작성 regeneration guard 테스트 확장: body-preserving refresh, destructive regeneration, conflict before persistLatestDocument, regenerateDocumentSection 이후 concurrent local edit 방어를 통합 테스트로 고정한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄이고, source loading도 `DocumentEditor`/`useDocumentSourceLinks`/assembler/export provenance에 중복되지 않도록 공통 adapter로 모은다.

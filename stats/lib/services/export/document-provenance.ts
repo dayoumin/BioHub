@@ -15,6 +15,15 @@ function buildAnalysisLine(label: string | undefined, id: string | undefined): s
   return null
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function getTableProvenanceLines(table: DocumentTable): string[] {
   const lines: string[] = []
   const analysisLine = buildAnalysisLine(table.sourceAnalysisLabel, table.sourceAnalysisId)
@@ -44,5 +53,5 @@ export function renderHtmlProvenance(lines: readonly string[]): string {
   if (lines.length === 0) {
     return ''
   }
-  return `<ul>${lines.map((line) => `<li>${line}</li>`).join('')}</ul>`
+  return `<ul>${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
 }

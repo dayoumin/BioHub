@@ -20,6 +20,23 @@ interface DocumentExportBarProps {
   onBeforeExport?: () => void | DocumentBlueprint | undefined | Promise<void | DocumentBlueprint | undefined>
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function sanitizeInlineHtml(value: string): string {
+  return value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/\son\w+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s(href|src)=(?:"javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]+)/gi, '')
+}
+
 function documentToMarkdown(doc: DocumentBlueprint): string {
   const lines: string[] = []
   lines.push(`# ${doc.title}`)
@@ -65,23 +82,24 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
 
 function renderTableHtml(table: DocumentTable): string {
   const provenanceHtml = renderHtmlProvenance(getTableProvenanceLines(table))
-  if (table.htmlContent) return `<p><strong>${table.caption}</strong></p>${provenanceHtml}${table.htmlContent}`
+  const caption = escapeHtml(table.caption)
+  if (table.htmlContent) return `<p><strong>${caption}</strong></p>${provenanceHtml}${sanitizeInlineHtml(table.htmlContent)}`
   if (table.headers.length === 0) return ''
-  const thead = `<thead><tr>${table.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
-  const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`
-  return `<p><strong>${table.caption}</strong></p>${provenanceHtml}<table>${thead}${tbody}</table>`
+  const thead = `<thead><tr>${table.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`
+  const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`
+  return `<p><strong>${caption}</strong></p>${provenanceHtml}<table>${thead}${tbody}</table>`
 }
 
 function documentToHtml(doc: DocumentBlueprint): string {
   const parts: string[] = []
-  parts.push(`<h1>${doc.title}</h1>`)
-  if (doc.authors?.length) parts.push(`<p>${doc.authors.join(', ')}</p>`)
+  parts.push(`<h1>${escapeHtml(doc.title)}</h1>`)
+  if (doc.authors?.length) parts.push(`<p>${doc.authors.map(escapeHtml).join(', ')}</p>`)
 
   for (const section of doc.sections) {
     if (!hasVisibleContent(section)) continue
-    parts.push(`<h2>${section.title}</h2>`)
+    parts.push(`<h2>${escapeHtml(section.title)}</h2>`)
     if (section.content) {
-      const contentHtml = section.content
+      const contentHtml = escapeHtml(section.content)
         .replace(/^### (.+)$/gm, '<h3>$1</h3>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -97,7 +115,7 @@ function documentToHtml(doc: DocumentBlueprint): string {
     }
     if (section.figures?.length) {
       for (const fig of section.figures) {
-        parts.push(`<p><em>${fig.label}: ${fig.caption}</em></p>${renderHtmlProvenance(getFigureProvenanceLines(fig))}`)
+        parts.push(`<p><em>${escapeHtml(fig.label)}: ${escapeHtml(fig.caption)}</em></p>${renderHtmlProvenance(getFigureProvenanceLines(fig))}`)
       }
     }
   }
@@ -106,7 +124,7 @@ function documentToHtml(doc: DocumentBlueprint): string {
 <html lang="${doc.language}">
 <head>
   <meta charset="UTF-8">
-  <title>${doc.title}</title>
+  <title>${escapeHtml(doc.title)}</title>
   <style>
     body { font-family: 'Times New Roman', serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
     h1 { text-align: center; }
@@ -131,6 +149,7 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     () => doc.sections.some(s => hasVisibleContent(s)),
     [doc.sections],
   )
+  const canExport = hasContent || Boolean(onBeforeExport)
 
   const resolveExportDocument = useCallback(async (): Promise<DocumentBlueprint> => {
     const prepared = await onBeforeExport?.()
@@ -189,18 +208,18 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
 
   return (
     <div className="flex items-center gap-2 border-t pt-3">
-      <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5">
+      <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!canExport} className="gap-1.5">
         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
         {copied ? '복사됨' : '마크다운 복사'}
       </Button>
-      <Button variant="outline" size="sm" onClick={handleDownloadHtml} disabled={!hasContent} className="gap-1.5">
+      <Button variant="outline" size="sm" onClick={handleDownloadHtml} disabled={!canExport} className="gap-1.5">
         <Download className="w-4 h-4" />
         HTML 다운로드
       </Button>
       <Button
         variant="outline"
         size="sm"
-        disabled={!hasContent || docxLoading}
+        disabled={!canExport || docxLoading}
         onClick={handleDownloadDocx}
         className="gap-1.5"
       >
@@ -210,7 +229,7 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
       <Button
         variant="outline"
         size="sm"
-        disabled={!hasContent || hwpxLoading}
+        disabled={!canExport || hwpxLoading}
         onClick={handleDownloadHwpx}
         className="gap-1.5"
       >
