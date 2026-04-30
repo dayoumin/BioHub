@@ -77,6 +77,7 @@ import DocumentExportBar from './DocumentExportBar'
 import DocumentWritingHeaderStatus from './DocumentWritingHeaderStatus'
 import SectionWritingBanner from './SectionWritingBanner'
 import DocumentSectionRegenerationControls from './DocumentSectionRegenerationControls'
+import DocumentArtifactLists from './DocumentArtifactLists'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
@@ -961,6 +962,14 @@ export default function DocumentEditor({
     await deleteCitation(id)
   }, [])
 
+  const handleOpenArtifactAnalysis = useCallback((analysisId: string): void => {
+    router.push(buildAnalysisHistoryUrl(analysisId))
+  }, [router])
+
+  const handleOpenArtifactFigure = useCallback((figureId: string): void => {
+    router.push(buildGraphStudioProjectUrl(figureId))
+  }, [router])
+
   const activeSection = doc?.sections.find((section) => section.id === activeSectionId) ?? null
   const documentWritingState = doc?.writingState
   const activeSectionWritingState = activeSection
@@ -1286,123 +1295,12 @@ export default function DocumentEditor({
                 <PlateEditor editor={editor} onChange={handlePlateChange} />
               )}
 
-              {/* 표 목록 */}
-              {activeSection.tables && activeSection.tables.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-muted-foreground">표</h3>
-                  {activeSection.tables.map((table, i) => {
-                    const sourceAnalysisId = table.sourceAnalysisId
-
-                    return (
-                    <div
-                      key={table.id ?? i}
-                      data-doc-target={table.id ? `table:${table.id}` : undefined}
-                      className="border rounded-lg overflow-hidden"
-                    >
-                      <div className="flex items-center gap-2 bg-muted/50 p-2">
-                        <p className="min-w-0 flex-1 text-xs font-medium">{table.caption}</p>
-                        {sourceAnalysisId && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => router.push(buildAnalysisHistoryUrl(sourceAnalysisId))}
-                          >
-                            통계 열기
-                          </Button>
-                        )}
-                      </div>
-                      {table.sourceAnalysisLabel && (
-                        <div className="px-2 pb-2 text-xs text-muted-foreground">
-                          관련 분석: {table.sourceAnalysisLabel}
-                        </div>
-                      )}
-                      {table.htmlContent ? (
-                        <div
-                          className="p-2 text-sm overflow-x-auto"
-                          dangerouslySetInnerHTML={{ __html: table.htmlContent }}
-                        />
-                      ) : (
-                        <div className="p-2 overflow-x-auto">
-                          <table className="text-xs w-full">
-                            <thead>
-                              <tr>
-                                {table.headers.map((h, hi) => (
-                                  <th key={hi} className="border px-2 py-1 bg-muted/30 text-left">{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {table.rows.map((row, ri) => (
-                                <tr key={ri}>
-                                  {row.map((cell, ci) => (
-                                    <td key={ci} className="border px-2 py-1">{cell}</td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )})}
-                </div>
-              )}
-
-              {/* Figure 목록 */}
-              {activeSection.figures && activeSection.figures.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-muted-foreground">그림</h3>
-                  {activeSection.figures.map(fig => {
-                    const relatedAnalysisId = fig.relatedAnalysisId
-
-                    return (
-                    <div
-                      key={fig.entityId}
-                      data-doc-target={`figure:${fig.entityId}`}
-                      className="rounded border bg-muted/20 p-2 text-sm"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{fig.label}</span>
-                        <span className="text-muted-foreground">{fig.caption}</span>
-                        <div className="ml-auto flex items-center gap-2">
-                          {relatedAnalysisId && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs"
-                              onClick={() => router.push(buildAnalysisHistoryUrl(relatedAnalysisId))}
-                            >
-                              통계 열기
-                            </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => router.push(buildGraphStudioProjectUrl(fig.entityId))}
-                          >
-                            Graph Studio
-                          </Button>
-                        </div>
-                      </div>
-                      {(fig.relatedAnalysisLabel || fig.patternSummary) && (
-                        <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                          {fig.relatedAnalysisLabel && (
-                            <p>관련 분석: {fig.relatedAnalysisLabel}</p>
-                          )}
-                          {fig.patternSummary && (
-                            <p>패턴 요약: {fig.patternSummary}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )})}
-                </div>
-              )}
+              <DocumentArtifactLists
+                tables={activeSection.tables}
+                figures={activeSection.figures}
+                onOpenAnalysis={handleOpenArtifactAnalysis}
+                onOpenFigure={handleOpenArtifactFigure}
+              />
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">

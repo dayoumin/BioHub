@@ -333,6 +333,8 @@
 - [x] `DocumentEditor` source link 계산 1차 분리: active section source readiness/link 계산을 `useDocumentSourceLinks`로 추출하고, Bio-Tools/Genetics history 변경 시 supplementary source도 stale로 재계산되도록 회귀 테스트 추가 (2026-04-30)
 - [x] `DocumentEditor` citation 로딩 1차 분리: citation 목록, stale reload 방지, pending reload 대기 ref를 `useDocumentCitations`로 추출하고 projectId 전환 방어를 hook 내부로 유지 (2026-04-30)
 - [x] `DocumentEditor` 섹션 재생성 실행 로직 1차 분리: 본문 보존 갱신/본문 교체 재생성의 pending mode, 충돌·동시 편집 방어, toast 메시지 처리를 `useDocumentSectionRegeneration`으로 추출 (2026-04-30)
-- [ ] `DocumentEditor` 추가 리팩터링: `useDocumentBlueprintAutosave`, artifact table/figure list 컴포넌트로 분리해 저장·충돌·산출물 렌더링 결합도를 낮춘다.
+- [x] `DocumentEditor` artifact 렌더링 1차 분리: section table/figure 목록과 원본 열기 액션을 `DocumentArtifactLists` 컴포넌트로 추출해 에디터 본체 JSX 밀도를 낮춤 (2026-04-30)
+- [ ] `DocumentArtifactLists` 디자인 polish: 현재는 동등성 유지를 위해 기존 border/table cell 스타일을 보존했으나, 후속 UI polish에서 Axiom Slate No-Line 원칙에 맞춰 surface tone 기반 구분으로 전환 검토.
+- [ ] `DocumentEditor` 추가 리팩터링: `useDocumentBlueprintAutosave`로 저장·충돌·unmount flush 로직 결합도를 낮춘다.
 - [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄인다.
