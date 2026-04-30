@@ -6,6 +6,7 @@ import {
 } from '@/lib/statistics/variable-requirements'
 import type { ProjectEntityKind } from '@biohub/types'
 import type { StudySchemaVariableRole } from '@/lib/services/paper-draft/study-schema'
+import type { StatisticalMethodCategory } from '@/types/analysis'
 import {
   BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL,
   SUPPLEMENTARY_ENTITY_WRITER_POLICIES,
@@ -92,6 +93,11 @@ interface ProjectEntitySyncSummary {
   documentWritingKindsMissingResolver: readonly ProjectEntityKind[]
   documentWritingKindsMissingTab: readonly ProjectEntityKind[]
   documentWritingKindsMissingSourceRegistry: readonly ProjectEntityKind[]
+}
+
+interface StatisticalScopeCategoryResolvers {
+  methods: (methodId: string) => StatisticalMethodCategory
+  results: (methodId: string) => StatisticalMethodCategory
 }
 
 const STAGE_LABELS: Record<SupplementaryWriterStage, string> = {
@@ -218,6 +224,10 @@ export function summarizeStatisticalMethodSync(
   methods: readonly Pick<StatisticalMethodEntry, 'id' | 'category'>[],
   requirements: readonly { id: string; variables: readonly { role: VariableRole }[] }[],
   trackedRequirementOnlyIds: readonly string[] = TRACKED_VARIABLE_REQUIREMENT_ONLY_IDS,
+  scopeCategoryResolvers: StatisticalScopeCategoryResolvers = {
+    methods: (methodId) => getMethodsAutomationScope(methodId, 'ko').category,
+    results: (methodId) => getResultsAutomationScope(methodId, 'ko').category,
+  },
 ): StatisticalMethodSyncSummary {
   const methodIds = methods.map((method) => method.id)
   const methodIdSet = new Set(methodIds)
@@ -236,10 +246,10 @@ export function summarizeStatisticalMethodSync(
   ))
 
   const mismatchedMethodsScopeMethodIds = methods.filter((method) => (
-    getMethodsAutomationScope(method.id, 'ko').category !== method.category
+    scopeCategoryResolvers.methods(method.id) !== method.category
   )).map((method) => method.id)
   const mismatchedResultsScopeMethodIds = methods.filter((method) => (
-    getResultsAutomationScope(method.id, 'ko').category !== method.category
+    scopeCategoryResolvers.results(method.id) !== method.category
   )).map((method) => method.id)
   const variableRequirementRoles = Array.from(new Set(
     requirements.flatMap((requirement) => requirement.variables.map((variable) => variable.role)),

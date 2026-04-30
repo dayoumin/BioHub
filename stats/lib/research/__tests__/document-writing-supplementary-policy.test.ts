@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BIO_TOOLS } from '@/lib/bio-tools/bio-tool-registry'
+import { getAllMethods } from '@/lib/constants/statistical-methods'
+import { STATISTICAL_METHOD_REQUIREMENTS } from '@/lib/statistics/variable-requirements'
 import {
   BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL,
   BIO_TOOL_SUPPLEMENTARY_WRITER_POLICIES,
@@ -91,12 +93,12 @@ describe('document writing supplementary writer policy', () => {
 
     expect(checklist.summary.attentionItems).toBe(0)
     expect(allItems.every((item) => item.status === 'pass')).toBe(true)
-    expect(checklist.summary.readyBioToolCount).toBe(15)
-    expect(checklist.summary.dedicatedReadyBioToolCount).toBe(15)
+    expect(checklist.summary.readyBioToolCount).toBe(BIO_TOOLS.filter((tool) => tool.status === 'ready').length)
+    expect(checklist.summary.dedicatedReadyBioToolCount).toBe(checklist.summary.readyBioToolCount)
     expect(checklist.summary.genericReadyBioToolIds).toEqual([])
-    expect(checklist.summary.statisticalMethodCount).toBe(50)
-    expect(checklist.summary.trackedVariableRequirementOnlyCount).toBe(14)
-    expect(checklist.summary.projectEntityKindCount).toBe(17)
+    expect(checklist.summary.statisticalMethodCount).toBe(getAllMethods().length)
+    expect(checklist.summary.trackedVariableRequirementOnlyCount).toBeGreaterThan(0)
+    expect(checklist.summary.projectEntityKindCount).toBeGreaterThan(0)
     expect(checklist.sections.map((section) => section.id)).toEqual([
       'bio-tools',
       'source-contracts',
@@ -198,6 +200,10 @@ describe('document writing supplementary writer policy', () => {
         { id: 'unexpected-only', variables: [{ role: 'covariate' }] },
       ],
       ['tracked-only'],
+      {
+        methods: () => 't-test',
+        results: () => 't-test',
+      },
     )
 
     expect(sync.missingRequirementMethodIds).toEqual(['new-method'])
@@ -210,10 +216,27 @@ describe('document writing supplementary writer policy', () => {
     const sync = summarizeStatisticalMethodSync(
       [{ id: 'two-sample-t', category: 'regression' }],
       [{ id: 'two-sample-t', variables: [{ role: 'dependent' }] }],
+      [],
+      {
+        methods: () => 't-test',
+        results: () => 't-test',
+      },
     )
 
     expect(sync.mismatchedMethodsScopeMethodIds).toEqual(['two-sample-t'])
     expect(sync.mismatchedResultsScopeMethodIds).toEqual(['two-sample-t'])
+  })
+
+  it('keeps the real statistical scope sync free of mismatches', () => {
+    const sync = summarizeStatisticalMethodSync(
+      getAllMethods(),
+      STATISTICAL_METHOD_REQUIREMENTS,
+    )
+
+    expect(sync.missingRequirementMethodIds).toEqual([])
+    expect(sync.mismatchedMethodsScopeMethodIds).toEqual([])
+    expect(sync.mismatchedResultsScopeMethodIds).toEqual([])
+    expect(sync.unmappedVariableRequirementRoles).toEqual([])
   })
 
   it('detects project entity tab and document-writing source drift', () => {

@@ -63,37 +63,6 @@ import {
 export type WritingSourceBlockKind = 'methods' | 'results' | 'supplementary'
 export type WritingSectionHeadingKind = 'figures' | 'supplementary'
 
-export const DOCUMENT_WRITING_SOURCE_REGISTRY_ENTITY_KINDS = [
-  'analysis',
-  'figure',
-  'bio-tool-result',
-  'blast-result',
-  'protein-result',
-  'seq-stats-result',
-  'similarity-result',
-  'phylogeny-result',
-  'bold-result',
-  'translation-result',
-] as const satisfies readonly ProjectEntityRef['entityKind'][]
-
-export const DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS = [
-  'alpha-diversity',
-  'beta-diversity',
-  'condition-factor',
-  'fst',
-  'hardy-weinberg',
-  'icc',
-  'length-weight',
-  'mantel-test',
-  'meta-analysis',
-  'nmds',
-  'permanova',
-  'rarefaction',
-  'roc-auc',
-  'survival',
-  'vbgf',
-] as const satisfies readonly BioToolId[]
-
 interface WritingSourceRegistryContext {
   language: 'ko' | 'en'
 }
@@ -1169,6 +1138,228 @@ export function createNormalizedSurvivalBioToolWritingSource(
   }
 }
 
+interface BioToolWritingSourceDispatcher {
+  isResult: (results: unknown) => boolean
+  create: (options: {
+    projectId: string
+    entityRef: ProjectEntityRef
+    sourceRef: DocumentSourceRef
+    language: 'ko' | 'en'
+    entry: BioToolHistoryEntry
+  }) => NormalizedWritingSource
+}
+
+const BIO_TOOL_WRITING_SOURCE_DISPATCHERS = {
+  'alpha-diversity': {
+    isResult: isAlphaDiversityResult,
+    create: createNormalizedAlphaDiversityBioToolWritingSource,
+  },
+  'beta-diversity': {
+    isResult: isBetaDiversityResult,
+    create: createNormalizedBetaDiversityBioToolWritingSource,
+  },
+  'condition-factor': {
+    isResult: isConditionFactorResult,
+    create: createNormalizedConditionFactorBioToolWritingSource,
+  },
+  fst: {
+    isResult: isFstResult,
+    create: createNormalizedFstBioToolWritingSource,
+  },
+  'hardy-weinberg': {
+    isResult: isHardyWeinbergResult,
+    create: createNormalizedHardyWeinbergBioToolWritingSource,
+  },
+  icc: {
+    isResult: isIccResult,
+    create: createNormalizedIccBioToolWritingSource,
+  },
+  'length-weight': {
+    isResult: isLengthWeightResult,
+    create: createNormalizedLengthWeightBioToolWritingSource,
+  },
+  'mantel-test': {
+    isResult: isMantelResult,
+    create: createNormalizedMantelBioToolWritingSource,
+  },
+  'meta-analysis': {
+    isResult: isMetaAnalysisResult,
+    create: createNormalizedMetaAnalysisBioToolWritingSource,
+  },
+  nmds: {
+    isResult: isNmdsResult,
+    create: createNormalizedNmdsBioToolWritingSource,
+  },
+  permanova: {
+    isResult: isPermanovaResult,
+    create: createNormalizedPermanovaBioToolWritingSource,
+  },
+  rarefaction: {
+    isResult: isRarefactionResult,
+    create: createNormalizedRarefactionBioToolWritingSource,
+  },
+  'roc-auc': {
+    isResult: isRocAucResult,
+    create: createNormalizedRocAucBioToolWritingSource,
+  },
+  survival: {
+    isResult: isSurvivalResult,
+    create: createNormalizedSurvivalBioToolWritingSource,
+  },
+  vbgf: {
+    isResult: isVbgfResult,
+    create: createNormalizedVbgfBioToolWritingSource,
+  },
+} as const satisfies Partial<Record<BioToolId, BioToolWritingSourceDispatcher>>
+
+export const DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS = Object.keys(
+  BIO_TOOL_WRITING_SOURCE_DISPATCHERS,
+) as Array<keyof typeof BIO_TOOL_WRITING_SOURCE_DISPATCHERS>
+
+interface SupplementaryEntitySourceRegistryOptions {
+  entityRef: ProjectEntityRef
+  sourceRef: DocumentSourceRef
+  language: 'ko' | 'en'
+  maps: SupplementaryWritingSourceMaps
+  buildFallback: () => NormalizedWritingSource
+}
+
+interface SupplementaryEntitySourceDefinition {
+  hasSnapshot: (entityId: string, maps: SupplementaryWritingSourceMaps) => boolean
+  create: (options: SupplementaryEntitySourceRegistryOptions) => NormalizedWritingSource
+}
+
+const SUPPLEMENTARY_ENTITY_SOURCE_REGISTRY = {
+  'bio-tool-result': {
+    hasSnapshot: (entityId, maps) => maps.bioToolById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.bioToolById.get(entityRef.entityId)
+      if (!entry) {
+        return buildFallback()
+      }
+
+      const dispatcher = BIO_TOOL_WRITING_SOURCE_DISPATCHERS[entry.toolId as keyof typeof BIO_TOOL_WRITING_SOURCE_DISPATCHERS]
+      if (dispatcher?.isResult(entry.results)) {
+        return dispatcher.create({
+          projectId: entityRef.projectId,
+          entityRef,
+          sourceRef,
+          language,
+          entry,
+        })
+      }
+
+      return createNormalizedGenericSupplementaryWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        title: entry.toolNameKo ?? entry.toolNameEn ?? entityRef.label ?? 'Bio-Tool',
+        markdown: [
+          `#### ${entry.toolNameKo ?? entry.toolNameEn ?? entityRef.label ?? 'Bio-Tool'}`,
+          '',
+          `- ${language === 'ko' ? '입력 파일' : 'Input file'}: ${entry.csvFileName ?? sourceRef.label ?? entityRef.entityId}`,
+        ].join('\n'),
+      })
+    },
+  },
+  'blast-result': {
+    hasSnapshot: (entityId, maps) => maps.blastById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.blastById.get(entityRef.entityId)
+      return entry ? createNormalizedBlastWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        language,
+        entry,
+      }) : buildFallback()
+    },
+  },
+  'protein-result': {
+    hasSnapshot: (entityId, maps) => maps.proteinById.has(entityId),
+    create: ({ entityRef, sourceRef, maps, buildFallback }) => {
+      const entry = maps.proteinById.get(entityRef.entityId)
+      return entry ? createNormalizedProteinWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        entry,
+      }) : buildFallback()
+    },
+  },
+  'seq-stats-result': {
+    hasSnapshot: (entityId, maps) => maps.seqStatsById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.seqStatsById.get(entityRef.entityId)
+      return entry ? createNormalizedSeqStatsWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        language,
+        entry,
+      }) : buildFallback()
+    },
+  },
+  'similarity-result': {
+    hasSnapshot: (entityId, maps) => maps.similarityById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.similarityById.get(entityRef.entityId)
+      return entry ? createNormalizedSimilarityWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        language,
+        entry,
+      }) : buildFallback()
+    },
+  },
+  'phylogeny-result': {
+    hasSnapshot: (entityId, maps) => maps.phylogenyById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.phylogenyById.get(entityRef.entityId)
+      return entry ? createNormalizedPhylogenyWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        language,
+        entry,
+      }) : buildFallback()
+    },
+  },
+  'bold-result': {
+    hasSnapshot: (entityId, maps) => maps.boldById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.boldById.get(entityRef.entityId)
+      return entry ? createNormalizedBoldWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        language,
+        entry,
+      }) : buildFallback()
+    },
+  },
+  'translation-result': {
+    hasSnapshot: (entityId, maps) => maps.translationById.has(entityId),
+    create: ({ entityRef, sourceRef, language, maps, buildFallback }) => {
+      const entry = maps.translationById.get(entityRef.entityId)
+      return entry ? createNormalizedTranslationWritingSource({
+        projectId: entityRef.projectId,
+        entityRef,
+        sourceRef,
+        language,
+        entry,
+      }) : buildFallback()
+    },
+  },
+} as const satisfies Partial<Record<ProjectEntityRef['entityKind'], SupplementaryEntitySourceDefinition>>
+
+export const DOCUMENT_WRITING_SOURCE_REGISTRY_ENTITY_KINDS = [
+  'analysis',
+  'figure',
+  ...Object.keys(SUPPLEMENTARY_ENTITY_SOURCE_REGISTRY),
+] as ProjectEntityRef['entityKind'][]
+
 export function createNormalizedSupplementaryWritingSource(
   options: SupplementaryWritingSourceOptions,
 ): NormalizedWritingSource {
@@ -1182,274 +1373,22 @@ export function createNormalizedSupplementaryWritingSource(
     })
   )
 
-  switch (entityRef.entityKind) {
-    case 'bio-tool-result': {
-      const entry = maps.bioToolById.get(entityRef.entityId)
-      if (!entry) {
-        return buildFallback()
-      }
-      if (entry.toolId === 'meta-analysis' && isMetaAnalysisResult(entry.results)) {
-        return createNormalizedMetaAnalysisBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'survival' && isSurvivalResult(entry.results)) {
-        return createNormalizedSurvivalBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'icc' && isIccResult(entry.results)) {
-        return createNormalizedIccBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'roc-auc' && isRocAucResult(entry.results)) {
-        return createNormalizedRocAucBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'alpha-diversity' && isAlphaDiversityResult(entry.results)) {
-        return createNormalizedAlphaDiversityBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'length-weight' && isLengthWeightResult(entry.results)) {
-        return createNormalizedLengthWeightBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'vbgf' && isVbgfResult(entry.results)) {
-        return createNormalizedVbgfBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'mantel-test' && isMantelResult(entry.results)) {
-        return createNormalizedMantelBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'permanova' && isPermanovaResult(entry.results)) {
-        return createNormalizedPermanovaBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'nmds' && isNmdsResult(entry.results)) {
-        return createNormalizedNmdsBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'condition-factor' && isConditionFactorResult(entry.results)) {
-        return createNormalizedConditionFactorBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'rarefaction' && isRarefactionResult(entry.results)) {
-        return createNormalizedRarefactionBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'beta-diversity' && isBetaDiversityResult(entry.results)) {
-        return createNormalizedBetaDiversityBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'fst' && isFstResult(entry.results)) {
-        return createNormalizedFstBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      if (entry.toolId === 'hardy-weinberg' && isHardyWeinbergResult(entry.results)) {
-        return createNormalizedHardyWeinbergBioToolWritingSource({
-          projectId: entityRef.projectId,
-          entityRef,
-          sourceRef,
-          language,
-          entry,
-        })
-      }
-      return createNormalizedGenericSupplementaryWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        title: entry?.toolNameKo ?? entry?.toolNameEn ?? entityRef.label ?? 'Bio-Tool',
-        markdown: [
-          `#### ${entry?.toolNameKo ?? entry?.toolNameEn ?? entityRef.label ?? 'Bio-Tool'}`,
-          '',
-          `- ${language === 'ko' ? '입력 파일' : 'Input file'}: ${entry?.csvFileName ?? sourceRef.label ?? entityRef.entityId}`,
-        ].join('\n'),
-      })
-    }
-    case 'blast-result':
-      if (!maps.blastById.get(entityRef.entityId)) {
-        return buildFallback()
-      }
-      return createNormalizedBlastWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        language,
-        entry: maps.blastById.get(entityRef.entityId),
-      })
-    case 'protein-result':
-      if (!maps.proteinById.get(entityRef.entityId)) {
-        return buildFallback()
-      }
-      return createNormalizedProteinWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        entry: maps.proteinById.get(entityRef.entityId),
-      })
-    case 'seq-stats-result': {
-      const entry = maps.seqStatsById.get(entityRef.entityId)
-      if (!entry) {
-        return buildFallback()
-      }
-      return createNormalizedSeqStatsWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        language,
-        entry,
-      })
-    }
-    case 'similarity-result': {
-      const entry = maps.similarityById.get(entityRef.entityId)
-      if (!entry) {
-        return buildFallback()
-      }
-      return createNormalizedSimilarityWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        language,
-        entry,
-      })
-    }
-    case 'phylogeny-result': {
-      const entry = maps.phylogenyById.get(entityRef.entityId)
-      if (!entry) {
-        return buildFallback()
-      }
-      return createNormalizedPhylogenyWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        language,
-        entry,
-      })
-    }
-    case 'bold-result': {
-      const entry = maps.boldById.get(entityRef.entityId)
-      if (!entry) {
-        return buildFallback()
-      }
-      return createNormalizedBoldWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        language,
-        entry,
-      })
-    }
-    case 'translation-result': {
-      const entry = maps.translationById.get(entityRef.entityId)
-      if (!entry) {
-        return buildFallback()
-      }
-      return createNormalizedTranslationWritingSource({
-        projectId: entityRef.projectId,
-        entityRef,
-        sourceRef,
-        language,
-        entry,
-      })
-    }
-    default:
-      return buildFallback()
-  }
+  const definition = SUPPLEMENTARY_ENTITY_SOURCE_REGISTRY[entityRef.entityKind as keyof typeof SUPPLEMENTARY_ENTITY_SOURCE_REGISTRY]
+  return definition?.create({
+    entityRef,
+    sourceRef,
+    language,
+    maps,
+    buildFallback,
+  }) ?? buildFallback()
 }
 
 export function hasSupplementaryWritingSourceSnapshot(
   entityRef: ProjectEntityRef,
   maps: SupplementaryWritingSourceMaps,
 ): boolean {
-  switch (entityRef.entityKind) {
-    case 'bio-tool-result':
-      return maps.bioToolById.has(entityRef.entityId)
-    case 'blast-result':
-      return maps.blastById.has(entityRef.entityId)
-    case 'protein-result':
-      return maps.proteinById.has(entityRef.entityId)
-    case 'seq-stats-result':
-      return maps.seqStatsById.has(entityRef.entityId)
-    case 'similarity-result':
-      return maps.similarityById.has(entityRef.entityId)
-    case 'phylogeny-result':
-      return maps.phylogenyById.has(entityRef.entityId)
-    case 'bold-result':
-      return maps.boldById.has(entityRef.entityId)
-    case 'translation-result':
-      return maps.translationById.has(entityRef.entityId)
-    default:
-      return false
-  }
+  const definition = SUPPLEMENTARY_ENTITY_SOURCE_REGISTRY[entityRef.entityKind as keyof typeof SUPPLEMENTARY_ENTITY_SOURCE_REGISTRY]
+  return definition?.hasSnapshot(entityRef.entityId, maps) ?? false
 }
 
 const writingSourceWriters: WritingSourceWriter[] = [
