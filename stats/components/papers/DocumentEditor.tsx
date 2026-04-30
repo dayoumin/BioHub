@@ -70,7 +70,6 @@ import {
 import type { CitationRecord } from '@/lib/research/citation-types'
 import {
   deleteCitation,
-  listCitationsByProject,
   RESEARCH_PROJECT_CITATIONS_CHANGED_EVENT,
   type ResearchProjectCitationsChangedDetail,
 } from '@/lib/research/citation-storage'
@@ -89,6 +88,7 @@ import { generateFigurePatternSummary } from '@/lib/research/paper-package-assem
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
 import type { DocumentWritingSourceReadiness } from '@/lib/research/document-writing-source-readiness'
 import { useDocumentSourceLinks } from './useDocumentSourceLinks'
+import { useDocumentCitations } from './useDocumentCitations'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -148,7 +148,6 @@ export default function DocumentEditor({
   const [previewMode, setPreviewMode] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'conflict'>('saved')
   const [loading, setLoading] = useState(true)
-  const [citations, setCitations] = useState<CitationRecord[]>([])
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
   const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
@@ -158,16 +157,22 @@ export default function DocumentEditor({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
-  const latestCitationsRef = useRef<CitationRecord[]>([])
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const latestScheduledSaveRevisionRef = useRef(0)
   const localEditRevisionRef = useRef(0)
   const pendingSaveRevisionRef = useRef<number | null>(null)
   const lastSavedUpdatedAtRef = useRef<string | null>(null)
   const hasLocalChangesRef = useRef(false)
-  const citationRequestSeqRef = useRef(0)
-  const pendingCitationReloadRef = useRef<Promise<void> | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
+  const {
+    citations,
+    latestCitationsRef,
+    pendingCitationReloadRef,
+    reloadCitations,
+    resetCitations,
+  } = useDocumentCitations({
+    projectId: doc?.projectId ?? null,
+  })
   const currentProject = useMemo(
     () => (doc ? loadResearchProject(doc.projectId) : null),
     [doc],
@@ -306,7 +311,7 @@ export default function DocumentEditor({
     lastSavedUpdatedAtRef.current = null
     hasLocalChangesRef.current = false
     setActiveSectionId(null)
-    setCitations([])
+    resetCitations()
     setNeedsReassemble(false)
     clearDocumentConflict()
     setSaveStatus('saved')
@@ -322,7 +327,7 @@ export default function DocumentEditor({
     return () => {
       cancelled = true
     }
-  }, [applyLoadedDocument, clearDocumentConflict, documentId, initialSectionId])
+  }, [applyLoadedDocument, clearDocumentConflict, documentId, initialSectionId, resetCitations])
 
   useEffect(() => {
     pendingArtifactTargetRef.current = initialTableId
@@ -349,10 +354,6 @@ export default function DocumentEditor({
     })
     window.sessionStorage.setItem(toastKey, 'shown')
   }, [doc, isScratchProject])
-
-  useEffect(() => {
-    latestCitationsRef.current = citations
-  }, [citations])
 
   useEffect(() => {
     if (!doc || hasLocalChangesRef.current) {
@@ -402,55 +403,6 @@ export default function DocumentEditor({
       window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentChange)
     }
   }, [applyLoadedDocument, documentId, markDocumentConflict])
-
-  const reloadCitations = useCallback(async (projectId: string, requestSeq?: number): Promise<void> => {
-    const seq = requestSeq ?? ++citationRequestSeqRef.current
-    let task: Promise<void> | null = null
-
-    task = (async () => {
-      try {
-        const records = await listCitationsByProject(projectId)
-        if (citationRequestSeqRef.current === seq && docRef.current?.projectId === projectId) {
-          latestCitationsRef.current = records
-          setCitations(records)
-        }
-      } catch {
-        if (citationRequestSeqRef.current === seq && docRef.current?.projectId === projectId) {
-          latestCitationsRef.current = []
-          setCitations([])
-        }
-      }
-    })().finally(() => {
-      if (pendingCitationReloadRef.current === task) {
-        pendingCitationReloadRef.current = null
-      }
-    })
-
-    pendingCitationReloadRef.current = task
-    await task
-  }, [])
-
-  useEffect(() => {
-    const projectId = doc?.projectId
-    citationRequestSeqRef.current += 1
-    const requestSeq = citationRequestSeqRef.current
-
-    if (!projectId) {
-      latestCitationsRef.current = []
-      setCitations([])
-      return () => {
-        citationRequestSeqRef.current += 1
-      }
-    }
-
-    latestCitationsRef.current = []
-    setCitations([])
-    void reloadCitations(projectId, requestSeq)
-
-    return () => {
-      citationRequestSeqRef.current += 1
-    }
-  }, [doc?.projectId, reloadCitations])
 
   useEffect((): (() => void) => {
     const handleEntityRefChange = (event: Event): void => {
