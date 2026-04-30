@@ -1,4 +1,8 @@
 import { BIO_TOOLS, type BioTool, type BioToolId } from '@/lib/bio-tools/bio-tool-registry'
+import {
+  BIO_TOOL_RESULT_CONTRACT_FIXTURES,
+  type BioToolResultContractFixture,
+} from '@/lib/bio-tools/bio-tool-result-contract-fixtures'
 import { getAllMethods, type StatisticalMethodEntry } from '@/lib/constants/statistical-methods'
 import {
   STATISTICAL_METHOD_REQUIREMENTS,
@@ -20,6 +24,7 @@ import { DOCUMENT_WRITING_ENTITY_KINDS } from './document-writing-session'
 import {
   DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS,
   DOCUMENT_WRITING_SOURCE_REGISTRY_ENTITY_KINDS,
+  isDedicatedBioToolWritingSourceResult,
 } from './document-writing-source-registry'
 import {
   ENTITY_RESOLVER_GENERIC_ONLY_KINDS,
@@ -55,6 +60,7 @@ export interface DocumentWritingChecklistSummary {
   statisticalMethodCount: number
   trackedVariableRequirementOnlyCount: number
   projectEntityKindCount: number
+  bioToolResultContractFixtureCount: number
 }
 
 export interface DocumentWritingDevelopmentChecklist {
@@ -98,6 +104,15 @@ interface ProjectEntitySyncSummary {
 interface StatisticalScopeCategoryResolvers {
   methods: (methodId: string) => StatisticalMethodCategory
   results: (methodId: string) => StatisticalMethodCategory
+}
+
+interface BioToolResultShapeContractSummary {
+  fixtureToolIds: readonly BioToolId[]
+  missingFixtureToolIds: readonly BioToolId[]
+  staleFixtureToolIds: readonly BioToolId[]
+  duplicateFixtureToolIds: readonly BioToolId[]
+  invalidFixtureToolIds: readonly BioToolId[]
+  disallowedResultKeyPaths: readonly string[]
 }
 
 const STAGE_LABELS: Record<SupplementaryWriterStage, string> = {
@@ -176,6 +191,58 @@ function findDuplicateStrings(values: readonly string[]): readonly string[] {
 
 function sortStrings(values: readonly string[]): readonly string[] {
   return [...values].sort()
+}
+
+function collectDisallowedResultKeyPaths(value: unknown, path: string, seen: WeakSet<object>): string[] {
+  if (typeof value !== 'object' || value === null) {
+    return []
+  }
+
+  if (seen.has(value)) {
+    return []
+  }
+  seen.add(value)
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => collectDisallowedResultKeyPaths(item, `${path}[${index}]`, seen))
+  }
+
+  if (path === 'condition-factor.groupStats' || path === 'survival.curves') {
+    return Object.values(value).flatMap((child) => collectDisallowedResultKeyPaths(child, `${path}.*`, seen))
+  }
+
+  return Object.entries(value).flatMap(([key, child]) => {
+    const keyPath = `${path}.${key}`
+    const keyProblems = /[_\-\s]/.test(key) ? [keyPath] : []
+    return [
+      ...keyProblems,
+      ...collectDisallowedResultKeyPaths(child, keyPath, seen),
+    ]
+  })
+}
+
+export function summarizeBioToolResultShapeContracts(
+  dedicatedToolIds: readonly BioToolId[] = DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS,
+  fixtures: readonly BioToolResultContractFixture[] = BIO_TOOL_RESULT_CONTRACT_FIXTURES,
+): BioToolResultShapeContractSummary {
+  const fixtureToolIds = fixtures.map((fixture) => fixture.toolId)
+  const fixtureToolIdSet = new Set(fixtureToolIds)
+  const dedicatedToolIdSet = new Set(dedicatedToolIds)
+  const invalidFixtureToolIds = fixtures
+    .filter((fixture) => !isDedicatedBioToolWritingSourceResult(fixture.toolId, fixture.results))
+    .map((fixture) => fixture.toolId)
+  const disallowedResultKeyPaths = fixtures.flatMap((fixture) => (
+    collectDisallowedResultKeyPaths(fixture.results, fixture.toolId, new WeakSet<object>())
+  ))
+
+  return {
+    fixtureToolIds: uniqueToolIds(fixtureToolIds),
+    missingFixtureToolIds: uniqueToolIds(dedicatedToolIds.filter((toolId) => !fixtureToolIdSet.has(toolId))),
+    staleFixtureToolIds: uniqueToolIds(fixtureToolIds.filter((toolId) => !dedicatedToolIdSet.has(toolId))),
+    duplicateFixtureToolIds: findDuplicateToolIds(fixtureToolIds),
+    invalidFixtureToolIds: uniqueToolIds(invalidFixtureToolIds),
+    disallowedResultKeyPaths: sortStrings(disallowedResultKeyPaths),
+  }
 }
 
 export function summarizeBioToolWriterReadiness(
@@ -318,6 +385,7 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
   const entitySync = summarizeProjectEntitySync(
     ENTITY_TAB_REGISTRY.map((entry) => entry.id),
   )
+  const resultShapeContracts = summarizeBioToolResultShapeContracts()
   const registeredToolIds = BIO_TOOLS.map((tool) => tool.id).sort()
   const broadBioToolPolicy = getSupplementaryWriterPolicy('bio-tool-result')
   const promotionQueue = getSupplementaryWriterPromotionQueue()
@@ -403,6 +471,33 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
           promotionQueue.length === 0,
           `${SUPPLEMENTARY_ENTITY_WRITER_POLICIES.length}개 entity policy 검토 완료`,
           `승격 대기 entity: ${promotionQueue.map((policy) => policy.entityKind).join(', ')}`,
+        ),
+        createItem(
+          'bio-tool-result-shape-contracts',
+          'Bio-Tools 결과 fixture가 전용 writer guard를 통과함',
+          resultShapeContracts.missingFixtureToolIds.length === 0
+            && resultShapeContracts.staleFixtureToolIds.length === 0
+            && resultShapeContracts.duplicateFixtureToolIds.length === 0
+            && resultShapeContracts.invalidFixtureToolIds.length === 0
+            && resultShapeContracts.disallowedResultKeyPaths.length === 0,
+          `${resultShapeContracts.fixtureToolIds.length}개 Bio-Tool 결과 fixture가 writer/source guard와 동기화됨`,
+          [
+            resultShapeContracts.missingFixtureToolIds.length > 0
+              ? `fixture 누락: ${resultShapeContracts.missingFixtureToolIds.join(', ')}`
+              : null,
+            resultShapeContracts.staleFixtureToolIds.length > 0
+              ? `전용 writer가 아닌 fixture: ${resultShapeContracts.staleFixtureToolIds.join(', ')}`
+              : null,
+            resultShapeContracts.duplicateFixtureToolIds.length > 0
+              ? `fixture 중복: ${resultShapeContracts.duplicateFixtureToolIds.join(', ')}`
+              : null,
+            resultShapeContracts.invalidFixtureToolIds.length > 0
+              ? `type guard 실패: ${resultShapeContracts.invalidFixtureToolIds.join(', ')}`
+              : null,
+            resultShapeContracts.disallowedResultKeyPaths.length > 0
+              ? `snake/kebab key: ${resultShapeContracts.disallowedResultKeyPaths.slice(0, 5).join(', ')}`
+              : null,
+          ].filter((message): message is string => message !== null).join(' / ') || 'Bio-Tool 결과 fixture 계약 불일치',
         ),
       ],
     },
@@ -506,6 +601,7 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
       statisticalMethodCount: statisticalSync.methodIds.length,
       trackedVariableRequirementOnlyCount: statisticalSync.trackedRequirementOnlyIds.length,
       projectEntityKindCount: entitySync.knownEntityKinds.length,
+      bioToolResultContractFixtureCount: resultShapeContracts.fixtureToolIds.length,
     },
     sections,
   }

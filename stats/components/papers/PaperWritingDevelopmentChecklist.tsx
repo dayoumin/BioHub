@@ -47,6 +47,7 @@ export default function PaperWritingDevelopmentChecklist(): React.ReactElement {
 
           <div className="mt-4 rounded-xl bg-surface-container-low p-3 text-xs text-muted-foreground">
             Bio-Tools {checklist.summary.dedicatedReadyBioToolCount}/{checklist.summary.readyBioToolCount} 전용 writer ·
+            fixture {checklist.summary.bioToolResultContractFixtureCount}개 ·
             통계 메서드 {checklist.summary.statisticalMethodCount}개 ·
             entityKind {checklist.summary.projectEntityKindCount}개
           </div>

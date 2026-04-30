@@ -1216,6 +1216,11 @@ export const DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS = Object.keys(
   BIO_TOOL_WRITING_SOURCE_DISPATCHERS,
 ) as Array<keyof typeof BIO_TOOL_WRITING_SOURCE_DISPATCHERS>
 
+export function isDedicatedBioToolWritingSourceResult(toolId: BioToolId, results: unknown): boolean {
+  const dispatcher = BIO_TOOL_WRITING_SOURCE_DISPATCHERS[toolId as keyof typeof BIO_TOOL_WRITING_SOURCE_DISPATCHERS]
+  return dispatcher?.isResult(results) ?? false
+}
+
 interface SupplementaryEntitySourceRegistryOptions {
   entityRef: ProjectEntityRef
   sourceRef: DocumentSourceRef
