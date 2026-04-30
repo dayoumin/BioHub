@@ -31,6 +31,7 @@ interface UseDocumentBlueprintSaveQueueResult {
   hasPendingSave: () => boolean
   hasPendingSaveOrConflict: () => boolean
   waitForSaveQueue: () => Promise<void>
+  getLastSavedUpdatedAt: () => string | null
   isSavedUpdateCurrent: (updatedAt: string | undefined) => boolean
   hasLocalChanges: () => boolean
 }
@@ -206,6 +207,10 @@ export function useDocumentBlueprintSaveQueue({
     saveQueueRef.current
   ), [])
 
+  const getLastSavedUpdatedAt = useCallback((): string | null => (
+    lastSavedUpdatedAtRef.current
+  ), [])
+
   const isSavedUpdateCurrent = useCallback((updatedAt: string | undefined): boolean => (
     Boolean(updatedAt && updatedAt === lastSavedUpdatedAtRef.current)
   ), [])
@@ -227,6 +232,7 @@ export function useDocumentBlueprintSaveQueue({
     hasPendingSave,
     hasPendingSaveOrConflict,
     waitForSaveQueue,
+    getLastSavedUpdatedAt,
     isSavedUpdateCurrent,
     hasLocalChanges,
   }

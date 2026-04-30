@@ -337,6 +337,6 @@
 - [x] `DocumentEditor` autosave 리팩터링 전 보호 테스트 추가: in-flight autosave 중 외부 저장 충돌 유지, debounce 전 unmount pending save flush를 회귀 테스트로 고정 (2026-04-30)
 - [ ] `DocumentArtifactLists` 디자인 polish: 현재는 동등성 유지를 위해 기존 border/table cell 스타일을 보존했으나, 후속 UI polish에서 Axiom Slate No-Line 원칙에 맞춰 surface tone 기반 구분으로 전환 검토.
 - [x] `DocumentEditor` autosave 저장 큐 리팩터링: `useDocumentBlueprintSaveQueue`로 save queue/debounce/immediate save/conflict mark/clear/unmount flush를 분리하고, in-flight save가 충돌 상태를 덮지 못하도록 고정 (2026-04-30)
-- [ ] 자료 작성 revision history 설계/구현: autosave가 실수까지 저장할 수 있으므로 섹션 재생성/재조립/export/주요 사용자 편집 전 문서 snapshot을 IndexedDB에 보관하고, 우선 문서 전체 복원부터 제공한다.
+- [x] 자료 작성 revision history 1차 구현: autosave가 실수까지 저장할 수 있으므로 문서 snapshot을 IndexedDB에 보관하고, 복원 기록 패널에서 수동 저장 지점 생성과 문서 전체 복원을 제공한다. 재조립/섹션 재생성/export/복원 전 자동 snapshot을 남기고, 섹션 단위 비교·복원은 후속 단계로 둔다. (2026-04-30)
 - [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄인다.

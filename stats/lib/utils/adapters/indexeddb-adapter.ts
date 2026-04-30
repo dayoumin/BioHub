@@ -15,7 +15,7 @@ import type {
 } from '../storage-types'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 5  // v5: citations store 추가
+const DB_VERSION = 6  // v6: document revision history store 추가
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'
 const FAVORITES_STORE = 'favorites'
@@ -82,6 +82,14 @@ export function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('citations')) {
         const citationStore = db.createObjectStore('citations', { keyPath: 'id' })
         citationStore.createIndex('projectId', 'projectId', { unique: false })
+      }
+
+      // Document revision history 스토어 생성 (v6)
+      if (!db.objectStoreNames.contains('document-blueprint-revisions')) {
+        const revisionStore = db.createObjectStore('document-blueprint-revisions', { keyPath: 'id' })
+        revisionStore.createIndex('documentId', 'documentId', { unique: false })
+        revisionStore.createIndex('projectId', 'projectId', { unique: false })
+        revisionStore.createIndex('createdAt', 'createdAt', { unique: false })
       }
     }
   })

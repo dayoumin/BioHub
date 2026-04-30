@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
+  DocumentBlueprintConflictError,
   type DocumentBlueprintsChangedDetail,
   loadDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
@@ -84,6 +85,14 @@ import { useDocumentSourceLinks } from './useDocumentSourceLinks'
 import { useDocumentCitations } from './useDocumentCitations'
 import { useDocumentSectionRegeneration } from './useDocumentSectionRegeneration'
 import { useDocumentBlueprintSaveQueue } from './useDocumentBlueprintSaveQueue'
+import DocumentRevisionHistorySheet from './DocumentRevisionHistorySheet'
+import {
+  createDocumentRevision,
+  listDocumentRevisions,
+  restoreDocumentRevision,
+  type DocumentBlueprintRevision,
+  type DocumentRevisionReason,
+} from '@/lib/research/document-blueprint-revisions'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -144,6 +153,10 @@ export default function DocumentEditor({
   const [loading, setLoading] = useState(true)
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
+  const [revisionHistoryOpen, setRevisionHistoryOpen] = useState(false)
+  const [documentRevisions, setDocumentRevisions] = useState<DocumentBlueprintRevision[]>([])
+  const [revisionHistoryLoading, setRevisionHistoryLoading] = useState(false)
+  const [revisionActionPending, setRevisionActionPending] = useState(false)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
@@ -160,6 +173,7 @@ export default function DocumentEditor({
     hasPendingSave,
     hasPendingSaveOrConflict,
     waitForSaveQueue,
+    getLastSavedUpdatedAt,
     isSavedUpdateCurrent,
     hasLocalChanges,
   } = useDocumentBlueprintSaveQueue({
@@ -197,6 +211,7 @@ export default function DocumentEditor({
   const applyLoadedDocument = useCallback((loaded: DocumentBlueprint): void => {
     setDoc(loaded)
     docRef.current = loaded
+    loadedSectionRef.current = null
     resetSavedDocumentState(loaded)
 
     if (loaded.sections.length === 0) {
@@ -214,6 +229,46 @@ export default function DocumentEditor({
       return loaded.sections[0]?.id ?? null
     })
   }, [initialSectionId, resetSavedDocumentState])
+
+  const refreshDocumentRevisions = useCallback(async (targetDocumentId: string): Promise<void> => {
+    setRevisionHistoryLoading(true)
+    try {
+      setDocumentRevisions(await listDocumentRevisions(targetDocumentId))
+    } finally {
+      setRevisionHistoryLoading(false)
+    }
+  }, [])
+
+  const saveDocumentRevisionPoint = useCallback(async (
+    reason: DocumentRevisionReason,
+    label: string,
+    targetDocument?: DocumentBlueprint,
+    showToast = false,
+  ): Promise<void> => {
+    const revisionTarget = targetDocument ?? docRef.current
+    if (!revisionTarget) return
+
+    try {
+      await createDocumentRevision(revisionTarget, { reason, label })
+      if (showToast) {
+        toast.success('문서 복원 지점을 저장했습니다')
+      }
+      if (revisionHistoryOpen) {
+        await refreshDocumentRevisions(revisionTarget.id)
+      }
+    } catch {
+      if (showToast) {
+        toast.error('복원 지점을 저장하지 못했습니다')
+      }
+    }
+  }, [refreshDocumentRevisions, revisionHistoryOpen])
+
+  const handleRevisionHistoryOpenChange = useCallback((open: boolean): void => {
+    setRevisionHistoryOpen(open)
+    if (open) {
+      void refreshDocumentRevisions(documentId)
+    }
+  }, [documentId, refreshDocumentRevisions])
 
   useEffect(() => {
     return () => {
@@ -521,41 +576,6 @@ export default function DocumentEditor({
     return reassembled
   }, [analysisHistory, scheduleSave])
 
-  const prepareDocumentForExport = useCallback(async (): Promise<DocumentBlueprint | undefined> => {
-    await pendingCitationReloadRef.current
-
-    const currentDoc = docRef.current
-    if (!currentDoc) return undefined
-
-    if (serializeTimerRef.current) {
-      clearTimeout(serializeTimerRef.current)
-      serializeTimerRef.current = null
-    }
-
-    const sectionId = pendingSerializeSectionRef.current
-    if (!sectionId) {
-      return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
-    }
-
-    pendingSerializeSectionRef.current = null
-    try {
-      const markdown = editor.api.markdown.serialize()
-      const newSections = currentDoc.sections.map((section) => (
-        section.id === sectionId ? { ...section, content: markdown } : section
-      ))
-      const updated = {
-        ...currentDoc,
-        sections: newSections,
-        updatedAt: new Date().toISOString(),
-      }
-      setDoc(updated)
-      scheduleSave(updated)
-      return needsReassemble ? (reassembleCurrentDocument(updated) ?? updated) : updated
-    } catch {
-      return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
-    }
-  }, [editor, needsReassemble, reassembleCurrentDocument, scheduleSave])
-
   // serialize 타이머 flush — 섹션 전환/언마운트 전에 현재 content 확정
   const pendingSerializeSectionRef = useRef<string | null>(null)
   const flushSerialize = useCallback(() => {
@@ -587,6 +607,98 @@ export default function DocumentEditor({
     }
   }, [editor, scheduleSave])
 
+  const prepareDocumentForExport = useCallback(async (): Promise<DocumentBlueprint | undefined> => {
+    await pendingCitationReloadRef.current
+
+    const flushed = flushSerialize()
+    const currentDoc = flushed ?? docRef.current
+    if (!currentDoc) return undefined
+    await saveDocumentRevisionPoint(
+      'before-export',
+      '내보내기 전 자동 저장 지점',
+      currentDoc,
+    )
+
+    return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
+  }, [flushSerialize, needsReassemble, reassembleCurrentDocument, saveDocumentRevisionPoint])
+
+  const handleCreateManualRevision = useCallback((): void => {
+    setRevisionActionPending(true)
+    void saveDocumentRevisionPoint(
+      'manual',
+      '사용자 저장 지점',
+      flushSerialize() ?? docRef.current ?? undefined,
+      true,
+    ).finally(() => setRevisionActionPending(false))
+  }, [flushSerialize, saveDocumentRevisionPoint])
+
+  const handleRestoreRevision = useCallback((revisionId: string): void => {
+    if (revisionActionPending) return
+    if (documentConflictRef.current !== null) {
+      toast.warning('문서 충돌을 먼저 해결한 뒤 복원하세요')
+      return
+    }
+    if (!window.confirm('현재 문서를 선택한 복원 기록으로 되돌릴까요? 현재 상태도 복원 전 기록으로 저장됩니다.')) {
+      return
+    }
+
+    setRevisionActionPending(true)
+    void (async (): Promise<void> => {
+      const latestDocument = flushSerialize() ?? docRef.current
+      if (!latestDocument) {
+        toast.error('현재 문서를 찾을 수 없습니다')
+        return
+      }
+
+      if (hasPendingSave()) {
+        await scheduleImmediateSave(latestDocument)
+      } else {
+        await waitForSaveQueue()
+      }
+
+      if (documentConflictRef.current !== null) {
+        toast.warning('다른 저장과 충돌했습니다. 최신 버전을 확인한 뒤 다시 복원하세요')
+        return
+      }
+
+      await saveDocumentRevisionPoint(
+        'before-restore',
+        '복원 전 자동 저장 지점',
+        latestDocument,
+      )
+      const restored = await restoreDocumentRevision(revisionId, {
+        expectedUpdatedAt: getLastSavedUpdatedAt() ?? undefined,
+      })
+      if (!restored) {
+        toast.error('복원 기록을 찾을 수 없습니다')
+        return
+      }
+      applyLoadedDocument(restored)
+      await refreshDocumentRevisions(restored.id)
+      setRevisionHistoryOpen(false)
+      toast.success('문서를 선택한 복원 기록으로 되돌렸습니다')
+    })().catch((error: unknown) => {
+      if (error instanceof DocumentBlueprintConflictError) {
+        markDocumentConflict(error.latestDocument)
+        toast.warning('다른 저장과 충돌했습니다. 최신 버전을 확인한 뒤 다시 복원하세요')
+        return
+      }
+      toast.error('문서를 복원하지 못했습니다')
+    }).finally(() => setRevisionActionPending(false))
+  }, [
+    applyLoadedDocument,
+    documentConflictRef,
+    flushSerialize,
+    getLastSavedUpdatedAt,
+    hasPendingSave,
+    markDocumentConflict,
+    refreshDocumentRevisions,
+    revisionActionPending,
+    saveDocumentRevisionPoint,
+    scheduleImmediateSave,
+    waitForSaveQueue,
+  ])
+
   const handleTakeSectionOwnership = useCallback((): void => {
     if (!activeSectionId) {
       return
@@ -608,6 +720,11 @@ export default function DocumentEditor({
     if (!latestDocument) {
       return false
     }
+    await saveDocumentRevisionPoint(
+      'before-section-regeneration',
+      '섹션 재생성 전 자동 저장 지점',
+      latestDocument,
+    )
 
     if (documentConflictRef.current !== null) {
       return false
@@ -620,7 +737,14 @@ export default function DocumentEditor({
     }
 
     return documentConflictRef.current === null
-  }, [documentConflictRef, flushSerialize, hasPendingSave, scheduleImmediateSave, waitForSaveQueue])
+  }, [
+    documentConflictRef,
+    flushSerialize,
+    hasPendingSave,
+    saveDocumentRevisionPoint,
+    scheduleImmediateSave,
+    waitForSaveQueue,
+  ])
 
   const getCurrentDocumentIdForSectionRegeneration = useCallback((): string | null => (
     docRef.current?.id ?? null
@@ -634,8 +758,8 @@ export default function DocumentEditor({
   const {
     sectionRegenerationMode,
     sectionRegenerationModeRef,
-    refreshActiveSectionSources: handleRefreshActiveSectionSources,
-    regenerateActiveSection: handleRegenerateActiveSection,
+    refreshActiveSectionSources: refreshActiveSectionSources,
+    regenerateActiveSection: regenerateActiveSection,
   } = useDocumentSectionRegeneration({
     documentId,
     activeSectionId,
@@ -645,6 +769,14 @@ export default function DocumentEditor({
     persistLatestDocument: persistLatestDocumentBeforeSectionRegeneration,
     applyRegeneratedDocument,
   })
+
+  const handleRefreshActiveSectionSources = useCallback(async (): Promise<void> => {
+    await refreshActiveSectionSources()
+  }, [refreshActiveSectionSources])
+
+  const handleRegenerateActiveSection = useCallback(async (): Promise<void> => {
+    await regenerateActiveSection()
+  }, [regenerateActiveSection])
 
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
@@ -758,8 +890,16 @@ export default function DocumentEditor({
   const handleReassemble = useCallback(async () => {
     await pendingCitationReloadRef.current
     const syncedDoc = flushSerialize()
+    const revisionTarget = syncedDoc ?? docRef.current
+    if (revisionTarget) {
+      await saveDocumentRevisionPoint(
+        'before-reassemble',
+        '재조립 전 자동 저장 지점',
+        revisionTarget,
+      )
+    }
     reassembleCurrentDocument(syncedDoc ?? undefined)
-  }, [flushSerialize, reassembleCurrentDocument])
+  }, [flushSerialize, reassembleCurrentDocument, saveDocumentRevisionPoint])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
@@ -976,6 +1116,16 @@ export default function DocumentEditor({
           writingStatusLabel={writingStatusLabel}
           writingStatus={documentWritingState?.status}
           onRetry={handleRetryWriting}
+        />
+        <DocumentRevisionHistorySheet
+          open={revisionHistoryOpen}
+          revisions={documentRevisions}
+          loading={revisionHistoryLoading}
+          actionPending={revisionActionPending}
+          disabled={documentConflict !== null}
+          onOpenChange={handleRevisionHistoryOpenChange}
+          onCreateSnapshot={handleCreateManualRevision}
+          onRestoreRevision={handleRestoreRevision}
         />
         <Button
           variant={needsReassemble ? 'secondary' : 'outline'}
