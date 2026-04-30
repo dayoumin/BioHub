@@ -207,6 +207,38 @@ function WritingSourceCard({ entity, onClick, disabled = false }: WritingSourceC
   )
 }
 
+interface WritingWorkflowCardProps {
+  label: string
+  title: string
+  description: string
+  icon: typeof PenTool
+  action?: React.ReactNode
+}
+
+function WritingWorkflowCard({
+  label,
+  title,
+  description,
+  icon: Icon,
+  action,
+}: WritingWorkflowCardProps): React.ReactElement {
+  return (
+    <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-4">
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-primary/10 p-2 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <p className="text-xs leading-5 text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  )
+}
+
 // ── 기능 소개 ──
 
 const FEATURES = [
@@ -486,59 +518,6 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
               : '바로 편집기를 열어 초안을 작성하고, 내용은 이 기기에 로컬 저장됩니다'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {PaperWritingDevelopmentChecklist && <PaperWritingDevelopmentChecklist />}
-          {activeProject && onOpenPackage && (
-            <Button
-              variant="outline"
-              onClick={() => onOpenPackage('new', activeProject.id)}
-              className="gap-2"
-            >
-              <Package className="w-4 h-4" />
-              외부 AI 입력 패키지
-            </Button>
-          )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!activeProject ? 0 : undefined}>
-                  <StartWritingButton
-                    onClick={() => {
-                      void handleCreateBlankDocument()
-                    }}
-                    pending={isCreatingBlankDocument}
-                    label="새 문서"
-                    pendingLabel={!activeProject ? '임시 작업공간 준비 중...' : '빈 문서 생성 중...'}
-                    className="gap-2"
-                  />
-                </span>
-              </TooltipTrigger>
-              {!activeProject && (
-                <TooltipContent>임시 작업공간을 만들고 바로 편집기를 엽니다</TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!activeProject ? 0 : undefined}>
-                  <Button
-                    variant="outline"
-                    onClick={() => setAssemblyOpen(true)}
-                    disabled={!activeProject}
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    프로젝트 결과로 문서 만들기
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!activeProject && (
-                <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
       </div>
 
       {!activeProject && (
@@ -550,7 +529,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                 지금 바로 작성 시작
               </div>
               <p className="text-sm text-muted-foreground">
-                `새 문서`를 누르면 즉시 편집 화면이 열립니다. 임시 작업공간이 자동으로 만들어지고 문서는 브라우저 로컬에만 저장됩니다.
+                아래 `빈 문서 만들기`를 누르면 임시 작업공간이 자동으로 만들어지고 문서는 브라우저 로컬에만 저장됩니다.
               </p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
@@ -563,18 +542,91 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                 </span>
               </div>
             </div>
-            <StartWritingButton
-              onClick={() => {
-                void handleCreateBlankDocument()
-              }}
-              pending={isCreatingBlankDocument}
-              label="새 문서로 바로 시작"
-              pendingLabel="임시 작업공간 준비 중..."
-              className="gap-2"
-            />
           </CardContent>
         </Card>
       )}
+
+      <section className="rounded-3xl bg-surface-container-low p-4">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Writing entry points
+            </p>
+            <h2 className="text-lg font-bold text-foreground">작성 시작 방식</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              빈 문서, 프로젝트 결과 조립, 바이오·유전 결과 문서화 중 현재 작업에 맞는 시작 방식을 선택합니다.
+            </p>
+          </div>
+          {activeProject && (
+            <Badge variant="secondary" className="w-fit">
+              {documents.length}개 문서 · {writingSources.length}개 바로 작성 자료
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <WritingWorkflowCard
+            label="Option A"
+            title="빈 문서에서 시작"
+            description="먼저 문서를 만들고 필요한 원본 자료를 나중에 연결합니다."
+            icon={PenTool}
+            action={(
+              <StartWritingButton
+                onClick={() => {
+                  void handleCreateBlankDocument()
+                }}
+                pending={isCreatingBlankDocument}
+                label="빈 문서 만들기"
+                pendingLabel={!activeProject ? '임시 작업공간 준비 중...' : '빈 문서 생성 중...'}
+                className="h-8 w-full gap-2 text-xs"
+              />
+            )}
+          />
+          <WritingWorkflowCard
+            label="Option B"
+            title="프로젝트 결과로 조립"
+            description="통계 결과, 그래프, 인용 자료를 한 번에 묶어 문서 skeleton을 만듭니다."
+            icon={Plus}
+            action={(
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={!activeProject ? 0 : undefined}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAssemblyOpen(true)}
+                        disabled={!activeProject}
+                        className="h-8 w-full gap-2 text-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        프로젝트 결과로 문서 만들기
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!activeProject && (
+                    <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          />
+          <WritingWorkflowCard
+            label="Option C"
+            title="바이오·유전 결과 연결"
+            description="Bio-Tools와 유전 분석 결과는 전용 writer가 있는 범위만 보수적으로 문장화합니다."
+            icon={Sparkles}
+            action={(
+              <div className="rounded-xl bg-surface-container-low px-3 py-2 text-xs text-muted-foreground">
+                {activeProject
+                  ? writingSources.length > 0
+                    ? `${writingSources.length}개 결과를 아래에서 바로 문서화할 수 있습니다.`
+                    : '연결된 Bio-Tools 또는 유전 분석 결과가 있으면 아래에 표시됩니다.'
+                  : '프로젝트를 선택하면 연결된 분석 결과가 표시됩니다.'}
+              </div>
+            )}
+          />
+        </div>
+      </section>
 
       {/* 문서 목록 */}
       {activeProject && documents.length > 0 && (
@@ -616,6 +668,31 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         </section>
       )}
 
+      {activeProject && onOpenPackage && (
+        <section className="rounded-2xl bg-surface-container-low p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0 space-y-1">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Package className="h-4 w-4" />
+                보조 도구
+              </h2>
+              <p className="text-xs leading-5 text-muted-foreground">
+                외부 AI 입력 패키지는 BioHub 문서 자동 작성과 분리된 복사·전달용 자료 묶음입니다.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenPackage('new', activeProject.id)}
+              className="w-fit gap-2"
+            >
+              <Package className="w-4 h-4" />
+              외부 AI 입력 패키지 만들기
+            </Button>
+          </div>
+        </section>
+      )}
+
       {activeProject && writingSources.length > 0 && (
         <WritingEntrySurface
           title="바이오·유전 결과에서 바로 작성"
@@ -641,25 +718,8 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         <EmptyState
           icon={PenTool}
           title="아직 작성한 문서가 없습니다"
-          description="새 문서를 만들거나 프로젝트 결과를 문서 초안으로 조립해 보세요"
+          description="위 작성 흐름에서 빈 문서를 만들거나 프로젝트 결과를 문서 초안으로 조립해 보세요"
           variant="inline"
-          action={
-            <div className="flex items-center gap-2">
-              <StartWritingButton
-                onClick={() => {
-                  void handleCreateBlankDocument()
-                }}
-                pending={isCreatingBlankDocument}
-                label="첫 문서 만들기"
-                pendingLabel="빈 문서 생성 중..."
-                className="gap-2"
-              />
-              <Button variant="outline" onClick={() => setAssemblyOpen(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                프로젝트 결과로 문서 만들기
-              </Button>
-            </div>
-          }
         />
       )}
 
@@ -716,6 +776,20 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           }
         />
       ) : null}
+
+      {PaperWritingDevelopmentChecklist && (
+        <section className="rounded-2xl bg-surface-container-low p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-foreground">개발 점검</h2>
+              <p className="text-xs leading-5 text-muted-foreground">
+                개발 환경에서 writer 정책, registry 동기화, fallback 경계를 확인하는 내부 점검입니다.
+              </p>
+            </div>
+            <PaperWritingDevelopmentChecklist />
+          </div>
+        </section>
+      )}
 
       {/* 조립 다이얼로그 */}
       {activeProject && (
