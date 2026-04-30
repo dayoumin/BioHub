@@ -48,7 +48,12 @@ import {
   type DocumentWritingSectionStatus,
 } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
-import { ensureDocumentWriting, retryDocumentWriting } from '@/lib/research/document-writing-orchestrator'
+import {
+  type DocumentSectionRegenerationMode,
+  ensureDocumentWriting,
+  regenerateDocumentSection,
+  retryDocumentWriting,
+} from '@/lib/research/document-writing-orchestrator'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import {
@@ -72,6 +77,7 @@ import MaterialPalette from './MaterialPalette'
 import DocumentExportBar from './DocumentExportBar'
 import DocumentWritingHeaderStatus from './DocumentWritingHeaderStatus'
 import SectionWritingBanner from './SectionWritingBanner'
+import DocumentSectionRegenerationControls from './DocumentSectionRegenerationControls'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
@@ -141,12 +147,16 @@ export default function DocumentEditor({
   const [citations, setCitations] = useState<CitationRecord[]>([])
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
+  const [sectionRegenerationMode, setSectionRegenerationMode] = useState<DocumentSectionRegenerationMode | null>(null)
+  const documentConflictRef = useRef<DocumentBlueprint | null>(null)
+  const sectionRegenerationModeRef = useRef<DocumentSectionRegenerationMode | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
   const latestCitationsRef = useRef<CitationRecord[]>([])
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const latestScheduledSaveRevisionRef = useRef(0)
+  const localEditRevisionRef = useRef(0)
   const pendingSaveRevisionRef = useRef<number | null>(null)
   const lastSavedUpdatedAtRef = useRef<string | null>(null)
   const hasLocalChangesRef = useRef(false)
@@ -183,6 +193,11 @@ export default function DocumentEditor({
     )
   ), [])
 
+  const clearDocumentConflict = useCallback((): void => {
+    documentConflictRef.current = null
+    setDocumentConflict(null)
+  }, [])
+
   const applyLoadedDocument = useCallback((loaded: DocumentBlueprint): void => {
     setDoc(loaded)
     docRef.current = loaded
@@ -191,7 +206,7 @@ export default function DocumentEditor({
     pendingDocRef.current = null
     pendingSaveRevisionRef.current = null
     latestScheduledSaveRevisionRef.current = 0
-    setDocumentConflict(null)
+    clearDocumentConflict()
     setSaveStatus('saved')
 
     if (loaded.sections.length === 0) {
@@ -208,7 +223,7 @@ export default function DocumentEditor({
       }
       return loaded.sections[0]?.id ?? null
     })
-  }, [initialSectionId])
+  }, [clearDocumentConflict, initialSectionId])
 
   const markDocumentConflict = useCallback((latestDocument: DocumentBlueprint): void => {
     if (saveTimerRef.current) {
@@ -216,6 +231,7 @@ export default function DocumentEditor({
       saveTimerRef.current = null
     }
     pendingSaveRevisionRef.current = null
+    documentConflictRef.current = latestDocument
     setDocumentConflict(latestDocument)
     setSaveStatus('conflict')
   }, [])
@@ -287,7 +303,7 @@ export default function DocumentEditor({
     setActiveSectionId(null)
     setCitations([])
     setNeedsReassemble(false)
-    setDocumentConflict(null)
+    clearDocumentConflict()
     setSaveStatus('saved')
 
     loadDocumentBlueprint(documentId).then(loaded => {
@@ -301,7 +317,7 @@ export default function DocumentEditor({
     return () => {
       cancelled = true
     }
-  }, [applyLoadedDocument, documentId, initialSectionId])
+  }, [applyLoadedDocument, clearDocumentConflict, documentId, initialSectionId])
 
   useEffect(() => {
     pendingArtifactTargetRef.current = initialTableId
@@ -491,7 +507,8 @@ export default function DocumentEditor({
     docRef.current = updated
     pendingDocRef.current = updated
     hasLocalChangesRef.current = true
-    setDocumentConflict(null)
+    localEditRevisionRef.current += 1
+    clearDocumentConflict()
     const revision = latestScheduledSaveRevisionRef.current + 1
     latestScheduledSaveRevisionRef.current = revision
     pendingSaveRevisionRef.current = revision
@@ -500,13 +517,14 @@ export default function DocumentEditor({
     saveTimerRef.current = setTimeout(() => {
       void queueDocumentSave(updated, revision)
     }, AUTOSAVE_DELAY)
-  }, [queueDocumentSave])
+  }, [clearDocumentConflict, queueDocumentSave])
 
-  const scheduleImmediateSave = useCallback((updated: DocumentBlueprint) => {
+  const scheduleImmediateSave = useCallback((updated: DocumentBlueprint): Promise<void> => {
     docRef.current = updated
     pendingDocRef.current = updated
     hasLocalChangesRef.current = true
-    setDocumentConflict(null)
+    localEditRevisionRef.current += 1
+    clearDocumentConflict()
     const revision = latestScheduledSaveRevisionRef.current + 1
     latestScheduledSaveRevisionRef.current = revision
     pendingSaveRevisionRef.current = revision
@@ -515,8 +533,8 @@ export default function DocumentEditor({
       clearTimeout(saveTimerRef.current)
       saveTimerRef.current = null
     }
-    void queueDocumentSave(updated, revision)
-  }, [queueDocumentSave])
+    return queueDocumentSave(updated, revision)
+  }, [clearDocumentConflict, queueDocumentSave])
 
   const updateSection = useCallback((sectionId: string, updates: Partial<DocumentSection>) => {
     setDoc(prev => {
@@ -704,6 +722,7 @@ export default function DocumentEditor({
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
     if (!activeSectionId) return
+    if (sectionRegenerationModeRef.current !== null) return
     const plateValue = editor.children
     if (shouldTakeOwnershipForWritingSection(activeSectionId)) {
       takeSectionOwnershipForEditing(activeSectionId, plateValue)
@@ -742,6 +761,104 @@ export default function DocumentEditor({
     }
     skipSectionWriting(activeSectionId, '사용자가 자동 작성을 중단했습니다.')
   }, [activeSectionId, skipSectionWriting])
+
+  const persistLatestDocumentBeforeSectionRegeneration = useCallback(async (): Promise<boolean> => {
+    const flushed = flushSerialize()
+    const latestDocument = flushed ?? docRef.current
+    if (!latestDocument) {
+      return false
+    }
+
+    if (pendingSaveRevisionRef.current !== null || flushed) {
+      await scheduleImmediateSave(latestDocument)
+    } else {
+      await saveQueueRef.current
+    }
+
+    return documentConflictRef.current === null
+  }, [flushSerialize, scheduleImmediateSave])
+
+  const handleRegenerateActiveSection = useCallback(async (): Promise<void> => {
+    if (!activeSectionId || (activeSectionId !== 'methods' && activeSectionId !== 'results')) {
+      return
+    }
+
+    sectionRegenerationModeRef.current = 'regenerate'
+    setSectionRegenerationMode('regenerate')
+    try {
+      const canContinue = await persistLatestDocumentBeforeSectionRegeneration()
+      if (!canContinue) {
+        toast.error('저장 충돌을 먼저 해결한 뒤 섹션을 다시 생성하세요.')
+        return
+      }
+
+      const savedLocalEditRevision = localEditRevisionRef.current
+      const updated = await regenerateDocumentSection(docRef.current?.id ?? documentId, activeSectionId, 'regenerate')
+      if (
+        localEditRevisionRef.current !== savedLocalEditRevision
+        || pendingSaveRevisionRef.current !== null
+        || documentConflictRef.current !== null
+      ) {
+        toast.error('섹션 재생성 중 문서 편집이 감지되어 자동 반영을 중단했습니다.')
+        return
+      }
+      if (updated) {
+        loadedSectionRef.current = null
+        applyLoadedDocument(updated)
+        toast.success('섹션 초안을 다시 생성했습니다.')
+        return
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '섹션 재생성에 실패했습니다.')
+      return
+    } finally {
+      sectionRegenerationModeRef.current = null
+      setSectionRegenerationMode(null)
+    }
+
+    toast.error('섹션 재생성에 실패했습니다.')
+  }, [activeSectionId, applyLoadedDocument, documentId, persistLatestDocumentBeforeSectionRegeneration])
+
+  const handleRefreshActiveSectionSources = useCallback(async (): Promise<void> => {
+    if (!activeSectionId || (activeSectionId !== 'methods' && activeSectionId !== 'results')) {
+      return
+    }
+
+    sectionRegenerationModeRef.current = 'refresh-linked-sources'
+    setSectionRegenerationMode('refresh-linked-sources')
+    try {
+      const canContinue = await persistLatestDocumentBeforeSectionRegeneration()
+      if (!canContinue) {
+        toast.error('저장 충돌을 먼저 해결한 뒤 연결 자료를 갱신하세요.')
+        return
+      }
+
+      const savedLocalEditRevision = localEditRevisionRef.current
+      const updated = await regenerateDocumentSection(docRef.current?.id ?? documentId, activeSectionId, 'refresh-linked-sources')
+      if (
+        localEditRevisionRef.current !== savedLocalEditRevision
+        || pendingSaveRevisionRef.current !== null
+        || documentConflictRef.current !== null
+      ) {
+        toast.error('연결 자료 갱신 중 문서 편집이 감지되어 자동 반영을 중단했습니다.')
+        return
+      }
+      if (updated) {
+        loadedSectionRef.current = null
+        applyLoadedDocument(updated)
+        toast.success('본문은 유지하고 연결 자료를 갱신했습니다.')
+        return
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '연결 자료 갱신에 실패했습니다.')
+      return
+    } finally {
+      sectionRegenerationModeRef.current = null
+      setSectionRegenerationMode(null)
+    }
+
+    toast.error('연결 자료 갱신에 실패했습니다.')
+  }, [activeSectionId, applyLoadedDocument, documentId, persistLatestDocumentBeforeSectionRegeneration])
 
   // 섹션 전환 시 Plate 에디터에 content 로드
   const loadedSectionRef = useRef<string | null>(null)
@@ -962,6 +1079,16 @@ export default function DocumentEditor({
         return null
     }
   }, [activeSectionWritingState?.status])
+  const canRegenerateActiveSection = activeSection?.id === 'methods' || activeSection?.id === 'results'
+  const isActiveSectionDrafting = activeSectionWritingState?.status === 'drafting'
+  const hasActiveDocumentWritingJob = ['collecting', 'drafting', 'patching'].includes(documentWritingState?.status ?? 'idle')
+  const isSectionRegenerationPending = sectionRegenerationMode !== null
+  const isSectionRegenerationDisabled = (
+    isActiveSectionDrafting
+    || isSectionRegenerationPending
+    || documentConflict !== null
+    || hasActiveDocumentWritingJob
+  )
   const handleRetryWriting = useCallback((): void => {
     if (!doc) {
       return
@@ -1085,6 +1212,7 @@ export default function DocumentEditor({
 
     return Array.from(links.values())
   }, [activeSection, analysisHistory, doc, needsReassemble])
+  const activeSectionReviewSourceCount = activeSectionSourceLinks.filter((link) => link.readiness.status !== 'ready').length
 
   useEffect(() => {
     const target = pendingArtifactTargetRef.current
@@ -1259,6 +1387,17 @@ export default function DocumentEditor({
                     {sectionWritingStatusLabel}
                   </Badge>
                 )}
+                {canRegenerateActiveSection && (
+                  <DocumentSectionRegenerationControls
+                    sectionTitle={activeSection.title}
+                    disabled={isSectionRegenerationDisabled}
+                    pendingMode={sectionRegenerationMode}
+                    reviewSourceCount={activeSectionReviewSourceCount}
+                    hasChangedSources={needsReassemble}
+                    onRefreshLinkedSources={handleRefreshActiveSectionSources}
+                    onRegenerateSection={handleRegenerateActiveSection}
+                  />
+                )}
               </div>
 
               <SectionWritingBanner
@@ -1319,7 +1458,11 @@ export default function DocumentEditor({
                 </div>
               )}
 
-              {previewMode ? (
+              {sectionRegenerationMode !== null ? (
+                <div className="min-h-[400px] rounded-lg bg-surface-container-low p-6 text-sm text-muted-foreground">
+                  섹션 작업이 진행 중입니다. 수동 편집 충돌을 막기 위해 편집기를 잠시 비활성화했습니다.
+                </div>
+              ) : previewMode ? (
                 <div className="prose dark:prose-invert max-w-none">
                   <Suspense fallback={<p className="text-muted-foreground">로딩 중...</p>}>
                     <ReactMarkdown

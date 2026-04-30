@@ -46,7 +46,7 @@ vi.mock('../document-blueprint-storage', () => ({
     }
   },
   loadDocumentBlueprint: (documentId: string) => mockLoadDocumentBlueprint(documentId),
-  saveDocumentBlueprint: (document: DocumentBlueprint) => mockSaveDocumentBlueprint(document),
+  saveDocumentBlueprint: (document: DocumentBlueprint, options?: unknown) => mockSaveDocumentBlueprint(document, options),
 }))
 
 vi.mock('@/lib/utils/storage', () => ({
@@ -72,7 +72,7 @@ vi.mock('../analysis-writing-draft', () => ({
   ),
 }))
 
-import { ensureDocumentWriting, retryDocumentWriting } from '../document-writing-orchestrator'
+import { ensureDocumentWriting, regenerateDocumentSection, retryDocumentWriting } from '../document-writing-orchestrator'
 import { createDocumentSourceRef } from '../document-blueprint-types'
 
 function makeDocument(overrides: Partial<DocumentBlueprint> = {}): DocumentBlueprint {
@@ -639,5 +639,155 @@ describe('document writing orchestrator', () => {
 
     const result = await retryRun
     expect(result?.writingState?.status).toBe('completed')
+  })
+
+  it('regenerates a single section and replaces user-edited body when requested', async () => {
+    currentDocument = makeDocument({
+      sections: [
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '사용자가 고친 방법 문장',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '기존 결과',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const regenerated = await regenerateDocumentSection('doc_1', 'methods', 'regenerate')
+    const methods = regenerated?.sections.find((section) => section.id === 'methods')
+    const results = regenerated?.sections.find((section) => section.id === 'results')
+
+    expect(regenerated?.writingState?.status).toBe('completed')
+    expect(regenerated?.writingState?.sectionStates.methods?.status).toBe('patched')
+    expect(methods?.content).toContain('방법 초안')
+    expect(methods?.content).not.toContain('사용자가 고친 방법 문장')
+    expect(methods?.generatedBy).toBe('template')
+    expect(results?.content).toBe('기존 결과')
+  })
+
+  it('refreshes a single section while preserving user-edited body', async () => {
+    currentDocument = makeDocument({
+      sections: [
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '사용자가 고친 방법 문장',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '기존 결과',
+          sourceRefs: [createDocumentSourceRef('analysis', 'hist_1', { label: 'ANOVA' })],
+          editable: true,
+          generatedBy: 'template',
+        },
+      ],
+    })
+
+    const refreshed = await regenerateDocumentSection('doc_1', 'methods', 'refresh-linked-sources')
+    const methods = refreshed?.sections.find((section) => section.id === 'methods')
+
+    expect(refreshed?.writingState?.status).toBe('completed')
+    expect(refreshed?.writingState?.sectionStates.methods?.status).toBe('skipped')
+    expect(refreshed?.writingState?.sectionStates.methods?.message).toContain('본문은 유지')
+    expect(methods?.content).toBe('사용자가 고친 방법 문장')
+    expect(methods?.generatedBy).toBe('user')
+  })
+
+  it('rejects overlapping section regeneration jobs for the same document', async () => {
+    const pendingSave = createDeferred<DocumentBlueprint>()
+    let saveCallCount = 0
+    mockSaveDocumentBlueprint.mockImplementation(async (document: DocumentBlueprint) => {
+      saveCallCount += 1
+      currentDocument = {
+        ...document,
+        updatedAt: new Date(Date.parse(currentDocument.updatedAt) + 1000).toISOString(),
+      }
+      if (saveCallCount === 1) {
+        return pendingSave.promise
+      }
+      return currentDocument
+    })
+
+    const firstRun = regenerateDocumentSection('doc_1', 'methods', 'regenerate')
+    await expect(regenerateDocumentSection('doc_1', 'results', 'refresh-linked-sources'))
+      .rejects
+      .toThrow('이미 다른 섹션 재생성이 진행 중입니다')
+
+    pendingSave.resolve(currentDocument)
+    await expect(firstRun).resolves.toBeTruthy()
+  })
+
+  it('reuses an active section regeneration job instead of starting full-document writing', async () => {
+    const pendingSave = createDeferred<DocumentBlueprint>()
+    let saveCallCount = 0
+    mockSaveDocumentBlueprint.mockImplementation(async (document: DocumentBlueprint) => {
+      saveCallCount += 1
+      currentDocument = {
+        ...document,
+        updatedAt: new Date(Date.parse(currentDocument.updatedAt) + 1000).toISOString(),
+      }
+      if (saveCallCount === 1) {
+        return pendingSave.promise
+      }
+      return currentDocument
+    })
+
+    const sectionRun = regenerateDocumentSection('doc_1', 'methods', 'regenerate')
+    const documentRun = ensureDocumentWriting('doc_1')
+
+    expect(documentRun).toBe(sectionRun)
+
+    pendingSave.resolve(currentDocument)
+    await expect(sectionRun).resolves.toBeTruthy()
+  })
+
+  it('marks section regeneration failed when source collection throws after drafting starts', async () => {
+    mockGetAllHistory.mockRejectedValue(new Error('history unavailable'))
+
+    const regenerated = await regenerateDocumentSection('doc_1', 'methods', 'regenerate')
+
+    expect(regenerated?.writingState?.status).toBe('failed')
+    expect(regenerated?.writingState?.sectionStates.methods?.status).toBe('failed')
+    expect(regenerated?.writingState?.sectionStates.methods?.message).toBe('history unavailable')
+  })
+
+  it('stops destructive regeneration when the section body changes during the job', async () => {
+    let historyRequested = false
+    mockGetAllHistory.mockImplementation(async () => {
+      if (!historyRequested) {
+        historyRequested = true
+        currentDocument = {
+          ...currentDocument,
+          sections: currentDocument.sections.map((section) => (
+            section.id === 'methods'
+              ? { ...section, content: '작업 중 사용자가 새로 입력한 방법 문장', generatedBy: 'user' as const }
+              : section
+          )),
+        }
+      }
+      return [makeHistoryRecord()]
+    })
+
+    const regenerated = await regenerateDocumentSection('doc_1', 'methods', 'regenerate')
+    const methods = regenerated?.sections.find((section) => section.id === 'methods')
+
+    expect(regenerated?.writingState?.status).toBe('failed')
+    expect(regenerated?.writingState?.sectionStates.methods?.status).toBe('failed')
+    expect(regenerated?.writingState?.sectionStates.methods?.message).toContain('사용자 편집')
+    expect(methods?.content).toBe('작업 중 사용자가 새로 입력한 방법 문장')
   })
 })
