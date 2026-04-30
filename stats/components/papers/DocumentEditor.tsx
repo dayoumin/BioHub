@@ -11,9 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   type DocumentBlueprintsChangedDetail,
-  DocumentBlueprintConflictError,
   loadDocumentBlueprint,
-  saveDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
 import { reassembleDocument } from '@/lib/research/document-assembler'
 import {
@@ -85,6 +83,7 @@ import type { DocumentWritingSourceReadiness } from '@/lib/research/document-wri
 import { useDocumentSourceLinks } from './useDocumentSourceLinks'
 import { useDocumentCitations } from './useDocumentCitations'
 import { useDocumentSectionRegeneration } from './useDocumentSectionRegeneration'
+import { useDocumentBlueprintSaveQueue } from './useDocumentBlueprintSaveQueue'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -142,23 +141,31 @@ export default function DocumentEditor({
   const [doc, setDoc] = useState<DocumentBlueprint | null>(null)
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'conflict'>('saved')
   const [loading, setLoading] = useState(true)
   const [needsReassemble, setNeedsReassemble] = useState(false)
   const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
-  const [documentConflict, setDocumentConflict] = useState<DocumentBlueprint | null>(null)
-  const documentConflictRef = useRef<DocumentBlueprint | null>(null)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
-  const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const latestScheduledSaveRevisionRef = useRef(0)
-  const localEditRevisionRef = useRef(0)
-  const pendingSaveRevisionRef = useRef<number | null>(null)
-  const lastSavedUpdatedAtRef = useRef<string | null>(null)
-  const hasLocalChangesRef = useRef(false)
   const pendingArtifactTargetRef = useRef<string | null>(null)
   const loadedSectionRef = useRef<string | null>(null)
+  const {
+    documentConflict,
+    documentConflictRef,
+    saveStatus,
+    scheduleSave,
+    scheduleImmediateSave,
+    resetSavedDocumentState,
+    markDocumentConflict,
+    getLocalEditRevision,
+    hasPendingSave,
+    hasPendingSaveOrConflict,
+    waitForSaveQueue,
+    isSavedUpdateCurrent,
+    hasLocalChanges,
+  } = useDocumentBlueprintSaveQueue({
+    autosaveDelay: AUTOSAVE_DELAY,
+    documentRef: docRef,
+  })
   const {
     citations,
     latestCitationsRef,
@@ -185,34 +192,12 @@ export default function DocumentEditor({
     },
   })
 
-  // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
-  const pendingDocRef = useRef<DocumentBlueprint | null>(null)
   const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const isDocumentConflictError = useCallback((error: unknown): error is DocumentBlueprintConflictError => (
-    error instanceof DocumentBlueprintConflictError
-    || (
-      error instanceof Error
-      && error.name === 'DocumentBlueprintConflictError'
-      && 'latestDocument' in error
-    )
-  ), [])
-
-  const clearDocumentConflict = useCallback((): void => {
-    documentConflictRef.current = null
-    setDocumentConflict(null)
-  }, [])
 
   const applyLoadedDocument = useCallback((loaded: DocumentBlueprint): void => {
     setDoc(loaded)
     docRef.current = loaded
-    lastSavedUpdatedAtRef.current = loaded.updatedAt
-    hasLocalChangesRef.current = false
-    pendingDocRef.current = null
-    pendingSaveRevisionRef.current = null
-    latestScheduledSaveRevisionRef.current = 0
-    clearDocumentConflict()
-    setSaveStatus('saved')
+    resetSavedDocumentState(loaded)
 
     if (loaded.sections.length === 0) {
       setActiveSectionId(null)
@@ -228,74 +213,17 @@ export default function DocumentEditor({
       }
       return loaded.sections[0]?.id ?? null
     })
-  }, [clearDocumentConflict, initialSectionId])
-
-  const markDocumentConflict = useCallback((latestDocument: DocumentBlueprint): void => {
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
-    }
-    pendingSaveRevisionRef.current = null
-    documentConflictRef.current = latestDocument
-    setDocumentConflict(latestDocument)
-    setSaveStatus('conflict')
-  }, [])
-
-  const queueDocumentSave = useCallback((updated: DocumentBlueprint, revision: number): Promise<void> => {
-    const saveTask = async (): Promise<void> => {
-      if (latestScheduledSaveRevisionRef.current === revision) {
-        setSaveStatus('saving')
-      }
-
-      try {
-        const saved = await saveDocumentBlueprint(updated, {
-          expectedUpdatedAt: lastSavedUpdatedAtRef.current ?? undefined,
-        })
-        lastSavedUpdatedAtRef.current = saved.updatedAt
-
-        if (pendingSaveRevisionRef.current === revision) {
-          pendingDocRef.current = null
-          pendingSaveRevisionRef.current = null
-          hasLocalChangesRef.current = false
-        }
-
-        if (latestScheduledSaveRevisionRef.current === revision) {
-          setSaveStatus('saved')
-        }
-      } catch (error) {
-        if (isDocumentConflictError(error)) {
-          markDocumentConflict(error.latestDocument)
-          return
-        }
-        throw error
-      }
-    }
-
-    saveQueueRef.current = saveQueueRef.current
-      .catch(() => undefined)
-      .then(saveTask)
-
-    return saveQueueRef.current
-  }, [isDocumentConflictError, markDocumentConflict])
+  }, [initialSectionId, resetSavedDocumentState])
 
   useEffect(() => {
     return () => {
       if (serializeTimerRef.current) {
         clearTimeout(serializeTimerRef.current)
         // 언마운트 시 serialize 호출 불가 — 에디터 인스턴스가 해체 중이라 실패 위험
-        // pendingDocRef의 plateValue에 최신 편집이 남아있으므로 데이터 손실 없음
-      }
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current)
-      }
-
-      const pendingDoc = pendingDocRef.current
-      const pendingRevision = pendingSaveRevisionRef.current
-      if (pendingDoc && pendingRevision !== null) {
-        void queueDocumentSave(pendingDoc, pendingRevision)
+        // 저장 큐 hook의 pending document에 최신 편집이 남아있으므로 데이터 손실 없음
       }
     }
-  }, [queueDocumentSave])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -303,13 +231,10 @@ export default function DocumentEditor({
     setLoading(true)
     setDoc(null)
     docRef.current = null
-    lastSavedUpdatedAtRef.current = null
-    hasLocalChangesRef.current = false
+    resetSavedDocumentState(null)
     setActiveSectionId(null)
     resetCitations()
     setNeedsReassemble(false)
-    clearDocumentConflict()
-    setSaveStatus('saved')
 
     loadDocumentBlueprint(documentId).then(loaded => {
       if (cancelled) return
@@ -322,7 +247,7 @@ export default function DocumentEditor({
     return () => {
       cancelled = true
     }
-  }, [applyLoadedDocument, clearDocumentConflict, documentId, initialSectionId, resetCitations])
+  }, [applyLoadedDocument, documentId, initialSectionId, resetCitations, resetSavedDocumentState])
 
   useEffect(() => {
     pendingArtifactTargetRef.current = initialTableId
@@ -351,7 +276,7 @@ export default function DocumentEditor({
   }, [doc, isScratchProject])
 
   useEffect(() => {
-    if (!doc || hasLocalChangesRef.current) {
+    if (!doc || hasLocalChanges()) {
       return
     }
 
@@ -360,7 +285,7 @@ export default function DocumentEditor({
     }
 
     void ensureDocumentWriting(doc.id)
-  }, [doc])
+  }, [doc, hasLocalChanges])
 
   useEffect((): (() => void) => {
     const handleDocumentChange = (event: Event): void => {
@@ -372,7 +297,7 @@ export default function DocumentEditor({
       if (!detail || detail.documentId !== documentId || detail.action !== 'saved') {
         return
       }
-      if (detail.updatedAt && detail.updatedAt === lastSavedUpdatedAtRef.current) {
+      if (isSavedUpdateCurrent(detail.updatedAt)) {
         return
       }
 
@@ -380,11 +305,11 @@ export default function DocumentEditor({
         if (!latestDocument) {
           return
         }
-        if (latestDocument.updatedAt === lastSavedUpdatedAtRef.current) {
+        if (isSavedUpdateCurrent(latestDocument.updatedAt)) {
           return
         }
 
-        if (hasLocalChangesRef.current || pendingSaveRevisionRef.current !== null) {
+        if (hasLocalChanges() || hasPendingSaveOrConflict()) {
           markDocumentConflict(latestDocument)
           return
         }
@@ -397,7 +322,14 @@ export default function DocumentEditor({
     return (): void => {
       window.removeEventListener(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, handleDocumentChange)
     }
-  }, [applyLoadedDocument, documentId, markDocumentConflict])
+  }, [
+    applyLoadedDocument,
+    documentId,
+    hasLocalChanges,
+    hasPendingSaveOrConflict,
+    isSavedUpdateCurrent,
+    markDocumentConflict,
+  ])
 
   useEffect((): (() => void) => {
     const handleEntityRefChange = (event: Event): void => {
@@ -471,39 +403,6 @@ export default function DocumentEditor({
       window.removeEventListener(GENETICS_HISTORY_CHANGE_EVENT, handleSupplementaryHistoryChange)
     }
   }, [reloadCitations])
-
-  const scheduleSave = useCallback((updated: DocumentBlueprint) => {
-    docRef.current = updated
-    pendingDocRef.current = updated
-    hasLocalChangesRef.current = true
-    localEditRevisionRef.current += 1
-    clearDocumentConflict()
-    const revision = latestScheduledSaveRevisionRef.current + 1
-    latestScheduledSaveRevisionRef.current = revision
-    pendingSaveRevisionRef.current = revision
-    setSaveStatus('unsaved')
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => {
-      void queueDocumentSave(updated, revision)
-    }, AUTOSAVE_DELAY)
-  }, [clearDocumentConflict, queueDocumentSave])
-
-  const scheduleImmediateSave = useCallback((updated: DocumentBlueprint): Promise<void> => {
-    docRef.current = updated
-    pendingDocRef.current = updated
-    hasLocalChangesRef.current = true
-    localEditRevisionRef.current += 1
-    clearDocumentConflict()
-    const revision = latestScheduledSaveRevisionRef.current + 1
-    latestScheduledSaveRevisionRef.current = revision
-    pendingSaveRevisionRef.current = revision
-    setSaveStatus('unsaved')
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
-    }
-    return queueDocumentSave(updated, revision)
-  }, [clearDocumentConflict, queueDocumentSave])
 
   const updateSection = useCallback((sectionId: string, updates: Partial<DocumentSection>) => {
     setDoc(prev => {
@@ -710,25 +609,21 @@ export default function DocumentEditor({
       return false
     }
 
-    if (pendingSaveRevisionRef.current !== null || flushed) {
+    if (documentConflictRef.current !== null) {
+      return false
+    }
+
+    if (hasPendingSave() || flushed) {
       await scheduleImmediateSave(latestDocument)
     } else {
-      await saveQueueRef.current
+      await waitForSaveQueue()
     }
 
     return documentConflictRef.current === null
-  }, [flushSerialize, scheduleImmediateSave])
+  }, [documentConflictRef, flushSerialize, hasPendingSave, scheduleImmediateSave, waitForSaveQueue])
 
   const getCurrentDocumentIdForSectionRegeneration = useCallback((): string | null => (
     docRef.current?.id ?? null
-  ), [])
-
-  const getLocalEditRevisionForSectionRegeneration = useCallback((): number => (
-    localEditRevisionRef.current
-  ), [])
-
-  const hasPendingSaveOrConflictForSectionRegeneration = useCallback((): boolean => (
-    pendingSaveRevisionRef.current !== null || documentConflictRef.current !== null
   ), [])
 
   const applyRegeneratedDocument = useCallback((updated: DocumentBlueprint): void => {
@@ -745,8 +640,8 @@ export default function DocumentEditor({
     documentId,
     activeSectionId,
     getCurrentDocumentId: getCurrentDocumentIdForSectionRegeneration,
-    getLocalEditRevision: getLocalEditRevisionForSectionRegeneration,
-    hasPendingSaveOrConflict: hasPendingSaveOrConflictForSectionRegeneration,
+    getLocalEditRevision,
+    hasPendingSaveOrConflict,
     persistLatestDocument: persistLatestDocumentBeforeSectionRegeneration,
     applyRegeneratedDocument,
   })

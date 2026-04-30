@@ -334,7 +334,9 @@
 - [x] `DocumentEditor` citation 로딩 1차 분리: citation 목록, stale reload 방지, pending reload 대기 ref를 `useDocumentCitations`로 추출하고 projectId 전환 방어를 hook 내부로 유지 (2026-04-30)
 - [x] `DocumentEditor` 섹션 재생성 실행 로직 1차 분리: 본문 보존 갱신/본문 교체 재생성의 pending mode, 충돌·동시 편집 방어, toast 메시지 처리를 `useDocumentSectionRegeneration`으로 추출 (2026-04-30)
 - [x] `DocumentEditor` artifact 렌더링 1차 분리: section table/figure 목록과 원본 열기 액션을 `DocumentArtifactLists` 컴포넌트로 추출해 에디터 본체 JSX 밀도를 낮춤 (2026-04-30)
+- [x] `DocumentEditor` autosave 리팩터링 전 보호 테스트 추가: in-flight autosave 중 외부 저장 충돌 유지, debounce 전 unmount pending save flush를 회귀 테스트로 고정 (2026-04-30)
 - [ ] `DocumentArtifactLists` 디자인 polish: 현재는 동등성 유지를 위해 기존 border/table cell 스타일을 보존했으나, 후속 UI polish에서 Axiom Slate No-Line 원칙에 맞춰 surface tone 기반 구분으로 전환 검토.
-- [ ] `DocumentEditor` 추가 리팩터링: `useDocumentBlueprintAutosave`로 저장·충돌·unmount flush 로직 결합도를 낮춘다.
+- [x] `DocumentEditor` autosave 저장 큐 리팩터링: `useDocumentBlueprintSaveQueue`로 save queue/debounce/immediate save/conflict mark/clear/unmount flush를 분리하고, in-flight save가 충돌 상태를 덮지 못하도록 고정 (2026-04-30)
+- [ ] 자료 작성 revision history 설계/구현: autosave가 실수까지 저장할 수 있으므로 섹션 재생성/재조립/export/주요 사용자 편집 전 문서 snapshot을 IndexedDB에 보관하고, 우선 문서 전체 복원부터 제공한다.
 - [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄인다.

@@ -34,7 +34,7 @@ const {
   GENETICS_HISTORY_CHANGE_EVENT,
 } = vi.hoisted(() => ({
   mockDocumentToDocx: vi.fn(async (_doc: DocumentBlueprint) => undefined),
-  mockSaveDocumentBlueprint: vi.fn(async (doc: DocumentBlueprint) => doc),
+  mockSaveDocumentBlueprint: vi.fn(async (doc: DocumentBlueprint, _options?: { expectedUpdatedAt?: string }) => doc),
   mockLoadDocumentBlueprint: vi.fn<() => Promise<DocumentBlueprint | null>>(),
   mockReassembleDocument: vi.fn<(doc: DocumentBlueprint) => DocumentBlueprint>(),
   mockListCitationsByProject: vi.fn<(projectId: string) => Promise<CitationRecord[]>>(),
@@ -122,7 +122,9 @@ vi.mock('@/lib/research/document-blueprint-storage', () => ({
     }
   },
   loadDocumentBlueprint: (_documentId: string) => mockLoadDocumentBlueprint(),
-  saveDocumentBlueprint: (document: DocumentBlueprint) => mockSaveDocumentBlueprint(document),
+  saveDocumentBlueprint: (document: DocumentBlueprint, options?: { expectedUpdatedAt?: string }) => (
+    mockSaveDocumentBlueprint(document, options)
+  ),
 }))
 
 vi.mock('@/lib/research/document-assembler', () => ({
@@ -231,7 +233,7 @@ function createDeferred<T>(): { promise: Promise<T>; resolve: (value: T) => void
 describe('DocumentEditor export freshness', () => {
   beforeEach(() => {
     mockDocumentToDocx.mockClear()
-    mockSaveDocumentBlueprint.mockClear()
+    mockSaveDocumentBlueprint.mockReset()
     mockLoadDocumentBlueprint.mockReset()
     mockReassembleDocument.mockReset()
     mockListCitationsByProject.mockReset()
@@ -246,6 +248,7 @@ describe('DocumentEditor export freshness', () => {
     mockLoadBioToolHistory.mockReset()
     mockLoadGeneticsHistory.mockReset()
 
+    mockSaveDocumentBlueprint.mockImplementation(async (doc: DocumentBlueprint) => doc)
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('이전 내용'))
     mockListCitationsByProject.mockResolvedValue([])
     mockListProjectEntityRefs.mockReturnValue([])
@@ -837,6 +840,127 @@ describe('DocumentEditor export freshness', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('passes the last saved update timestamp as the autosave concurrency token', async () => {
+    const loadedDocument = makeDocument('기존 내용', {
+      updatedAt: '2026-04-21T00:00:02.000Z',
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(loadedDocument)
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    vi.useFakeTimers()
+    try {
+      act(() => {
+        screen.getByTestId('paper-plate-editor').click()
+      })
+      await act(async () => {
+        vi.advanceTimersByTime(2_000)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'doc-1' }),
+        { expectedUpdatedAt: loadedDocument.updatedAt },
+      )
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps conflict status when an in-flight autosave resolves after an external update', async () => {
+    const inFlightSave = createDeferred<void>()
+    const latestDocument = makeDocument('외부 최신 내용', {
+      updatedAt: '2026-04-21T00:00:03.000Z',
+    })
+
+    mockLoadDocumentBlueprint
+      .mockResolvedValueOnce(makeDocument('기존 내용'))
+      .mockResolvedValueOnce(latestDocument)
+    mockSaveDocumentBlueprint.mockImplementation(async (doc: DocumentBlueprint) => {
+      await inFlightSave.promise
+      return {
+        ...doc,
+        updatedAt: '2026-04-21T00:00:04.000Z',
+      }
+    })
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    vi.useFakeTimers()
+    try {
+      act(() => {
+        screen.getByTestId('paper-plate-editor').click()
+      })
+      await act(async () => {
+        vi.advanceTimersByTime(2_000)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(1)
+
+      act(() => {
+        window.dispatchEvent(new CustomEvent(DOCUMENT_BLUEPRINTS_CHANGED_EVENT, {
+          detail: {
+            projectId: 'project-1',
+            documentId: 'doc-1',
+            action: 'saved',
+            updatedAt: latestDocument.updatedAt,
+          },
+        }))
+      })
+
+      await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(screen.getByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')).toBeInTheDocument()
+      expect(screen.getByText('충돌')).toBeInTheDocument()
+
+      await act(async () => {
+        inFlightSave.resolve(undefined)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(screen.getByText('충돌')).toBeInTheDocument()
+      expect(screen.queryByText('저장됨')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('flushes the pending autosave document on unmount before the debounce fires', async () => {
+    const { unmount } = render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      screen.getByTestId('paper-plate-editor').click()
+    })
+
+    expect(mockSaveDocumentBlueprint).not.toHaveBeenCalled()
+
+    act(() => {
+      unmount()
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(1)
+    const [savedDocument] = mockSaveDocumentBlueprint.mock.calls[0] as [DocumentBlueprint]
+    expect(savedDocument.sections[0]?.plateValue).toEqual([{ type: 'p', children: [{ text: 'editor children' }] }])
   })
 
   it('reloads the latest saved document when the same document changes externally and there are no local edits', async () => {
