@@ -6,6 +6,7 @@ import {
 } from '@/lib/research/document-blueprint-revisions'
 import {
   deleteDocumentBlueprint,
+  DocumentBlueprintConflictError,
   loadDocumentBlueprint,
   saveDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
@@ -99,6 +100,25 @@ describe('document blueprint revisions', () => {
     expect(loaded?.sections[0]?.content).toBe('복원할 본문')
     expect(loaded?.updatedAt).not.toBe(original.updatedAt)
     expect(revisions[0]?.snapshot.sections[0]?.content).toBe('복원할 본문')
+  })
+
+  it('rejects stale expectedUpdatedAt saves without overwriting the current document', async () => {
+    const documentId = 'revision-conflict-doc'
+    await saveDocumentBlueprint(
+      makeDocument(documentId, '원본', '2026-04-30T00:00:00.000Z'),
+    )
+    await saveDocumentBlueprint(
+      makeDocument(documentId, '다른 탭 저장', '2026-04-30T00:00:01.000Z'),
+      { expectedUpdatedAt: '2026-04-30T00:00:00.000Z' },
+    )
+
+    await expect(saveDocumentBlueprint(
+      makeDocument(documentId, '늦은 저장', '2026-04-30T00:00:02.000Z'),
+      { expectedUpdatedAt: '2026-04-30T00:00:00.000Z' },
+    )).rejects.toBeInstanceOf(DocumentBlueprintConflictError)
+
+    const loaded = await loadDocumentBlueprint(documentId)
+    expect(loaded?.sections[0]?.content).toBe('다른 탭 저장')
   })
 
   it('deletes revisions when the document is deleted', async () => {

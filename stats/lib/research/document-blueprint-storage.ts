@@ -27,7 +27,7 @@ import {
   emitCrossTabCustomEvent,
   registerCrossTabCustomEventBridge,
 } from '@/lib/utils/cross-tab-custom-events'
-import { txGet, txGetAll, txGetByIndex, txPut, txDelete } from '@/lib/utils/indexeddb-helpers'
+import { txGet, txGetAll, txGetByIndex, txDelete } from '@/lib/utils/indexeddb-helpers'
 import { deleteDocumentRevisionsForDocument } from './document-blueprint-revisions'
 
 const STORE_NAME = 'document-blueprints'
@@ -123,6 +123,52 @@ function buildDraftProvenanceEdges(blueprint: DocumentBlueprint): ProjectProvena
   return Array.from(edges.values())
 }
 
+function saveDocumentBlueprintInTransaction(
+  db: IDBDatabase,
+  toSave: DocumentBlueprint,
+  expectedUpdatedAt: string | undefined,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const getRequest = store.get(toSave.id)
+    let settled = false
+
+    const rejectOnce = (error: unknown): void => {
+      if (!settled) {
+        settled = true
+        reject(error)
+      }
+    }
+
+    getRequest.onerror = (): void => rejectOnce(getRequest.error)
+    getRequest.onsuccess = (): void => {
+      const existing = getRequest.result as DocumentBlueprint | undefined
+      if (existing && expectedUpdatedAt && existing.updatedAt !== expectedUpdatedAt) {
+        rejectOnce(new DocumentBlueprintConflictError(normalizeDocumentBlueprint(existing)))
+        tx.abort()
+        return
+      }
+
+      const putRequest = store.put(toSave)
+      putRequest.onerror = (): void => rejectOnce(putRequest.error)
+    }
+
+    tx.oncomplete = (): void => {
+      if (!settled) {
+        settled = true
+        resolve()
+      }
+    }
+    tx.onerror = (): void => rejectOnce(tx.error)
+    tx.onabort = (): void => {
+      if (!settled) {
+        rejectOnce(tx.error ?? new Error('Document blueprint save transaction aborted'))
+      }
+    }
+  })
+}
+
 // ── 공개 API ──
 
 /**
@@ -140,16 +186,7 @@ export async function saveDocumentBlueprint(
     ? blueprint
     : { ...blueprint, updatedAt: new Date().toISOString() }
 
-  const existing = await txGet<DocumentBlueprint>(db, STORE_NAME, blueprint.id)
-  if (
-    existing &&
-    options?.expectedUpdatedAt &&
-    existing.updatedAt !== options.expectedUpdatedAt
-  ) {
-    throw new DocumentBlueprintConflictError(normalizeDocumentBlueprint(existing))
-  }
-
-  await txPut(db, STORE_NAME, toSave)
+  await saveDocumentBlueprintInTransaction(db, toSave, options?.expectedUpdatedAt)
 
   upsertProjectEntityRef({
     projectId: blueprint.projectId,

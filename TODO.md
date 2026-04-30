@@ -338,5 +338,10 @@
 - [ ] `DocumentArtifactLists` 디자인 polish: 현재는 동등성 유지를 위해 기존 border/table cell 스타일을 보존했으나, 후속 UI polish에서 Axiom Slate No-Line 원칙에 맞춰 surface tone 기반 구분으로 전환 검토.
 - [x] `DocumentEditor` autosave 저장 큐 리팩터링: `useDocumentBlueprintSaveQueue`로 save queue/debounce/immediate save/conflict mark/clear/unmount flush를 분리하고, in-flight save가 충돌 상태를 덮지 못하도록 고정 (2026-04-30)
 - [x] 자료 작성 revision history 1차 구현: autosave가 실수까지 저장할 수 있으므로 문서 snapshot을 IndexedDB에 보관하고, 복원 기록 패널에서 수동 저장 지점 생성과 문서 전체 복원을 제공한다. 재조립/섹션 재생성/export/복원 전 자동 snapshot을 남기고, 섹션 단위 비교·복원은 후속 단계로 둔다. (2026-04-30)
-- [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다.
-- [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄인다.
+- [x] 자료 작성 큰 관점 리뷰 P1 반영: active editor `plateValue`만 최신인 문서도 export/reassemble/revision 직전 강제 serialize하고, `saveDocumentBlueprint`의 optimistic lock을 단일 readwrite transaction compare-and-put으로 변경. 복원-with-pending-autosave/복원-conflict/저장 conflict 회귀 테스트 추가 (2026-04-30)
+- [ ] 자료 작성 대표 E2E 확장: Hub 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → 재조립 필요 해소 → export까지 최소 happy path와 좁은 PC viewport smoke를 추가한다. revision restore/export freshness/autosave debounce reload도 포함한다.
+- [ ] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, snapshot excerpt를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다.
+- [ ] 자료 작성 revision retention 개선: 자동 snapshot 반복이 사용자 수동 저장 지점을 밀어내지 않도록 manual revision 보호 또는 reason별 quota를 적용한다.
+- [ ] 자료 작성 export 안전성 개선: HTML export의 title/content/caption/table cell/provenance를 escape/sanitize하고, empty-but-reassemblable 문서와 HWPX/clipboard prepared-document export path를 테스트한다.
+- [ ] 자료 작성 regeneration guard 테스트 확장: body-preserving refresh, destructive regeneration, conflict before persistLatestDocument, regenerateDocumentSection 이후 concurrent local edit 방어를 통합 테스트로 고정한다.
+- [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄이고, source loading도 `DocumentEditor`/`useDocumentSourceLinks`/assembler/export provenance에 중복되지 않도록 공통 adapter로 모은다.

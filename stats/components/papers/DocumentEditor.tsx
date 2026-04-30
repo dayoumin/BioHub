@@ -578,12 +578,12 @@ export default function DocumentEditor({
 
   // serialize 타이머 flush — 섹션 전환/언마운트 전에 현재 content 확정
   const pendingSerializeSectionRef = useRef<string | null>(null)
-  const flushSerialize = useCallback(() => {
+  const flushSerialize = useCallback((fallbackSectionId?: string) => {
     if (serializeTimerRef.current) {
       clearTimeout(serializeTimerRef.current)
       serializeTimerRef.current = null
     }
-    const sectionId = pendingSerializeSectionRef.current
+    const sectionId = pendingSerializeSectionRef.current ?? fallbackSectionId
     if (!sectionId) return null
     pendingSerializeSectionRef.current = null
     try {
@@ -610,7 +610,7 @@ export default function DocumentEditor({
   const prepareDocumentForExport = useCallback(async (): Promise<DocumentBlueprint | undefined> => {
     await pendingCitationReloadRef.current
 
-    const flushed = flushSerialize()
+    const flushed = flushSerialize(activeSectionId ?? undefined)
     const currentDoc = flushed ?? docRef.current
     if (!currentDoc) return undefined
     await saveDocumentRevisionPoint(
@@ -620,17 +620,17 @@ export default function DocumentEditor({
     )
 
     return needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
-  }, [flushSerialize, needsReassemble, reassembleCurrentDocument, saveDocumentRevisionPoint])
+  }, [activeSectionId, flushSerialize, needsReassemble, reassembleCurrentDocument, saveDocumentRevisionPoint])
 
   const handleCreateManualRevision = useCallback((): void => {
     setRevisionActionPending(true)
     void saveDocumentRevisionPoint(
       'manual',
       '사용자 저장 지점',
-      flushSerialize() ?? docRef.current ?? undefined,
+      flushSerialize(activeSectionId ?? undefined) ?? docRef.current ?? undefined,
       true,
     ).finally(() => setRevisionActionPending(false))
-  }, [flushSerialize, saveDocumentRevisionPoint])
+  }, [activeSectionId, flushSerialize, saveDocumentRevisionPoint])
 
   const handleRestoreRevision = useCallback((revisionId: string): void => {
     if (revisionActionPending) return
@@ -644,7 +644,7 @@ export default function DocumentEditor({
 
     setRevisionActionPending(true)
     void (async (): Promise<void> => {
-      const latestDocument = flushSerialize() ?? docRef.current
+      const latestDocument = flushSerialize(activeSectionId ?? undefined) ?? docRef.current
       if (!latestDocument) {
         toast.error('현재 문서를 찾을 수 없습니다')
         return
@@ -687,6 +687,7 @@ export default function DocumentEditor({
     }).finally(() => setRevisionActionPending(false))
   }, [
     applyLoadedDocument,
+    activeSectionId,
     documentConflictRef,
     flushSerialize,
     getLastSavedUpdatedAt,
@@ -715,7 +716,7 @@ export default function DocumentEditor({
   }, [activeSectionId, skipSectionWriting])
 
   const persistLatestDocumentBeforeSectionRegeneration = useCallback(async (): Promise<boolean> => {
-    const flushed = flushSerialize()
+    const flushed = flushSerialize(activeSectionId ?? undefined)
     const latestDocument = flushed ?? docRef.current
     if (!latestDocument) {
       return false
@@ -738,6 +739,7 @@ export default function DocumentEditor({
 
     return documentConflictRef.current === null
   }, [
+    activeSectionId,
     documentConflictRef,
     flushSerialize,
     hasPendingSave,
@@ -889,7 +891,7 @@ export default function DocumentEditor({
   // 재조립
   const handleReassemble = useCallback(async () => {
     await pendingCitationReloadRef.current
-    const syncedDoc = flushSerialize()
+    const syncedDoc = flushSerialize(activeSectionId ?? undefined)
     const revisionTarget = syncedDoc ?? docRef.current
     if (revisionTarget) {
       await saveDocumentRevisionPoint(
@@ -899,7 +901,7 @@ export default function DocumentEditor({
       )
     }
     reassembleCurrentDocument(syncedDoc ?? undefined)
-  }, [flushSerialize, reassembleCurrentDocument, saveDocumentRevisionPoint])
+  }, [activeSectionId, flushSerialize, reassembleCurrentDocument, saveDocumentRevisionPoint])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
@@ -1149,7 +1151,7 @@ export default function DocumentEditor({
           <Button
             variant={previewMode ? 'secondary' : 'ghost'}
             size="sm"
-            onClick={() => { flushSerialize(); setPreviewMode(true) }}
+            onClick={() => { flushSerialize(activeSectionId ?? undefined); setPreviewMode(true) }}
             className="gap-1 rounded-l-none"
           >
             <Eye className="w-3.5 h-3.5" />
