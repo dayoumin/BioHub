@@ -1,4 +1,5 @@
 import type { ProjectEntityRef } from '@biohub/types'
+import type { BioToolId } from '@/lib/bio-tools/bio-tool-registry'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type {
@@ -61,6 +62,37 @@ import {
 
 export type WritingSourceBlockKind = 'methods' | 'results' | 'supplementary'
 export type WritingSectionHeadingKind = 'figures' | 'supplementary'
+
+export const DOCUMENT_WRITING_SOURCE_REGISTRY_ENTITY_KINDS = [
+  'analysis',
+  'figure',
+  'bio-tool-result',
+  'blast-result',
+  'protein-result',
+  'seq-stats-result',
+  'similarity-result',
+  'phylogeny-result',
+  'bold-result',
+  'translation-result',
+] as const satisfies readonly ProjectEntityRef['entityKind'][]
+
+export const DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS = [
+  'alpha-diversity',
+  'beta-diversity',
+  'condition-factor',
+  'fst',
+  'hardy-weinberg',
+  'icc',
+  'length-weight',
+  'mantel-test',
+  'meta-analysis',
+  'nmds',
+  'permanova',
+  'rarefaction',
+  'roc-auc',
+  'survival',
+  'vbgf',
+] as const satisfies readonly BioToolId[]
 
 interface WritingSourceRegistryContext {
   language: 'ko' | 'en'

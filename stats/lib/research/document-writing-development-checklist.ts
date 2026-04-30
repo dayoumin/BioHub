@@ -1,4 +1,11 @@
 import { BIO_TOOLS, type BioTool, type BioToolId } from '@/lib/bio-tools/bio-tool-registry'
+import { getAllMethods, type StatisticalMethodEntry } from '@/lib/constants/statistical-methods'
+import {
+  STATISTICAL_METHOD_REQUIREMENTS,
+  type VariableRole,
+} from '@/lib/statistics/variable-requirements'
+import type { ProjectEntityKind } from '@biohub/types'
+import type { StudySchemaVariableRole } from '@/lib/services/paper-draft/study-schema'
 import {
   BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL,
   SUPPLEMENTARY_ENTITY_WRITER_POLICIES,
@@ -8,6 +15,18 @@ import {
   type BioToolSupplementaryWriterPolicy,
   type SupplementaryWriterStage,
 } from './document-writing-supplementary-policy'
+import { DOCUMENT_WRITING_ENTITY_KINDS } from './document-writing-session'
+import {
+  DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS,
+  DOCUMENT_WRITING_SOURCE_REGISTRY_ENTITY_KINDS,
+} from './document-writing-source-registry'
+import {
+  ENTITY_RESOLVER_GENERIC_ONLY_KINDS,
+  ENTITY_RESOLVER_SUPPORTED_KINDS,
+} from './entity-resolver'
+import { ENTITY_TAB_REGISTRY } from './entity-tab-registry'
+import { getMethodsAutomationScope } from '@/lib/services/paper-draft/methods-scope'
+import { getResultsAutomationScope } from '@/lib/services/paper-draft/results-scope'
 
 export type DocumentWritingChecklistStatus = 'pass' | 'attention'
 
@@ -32,6 +51,9 @@ export interface DocumentWritingChecklistSummary {
   readyBioToolCount: number
   dedicatedReadyBioToolCount: number
   genericReadyBioToolIds: readonly BioToolId[]
+  statisticalMethodCount: number
+  trackedVariableRequirementOnlyCount: number
+  projectEntityKindCount: number
 }
 
 export interface DocumentWritingDevelopmentChecklist {
@@ -49,6 +71,27 @@ interface BioToolWriterReadinessSummary {
   missingPolicyToolIds: readonly BioToolId[]
   stalePolicyToolIds: readonly BioToolId[]
   duplicateRegistryToolIds: readonly BioToolId[]
+  dedicatedPolicyToolIdsMissingSourceRegistry: readonly BioToolId[]
+  dedicatedSourceRegistryToolIdsMissingPolicy: readonly BioToolId[]
+}
+
+interface StatisticalMethodSyncSummary {
+  methodIds: readonly string[]
+  missingRequirementMethodIds: readonly string[]
+  untrackedRequirementOnlyIds: readonly string[]
+  trackedRequirementOnlyIds: readonly string[]
+  mismatchedMethodsScopeMethodIds: readonly string[]
+  mismatchedResultsScopeMethodIds: readonly string[]
+  unmappedVariableRequirementRoles: readonly VariableRole[]
+}
+
+interface ProjectEntitySyncSummary {
+  knownEntityKinds: readonly ProjectEntityKind[]
+  missingTabEntityKinds: readonly ProjectEntityKind[]
+  duplicateTabEntityKinds: readonly ProjectEntityKind[]
+  documentWritingKindsMissingResolver: readonly ProjectEntityKind[]
+  documentWritingKindsMissingTab: readonly ProjectEntityKind[]
+  documentWritingKindsMissingSourceRegistry: readonly ProjectEntityKind[]
 }
 
 const STAGE_LABELS: Record<SupplementaryWriterStage, string> = {
@@ -56,6 +99,37 @@ const STAGE_LABELS: Record<SupplementaryWriterStage, string> = {
   next: '다음',
   candidate: '후보',
   'generic-only': '공통 fallback',
+}
+
+const TRACKED_VARIABLE_REQUIREMENT_ONLY_IDS = [
+  'binary-logistic',
+  'cross-tabulation',
+  'curve-estimation',
+  'durbin-watson-test',
+  'fisher-exact',
+  'frequency-table',
+  'kendall-correlation',
+  'multinomial-logistic',
+  'multiple-regression',
+  'negative-binomial-regression',
+  'nonlinear-regression',
+  'probit-regression',
+  'spearman-correlation',
+  'three-way-anova',
+] as const
+
+const VARIABLE_REQUIREMENT_ROLE_TO_STUDY_SCHEMA_ROLE: Record<VariableRole, StudySchemaVariableRole> = {
+  dependent: 'dependent',
+  independent: 'independent',
+  factor: 'group',
+  covariate: 'covariate',
+  blocking: 'blocking',
+  within: 'within',
+  between: 'between',
+  time: 'time',
+  event: 'event',
+  censoring: 'censoring',
+  weight: 'weight',
 }
 
 function uniqueToolIds(values: readonly BioToolId[]): readonly BioToolId[] {
@@ -78,9 +152,30 @@ function findDuplicateToolIds(values: readonly BioToolId[]): readonly BioToolId[
   return Array.from(duplicates).sort()
 }
 
+function findDuplicateStrings(values: readonly string[]): readonly string[] {
+  const seen = new Set<string>()
+  const duplicates = new Set<string>()
+
+  values.forEach((value) => {
+    if (seen.has(value)) {
+      duplicates.add(value)
+      return
+    }
+
+    seen.add(value)
+  })
+
+  return Array.from(duplicates).sort()
+}
+
+function sortStrings(values: readonly string[]): readonly string[] {
+  return [...values].sort()
+}
+
 export function summarizeBioToolWriterReadiness(
   tools: readonly Pick<BioTool, 'id' | 'status'>[],
   policies: Partial<BioToolWriterPolicyMap>,
+  sourceRegistryDedicatedToolIds: readonly BioToolId[] = DEDICATED_BIO_TOOL_WRITING_SOURCE_TOOL_IDS,
 ): BioToolWriterReadinessSummary {
   const toolIds = tools.map((tool) => tool.id)
   const policyIds = Object.keys(policies) as BioToolId[]
@@ -96,6 +191,15 @@ export function summarizeBioToolWriterReadiness(
   const missingPolicyToolIds = toolIds.filter((toolId) => policies[toolId] === undefined)
   const stalePolicyToolIds = policyIds.filter((toolId) => !toolIds.includes(toolId))
   const duplicateRegistryToolIds = findDuplicateToolIds(toolIds)
+  const dedicatedPolicyToolIds = policyIds.filter((toolId) => policies[toolId]?.stage === 'dedicated')
+  const sourceRegistryDedicatedToolIdSet = new Set(sourceRegistryDedicatedToolIds)
+  const dedicatedPolicyToolIdSet = new Set(dedicatedPolicyToolIds)
+  const dedicatedPolicyToolIdsMissingSourceRegistry = dedicatedPolicyToolIds.filter((toolId) => (
+    !sourceRegistryDedicatedToolIdSet.has(toolId)
+  ))
+  const dedicatedSourceRegistryToolIdsMissingPolicy = sourceRegistryDedicatedToolIds.filter((toolId) => (
+    !dedicatedPolicyToolIdSet.has(toolId)
+  ))
 
   return {
     readyToolIds: uniqueToolIds(readyToolIds),
@@ -105,6 +209,75 @@ export function summarizeBioToolWriterReadiness(
     missingPolicyToolIds: uniqueToolIds(missingPolicyToolIds),
     stalePolicyToolIds: uniqueToolIds(stalePolicyToolIds),
     duplicateRegistryToolIds,
+    dedicatedPolicyToolIdsMissingSourceRegistry: uniqueToolIds(dedicatedPolicyToolIdsMissingSourceRegistry),
+    dedicatedSourceRegistryToolIdsMissingPolicy: uniqueToolIds(dedicatedSourceRegistryToolIdsMissingPolicy),
+  }
+}
+
+export function summarizeStatisticalMethodSync(
+  methods: readonly Pick<StatisticalMethodEntry, 'id' | 'category'>[],
+  requirements: readonly { id: string; variables: readonly { role: VariableRole }[] }[],
+  trackedRequirementOnlyIds: readonly string[] = TRACKED_VARIABLE_REQUIREMENT_ONLY_IDS,
+): StatisticalMethodSyncSummary {
+  const methodIds = methods.map((method) => method.id)
+  const methodIdSet = new Set(methodIds)
+  const requirementIds = requirements.map((requirement) => requirement.id)
+  const requirementIdSet = new Set(requirementIds)
+  const trackedRequirementOnlyIdSet = new Set(trackedRequirementOnlyIds)
+
+  const missingRequirementMethodIds = methodIds.filter((methodId) => !requirementIdSet.has(methodId))
+  const untrackedRequirementOnlyIds = requirementIds.filter((requirementId) => (
+    !methodIdSet.has(requirementId)
+    && !trackedRequirementOnlyIdSet.has(requirementId)
+  ))
+  const trackedRequirementOnlyIdsPresent = requirementIds.filter((requirementId) => (
+    !methodIdSet.has(requirementId)
+    && trackedRequirementOnlyIdSet.has(requirementId)
+  ))
+
+  const mismatchedMethodsScopeMethodIds = methods.filter((method) => (
+    getMethodsAutomationScope(method.id, 'ko').category !== method.category
+  )).map((method) => method.id)
+  const mismatchedResultsScopeMethodIds = methods.filter((method) => (
+    getResultsAutomationScope(method.id, 'ko').category !== method.category
+  )).map((method) => method.id)
+  const variableRequirementRoles = Array.from(new Set(
+    requirements.flatMap((requirement) => requirement.variables.map((variable) => variable.role)),
+  ))
+  const unmappedVariableRequirementRoles = variableRequirementRoles.filter((role) => (
+    VARIABLE_REQUIREMENT_ROLE_TO_STUDY_SCHEMA_ROLE[role] === undefined
+  ))
+
+  return {
+    methodIds: sortStrings(methodIds),
+    missingRequirementMethodIds: sortStrings(missingRequirementMethodIds),
+    untrackedRequirementOnlyIds: sortStrings(untrackedRequirementOnlyIds),
+    trackedRequirementOnlyIds: sortStrings(trackedRequirementOnlyIdsPresent),
+    mismatchedMethodsScopeMethodIds: sortStrings(mismatchedMethodsScopeMethodIds),
+    mismatchedResultsScopeMethodIds: sortStrings(mismatchedResultsScopeMethodIds),
+    unmappedVariableRequirementRoles: sortStrings(unmappedVariableRequirementRoles) as VariableRole[],
+  }
+}
+
+export function summarizeProjectEntitySync(
+  tabEntityKinds: readonly ProjectEntityKind[],
+  resolverSupportedKinds: readonly ProjectEntityKind[] = ENTITY_RESOLVER_SUPPORTED_KINDS,
+  resolverGenericOnlyKinds: readonly ProjectEntityKind[] = ENTITY_RESOLVER_GENERIC_ONLY_KINDS,
+  documentWritingKinds: readonly ProjectEntityKind[] = DOCUMENT_WRITING_ENTITY_KINDS,
+  sourceRegistryKinds: readonly ProjectEntityKind[] = DOCUMENT_WRITING_SOURCE_REGISTRY_ENTITY_KINDS,
+): ProjectEntitySyncSummary {
+  const knownEntityKinds = sortStrings([...resolverSupportedKinds, ...resolverGenericOnlyKinds]) as ProjectEntityKind[]
+  const tabKindSet = new Set(tabEntityKinds)
+  const resolverKnownKindSet = new Set<ProjectEntityKind>(knownEntityKinds)
+  const sourceRegistryKindSet = new Set<ProjectEntityKind>(sourceRegistryKinds)
+
+  return {
+    knownEntityKinds,
+    missingTabEntityKinds: knownEntityKinds.filter((kind) => !tabKindSet.has(kind)),
+    duplicateTabEntityKinds: findDuplicateStrings(tabEntityKinds) as ProjectEntityKind[],
+    documentWritingKindsMissingResolver: documentWritingKinds.filter((kind) => !resolverKnownKindSet.has(kind)),
+    documentWritingKindsMissingTab: documentWritingKinds.filter((kind) => !tabKindSet.has(kind)),
+    documentWritingKindsMissingSourceRegistry: documentWritingKinds.filter((kind) => !sourceRegistryKindSet.has(kind)),
   }
 }
 
@@ -127,6 +300,13 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
   const readiness = summarizeBioToolWriterReadiness(
     BIO_TOOLS,
     BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL,
+  )
+  const statisticalSync = summarizeStatisticalMethodSync(
+    getAllMethods(),
+    STATISTICAL_METHOD_REQUIREMENTS,
+  )
+  const entitySync = summarizeProjectEntitySync(
+    ENTITY_TAB_REGISTRY.map((entry) => entry.id),
   )
   const registeredToolIds = BIO_TOOLS.map((tool) => tool.id).sort()
   const broadBioToolPolicy = getSupplementaryWriterPolicy('bio-tool-result')
@@ -162,10 +342,22 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
         ),
         createItem(
           'ready-bio-tool-dedicated-writers',
-          'ready Bio-Tool은 전용 writer가 필요함',
-          readiness.genericReadyToolIds.length === 0,
+          'ready Bio-Tool은 전용 writer와 source registry 경로가 필요함',
+          readiness.genericReadyToolIds.length === 0
+            && readiness.dedicatedPolicyToolIdsMissingSourceRegistry.length === 0
+            && readiness.dedicatedSourceRegistryToolIdsMissingPolicy.length === 0,
           `ready ${readiness.readyToolIds.length}개 중 ${readiness.dedicatedReadyToolIds.length}개가 전용 writer로 승격됨`,
-          `ready인데 전용 writer가 아닌 도구: ${readiness.genericReadyToolIds.join(', ')}`,
+          [
+            readiness.genericReadyToolIds.length > 0
+              ? `ready인데 전용 writer가 아닌 도구: ${readiness.genericReadyToolIds.join(', ')}`
+              : null,
+            readiness.dedicatedPolicyToolIdsMissingSourceRegistry.length > 0
+              ? `source registry 누락: ${readiness.dedicatedPolicyToolIdsMissingSourceRegistry.join(', ')}`
+              : null,
+            readiness.dedicatedSourceRegistryToolIdsMissingPolicy.length > 0
+              ? `policy 누락: ${readiness.dedicatedSourceRegistryToolIdsMissingPolicy.join(', ')}`
+              : null,
+          ].filter((message): message is string => message !== null).join(' / ') || 'Bio-Tool dedicated writer 연결 누락',
         ),
         createItem(
           'coming-soon-conservative',
@@ -204,6 +396,90 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
         ),
       ],
     },
+    {
+      id: 'statistics-methods',
+      title: 'Statistics method sync',
+      description: '통계 메서드 추가/삭제 시 method registry, variable requirements, 자동 작성 scope를 같이 확인합니다.',
+      items: [
+        createItem(
+          'statistical-method-requirements',
+          '모든 canonical 통계 메서드에 variable requirements가 있음',
+          statisticalSync.missingRequirementMethodIds.length === 0,
+          `${statisticalSync.methodIds.length}개 canonical method 모두 requirements 확인`,
+          `requirements 누락: ${statisticalSync.missingRequirementMethodIds.join(', ')}`,
+        ),
+        createItem(
+          'tracked-variable-requirement-only',
+          'registry 밖 variable requirements는 추적된 예외만 허용',
+          statisticalSync.untrackedRequirementOnlyIds.length === 0,
+          `${statisticalSync.trackedRequirementOnlyIds.length}개 requirements-only 항목은 추적된 예외로 유지`,
+          `추적되지 않은 requirements-only 항목: ${statisticalSync.untrackedRequirementOnlyIds.join(', ')}`,
+        ),
+        createItem(
+          'statistical-method-writing-scope',
+          '모든 canonical 통계 메서드가 Methods/Results category scope와 일치함',
+          statisticalSync.mismatchedMethodsScopeMethodIds.length === 0
+            && statisticalSync.mismatchedResultsScopeMethodIds.length === 0,
+          'Methods/Results 작성 범위가 category 기준으로 모두 해석됨',
+          [
+            statisticalSync.mismatchedMethodsScopeMethodIds.length > 0
+              ? `Methods scope 불일치: ${statisticalSync.mismatchedMethodsScopeMethodIds.join(', ')}`
+              : null,
+            statisticalSync.mismatchedResultsScopeMethodIds.length > 0
+              ? `Results scope 불일치: ${statisticalSync.mismatchedResultsScopeMethodIds.join(', ')}`
+              : null,
+          ].filter((message): message is string => message !== null).join(' / ') || 'Methods/Results scope 연결 누락',
+        ),
+        createItem(
+          'variable-role-study-schema-mapping',
+          'variable requirements role이 StudySchema role로 매핑됨',
+          statisticalSync.unmappedVariableRequirementRoles.length === 0,
+          '모든 variable role이 논문 작성 StudySchema role로 매핑됨',
+          `StudySchema 매핑 누락 role: ${statisticalSync.unmappedVariableRequirementRoles.join(', ')}`,
+        ),
+      ],
+    },
+    {
+      id: 'project-entities',
+      title: 'Project entity sync',
+      description: 'ProjectEntityKind 추가 시 resolver, generic-only 분류, 탭 메타, 문서 작성 진입 가능 여부를 같이 확인합니다.',
+      items: [
+        createItem(
+          'project-entity-tabs',
+          '모든 resolver 인지 entityKind에 탭 메타가 있음',
+          entitySync.missingTabEntityKinds.length === 0
+            && entitySync.duplicateTabEntityKinds.length === 0,
+          `${entitySync.knownEntityKinds.length}개 entityKind 탭 메타 확인`,
+          [
+            entitySync.missingTabEntityKinds.length > 0
+              ? `탭 누락: ${entitySync.missingTabEntityKinds.join(', ')}`
+              : null,
+            entitySync.duplicateTabEntityKinds.length > 0
+              ? `탭 중복: ${entitySync.duplicateTabEntityKinds.join(', ')}`
+              : null,
+          ].filter((message): message is string => message !== null).join(' / ') || 'entity tab registry 불일치',
+        ),
+        createItem(
+          'document-writing-entity-kinds',
+          '문서 작성 진입 가능 entityKind는 resolver, 탭 메타, source registry에 모두 등록됨',
+          entitySync.documentWritingKindsMissingResolver.length === 0
+            && entitySync.documentWritingKindsMissingTab.length === 0
+            && entitySync.documentWritingKindsMissingSourceRegistry.length === 0,
+          `${DOCUMENT_WRITING_ENTITY_KINDS.length}개 문서 작성 source kind 확인`,
+          [
+            entitySync.documentWritingKindsMissingResolver.length > 0
+              ? `resolver 누락: ${entitySync.documentWritingKindsMissingResolver.join(', ')}`
+              : null,
+            entitySync.documentWritingKindsMissingTab.length > 0
+              ? `탭 누락: ${entitySync.documentWritingKindsMissingTab.join(', ')}`
+              : null,
+            entitySync.documentWritingKindsMissingSourceRegistry.length > 0
+              ? `source registry 누락: ${entitySync.documentWritingKindsMissingSourceRegistry.join(', ')}`
+              : null,
+          ].filter((message): message is string => message !== null).join(' / ') || '문서 작성 entity kind 연결 누락',
+        ),
+      ],
+    },
   ]
 
   const items = sections.flatMap((section) => section.items)
@@ -217,6 +493,9 @@ export function buildDocumentWritingDevelopmentChecklist(): DocumentWritingDevel
       readyBioToolCount: readiness.readyToolIds.length,
       dedicatedReadyBioToolCount: readiness.dedicatedReadyToolIds.length,
       genericReadyBioToolIds: readiness.genericReadyToolIds,
+      statisticalMethodCount: statisticalSync.methodIds.length,
+      trackedVariableRequirementOnlyCount: statisticalSync.trackedRequirementOnlyIds.length,
+      projectEntityKindCount: entitySync.knownEntityKinds.length,
     },
     sections,
   }

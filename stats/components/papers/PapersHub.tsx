@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
   FileText, Plus, BarChart3, Table2, ArrowRight, Clock,
   BookOpen, FileOutput, PenTool, Package, HardDriveDownload, Sparkles,
@@ -48,10 +49,12 @@ import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { toast } from 'sonner'
 import StartWritingButton from './StartWritingButton'
 import WritingEntrySurface from './WritingEntrySurface'
-import PaperWritingDevelopmentChecklist from './PaperWritingDevelopmentChecklist'
 
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST = process.env.NODE_ENV !== 'production'
+const PaperWritingDevelopmentChecklist = SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST
+  ? dynamic(() => import('./PaperWritingDevelopmentChecklist'), { ssr: false })
+  : null
 
 // ── 프리셋 라벨 매핑 ──
 
@@ -484,7 +487,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST && <PaperWritingDevelopmentChecklist />}
+          {PaperWritingDevelopmentChecklist && <PaperWritingDevelopmentChecklist />}
           {activeProject && onOpenPackage && (
             <Button
               variant="outline"

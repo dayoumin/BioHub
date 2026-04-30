@@ -82,6 +82,15 @@ vi.mock('@/lib/research/entity-tab-registry', () => ({
   getTabEntry: () => ({ label: '단백질', icon: '🧬' }),
 }))
 
+vi.mock('../PaperWritingDevelopmentChecklist', () => ({
+  __esModule: true,
+  default: () => (
+    <button type="button" aria-label="자료 작성 개발 점검 열기">
+      개발 점검
+    </button>
+  ),
+}))
+
 vi.mock('../DocumentAssemblyDialog', () => ({
   __esModule: true,
   default: () => null,
@@ -213,12 +222,7 @@ describe('PapersHub', () => {
   it('shows the paper writing development checklist in the hero actions', async () => {
     render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: '자료 작성 개발 점검 열기' }))
-
-    expect(await screen.findByText('자료 작성 개발 점검')).toBeInTheDocument()
-    expect(screen.getByText('Bio-Tools writer sync')).toBeInTheDocument()
-    expect(screen.getByText('Source-backed writing')).toBeInTheDocument()
-    expect(screen.getByText(/ready Bio-Tools 15개 중 15개 전용 writer 적용/)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '자료 작성 개발 점검 열기' })).toBeInTheDocument()
   })
 
   it('shows bio/genetics quick-start cards and opens a writing session', async () => {

@@ -10,6 +10,8 @@ import {
 } from '../document-writing-supplementary-policy'
 import {
   buildDocumentWritingDevelopmentChecklist,
+  summarizeProjectEntitySync,
+  summarizeStatisticalMethodSync,
   summarizeBioToolWriterReadiness,
 } from '../document-writing-development-checklist'
 
@@ -85,14 +87,21 @@ describe('document writing supplementary writer policy', () => {
 
   it('summarizes writer readiness for the Papers development checklist', () => {
     const checklist = buildDocumentWritingDevelopmentChecklist()
+    const allItems = checklist.sections.flatMap((section) => section.items)
 
     expect(checklist.summary.attentionItems).toBe(0)
+    expect(allItems.every((item) => item.status === 'pass')).toBe(true)
     expect(checklist.summary.readyBioToolCount).toBe(15)
     expect(checklist.summary.dedicatedReadyBioToolCount).toBe(15)
     expect(checklist.summary.genericReadyBioToolIds).toEqual([])
+    expect(checklist.summary.statisticalMethodCount).toBe(50)
+    expect(checklist.summary.trackedVariableRequirementOnlyCount).toBe(14)
+    expect(checklist.summary.projectEntityKindCount).toBe(17)
     expect(checklist.sections.map((section) => section.id)).toEqual([
       'bio-tools',
       'source-contracts',
+      'statistics-methods',
+      'project-entities',
     ])
   })
 
@@ -113,6 +122,54 @@ describe('document writing supplementary writer policy', () => {
     expect(readiness.comingSoonDedicatedToolIds).toEqual([])
   })
 
+  it('marks dedicated Bio-Tool policies without source registry coverage as drift', () => {
+    const readiness = summarizeBioToolWriterReadiness(
+      [
+        { id: 'alpha-diversity', status: 'ready' },
+        { id: 'beta-diversity', status: 'ready' },
+      ],
+      {
+        'alpha-diversity': BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['alpha-diversity'],
+        'beta-diversity': BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['beta-diversity'],
+      },
+      ['alpha-diversity'],
+    )
+
+    expect(readiness.dedicatedPolicyToolIdsMissingSourceRegistry).toEqual(['beta-diversity'])
+    expect(readiness.dedicatedSourceRegistryToolIdsMissingPolicy).toEqual([])
+  })
+
+  it('marks source registry dedicated Bio-Tool paths without policy coverage as drift', () => {
+    const readiness = summarizeBioToolWriterReadiness(
+      [
+        { id: 'alpha-diversity', status: 'ready' },
+        { id: 'beta-diversity', status: 'ready' },
+      ],
+      {
+        'alpha-diversity': BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['alpha-diversity'],
+      },
+      ['alpha-diversity', 'beta-diversity'],
+    )
+
+    expect(readiness.missingPolicyToolIds).toEqual(['beta-diversity'])
+    expect(readiness.dedicatedSourceRegistryToolIdsMissingPolicy).toEqual(['beta-diversity'])
+  })
+
+  it('marks coming-soon Bio-Tools promoted to dedicated as attention items', () => {
+    const readiness = summarizeBioToolWriterReadiness(
+      [{ id: 'species-validation', status: 'coming-soon' }],
+      {
+        'species-validation': {
+          ...BIO_TOOL_SUPPLEMENTARY_WRITER_POLICY_BY_TOOL['species-validation'],
+          stage: 'dedicated',
+        },
+      },
+      ['species-validation'],
+    )
+
+    expect(readiness.comingSoonDedicatedToolIds).toEqual(['species-validation'])
+  })
+
   it('marks duplicate Bio-Tool registry IDs as drift', () => {
     const readiness = summarizeBioToolWriterReadiness(
       [
@@ -127,5 +184,63 @@ describe('document writing supplementary writer policy', () => {
     expect(readiness.duplicateRegistryToolIds).toEqual(['alpha-diversity'])
     expect(readiness.missingPolicyToolIds).toEqual([])
     expect(readiness.stalePolicyToolIds).toEqual([])
+  })
+
+  it('detects statistical method and variable requirement drift', () => {
+    const sync = summarizeStatisticalMethodSync(
+      [
+        { id: 'two-sample-t', category: 't-test' },
+        { id: 'new-method', category: 't-test' },
+      ],
+      [
+        { id: 'two-sample-t', variables: [{ role: 'dependent' }] },
+        { id: 'tracked-only', variables: [{ role: 'factor' }] },
+        { id: 'unexpected-only', variables: [{ role: 'covariate' }] },
+      ],
+      ['tracked-only'],
+    )
+
+    expect(sync.missingRequirementMethodIds).toEqual(['new-method'])
+    expect(sync.trackedRequirementOnlyIds).toEqual(['tracked-only'])
+    expect(sync.untrackedRequirementOnlyIds).toEqual(['unexpected-only'])
+    expect(sync.unmappedVariableRequirementRoles).toEqual([])
+  })
+
+  it('detects statistical method category scope mismatches', () => {
+    const sync = summarizeStatisticalMethodSync(
+      [{ id: 'two-sample-t', category: 'regression' }],
+      [{ id: 'two-sample-t', variables: [{ role: 'dependent' }] }],
+    )
+
+    expect(sync.mismatchedMethodsScopeMethodIds).toEqual(['two-sample-t'])
+    expect(sync.mismatchedResultsScopeMethodIds).toEqual(['two-sample-t'])
+  })
+
+  it('detects project entity tab and document-writing source drift', () => {
+    const sync = summarizeProjectEntitySync(
+      ['analysis'],
+      ['analysis', 'draft'],
+      ['chat-session'],
+      ['analysis', 'draft', 'protein-result'],
+      ['analysis'],
+    )
+
+    expect(sync.missingTabEntityKinds).toEqual(['chat-session', 'draft'])
+    expect(sync.documentWritingKindsMissingResolver).toEqual(['protein-result'])
+    expect(sync.documentWritingKindsMissingTab).toEqual(['draft', 'protein-result'])
+    expect(sync.documentWritingKindsMissingSourceRegistry).toEqual(['draft', 'protein-result'])
+  })
+
+  it('detects duplicate project entity tab metadata', () => {
+    const sync = summarizeProjectEntitySync(
+      ['analysis', 'analysis', 'draft'],
+      ['analysis', 'draft'],
+      [],
+      ['analysis', 'draft'],
+      ['analysis', 'draft'],
+    )
+
+    expect(sync.duplicateTabEntityKinds).toEqual(['analysis'])
+    expect(sync.missingTabEntityKinds).toEqual([])
   })
 })

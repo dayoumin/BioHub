@@ -109,6 +109,22 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
     emptyActionLabel: '단백질 분석 시작하기',
   },
   {
+    id: 'translation-result',
+    label: '번역/ORF',
+    icon: '🧬',
+    defaultVisible: true,
+    emptyMessage: '아직 번역/ORF 분석 결과가 없습니다.',
+    emptyActionPath: '/genetics/translation',
+    emptyActionLabel: '번역 분석 시작하기',
+  },
+  {
+    id: 'chat-session',
+    label: '대화',
+    icon: '💬',
+    defaultVisible: false,
+    emptyMessage: '아직 저장된 대화가 없습니다.',
+  },
+  {
     id: 'species-validation',
     label: '종 검증',
     icon: '📝',
