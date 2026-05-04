@@ -201,4 +201,10 @@ export const S = {
   // ===== Smart Flow 추가 =====
   /** 결과 Q&A 팔로업 섹션 */
   followUpSection: '[data-testid="follow-up-section"]',
+
+  // ===== Papers =====
+  paperSectionRefreshSourcesBtn: '[data-testid="paper-section-refresh-sources-btn"]',
+  paperSectionRegenerateBtn: '[data-testid="paper-section-regenerate-btn"]',
+  paperSectionRegenerateDialog: '[data-testid="paper-section-regenerate-dialog"]',
+  paperSectionRegenerateConfirmBtn: '[data-testid="paper-section-regenerate-confirm-btn"]',
 } as const

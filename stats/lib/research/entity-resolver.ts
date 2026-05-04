@@ -407,6 +407,19 @@ interface EntityKindDescriptors {
 
 export type SupportedEntityKind = keyof EntityKindDescriptors
 
+export const ENTITY_RESOLVER_SUPPORTED_KIND_MAP: Record<SupportedEntityKind, true> = {
+  analysis: true,
+  figure: true,
+  'blast-result': true,
+  'protein-result': true,
+  'bio-tool-result': true,
+  draft: true,
+}
+
+export const ENTITY_RESOLVER_SUPPORTED_KINDS = Object.keys(
+  ENTITY_RESOLVER_SUPPORTED_KIND_MAP,
+) as SupportedEntityKind[]
+
 /**
  * generic 표시만 하는 kind.
  * ProjectEntityKind에 새 kind 추가 시 EntityKindDescriptors에 넣거나
@@ -428,6 +441,12 @@ const _GENERIC_ONLY_KINDS: Record<GenericOnlyEntityKind, true> = {
   'bold-result': true,
   'translation-result': true,
 }
+
+export const ENTITY_RESOLVER_GENERIC_ONLY_KIND_MAP = _GENERIC_ONLY_KINDS
+
+export const ENTITY_RESOLVER_GENERIC_ONLY_KINDS = Object.keys(
+  ENTITY_RESOLVER_GENERIC_ONLY_KIND_MAP,
+) as GenericOnlyEntityKind[]
 
 /** entity-loader.ts 전용. kind·optionKey·load 반환 타입을 묶는 discriminated union. */
 export type EntityLoaderEntry = {

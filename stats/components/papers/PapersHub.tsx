@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
   FileText, Plus, BarChart3, Table2, ArrowRight, Clock,
   BookOpen, FileOutput, PenTool, Package, HardDriveDownload, Sparkles,
@@ -48,10 +49,12 @@ import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { toast } from 'sonner'
 import StartWritingButton from './StartWritingButton'
 import WritingEntrySurface from './WritingEntrySurface'
-import PaperWritingDevelopmentChecklist from './PaperWritingDevelopmentChecklist'
 
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST = process.env.NODE_ENV !== 'production'
+const PaperWritingDevelopmentChecklist = SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST
+  ? dynamic(() => import('./PaperWritingDevelopmentChecklist'), { ssr: false })
+  : null
 
 // ── 프리셋 라벨 매핑 ──
 
@@ -75,8 +78,8 @@ function DocumentCard({ doc, onClick }: DocumentCardProps): React.ReactElement {
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+        'flex items-start gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
@@ -117,8 +120,8 @@ function DraftHistoryCard({ name, method, timestamp, onClick }: DraftHistoryCard
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+        'flex items-center gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg">
@@ -147,8 +150,8 @@ function PackageCard({ pkg, onClick }: PackageCardProps): React.ReactElement {
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+        'flex items-start gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-2 rounded-lg">
@@ -183,8 +186,8 @@ function WritingSourceCard({ entity, onClick, disabled = false }: WritingSourceC
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
+        'flex items-start gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
       )}
     >
       <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
@@ -204,25 +207,57 @@ function WritingSourceCard({ entity, onClick, disabled = false }: WritingSourceC
   )
 }
 
+interface WritingWorkflowCardProps {
+  label: string
+  title: string
+  description: string
+  icon: typeof PenTool
+  action?: React.ReactNode
+}
+
+function WritingWorkflowCard({
+  label,
+  title,
+  description,
+  icon: Icon,
+  action,
+}: WritingWorkflowCardProps): React.ReactElement {
+  return (
+    <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-4">
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-primary/10 p-2 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <p className="text-xs leading-5 text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  )
+}
+
 // ── 기능 소개 ──
 
 const FEATURES = [
   {
     icon: Table2,
     title: '통계 결과 표',
-    desc: '기술통계, 검정 결과, 사후검정 표를 자동 생성',
+    desc: '검증된 통계값과 표를 문서 source로 연결',
     color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400',
   },
   {
     icon: BarChart3,
     title: '분석 그래프',
-    desc: '분석 차트를 그대로 삽입, PNG 저장',
+    desc: 'Graph Studio figure와 caption 근거를 함께 연결',
     color: 'text-violet-600 bg-violet-100 dark:bg-violet-900/30 dark:text-violet-400',
   },
   {
     icon: FileText,
-    title: '결과 해석 텍스트',
-    desc: 'APA 형식 Methods & Results 자동 작성',
+    title: '보수적 초안 작성',
+    desc: 'Methods·Results는 근거가 있는 범위만 문장화',
     color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400',
   },
 ] as const
@@ -484,63 +519,10 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
               : '바로 편집기를 열어 초안을 작성하고, 내용은 이 기기에 로컬 저장됩니다'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {SHOW_PAPER_WRITING_DEVELOPMENT_CHECKLIST && <PaperWritingDevelopmentChecklist />}
-          {activeProject && onOpenPackage && (
-            <Button
-              variant="outline"
-              onClick={() => onOpenPackage('new', activeProject.id)}
-              className="gap-2"
-            >
-              <Package className="w-4 h-4" />
-              외부 AI 입력 패키지
-            </Button>
-          )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!activeProject ? 0 : undefined}>
-                  <StartWritingButton
-                    onClick={() => {
-                      void handleCreateBlankDocument()
-                    }}
-                    pending={isCreatingBlankDocument}
-                    label="새 문서"
-                    pendingLabel={!activeProject ? '임시 작업공간 준비 중...' : '빈 문서 생성 중...'}
-                    className="gap-2"
-                  />
-                </span>
-              </TooltipTrigger>
-              {!activeProject && (
-                <TooltipContent>임시 작업공간을 만들고 바로 편집기를 엽니다</TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!activeProject ? 0 : undefined}>
-                  <Button
-                    variant="outline"
-                    onClick={() => setAssemblyOpen(true)}
-                    disabled={!activeProject}
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    프로젝트 결과로 문서 만들기
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!activeProject && (
-                <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
       </div>
 
       {!activeProject && (
-        <Card className="border-dashed bg-surface-container-low">
+        <Card className="border-0 bg-surface-container-low">
           <CardContent className="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -548,7 +530,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                 지금 바로 작성 시작
               </div>
               <p className="text-sm text-muted-foreground">
-                `새 문서`를 누르면 즉시 편집 화면이 열립니다. 임시 작업공간이 자동으로 만들어지고 문서는 브라우저 로컬에만 저장됩니다.
+                아래 `빈 문서 만들기`를 누르면 임시 작업공간이 자동으로 만들어지고 문서는 브라우저 로컬에만 저장됩니다.
               </p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
@@ -561,18 +543,91 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
                 </span>
               </div>
             </div>
-            <StartWritingButton
-              onClick={() => {
-                void handleCreateBlankDocument()
-              }}
-              pending={isCreatingBlankDocument}
-              label="새 문서로 바로 시작"
-              pendingLabel="임시 작업공간 준비 중..."
-              className="gap-2"
-            />
           </CardContent>
         </Card>
       )}
+
+      <section className="rounded-3xl bg-surface-container-low p-4">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Writing entry points
+            </p>
+            <h2 className="text-lg font-bold text-foreground">작성 시작 방식</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              먼저 문서를 열고, 검증된 원본 자료를 연결한 뒤 필요한 섹션만 보수적으로 작성합니다.
+            </p>
+          </div>
+          {activeProject && (
+            <Badge variant="secondary" className="w-fit">
+              {documents.length}개 문서 · {writingSources.length}개 바로 작성 자료
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <WritingWorkflowCard
+            label="Option A"
+            title="빈 문서에서 시작"
+            description="먼저 문서를 만들고 필요한 원본 자료를 나중에 연결합니다."
+            icon={PenTool}
+            action={(
+              <StartWritingButton
+                onClick={() => {
+                  void handleCreateBlankDocument()
+                }}
+                pending={isCreatingBlankDocument}
+                label="빈 문서 만들기"
+                pendingLabel={!activeProject ? '임시 작업공간 준비 중...' : '빈 문서 생성 중...'}
+                className="h-8 w-full gap-2 text-xs"
+              />
+            )}
+          />
+          <WritingWorkflowCard
+            label="Option B"
+            title="프로젝트 결과로 조립"
+            description="통계 결과, 그래프, 인용 자료를 묶어 문서 skeleton과 source binding을 만듭니다."
+            icon={Plus}
+            action={(
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={!activeProject ? 0 : undefined}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAssemblyOpen(true)}
+                        disabled={!activeProject}
+                        className="h-8 w-full gap-2 text-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        프로젝트 결과로 문서 만들기
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!activeProject && (
+                    <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          />
+          <WritingWorkflowCard
+            label="Option C"
+            title="바이오·유전 결과 연결"
+            description="Bio-Tools와 유전 분석 결과는 전용 writer가 검증한 수치만 문장화합니다."
+            icon={Sparkles}
+            action={(
+              <div className="rounded-xl bg-surface-container-low px-3 py-2 text-xs text-muted-foreground">
+                {activeProject
+                  ? writingSources.length > 0
+                    ? `${writingSources.length}개 결과를 아래에서 바로 문서화할 수 있습니다.`
+                    : '연결된 Bio-Tools 또는 유전 분석 결과가 있으면 아래에 표시됩니다.'
+                  : '프로젝트를 선택하면 연결된 분석 결과가 표시됩니다.'}
+              </div>
+            )}
+          />
+        </div>
+      </section>
 
       {/* 문서 목록 */}
       {activeProject && documents.length > 0 && (
@@ -614,6 +669,31 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         </section>
       )}
 
+      {activeProject && onOpenPackage && (
+        <section className="rounded-2xl bg-surface-container-low p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0 space-y-1">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Package className="h-4 w-4" />
+                보조 도구
+              </h2>
+              <p className="text-xs leading-5 text-muted-foreground">
+                외부 AI 입력 패키지는 BioHub 문서 자동 작성과 분리된 복사·전달용 자료 묶음입니다.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenPackage('new', activeProject.id)}
+              className="w-fit gap-2"
+            >
+              <Package className="w-4 h-4" />
+              외부 AI 입력 패키지 만들기
+            </Button>
+          </div>
+        </section>
+      )}
+
       {activeProject && writingSources.length > 0 && (
         <WritingEntrySurface
           title="바이오·유전 결과에서 바로 작성"
@@ -639,25 +719,8 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         <EmptyState
           icon={PenTool}
           title="아직 작성한 문서가 없습니다"
-          description="새 문서를 만들거나 프로젝트 결과를 문서 초안으로 조립해 보세요"
+          description="위 작성 흐름에서 빈 문서를 만들거나 프로젝트 결과를 문서 초안으로 조립해 보세요"
           variant="inline"
-          action={
-            <div className="flex items-center gap-2">
-              <StartWritingButton
-                onClick={() => {
-                  void handleCreateBlankDocument()
-                }}
-                pending={isCreatingBlankDocument}
-                label="첫 문서 만들기"
-                pendingLabel="빈 문서 생성 중..."
-                className="gap-2"
-              />
-              <Button variant="outline" onClick={() => setAssemblyOpen(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                프로젝트 결과로 문서 만들기
-              </Button>
-            </div>
-          }
         />
       )}
 
@@ -669,7 +732,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {FEATURES.map(f => (
-            <div key={f.title} className="flex flex-col items-center text-center p-5 rounded-2xl border bg-card">
+            <div key={f.title} className="flex flex-col items-center rounded-2xl bg-surface-container-lowest p-5 text-center">
               <div className={cn('p-3 rounded-xl mb-3', f.color)}>
                 <f.icon className="w-6 h-6" />
               </div>
@@ -683,9 +746,9 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
       {/* 기존: 이전 분석 결과 (보존) */}
       {draftHistories.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-lg font-bold">이전 분석 결과</h2>
+          <h2 className="text-lg font-bold">분석 결과 정리</h2>
           <p className="text-sm text-muted-foreground">
-            분석 결과를 선택하면 결과 정리 패널을 열 수 있습니다
+            분석 결과를 선택하면 결과 정리 패널에서 문서 초안을 검토할 수 있습니다
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {draftHistories.map(h => (
@@ -714,6 +777,20 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           }
         />
       ) : null}
+
+      {PaperWritingDevelopmentChecklist && (
+        <section className="rounded-2xl bg-surface-container-low p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-foreground">개발 점검</h2>
+              <p className="text-xs leading-5 text-muted-foreground">
+                개발 환경에서 writer 정책, registry 동기화, fallback 경계를 확인하는 내부 점검입니다.
+              </p>
+            </div>
+            <PaperWritingDevelopmentChecklist />
+          </div>
+        </section>
+      )}
 
       {/* 조립 다이얼로그 */}
       {activeProject && (

@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.44.23",
-  "lastUpdated": "2026-04-29",
+  "version": "1.44.24",
+  "lastUpdated": "2026-05-04",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -349,16 +349,55 @@
           ]
         },
         {
-          "name": "Restored result project ownership gating test",
-          "purpose": "복원된 분석 결과가 active project가 아니라 history entry의 owning project와 실제 project entity ref를 기준으로 문서 작성 버튼과 usage를 노출하는지 고정",
-          "code": "import { render, screen } from '@testing-library/react';\nimport { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep';\n\nit('uses the restored result project and hides document writing for unlinked results', async () => {\n  mockUseResultsHistory.mockReturnValue({\n    currentHistoryId: 'history-1',\n    currentHistoryProjectId: 'project-owned',\n  });\n  mockListProjectEntityRefs.mockImplementation((projectId: string) =>\n    projectId === 'project-owned'\n      ? [{ entityKind: 'analysis', entityId: 'history-1' }]\n      : [],\n  );\n\n  render(<ResultsActionStep results={results} />);\n\n  expect(await screen.findByText('project-owned linked document')).toBeInTheDocument();\n  expect(screen.getByRole('button', { name: /write from document/i })).toBeEnabled();\n\n  mockListProjectEntityRefs.mockReturnValue([]);\n  render(<ResultsActionStep results={results} />);\n  expect(screen.getByRole('button', { name: /write from document/i })).toBeDisabled();\n});",
+          "name": "파괴적 복원 confirmation 테스트",
+          "purpose": "문서 전체 복원처럼 되돌리기 전 안전 확인이 필요한 액션에서 변경될 섹션, 제외될 섹션, 되돌림 저장 지점 안내가 실제 사용자 이벤트로 노출되는지 고정",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('복원 실행 전 변경 섹션과 제외 섹션을 확인시킨다', async () => {\n  const user = userEvent.setup();\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocumentWithExtraSection());\n  await createDocumentRevision(makeRestoreSnapshot(), {\n    reason: 'manual',\n    label: '복원 대상',\n  });\n\n  render(<DocumentEditor documentId=\"doc-restore\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: '복원 기록' }));\n  await user.click(screen.getByRole('button', { name: '복원 대상 복원' }));\n\n  await screen.findByRole('alertdialog', { name: '문서 복원 확인' });\n  expect(screen.getByText('부록 (복원 후 제외)')).toBeInTheDocument();\n  expect(screen.getByText(/되돌림 저장 지점/)).toBeInTheDocument();\n\n  await user.click(screen.getByRole('button', { name: '복원 실행' }));\n  await waitFor(() => expect(mockSaveDocumentBlueprint).toHaveBeenCalled());\n});",
           "keywords": [
-            "ResultsActionStep",
-            "history restore",
-            "project ownership",
-            "entity ref gate",
-            "document writing",
-            "regression"
+            "DocumentEditor",
+            "revision restore",
+            "destructive action",
+            "alertdialog",
+            "rollback point",
+            "userEvent"
+          ]
+        },
+        {
+          "name": "수정 요청 baseline revision 테스트",
+          "purpose": "심사/학위 수정 요청을 추가할 때 사용자 메모만 저장하지 않고 현재 문서 상태를 기준 저장 지점으로 남기는지 함께 검증",
+          "code": "import { render, screen } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('수정 요청 등록 시 기준 저장 지점을 함께 남긴다', async () => {\n  const user = userEvent.setup();\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('심사 전 본문'));\n\n  render(<DocumentEditor documentId=\"doc-review\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: '수정 요청' }));\n  await user.type(screen.getByPlaceholderText(/심사위원/), '결과 해석을 보수적으로 수정');\n  await user.click(screen.getByRole('button', { name: '요청 추가' }));\n\n  await screen.findByText('결과 해석을 보수적으로 수정');\n  expect(screen.getByText(/기준 저장 지점 있음/)).toBeInTheDocument();\n  expect(screen.getAllByText('대기').length).toBeGreaterThan(0);\n});",
+          "keywords": [
+            "DocumentEditor",
+            "review request",
+            "baseline revision",
+            "thesis feedback",
+            "journal review",
+            "localStorage"
+          ]
+        },
+        {
+          "name": "수정 요청 섹션 부분 복원 테스트",
+          "purpose": "수정 요청의 기준 저장 지점에서 문서 전체가 아니라 대상 섹션만 복원하고, 확인 모달과 복원 전 저장 지점이 유지되는지 검증",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('수정 요청 기준 지점에서 대상 섹션만 복원한다', async () => {\n  const user = userEvent.setup();\n  const baselineRevision = await createDocumentRevision(makeDocument('기준 결과 본문'), {\n    reason: 'review-request-baseline',\n    label: '수정 요청 접수 전 저장 지점',\n  });\n  createDocumentReviewRequest({\n    documentId: 'doc-review',\n    projectId: 'project-1',\n    sectionId: 'results',\n    sectionTitle: '결과',\n    note: '결과 문구 비교',\n    baselineRevisionId: baselineRevision.id,\n  });\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('현재 결과 본문'));\n\n  render(<DocumentEditor documentId=\"doc-review\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: /수정 요청/ }));\n  await screen.findByText('기준 지점 비교');\n  await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }));\n  await screen.findByRole('alertdialog', { name: '섹션 복원 확인' });\n  await user.click(screen.getByRole('button', { name: '섹션 복원' }));\n\n  await waitFor(() => {\n    const lastCall = mockSaveDocumentBlueprint.mock.calls.at(-1);\n    expect(lastCall?.[0].sections[0]?.content).toBe('기준 결과 본문');\n  }, { timeout: 3000 });\n});",
+          "keywords": [
+            "DocumentEditor",
+            "review request",
+            "partial restore",
+            "section restore",
+            "baseline revision",
+            "before-restore",
+            "alertdialog"
+          ]
+        },
+        {
+          "name": "localStorage 작업 큐 저장소 테스트",
+          "purpose": "브라우저 로컬 저장소에 보관하는 작업 큐가 문서별 필터링, 상태 정렬, 깨진 payload 방어를 유지하는지 검증",
+          "code": "import { beforeEach, describe, expect, it } from 'vitest';\nimport { createDocumentReviewRequest, listDocumentReviewRequests, updateDocumentReviewRequestStatus } from '@/lib/research/document-review-requests';\n\ndescribe('document review requests', () => {\n  beforeEach(() => localStorage.clear());\n\n  it('현재 문서 요청만 active 상태 우선으로 정렬한다', () => {\n    const done = createDocumentReviewRequest({ documentId: 'doc-1', projectId: 'project-1', sectionId: 'results', sectionTitle: '결과', note: '결과 보완' });\n    const active = createDocumentReviewRequest({ documentId: 'doc-1', projectId: 'project-1', sectionId: null, sectionTitle: null, note: '전체 문체 점검' });\n    createDocumentReviewRequest({ documentId: 'doc-2', projectId: 'project-1', sectionId: null, sectionTitle: null, note: '다른 문서 요청' });\n\n    updateDocumentReviewRequestStatus(done.id, 'done');\n    updateDocumentReviewRequestStatus(active.id, 'in-progress');\n\n    const requests = listDocumentReviewRequests('doc-1');\n    expect(requests.map((request) => request.note)).toEqual(['전체 문체 점검', '결과 보완']);\n  });\n\n  it('깨진 localStorage payload는 editor를 중단시키지 않는다', () => {\n    localStorage.setItem('paper_document_review_requests_v1', '{broken');\n    expect(listDocumentReviewRequests('doc-1')).toEqual([]);\n  });\n});",
+          "keywords": [
+            "localStorage",
+            "review request",
+            "status sorting",
+            "corrupted payload",
+            "document scoped"
           ]
         },
         {
@@ -945,7 +984,7 @@
           ]
         },
         {
-          "name": "Service 계�� (pyodide-statistics.ts)",
+          "name": "Service 계층 (pyodide-statistics.ts)",
           "purpose": "Python Worker 호출 래퍼 레이어 이해",
           "code": "// === pyodide-statistics.ts ===\n// 파일: lib/services/pyodide-statistics.ts\n// 역할: TypeScript에서 Python 함수를 호출하기 위한 래퍼\n\n// ⚠️ 주의사항 (파일 상단 주석)\n// - 새 메서드를 이 파일에 직접 구현하지 말 것!\n// - Python Worker 파일에 함수 추가 후 래퍼만 추가\n\n// 예시: tTest 메서드\nasync tTest(group1: number[], group2: number[], options?) {\n  // 내부적으로 PyodideCoreService 호출\n  return this.core.callWorkerMethod<StatisticsResult>(\n    2,                    // Worker 2 (hypothesis)\n    't_test_two_sample',  // Python 함수명\n    { group1, group2, equal_var: options?.equalVar }\n  )\n}\n\n// pyodideStats 싱글톤 인스턴스\nexport const pyodideStats = PyodideStatistics.getInstance()\n\n// 사용 예시 (Handler에서)\nconst result = await pyodideStats.tTest(group1, group2, { paired: false })\nconst stats = await pyodideStats.descriptiveStats(values)\nconst anova = await pyodideStats.anova(groups, { type: 'one-way' })",
           "keywords": [
@@ -1269,10 +1308,10 @@
       "name": "Pure Math / Utility Function Tests",
       "description": "순수 수치 함수 검증 패턴 — 부동소수점 근사 허용 오차, 단조성, 도메인 에러",
       "patterns": [
-        {
-          "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
-          "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
-          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
+    {
+      "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
+      "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
+      "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
           "keywords": [
             "toBeCloseTo",
             "toBeGreaterThanOrEqual",
@@ -1347,11 +1386,6 @@
           "name": "overwrite 방지 시나리오",
           "description": "auto 계산 후 수동 입력 → auto 필드 변경 없으면 값 유지 확인.",
           "code": "test('자동 계산 후 수동 입력 유지', () => {\n  const sim = createSim()\n  sim.handleField1('10'); sim.handleField2('20')\n  expect(sim.source).toBe('auto')\n  sim.handleManual('0.5')    // manual override\n  expect(sim.value).toBe('0.5')\n  expect(sim.source).toBe('manual')\n  // no field change → value stays\n  expect(sim.value).toBe('0.5')\n})"
-        },
-        {
-          "name": "jobId rotation invalidates stale writing run",
-          "description": "takeover/retry 시 새 jobId를 발급해 이전 patch completion이 stale로 떨어지고, user-owned section과 flushed snapshot이 우선되는지 시뮬레이션.",
-          "code": "function interruptWriting(jobId: string, owner: 'ai' | 'user') {\n  return {\n    writingState: { status: 'completed' as const, jobId: `${jobId}-next` },\n    section: { generatedBy: owner },\n  }\n}\n\ntest('takeover rotates job id before stale completion returns', () => {\n  const before = { writingState: { status: 'drafting' as const, jobId: 'job-1' }, section: { generatedBy: 'ai' as const } }\n  const after = interruptWriting(before.writingState.jobId, 'user')\n\n  expect(after.writingState.jobId).not.toBe(before.writingState.jobId)\n  expect(after.writingState.status).toBe('completed')\n  expect(after.section.generatedBy).toBe('user')\n})"
         }
       ]
     },
@@ -1376,106 +1410,6 @@
       ]
     },
     {
-      "name": "Document Preflight Tests",
-      "description": "문서 점검 sidecar, stale freshness, finding 액션을 비동기 UI와 저장소 mock으로 검증하는 패턴",
-      "patterns": [
-        {
-          "name": "문서 Preflight sidecar 상태 회귀 테스트",
-          "purpose": "DocumentQualityReport를 본문과 분리된 sidecar로 로드/갱신하고, stale report에서는 finding 상태 액션이 저장되지 않는지 검증",
-          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { vi } from 'vitest';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\nimport { deriveDocumentQualitySummary } from '@/lib/research/document-quality-types';\n\nvi.mock('@/lib/research/document-quality-storage', () => ({\n  getLatestDocumentQualityReport: vi.fn(),\n  updateDocumentQualityFindingStatus: vi.fn(),\n}));\n\nit('fresh report finding을 ignored로 저장하고 summary를 갱신한다', async () => {\n  const user = userEvent.setup();\n  const report = makeQualityReport(document, { findings: [makeReviewFinding({ severity: 'critical' })] });\n  mockGetLatestDocumentQualityReport.mockResolvedValue(report);\n  mockUpdateDocumentQualityFindingStatus.mockResolvedValue({\n    ...report,\n    findings: [{ ...report.findings[0], status: 'ignored' }],\n    summary: deriveDocumentQualitySummary([{ ...report.findings[0], status: 'ignored' }]),\n  });\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('Missing table caption');\n  await user.click(screen.getByRole('button', { name: '무시' }));\n\n  await waitFor(() => {\n    expect(mockUpdateDocumentQualityFindingStatus).toHaveBeenCalledWith(report.id, 'finding-1', 'ignored');\n  });\n  expect(screen.getByText('무시됨')).toBeInTheDocument();\n});",
-          "keywords": [
-            "DocumentEditor",
-            "DocumentQualityReport",
-            "preflight",
-            "sidecar",
-            "stale",
-            "finding status",
-            "waitFor",
-            "userEvent"
-          ]
-        },
-        {
-          "name": "문서 Preflight evidence 원본 이동 테스트",
-          "purpose": "점검 evidence의 sourceKind/sourceId를 안전하게 해석해 지원되는 원본만 이동 버튼을 노출하고, unsupported source는 숨기는지 검증",
-          "code": "it('analysis evidence 원본을 연다', async () => {\n  const user = userEvent.setup();\n  mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {\n    findings: [makeReviewFinding({ evidence: [{ label: 'analysis evidence', sourceKind: 'analysis', sourceId: 'analysis-1' }] })],\n  }));\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('analysis evidence');\n  await user.click(screen.getByRole('button', { name: '원본' }));\n\n  expect(mockRouterPush).toHaveBeenCalledWith('/?history=analysis-1');\n});\n\nit('document-artifact evidence에는 원본 버튼을 숨긴다', async () => {\n  mockGetLatestDocumentQualityReport.mockResolvedValue(makeQualityReport(document, {\n    findings: [makeReviewFinding({ evidence: [{ label: 'table-1', sourceKind: 'document-artifact', sourceId: 'table-1' }] })],\n  }));\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findByText('table-1');\n  expect(screen.queryByRole('button', { name: '원본' })).not.toBeInTheDocument();\n});",
-          "keywords": [
-            "DocumentEditor",
-            "preflight evidence",
-            "source navigation",
-            "router.push",
-            "sourceKind guard",
-            "unsupported source"
-          ]
-        },
-        {
-          "name": "문서 Preflight suggestion preview 테스트",
-          "purpose": "자동 적용 전 단계에서 finding.suggestion을 read-only 미리보기로 표시하고, storage round-trip에서 suggestion이 보존되는지 검증",
-          "code": "it('open finding에 suggestion preview를 표시한다', () => {\n  render(<DocumentPreflightPanel\n    report={makeReport([makeFinding({\n      suggestion: {\n        replacementText: '표 1에 원본 분석 ID를 연결하세요.',\n        canAutoApply: false,\n        requiresUserConfirmation: true,\n      },\n    })])}\n    freshness=\"fresh\"\n    pending={false}\n    onRun={vi.fn()}\n  />);\n\n  expect(screen.getByText('제안')).toBeInTheDocument();\n  expect(screen.getByText('검토 필요')).toBeInTheDocument();\n  expect(screen.queryByRole('button', { name: /적용/ })).not.toBeInTheDocument();\n});\n\nit('storage round-trip에서 suggestion을 clone 보존한다', async () => {\n  await saveDocumentQualityReport(makeReport('report-1', { findings: [makeFinding({ suggestion })] }));\n  const loaded = await loadDocumentQualityReport('report-1');\n  expect(loaded?.findings[0]?.suggestion).toEqual(suggestion);\n});",
-          "keywords": [
-            "DocumentPreflightPanel",
-            "suggestion preview",
-            "DocumentReviewSuggestion",
-            "read-only",
-            "storage round-trip",
-            "clone"
-          ]
-        },
-        {
-          "name": "문서 Preflight suggestion apply 가드 테스트",
-          "purpose": "선택 적용 전에 section hash, offset, canAutoApply 조건을 순수 helper로 검증해 stale finding이 본문을 오염시키지 않게 고정",
-          "code": "it('matching sectionHash와 valid offset일 때만 suggestion을 적용한다', () => {\n  const section = makeSection({ content: 'The p value is 0.04.' });\n  const finding = makeFinding(section, {\n    targetRange: { startOffset: 15, endOffset: 19, sectionHash: buildDocumentSectionQualityHash(section) },\n    suggestion: { replacementText: '0.038', canAutoApply: true, requiresUserConfirmation: false },\n  });\n\n  const result = applyDocumentFindingSuggestionToSection(section, finding);\n  expect(result).toEqual(expect.objectContaining({ ok: true, content: 'The p value is 0.038.' }));\n});\n\nit('NaN 또는 fractional offset은 invalid-offsets로 차단한다', () => {\n  const section = makeSection();\n  expect(applyDocumentFindingSuggestionToSection(section, makeFinding(section, {\n    targetRange: { startOffset: Number.NaN, endOffset: 10, sectionHash: buildDocumentSectionQualityHash(section) },\n  }))).toEqual({ ok: false, reason: 'invalid-offsets' });\n});",
-          "keywords": [
-            "preflight suggestion apply",
-            "sectionHash",
-            "targetRange",
-            "offset guard",
-            "NaN",
-            "plateValue",
-            "stale finding"
-          ]
-        },
-        {
-          "name": "?? Review/Preflight ?? ?? ???",
-          "purpose": "?? ?? ??? deterministic preflight, LLM review partial fallback, journal profile snapshot, structured numeric claim finding? ???? ????? ??",
-          "code": "it('LLM review ?? ? deterministic report? partial? ????', async () => {\n  const document = makeDocument();\n  const report = runDocumentPreflightRules(document, { reportId: 'report-1', generatedAt });\n  const merged = await runDocumentLlmReview(document, report, {\n    generatedAt,\n    generateText: vi.fn().mockRejectedValue(new Error('network failed')),\n  });\n\n  expect(merged.status).toBe('partial');\n  expect(merged.findings.some((finding) => finding.ruleId === 'document.sources.none')).toBe(true);\n});\n\nit('numeric claim mismatch? preflight source finding?? ????', () => {\n  const report = runDocumentPreflightRules(document, { numericClaims: [makeNumericClaim({ operator: '<', value: 0.01 })], reportId, generatedAt });\n  expect(report.findings[0]).toEqual(expect.objectContaining({\n    ruleId: 'claim.numeric.mismatch',\n    evidence: [expect.objectContaining({ observedValue: '0.03', expectedValue: 'p < 0.01' })],\n  }));\n});",
-          "keywords": [
-            "DocumentEditor",
-            "runDocumentLlmReview",
-            "runDocumentPreflightRules",
-            "numericClaims",
-            "partial report",
-            "journal profile",
-            "preflight runner",
-            "LLM sanitizer"
-          ]
-        },
-        {
-          "name": "Journal profile stale freshness test",
-          "purpose": "Verify that editing an existing document target journal/style profile marks the previous preflight report stale and persists the updated metadata snapshot through autosave.",
-          "code": "it('marks the preflight report stale after updating the journal profile', async () => {\n  const user = userEvent.setup();\n  const document = makeDocument('journal profile target');\n  const report = makeQualityReport(document);\n  mockLoadDocumentBlueprint.mockResolvedValue(document);\n  mockGetLatestDocumentQualityReport.mockResolvedValue(report);\n\n  render(<DocumentEditor documentId=\"doc-1\" onBack={vi.fn()} />);\n\n  await screen.findAllByText('\\uc810\\uac80 \\ud1b5\\uacfc');\n  await user.click(screen.getByRole('button', { name: 'KCI' }));\n  await user.type(screen.getByLabelText('Target journal'), 'Korean Journal');\n  await user.click(screen.getByRole('button', { name: '\\uae30\\uc900 \\uc800\\uc7a5' }));\n\n  await waitFor(() => expect(screen.getByText('\\uc624\\ub798\\ub428')).toBeInTheDocument());\n  await act(async () => {\n    await new Promise((resolve) => setTimeout(resolve, 1600));\n  });\n\n  expect(mockSaveDocumentBlueprint).toHaveBeenCalledWith(expect.objectContaining({\n    metadata: expect.objectContaining({\n      targetJournal: 'Korean Journal',\n      targetJournalProfile: expect.objectContaining({ stylePreset: 'kci' }),\n    }),\n  }));\n});",
-          "keywords": [
-            "DocumentEditor",
-            "targetJournalProfile",
-            "preflight freshness",
-            "stale report",
-            "autosave"
-          ]
-        },
-        {
-          "name": "Document review job state storage test",
-          "purpose": "Verify that preflight/LLM review progress is stored as a sidecar job state while the quality report remains the final review artifact.",
-          "code": "it('updates phase state and marks a partial llm completion', async () => {\n  const started = await saveDocumentReviewJobState(makeJob('job-1'));\n  const deterministicDone = updateDocumentReviewJobPhase(started, 'deterministic', {\n    status: 'completed',\n    completedAt: '2026-04-25T02:00:01.000Z',\n  }, { activePhase: 'llm', updatedAt: '2026-04-25T02:00:01.000Z' });\n  const partial = updateDocumentReviewJobPhase(deterministicDone, 'llm', {\n    status: 'partial',\n    startedAt: '2026-04-25T02:00:01.000Z',\n    completedAt: '2026-04-25T02:00:05.000Z',\n  }, {\n    status: 'partial',\n    activePhase: null,\n    updatedAt: '2026-04-25T02:00:05.000Z',\n    completedAt: '2026-04-25T02:00:05.000Z',\n  });\n\n  await saveDocumentReviewJobState(partial);\n\n  await expect(loadDocumentReviewJobState('job-1')).resolves.toEqual(expect.objectContaining({\n    status: 'partial',\n    activePhase: null,\n  }));\n});",
-          "keywords": [
-            "DocumentReviewJobState",
-            "document-review-jobs",
-            "preflight progress",
-            "LLM review",
-            "sidecar storage"
-          ]
-        }
-      ]
-    },
-    {
       "name": "Browser E2E Tests",
       "description": "IndexedDB/localStorage를 직접 시드해 브라우저 회귀를 결정론적으로 고정하는 Playwright 패턴",
       "patterns": [
@@ -1490,6 +1424,19 @@
             "seeded record",
             "localStorage",
             "browser regression"
+          ]
+        },
+        {
+          "name": "Autosave/reload E2E는 저장소와 실제 editor DOM을 함께 검증",
+          "purpose": "정적 export 기반 Playwright에서 autosave 완료 전 reload하거나 IndexedDB만 확인해 false positive가 생기는 문제를 방지",
+          "code": "await page.locator('[contenteditable=\"true\"]').first().fill('Autosave reload body');\nawait expect(page.getByText('변경됨')).toBeVisible();\nawait waitForPersistedDocumentContent(page, 'methods', 'Autosave reload body');\nawait waitForPersistedDocumentPlateValue(page, 'methods', 'Autosave reload body');\nawait expect(page.getByText('저장됨')).toBeVisible();\n\nawait page.reload({ waitUntil: 'domcontentloaded' });\nawait expect(page.locator('[contenteditable=\"true\"]').first()).toContainText('Autosave reload body');",
+          "keywords": [
+            "Playwright",
+            "autosave",
+            "IndexedDB",
+            "contenteditable",
+            "static export",
+            "reload regression"
           ]
         }
       ]
@@ -1535,30 +1482,13 @@
       "name": "KM/ROC 생존분석 차트 렌더링 (G3-A)",
       "purpose": "km-curve/roc-curve ECharts 옵션 구조를 단언하여 G3-A 생존분석 회귀 방지",
       "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport type { ChartSpec } from '@/types/graph-studio';\n\nfunction makeKmSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {\n  return {\n    chartType: 'km-curve',\n    xField: 'time', yField: 'survival', colorField: 'group',\n    title: 'KM Curve', ...overrides,\n  };\n}\n\nconst kmRows = [\n  { time: 0, survival: 1.0, ciLo: 1.0, ciHi: 1.0, group: 'A' },\n  { time: 12, survival: 0.8, ciLo: 0.6, ciHi: 0.95, group: 'A' },\n];\n\ntest('km-curve: step line + CI areaStyle', () => {\n  const option = chartSpecToECharts(makeKmSpec(), kmRows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  const mainLine = series.find(s => s.step === 'end');\n  expect(mainLine).toBeDefined();\n  const area = series.find(s => (s.areaStyle as Record<string, unknown>)?.opacity > 0);\n  expect(area).toBeDefined();\n});\n\ntest('roc-curve: AUC graphic text 포함', () => {\n  const rocSpec: ChartSpec = { chartType: 'roc-curve', xField: 'fpr', yField: 'tpr', title: 'ROC' };\n  const rocRows = [{ fpr: 0.0, tpr: 0.0 }, { fpr: 0.3, tpr: 0.8 }, { fpr: 1.0, tpr: 1.0 }];\n  const option = chartSpecToECharts(rocSpec, rocRows) as Record<string, unknown>;\n  const graphic = option.graphic as unknown[];\n  expect(Array.isArray(graphic)).toBe(true);\n  const aucText = (graphic as Record<string, unknown>[]).find(g => String(g.type) === 'text');\n  expect(aucText).toBeDefined();\n});",
-      "keywords": [
-        "km-curve",
-        "roc-curve",
-        "survival",
-        "step",
-        "areaStyle",
-        "AUC",
-        "graphic",
-        "G3-A"
-      ]
+      "keywords": ["km-curve", "roc-curve", "survival", "step", "areaStyle", "AUC", "graphic", "G3-A"]
     },
     {
       "name": "Python Worker 시뮬레이션 테스트 (Worker2 ANCOVA)",
       "purpose": "Python Worker 결과 매핑 로직을 순수 TS 객체로 시뮬레이션하여 런타임 의존성 없이 검증",
       "code": "import { describe, it, expect } from 'vitest';\n\n// Python Worker가 반환하는 camelCase 결과 형태\ninterface Worker2AncovaResult {\n  mainEffect: { fStatistic: number; pValue: number; df1: number; df2: number };\n  postHoc?: Array<{ group1: string; group2: string; meanDiff: number; pValue: number; pAdjusted?: number; significant: boolean }>;\n  effectSize?: { etaSquared: number; label: string };\n  adjustedMeans?: Array<{ group: string; adjustedMean: number; se: number }>;\n  missingRemoved?: number;\n}\n\nfunction mapAncovaResult(raw: Worker2AncovaResult) {\n  return {\n    statistic: raw.mainEffect.fStatistic,\n    pValue: raw.mainEffect.pValue,\n    df: [raw.mainEffect.df1, raw.mainEffect.df2] as [number, number],\n    postHoc: raw.postHoc?.map(p => ({\n      group1: p.group1, group2: p.group2, meanDiff: p.meanDiff,\n      pvalue: p.pValue, pvalueAdjusted: p.pAdjusted, significant: p.significant,\n    })),\n    missingRemoved: raw.missingRemoved ?? 0,\n  };\n}\n\ndescribe('ANCOVA Worker2 결과 매핑', () => {\n  it('df가 [df1, df2] 튜플로 보존된다', () => {\n    const raw: Worker2AncovaResult = { mainEffect: { fStatistic: 5.2, pValue: 0.03, df1: 1, df2: 28 } };\n    const mapped = mapAncovaResult(raw);\n    expect(mapped.df).toEqual([1, 28]);\n  });\n\n  it('null 그룹 필터링 후 missingRemoved 계산', () => {\n    const raw: Worker2AncovaResult = { mainEffect: { fStatistic: 3.1, pValue: 0.09, df1: 1, df2: 15 }, missingRemoved: 3 };\n    const mapped = mapAncovaResult(raw);\n    expect(mapped.missingRemoved).toBe(3);\n  });\n});",
-      "keywords": [
-        "Worker2",
-        "ANCOVA",
-        "simulation",
-        "df-tuple",
-        "missingRemoved",
-        "camelCase",
-        "mapping"
-      ]
+      "keywords": ["Worker2", "ANCOVA", "simulation", "df-tuple", "missingRemoved", "camelCase", "mapping"]
     },
     {
       "name": "chartSpecToECharts 시뮬레이션",

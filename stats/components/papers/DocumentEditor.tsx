@@ -2428,17 +2428,15 @@ export default function DocumentEditor({
             writingStatus={documentWritingState?.status}
             onRetry={handleRetryWriting}
           />
-          {needsReassemble && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleReassemble}
-              className="gap-1 rounded-full bg-surface-container-high px-3"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              재조립
-            </Button>
-          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleReassemble}
+            className="gap-1 rounded-full bg-surface-container-high px-3"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {needsReassemble ? '재조립 필요' : '재조립'}
+          </Button>
           <div className="flex rounded-full bg-surface-container p-1">
             <Button
               variant={previewMode ? 'ghost' : 'secondary'}

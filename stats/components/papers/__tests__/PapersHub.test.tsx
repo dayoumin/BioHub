@@ -82,6 +82,15 @@ vi.mock('@/lib/research/entity-tab-registry', () => ({
   getTabEntry: () => ({ label: '단백질', icon: '🧬' }),
 }))
 
+vi.mock('../PaperWritingDevelopmentChecklist', () => ({
+  __esModule: true,
+  default: () => (
+    <button type="button" aria-label="자료 작성 개발 점검 열기">
+      개발 점검
+    </button>
+  ),
+}))
+
 vi.mock('../DocumentAssemblyDialog', () => ({
   __esModule: true,
   default: () => null,
@@ -154,14 +163,19 @@ describe('PapersHub', () => {
     shared.startWritingSession.mockResolvedValue({ id: 'doc-blank' })
   })
 
-  it('starts a manual blank writing session from the hero action', async () => {
+  it('starts a manual blank writing session from the writing entry options', async () => {
     const onOpenDocument = vi.fn()
 
     render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: '외부 AI 입력 패키지' })).toBeInTheDocument()
+    expect(screen.getByText('작성 시작 방식')).toBeInTheDocument()
+    expect(screen.getByText('Option A')).toBeInTheDocument()
+    expect(screen.getByText('Option B')).toBeInTheDocument()
+    expect(screen.getByText('Option C')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '외부 AI 입력 패키지 만들기' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '외부 AI 입력 패키지' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
+    fireEvent.click(screen.getByRole('button', { name: '빈 문서 만들기' }))
 
     await waitFor(() => {
       expect(shared.startWritingSession).toHaveBeenCalledWith({
@@ -180,11 +194,11 @@ describe('PapersHub', () => {
 
     render(<PapersHub onOpenDocument={onOpenDocument} onOpenPackage={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: '새 문서로 바로 시작' })).toBeInTheDocument()
     expect(screen.getByText('바로 편집 시작')).toBeInTheDocument()
     expect(screen.getByText('이 기기 로컬 저장')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '새 문서' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '새 문서' }))
+    fireEvent.click(screen.getByRole('button', { name: '빈 문서 만들기' }))
 
     await waitFor(() => {
       expect(shared.createProject).toHaveBeenCalledWith('자료 작성 임시 공간', expect.objectContaining({
@@ -200,25 +214,21 @@ describe('PapersHub', () => {
     })
   })
 
-  it('opens a new AI input package from the hero action', async () => {
+  it('opens a new AI input package from the support tools action', async () => {
     const onOpenPackage = vi.fn()
 
     render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={onOpenPackage} />)
 
-    fireEvent.click(screen.getByRole('button', { name: '외부 AI 입력 패키지' }))
+    fireEvent.click(screen.getByRole('button', { name: '외부 AI 입력 패키지 만들기' }))
 
     expect(onOpenPackage).toHaveBeenCalledWith('new', 'proj-1')
   })
 
-  it('shows the paper writing development checklist in the hero actions', async () => {
+  it('shows the paper writing development checklist in the development section', async () => {
     render(<PapersHub onOpenDocument={vi.fn()} onOpenPackage={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: '자료 작성 개발 점검 열기' }))
-
-    expect(await screen.findByText('자료 작성 개발 점검')).toBeInTheDocument()
-    expect(screen.getByText('Bio-Tools writer sync')).toBeInTheDocument()
-    expect(screen.getByText('Source-backed writing')).toBeInTheDocument()
-    expect(screen.getByText(/ready Bio-Tools 15개 중 15개 전용 writer 적용/)).toBeInTheDocument()
+    expect(screen.getByText('개발 환경에서 writer 정책, registry 동기화, fallback 경계를 확인하는 내부 점검입니다.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '자료 작성 개발 점검 열기' })).toBeInTheDocument()
   })
 
   it('shows bio/genetics quick-start cards and opens a writing session', async () => {

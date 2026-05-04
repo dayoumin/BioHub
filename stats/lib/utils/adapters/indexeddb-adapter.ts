@@ -15,7 +15,7 @@ import type {
 } from '../storage-types'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 7  // v7: document review job sidecar store 추가
+const DB_VERSION = 8  // v8: document revision history store 추가
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'
 const FAVORITES_STORE = 'favorites'
@@ -106,6 +106,14 @@ export function openDB(): Promise<IDBDatabase> {
         reviewJobStore.createIndex('projectId', 'projectId', { unique: false })
         reviewJobStore.createIndex('status', 'status', { unique: false })
         reviewJobStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+      }
+
+      // Document revision history store (v8)
+      if (!db.objectStoreNames.contains('document-blueprint-revisions')) {
+        const revisionStore = db.createObjectStore('document-blueprint-revisions', { keyPath: 'id' })
+        revisionStore.createIndex('documentId', 'documentId', { unique: false })
+        revisionStore.createIndex('projectId', 'projectId', { unique: false })
+        revisionStore.createIndex('createdAt', 'createdAt', { unique: false })
       }
     }
   })

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import JSZip from 'jszip'
 import { Packer } from 'docx'
 import { describe, expect, it } from 'vitest'
@@ -69,7 +70,8 @@ describe('document export provenance', () => {
   })
 
   it('writes table and figure provenance into HWPX output', async () => {
-    const template = new Uint8Array(readFileSync('D:\\Projects\\BioHub\\stats\\public\\templates\\blank.hwpx'))
+    const templatePath = resolve(process.cwd(), 'public', 'templates', 'blank.hwpx')
+    const template = new Uint8Array(readFileSync(templatePath))
     const data = await buildHwpxDocument(makeDocument(), undefined, template)
     const zip = await JSZip.loadAsync(data)
     const xml = await zip.file('Contents/section0.xml')?.async('string')

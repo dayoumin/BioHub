@@ -52,18 +52,19 @@ describe('indexeddb-adapter', () => {
     await deleteDatabase().catch(() => undefined)
   })
 
-  it('migrates a v5 database to v7 with document quality and review job indexes', async () => {
+  it('migrates a v5 database to v8 with document quality, review job, and revision indexes', async () => {
     const legacyDb = await openLegacyV5Database()
     expect(legacyDb.version).toBe(5)
     legacyDb.close()
 
     const db = await openDB()
 
-    expect(db.version).toBe(7)
+    expect(db.version).toBe(8)
     expect(db.objectStoreNames.contains('analyses')).toBe(true)
     expect(db.objectStoreNames.contains('citations')).toBe(true)
     expect(db.objectStoreNames.contains('document-quality-reports')).toBe(true)
     expect(db.objectStoreNames.contains('document-review-jobs')).toBe(true)
+    expect(db.objectStoreNames.contains('document-blueprint-revisions')).toBe(true)
 
     const tx = db.transaction('document-quality-reports', 'readonly')
     const store = tx.objectStore('document-quality-reports')
@@ -78,6 +79,12 @@ describe('indexeddb-adapter', () => {
     expect(reviewJobStore.indexNames.contains('projectId')).toBe(true)
     expect(reviewJobStore.indexNames.contains('status')).toBe(true)
     expect(reviewJobStore.indexNames.contains('updatedAt')).toBe(true)
+
+    const revisionTx = db.transaction('document-blueprint-revisions', 'readonly')
+    const revisionStore = revisionTx.objectStore('document-blueprint-revisions')
+    expect(revisionStore.indexNames.contains('documentId')).toBe(true)
+    expect(revisionStore.indexNames.contains('projectId')).toBe(true)
+    expect(revisionStore.indexNames.contains('createdAt')).toBe(true)
     db.close()
   })
 
