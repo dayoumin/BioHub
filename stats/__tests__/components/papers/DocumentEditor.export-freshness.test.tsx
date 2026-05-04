@@ -1268,11 +1268,114 @@ describe('DocumentEditor export freshness', () => {
     expect(screen.getByText('현재 결과 본문')).toBeInTheDocument()
     expect(screen.getByText('기준 결과 본문')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }))
+    await screen.findByRole('alertdialog', { name: '섹션 복원 확인' })
+    expect(screen.getByText('현재 섹션을 기준 저장 지점 내용으로 되돌립니다. 복원 전 현재 문서는 자동으로 저장 지점에 보관됩니다.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '섹션 복원' }))
 
     await waitFor(() => {
       const lastCall = mockSaveDocumentBlueprint.mock.calls.at(-1) as [DocumentBlueprint] | undefined
       expect(lastCall?.[0].sections[0]?.content).toBe('기준 결과 본문')
     }, { timeout: 3_000 })
+  })
+
+  it('keeps a review request note when local storage is disabled', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('statPlatform_localStorageEnabled', 'false')
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('심사 전 본문'))
+
+    render(<DocumentEditor documentId="doc-review-storage-disabled" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getByRole('button', { name: /수정 요청/ }))
+    await screen.findByText('수정 요청 작업대')
+    const noteInput = screen.getByPlaceholderText(/심사위원 2 의견/)
+    await user.type(noteInput, '저장 실패 시에도 다시 입력하지 않아야 합니다.')
+    await user.click(screen.getByRole('button', { name: '요청 추가' }))
+
+    expect(noteInput).toHaveValue('저장 실패 시에도 다시 입력하지 않아야 합니다.')
+    expect(await listDocumentRevisions('doc-review-storage-disabled')).toHaveLength(0)
+  })
+
+  it('rolls back a review request baseline when request persistence fails', async () => {
+    const user = userEvent.setup()
+    const documentId = 'doc-review-request-persist-failure'
+    const originalSetItem = Storage.prototype.setItem
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function setItem(
+      this: Storage,
+      key: string,
+      value: string,
+    ): void {
+      if (key === 'paper_document_review_requests_v1') {
+        throw new Error('quota exceeded')
+      }
+      originalSetItem.call(this, key, value)
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('심사 전 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:02.000Z',
+    }))
+
+    try {
+      render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
+
+      await screen.findByText('테스트 문서')
+      await user.click(screen.getByRole('button', { name: /수정 요청/ }))
+      await screen.findByText('수정 요청 작업대')
+      const noteInput = screen.getByPlaceholderText(/심사위원 2 의견/)
+      await user.type(noteInput, '저장 실패 시 기준 저장 지점을 남기지 않아야 합니다.')
+      await user.click(screen.getByRole('button', { name: '요청 추가' }))
+
+      expect(noteInput).toHaveValue('저장 실패 시 기준 저장 지점을 남기지 않아야 합니다.')
+      await waitFor(async () => {
+        expect(await listDocumentRevisions(documentId)).toHaveLength(0)
+      })
+    } finally {
+      setItemSpy.mockRestore()
+    }
+  })
+
+  it('does not apply a review request section restore when immediate save conflicts', async () => {
+    const user = userEvent.setup()
+    const documentId = 'doc-review-partial-restore-conflict'
+    const baselineDocument = makeDocument('기준 결과 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:01.000Z',
+    })
+    const currentDocument = makeDocument('현재 결과 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:02.000Z',
+    })
+    const latestDocument = makeDocument('다른 탭 최신 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:03.000Z',
+    })
+    const baselineRevision = await createDocumentRevision(baselineDocument, {
+      reason: 'review-request-baseline',
+      label: '수정 요청 접수 전 저장 지점',
+    })
+    createDocumentReviewRequest({
+      documentId,
+      projectId: currentDocument.projectId,
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: '결과 문구를 기준 지점과 비교',
+      baselineRevisionId: baselineRevision.id,
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(currentDocument)
+    mockSaveDocumentBlueprint.mockRejectedValueOnce(new DocumentBlueprintConflictError(latestDocument))
+
+    render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getByRole('button', { name: /수정 요청/ }))
+    await screen.findByText('기준 지점 비교')
+    await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }))
+    await screen.findByRole('alertdialog', { name: '섹션 복원 확인' })
+    await user.click(screen.getByRole('button', { name: '섹션 복원' }))
+
+    await screen.findByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')
+    expect(screen.getByText('충돌')).toBeInTheDocument()
+    expect(mockSetValue).not.toHaveBeenCalledWith([{ type: 'p', children: [{ text: '기준 결과 본문' }] }])
   })
 
   it('keeps the conflict banner when revision restore hits a newer saved document', async () => {

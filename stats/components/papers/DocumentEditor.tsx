@@ -91,6 +91,7 @@ import DocumentReviewRequestsSheet from './DocumentReviewRequestsSheet'
 import type { DocumentReviewRequestBaselinePreview } from './DocumentReviewRequestsSheet'
 import {
   createDocumentRevision,
+  deleteDocumentRevision,
   listDocumentRevisions,
   loadDocumentRevision,
   restoreDocumentRevision,
@@ -98,7 +99,6 @@ import {
   type DocumentRevisionReason,
 } from '@/lib/research/document-blueprint-revisions'
 import {
-  attachDocumentReviewRequestBaseline,
   canPersistDocumentReviewRequests,
   createDocumentReviewRequest,
   listDocumentReviewRequests,
@@ -773,48 +773,45 @@ export default function DocumentEditor({
     const latestDocument = flushSerialize(activeSectionId ?? undefined) ?? docRef.current
     if (!latestDocument) {
       toast.error('현재 문서를 찾을 수 없습니다')
-      return
+      throw new Error('Current document is unavailable')
     }
     if (documentConflictRef.current !== null) {
       toast.warning('문서 충돌을 먼저 해결한 뒤 수정 요청을 추가하세요')
-      return
+      throw new Error('Document conflict must be resolved before adding a review request')
     }
     if (!canPersistDocumentReviewRequests()) {
       toast.error('로컬 저장이 꺼져 있어 수정 요청을 저장할 수 없습니다')
-      return
+      throw new Error('Local review request storage is disabled')
     }
 
     try {
       const targetSection = input.sectionId
         ? latestDocument.sections.find((section) => section.id === input.sectionId) ?? null
         : null
+      const baselineRevision = await createDocumentRevision(latestDocument, {
+        reason: 'review-request-baseline',
+        label: '수정 요청 접수 전 저장 지점',
+      })
       const request = createDocumentReviewRequest({
         documentId: latestDocument.id,
         projectId: latestDocument.projectId,
         sectionId: input.sectionId,
         sectionTitle: targetSection?.title ?? null,
         note: input.note,
+        baselineRevisionId: baselineRevision.id,
       })
       if (!request) {
-        toast.error('수정 요청을 저장하지 못했습니다')
-        return
+        await deleteDocumentRevision(baselineRevision.id)
+        throw new Error('Failed to persist review request')
       }
-      const baselineRevision = await createDocumentRevision(latestDocument, {
-        reason: 'review-request-baseline',
-        label: '수정 요청 접수 전 저장 지점',
-      })
-      const requestWithBaseline = attachDocumentReviewRequestBaseline(request.id, baselineRevision.id)
       refreshReviewRequests(latestDocument.id)
       if (revisionHistoryOpen) {
         await refreshDocumentRevisions(latestDocument.id)
       }
-      toast.success(
-        requestWithBaseline
-          ? '수정 요청을 추가하고 기준 저장 지점을 남겼습니다'
-          : '수정 요청을 추가했지만 기준 저장 지점 연결은 실패했습니다',
-      )
-    } catch {
+      toast.success('수정 요청을 추가하고 기준 저장 지점을 남겼습니다')
+    } catch (error: unknown) {
       toast.error('수정 요청을 추가하지 못했습니다')
+      throw error
     }
   }, [
     activeSectionId,
@@ -880,24 +877,31 @@ export default function DocumentEditor({
         updatedAt: new Date().toISOString(),
       }
 
+      await scheduleImmediateSave(updatedDocument)
+      if (documentConflictRef.current !== null) {
+        docRef.current = latestDocument
+        toast.warning('다른 저장과 충돌했습니다. 최신 버전을 확인한 뒤 다시 복원하세요')
+        return
+      }
+
       setDoc(updatedDocument)
-      docRef.current = updatedDocument
       loadedSectionRef.current = null
       setEditorLoadRevision((current) => current + 1)
       setActiveSectionId(request.sectionId)
-      scheduleSave(updatedDocument)
       if (revisionHistoryOpen) {
         await refreshDocumentRevisions(updatedDocument.id)
       }
       toast.success('대상 섹션을 기준 저장 지점으로 복원했습니다')
-    })()
+    })().catch(() => {
+      toast.error('대상 섹션을 복원하지 못했습니다')
+    })
   }, [
     activeSectionId,
     flushSerialize,
     refreshDocumentRevisions,
     reviewRequests,
     revisionHistoryOpen,
-    scheduleSave,
+    scheduleImmediateSave,
   ])
 
   const handleRestoreRevision = useCallback((revisionId: string): void => {

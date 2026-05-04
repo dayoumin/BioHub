@@ -29,6 +29,7 @@ import {
 } from '@/lib/utils/cross-tab-custom-events'
 import { txGet, txGetAll, txGetByIndex, txDelete } from '@/lib/utils/indexeddb-helpers'
 import { deleteDocumentRevisionsForDocument } from './document-blueprint-revisions'
+import { deleteDocumentReviewRequestsForDocument } from './document-review-requests'
 
 const STORE_NAME = 'document-blueprints'
 export const DOCUMENT_BLUEPRINTS_CHANGED_EVENT = 'document-blueprints-changed'
@@ -214,6 +215,7 @@ export async function deleteDocumentBlueprint(
   const db = await openDB()
   await txDelete(db, STORE_NAME, id)
   await deleteDocumentRevisionsForDocument(id)
+  deleteDocumentReviewRequestsForDocument(id)
 
   removeProjectEntityRef(projectId, 'draft', id)
   notifyDocumentBlueprintsChanged({

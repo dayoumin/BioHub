@@ -12,6 +12,7 @@ import {
   normalizeDocumentBlueprint,
   type DocumentBlueprint,
 } from './document-blueprint-types'
+import { listAllStoredDocumentReviewRequestsForMaintenance } from './document-review-requests'
 import type { SaveDocumentBlueprintOptions } from './document-blueprint-storage'
 
 const STORE_NAME = 'document-blueprint-revisions'
@@ -52,15 +53,32 @@ function sortRevisionsDescending(
   return [...revisions].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
-function isProtectedRevision(revision: DocumentBlueprintRevision): boolean {
-  return revision.reason === 'manual'
+function getProtectedReviewBaselineRevisionIds(documentId: string): Set<string> {
+  const protectedIds = new Set<string>()
+  for (const request of listAllStoredDocumentReviewRequestsForMaintenance()) {
+    if (request.documentId !== documentId || !request.baselineRevisionId) {
+      continue
+    }
+    protectedIds.add(request.baselineRevisionId)
+  }
+  return protectedIds
+}
+
+function isProtectedRevision(
+  revision: DocumentBlueprintRevision,
+  protectedBaselineRevisionIds: Set<string>,
+): boolean {
+  return revision.reason === 'manual' || protectedBaselineRevisionIds.has(revision.id)
 }
 
 async function pruneDocumentRevisions(documentId: string): Promise<void> {
   const revisions = sortRevisionsDescending(
     await listDocumentRevisions(documentId),
   )
-  const automaticRevisions = revisions.filter((revision) => !isProtectedRevision(revision))
+  const protectedBaselineRevisionIds = getProtectedReviewBaselineRevisionIds(documentId)
+  const automaticRevisions = revisions.filter((revision) => (
+    !isProtectedRevision(revision, protectedBaselineRevisionIds)
+  ))
   const staleRevisions = automaticRevisions.slice(MAX_AUTOMATIC_REVISIONS_PER_DOCUMENT)
   await Promise.all(staleRevisions.map((revision) => deleteDocumentRevision(revision.id)))
 }

@@ -20,6 +20,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import type { DocumentSection } from '@/lib/research/document-blueprint-types'
 import type {
   DocumentReviewRequest,
@@ -87,7 +97,14 @@ export default function DocumentReviewRequestsSheet({
   const [selectedSectionId, setSelectedSectionId] = useState<string>(activeSectionId ?? 'document')
   const [note, setNote] = useState('')
   const [creating, setCreating] = useState(false)
+  const [pendingRestoreRequestId, setPendingRestoreRequestId] = useState<string | null>(null)
   const activeCount = requests.filter((request) => request.status !== 'done').length
+  const pendingRestoreRequest = pendingRestoreRequestId
+    ? requests.find((request) => request.id === pendingRestoreRequestId) ?? null
+    : null
+  const pendingRestorePreview = pendingRestoreRequest
+    ? baselinePreviews[pendingRestoreRequest.id]
+    : undefined
 
   const handleOpenChange = (nextOpen: boolean): void => {
     setOpen(nextOpen)
@@ -107,6 +124,8 @@ export default function DocumentReviewRequestsSheet({
         note: trimmedNote,
       })
       setNote('')
+    } catch {
+      // The editor owns the toast. Keeping the note lets the user retry without retyping.
     } finally {
       setCreating(false)
     }
@@ -236,7 +255,7 @@ export default function DocumentReviewRequestsSheet({
                                 variant="secondary"
                                 className="mt-1 h-7 text-xs"
                                 disabled={disabled || !baselinePreview.changed}
-                                onClick={() => onRestoreBaselineSection(request.id)}
+                                onClick={() => setPendingRestoreRequestId(request.id)}
                               >
                                 이 섹션만 기준 지점으로 복원
                               </Button>
@@ -274,6 +293,57 @@ export default function DocumentReviewRequestsSheet({
           )}
         </div>
       </SheetContent>
+      <AlertDialog
+        open={pendingRestoreRequest !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setPendingRestoreRequestId(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>섹션 복원 확인</AlertDialogTitle>
+            <AlertDialogDescription>
+              현재 섹션을 기준 저장 지점 내용으로 되돌립니다. 복원 전 현재 문서는 자동으로 저장 지점에 보관됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {pendingRestoreRequest && (
+            <div className="space-y-2 rounded-2xl bg-surface-container px-4 py-3 text-sm">
+              <p className="font-medium text-foreground">
+                {pendingRestoreRequest.sectionTitle ?? '문서 전체'}
+              </p>
+              {pendingRestorePreview && !pendingRestorePreview.unavailableReason && (
+                <div className="grid gap-1 text-xs leading-5 text-muted-foreground">
+                  <p>
+                    <span className="font-medium text-foreground">현재</span>
+                    {' '}
+                    {pendingRestorePreview.currentExcerpt}
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">기준</span>
+                    {' '}
+                    {pendingRestorePreview.baselineExcerpt}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={disabled || !pendingRestoreRequest}
+              onClick={() => {
+                if (!pendingRestoreRequest) return
+                onRestoreBaselineSection(pendingRestoreRequest.id)
+                setPendingRestoreRequestId(null)
+              }}
+            >
+              섹션 복원
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   )
 }

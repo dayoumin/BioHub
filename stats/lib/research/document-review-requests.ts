@@ -34,13 +34,24 @@ interface CreateDocumentReviewRequestInput {
   baselineRevisionId?: string
 }
 
-function readAllRequests(): DocumentReviewRequest[] {
+function parseStoredRequests(raw: string | null): DocumentReviewRequest[] {
+  if (!raw) return []
   try {
-    const raw = StorageService.getItem(STORAGE_KEY)
-    if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
     return parsed.filter(isDocumentReviewRequest)
+  } catch {
+    return []
+  }
+}
+
+function readAllRequests(): DocumentReviewRequest[] {
+  return parseStoredRequests(StorageService.getItem(STORAGE_KEY))
+}
+
+function readAllRequestsForCleanup(): DocumentReviewRequest[] {
+  try {
+    return parseStoredRequests(localStorage.getItem(STORAGE_KEY))
   } catch {
     return []
   }
@@ -91,6 +102,14 @@ function sortRequests(requests: DocumentReviewRequest[]): DocumentReviewRequest[
 
 export function listDocumentReviewRequests(documentId: string): DocumentReviewRequest[] {
   return sortRequests(readAllRequests().filter((request) => request.documentId === documentId))
+}
+
+export function listAllDocumentReviewRequests(): DocumentReviewRequest[] {
+  return sortRequests(readAllRequests())
+}
+
+export function listAllStoredDocumentReviewRequestsForMaintenance(): DocumentReviewRequest[] {
+  return sortRequests(readAllRequestsForCleanup())
 }
 
 export function createDocumentReviewRequest(
@@ -148,4 +167,20 @@ export function attachDocumentReviewRequestBaseline(
 
 export function canPersistDocumentReviewRequests(): boolean {
   return StorageService.isEnabled()
+}
+
+export function deleteDocumentReviewRequestsForDocument(documentId: string): boolean {
+  const remainingRequests = readAllRequestsForCleanup().filter((request) => (
+    request.documentId !== documentId
+  ))
+  try {
+    if (remainingRequests.length === 0) {
+      StorageService.removeItem(STORAGE_KEY)
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(remainingRequests))
+    }
+    return true
+  } catch {
+    return false
+  }
 }

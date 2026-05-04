@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   createDocumentReviewRequest,
+  deleteDocumentReviewRequestsForDocument,
   listDocumentReviewRequests,
   updateDocumentReviewRequestStatus,
 } from '@/lib/research/document-review-requests'
@@ -68,5 +69,43 @@ describe('document review requests', () => {
 
     expect(request).toBeNull()
     expect(localStorage.getItem('paper_document_review_requests_v1')).toBeNull()
+  })
+
+  it('deletes all requests for a document without touching other documents', () => {
+    createDocumentReviewRequest({
+      documentId: 'doc-review-delete',
+      projectId: 'project-review-store',
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: '삭제 대상 요청',
+    })
+    createDocumentReviewRequest({
+      documentId: 'other-doc',
+      projectId: 'project-review-store',
+      sectionId: null,
+      sectionTitle: null,
+      note: '보존 대상 요청',
+    })
+
+    expect(deleteDocumentReviewRequestsForDocument('doc-review-delete')).toBe(true)
+
+    expect(listDocumentReviewRequests('doc-review-delete')).toEqual([])
+    expect(listDocumentReviewRequests('other-doc')).toHaveLength(1)
+  })
+
+  it('cleans up stored requests even when localStorage reads are disabled', () => {
+    createDocumentReviewRequest({
+      documentId: 'doc-review-delete-disabled',
+      projectId: 'project-review-store',
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: '삭제 대상 요청',
+    })
+    localStorage.setItem('statPlatform_localStorageEnabled', 'false')
+
+    expect(deleteDocumentReviewRequestsForDocument('doc-review-delete-disabled')).toBe(true)
+    localStorage.setItem('statPlatform_localStorageEnabled', 'true')
+
+    expect(listDocumentReviewRequests('doc-review-delete-disabled')).toEqual([])
   })
 })

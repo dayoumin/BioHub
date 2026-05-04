@@ -376,15 +376,16 @@
         },
         {
           "name": "수정 요청 섹션 부분 복원 테스트",
-          "purpose": "수정 요청의 기준 저장 지점에서 문서 전체가 아니라 대상 섹션만 복원하고, 복원 전 현재 문서를 별도 저장 지점으로 남기는지 검증",
-          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('수정 요청 기준 지점에서 대상 섹션만 복원한다', async () => {\n  const user = userEvent.setup();\n  const baselineRevision = await createDocumentRevision(makeDocument('기준 결과 본문'), {\n    reason: 'review-request-baseline',\n    label: '수정 요청 접수 전 저장 지점',\n  });\n  createDocumentReviewRequest({\n    documentId: 'doc-review',\n    projectId: 'project-1',\n    sectionId: 'results',\n    sectionTitle: '결과',\n    note: '결과 문구 비교',\n    baselineRevisionId: baselineRevision.id,\n  });\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('현재 결과 본문'));\n\n  render(<DocumentEditor documentId=\"doc-review\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: /수정 요청/ }));\n  await screen.findByText('기준 지점 비교');\n  await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }));\n\n  await waitFor(() => {\n    const lastCall = mockSaveDocumentBlueprint.mock.calls.at(-1);\n    expect(lastCall?.[0].sections[0]?.content).toBe('기준 결과 본문');\n  }, { timeout: 3000 });\n});",
+          "purpose": "수정 요청의 기준 저장 지점에서 문서 전체가 아니라 대상 섹션만 복원하고, 확인 모달과 복원 전 저장 지점이 유지되는지 검증",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('수정 요청 기준 지점에서 대상 섹션만 복원한다', async () => {\n  const user = userEvent.setup();\n  const baselineRevision = await createDocumentRevision(makeDocument('기준 결과 본문'), {\n    reason: 'review-request-baseline',\n    label: '수정 요청 접수 전 저장 지점',\n  });\n  createDocumentReviewRequest({\n    documentId: 'doc-review',\n    projectId: 'project-1',\n    sectionId: 'results',\n    sectionTitle: '결과',\n    note: '결과 문구 비교',\n    baselineRevisionId: baselineRevision.id,\n  });\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('현재 결과 본문'));\n\n  render(<DocumentEditor documentId=\"doc-review\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: /수정 요청/ }));\n  await screen.findByText('기준 지점 비교');\n  await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }));\n  await screen.findByRole('alertdialog', { name: '섹션 복원 확인' });\n  await user.click(screen.getByRole('button', { name: '섹션 복원' }));\n\n  await waitFor(() => {\n    const lastCall = mockSaveDocumentBlueprint.mock.calls.at(-1);\n    expect(lastCall?.[0].sections[0]?.content).toBe('기준 결과 본문');\n  }, { timeout: 3000 });\n});",
           "keywords": [
             "DocumentEditor",
             "review request",
             "partial restore",
             "section restore",
             "baseline revision",
-            "before-restore"
+            "before-restore",
+            "alertdialog"
           ]
         },
         {

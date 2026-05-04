@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   createDocumentRevision,
   listDocumentRevisions,
@@ -10,6 +10,10 @@ import {
   loadDocumentBlueprint,
   saveDocumentBlueprint,
 } from '@/lib/research/document-blueprint-storage'
+import {
+  createDocumentReviewRequest,
+  listDocumentReviewRequests,
+} from '@/lib/research/document-review-requests'
 import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
 
 function makeDocument(id: string, content: string, updatedAt: string): DocumentBlueprint {
@@ -56,6 +60,10 @@ function waitForNextTick(): Promise<void> {
 }
 
 describe('document blueprint revisions', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   it('stores document snapshots and lists the newest revision first', async () => {
     const documentId = 'revision-list-doc'
     const document = makeDocument(documentId, '초기 본문', '2026-04-30T00:00:00.000Z')
@@ -130,12 +138,21 @@ describe('document blueprint revisions', () => {
       reason: 'manual',
       label: '삭제될 기록',
     })
+    createDocumentReviewRequest({
+      documentId,
+      projectId: document.projectId,
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: '삭제될 수정 요청',
+    })
 
     expect(await listDocumentRevisions(documentId)).toHaveLength(1)
+    expect(listDocumentReviewRequests(documentId)).toHaveLength(1)
 
     await deleteDocumentBlueprint(document.id, document.projectId)
 
     expect(await listDocumentRevisions(documentId)).toHaveLength(0)
+    expect(listDocumentReviewRequests(documentId)).toHaveLength(0)
   })
 
   it('keeps manual rollback points when automatic revisions are pruned', async () => {
@@ -167,5 +184,79 @@ describe('document blueprint revisions', () => {
     expect(automaticRevisions).toHaveLength(20)
     expect(revisions.some((revision) => revision.label === '자동 저장 지점 0')).toBe(false)
     expect(revisions.some((revision) => revision.label === '자동 저장 지점 24')).toBe(true)
+  })
+
+  it('keeps active review request baselines when automatic revisions are pruned', async () => {
+    const documentId = 'revision-review-baseline-retention-doc'
+    const document = makeDocument(documentId, '심사 요청 기준점', '2026-04-30T00:00:00.000Z')
+    const baselineRevision = await createDocumentRevision(document, {
+      reason: 'review-request-baseline',
+      label: '수정 요청 기준 저장 지점',
+    })
+    createDocumentReviewRequest({
+      documentId,
+      projectId: document.projectId,
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: '심사 요청 기준점 보존',
+      baselineRevisionId: baselineRevision.id,
+    })
+
+    for (let index = 0; index < 25; index += 1) {
+      await waitForNextTick()
+      await createDocumentRevision(
+        updateDocumentContent(document, `자동 저장 ${index}`, `2026-04-30T00:02:${String(index).padStart(2, '0')}.000Z`),
+        {
+          reason: 'before-export',
+          label: `심사 후 자동 저장 지점 ${index}`,
+        },
+      )
+    }
+
+    const revisions = await listDocumentRevisions(documentId)
+    const retainedBaseline = revisions.find((revision) => revision.id === baselineRevision.id)
+    const unprotectedAutomaticRevisions = revisions.filter((revision) => (
+      revision.reason !== 'manual' && revision.id !== baselineRevision.id
+    ))
+
+    expect(retainedBaseline?.label).toBe('수정 요청 기준 저장 지점')
+    expect(unprotectedAutomaticRevisions).toHaveLength(20)
+    expect(revisions.some((revision) => revision.label === '심사 후 자동 저장 지점 0')).toBe(false)
+    expect(revisions.some((revision) => revision.label === '심사 후 자동 저장 지점 24')).toBe(true)
+  })
+
+  it('keeps stored review request baselines during pruning even when localStorage reads are disabled', async () => {
+    const documentId = 'revision-review-baseline-disabled-retention-doc'
+    const document = makeDocument(documentId, '숨겨진 요청 기준점', '2026-04-30T00:00:00.000Z')
+    const baselineRevision = await createDocumentRevision(document, {
+      reason: 'review-request-baseline',
+      label: '숨겨진 수정 요청 기준 저장 지점',
+    })
+    createDocumentReviewRequest({
+      documentId,
+      projectId: document.projectId,
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: 'opt-out 중에도 기준점 보존',
+      baselineRevisionId: baselineRevision.id,
+    })
+    localStorage.setItem('statPlatform_localStorageEnabled', 'false')
+
+    for (let index = 0; index < 25; index += 1) {
+      await waitForNextTick()
+      await createDocumentRevision(
+        updateDocumentContent(document, `opt-out 자동 저장 ${index}`, `2026-04-30T00:03:${String(index).padStart(2, '0')}.000Z`),
+        {
+          reason: 'before-export',
+          label: `opt-out 자동 저장 지점 ${index}`,
+        },
+      )
+    }
+    localStorage.setItem('statPlatform_localStorageEnabled', 'true')
+
+    const revisions = await listDocumentRevisions(documentId)
+    expect(revisions.some((revision) => revision.id === baselineRevision.id)).toBe(true)
+    expect(revisions.some((revision) => revision.label === 'opt-out 자동 저장 지점 0')).toBe(false)
+    expect(revisions.some((revision) => revision.label === 'opt-out 자동 저장 지점 24')).toBe(true)
   })
 })
