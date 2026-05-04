@@ -154,12 +154,29 @@ export default function DocumentReviewRequestsSheet({
         <SheetHeader>
           <SheetTitle>수정 요청 작업대</SheetTitle>
           <SheetDescription>
-            심사·학위 수정 의견을 섹션별 작업 단위로 남깁니다. 새 요청을 만들면 현재 문서 상태가 자동으로 기준 저장 지점에 보관됩니다.
+            심사·학위 수정 의견을 작업 단위로 남깁니다. 새 요청은 현재 문서를 기준 저장 지점으로 보관해 섹션별 비교와 부분 복원을 안전하게 지원합니다.
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-3 px-4">
           <div className="rounded-2xl bg-surface-container px-4 py-3">
+            <div className="mb-3 grid gap-2 text-[11px] leading-4 text-muted-foreground sm:grid-cols-3">
+              <div className="rounded-xl bg-surface-container-lowest px-3 py-2">
+                <span className="font-medium text-foreground">1. 기록</span>
+                <br />
+                의견을 문서/섹션 작업으로 남김
+              </div>
+              <div className="rounded-xl bg-surface-container-lowest px-3 py-2">
+                <span className="font-medium text-foreground">2. 기준</span>
+                <br />
+                요청 생성 시 현재 상태 보관
+              </div>
+              <div className="rounded-xl bg-surface-container-lowest px-3 py-2">
+                <span className="font-medium text-foreground">3. 복원</span>
+                <br />
+                필요한 섹션만 기준점으로 되돌림
+              </div>
+            </div>
             <p className="text-xs font-medium text-muted-foreground">대상 섹션</p>
             <Select value={selectedSectionId} onValueChange={setSelectedSectionId}>
               <SelectTrigger
@@ -222,10 +239,14 @@ export default function DocumentReviewRequestsSheet({
                         </Badge>
                       </div>
                       <p className="text-xs leading-5 text-muted-foreground">{request.note}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {formatRequestTime(request.createdAt)}
-                        {request.baselineRevisionId ? ' · 기준 저장 지점 있음' : ''}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span>{formatRequestTime(request.createdAt)}</span>
+                        {request.baselineRevisionId && (
+                          <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-foreground">
+                            기준 저장 지점 있음
+                          </span>
+                        )}
+                      </div>
                       {baselinePreview && (
                         <div className="mt-2 rounded-xl bg-surface-container-lowest px-3 py-2">
                           {baselinePreview.unavailableReason ? (
@@ -234,9 +255,14 @@ export default function DocumentReviewRequestsSheet({
                             </p>
                           ) : (
                             <div className="space-y-1.5">
-                              <p className="text-[11px] font-medium text-muted-foreground">
-                                기준 지점 비교
-                              </p>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-[11px] font-medium text-muted-foreground">
+                                  기준 지점 비교
+                                </p>
+                                <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] text-muted-foreground">
+                                  {baselinePreview.changed ? '변경 있음' : '동일'}
+                                </span>
+                              </div>
                               <div className="grid gap-1 text-[11px] leading-4 text-muted-foreground">
                                 <p>
                                   <span className="font-medium text-foreground">현재</span>
@@ -301,7 +327,7 @@ export default function DocumentReviewRequestsSheet({
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-surface-container-lowest">
           <AlertDialogHeader>
             <AlertDialogTitle>섹션 복원 확인</AlertDialogTitle>
             <AlertDialogDescription>

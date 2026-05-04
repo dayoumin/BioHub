@@ -180,13 +180,13 @@ export default function DocumentRevisionHistorySheet({
         <SheetHeader>
           <SheetTitle>문서 복원 기록</SheetTitle>
           <SheetDescription>
-            autosave가 실수까지 저장할 수 있으므로, 주요 작업 전 문서 전체 snapshot을 남기고 필요할 때 되돌립니다.
+            자동 저장과 별개로 되돌릴 기준점을 남깁니다. 이 패널의 복원은 문서 전체에 적용됩니다.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex items-center justify-between gap-3 px-4">
-          <div className="text-xs leading-5 text-muted-foreground">
-            현재는 문서 전체 복원을 우선 제공합니다. 섹션 단위 비교/복원은 후속 단계입니다.
+          <div className="rounded-2xl bg-surface-container px-3 py-2 text-xs leading-5 text-muted-foreground">
+            특정 섹션만 기준 지점으로 되돌릴 때는 <span className="font-medium text-foreground">수정 요청 작업대</span>의 섹션 복원을 사용하세요.
           </div>
           <Button
             type="button"
