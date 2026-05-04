@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
   "version": "1.44.16",
-  "lastUpdated": "2026-04-30",
+  "lastUpdated": "2026-05-04",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -346,6 +346,19 @@
             "DOCX export",
             "idle editor",
             "freshness"
+          ]
+        },
+        {
+          "name": "파괴적 복원 confirmation 테스트",
+          "purpose": "문서 전체 복원처럼 되돌리기 전 안전 확인이 필요한 액션에서 변경될 섹션, 제외될 섹션, 되돌림 저장 지점 안내가 실제 사용자 이벤트로 노출되는지 고정",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('복원 실행 전 변경 섹션과 제외 섹션을 확인시킨다', async () => {\n  const user = userEvent.setup();\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocumentWithExtraSection());\n  await createDocumentRevision(makeRestoreSnapshot(), {\n    reason: 'manual',\n    label: '복원 대상',\n  });\n\n  render(<DocumentEditor documentId=\"doc-restore\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: '복원 기록' }));\n  await user.click(screen.getByRole('button', { name: '복원 대상 복원' }));\n\n  await screen.findByRole('alertdialog', { name: '문서 복원 확인' });\n  expect(screen.getByText('부록 (복원 후 제외)')).toBeInTheDocument();\n  expect(screen.getByText(/되돌림 저장 지점/)).toBeInTheDocument();\n\n  await user.click(screen.getByRole('button', { name: '복원 실행' }));\n  await waitFor(() => expect(mockSaveDocumentBlueprint).toHaveBeenCalled());\n});",
+          "keywords": [
+            "DocumentEditor",
+            "revision restore",
+            "destructive action",
+            "alertdialog",
+            "rollback point",
+            "userEvent"
           ]
         },
         {
