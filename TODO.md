@@ -357,5 +357,8 @@
 - [ ] `/papers` 전체 UX/design polish pass: Papers Hub → DocumentEditor → 원본 자료 → 섹션 재생성 → 복원 기록 → 수정 요청 작업대 흐름을 사용자 관점에서 다시 훑고, Axiom Slate No-Line 원칙과 공통 컴포넌트 재사용 기준으로 중복/톤 불일치를 정리한다.
 - [x] `/papers` 편집기 shell polish: DocumentEditor 상단 바, 좌우 패널, 섹션 목록, 재료 팔레트를 border 기반 구획에서 surface tone 기반 구획으로 정리했다. (2026-05-04)
 - [x] `/papers` 복원/수정 요청 sheet polish: 복원 기록은 문서 전체 복원, 수정 요청 작업대는 섹션 기준점 비교/부분 복원이라는 역할 분리를 문구와 surface hierarchy로 명확히 했다. (2026-05-04)
-- [ ] `/papers` 리팩터링 후보 점검: `DocumentEditor`에 남은 review request/revision action orchestration을 hook 또는 작은 component로 추가 분리할지 판단한다. 단, 기능 안정화가 우선이므로 실제 중복·테스트 비용이 확인될 때만 진행한다.
+- [x] `/papers` 리팩터링 후보 점검: `DocumentEditor` 1671라인 중 이미 저장 큐, citation, source link, 섹션 재생성은 hook/component로 분리되어 있으므로 즉시 대형 리팩터링은 보류한다. 남은 후보는 아래처럼 후속 판단 대상으로 둔다. (2026-05-04)
+- [ ] `/papers` 리팩터링 후보 A — revision/review request orchestration 분리: `DocumentEditor`의 revision 생성/복원, review request 생성/상태 변경/부분 복원, baseline preview 계산을 `useDocumentRevisionHistory` 또는 `useDocumentReviewRequests` 계열 hook으로 분리할지 검토한다. 단, 현재 테스트가 `DocumentEditor.export-freshness.test.tsx`에 집중되어 있으므로 먼저 hook 단위 테스트 경계를 세운 뒤 진행한다.
+- [ ] `/papers` 리팩터링 후보 B — material insert action 분리: `handleInsertAnalysis` / `handleInsertFigure`가 table/figure/sourceRef 변환과 section patch를 동시에 담당하므로, 다음에 재사용 경로가 생기면 순수 helper로 추출한다. 현재는 호출 지점이 `DocumentEditor` 하나라 선제 분리는 보류한다.
+- [ ] `/papers` 리팩터링 후보 C — editor render shell component화: 좌측 섹션 목록, 중앙 편집 영역, 우측 재료 팔레트 layout shell은 시각 구조가 안정되면 `DocumentEditorShell` 같은 presentational component로 분리 가능하다. 상태/저장 로직을 건드리지 않는 범위에서만 진행한다.
 - [ ] 다음 대형 후보 선택 전 점검: prompt registry/cross-model review, 기존 논문 기반 파생 생성, Introduction/Discussion 자동화 중 어느 것을 먼저 할지 제품 위험도와 테스트 가능성 기준으로 결정한다.
