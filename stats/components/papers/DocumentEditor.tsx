@@ -87,6 +87,7 @@ import { useDocumentCitations } from './useDocumentCitations'
 import { useDocumentSectionRegeneration } from './useDocumentSectionRegeneration'
 import { useDocumentBlueprintSaveQueue } from './useDocumentBlueprintSaveQueue'
 import DocumentRevisionHistorySheet from './DocumentRevisionHistorySheet'
+import DocumentReviewRequestsSheet from './DocumentReviewRequestsSheet'
 import {
   createDocumentRevision,
   listDocumentRevisions,
@@ -94,6 +95,15 @@ import {
   type DocumentBlueprintRevision,
   type DocumentRevisionReason,
 } from '@/lib/research/document-blueprint-revisions'
+import {
+  attachDocumentReviewRequestBaseline,
+  canPersistDocumentReviewRequests,
+  createDocumentReviewRequest,
+  listDocumentReviewRequests,
+  updateDocumentReviewRequestStatus,
+  type DocumentReviewRequest,
+  type DocumentReviewRequestStatus,
+} from '@/lib/research/document-review-requests'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
 
@@ -182,6 +192,7 @@ export default function DocumentEditor({
   const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
   const [revisionHistoryOpen, setRevisionHistoryOpen] = useState(false)
   const [documentRevisions, setDocumentRevisions] = useState<DocumentBlueprintRevision[]>([])
+  const [reviewRequests, setReviewRequests] = useState<DocumentReviewRequest[]>([])
   const [revisionHistoryLoading, setRevisionHistoryLoading] = useState(false)
   const [revisionActionPending, setRevisionActionPending] = useState(false)
   const [editorRenderKey, setEditorRenderKey] = useState(0)
@@ -275,6 +286,10 @@ export default function DocumentEditor({
     }
   }, [])
 
+  const refreshReviewRequests = useCallback((targetDocumentId: string): void => {
+    setReviewRequests(listDocumentReviewRequests(targetDocumentId))
+  }, [])
+
   const saveDocumentRevisionPoint = useCallback(async (
     reason: DocumentRevisionReason,
     label: string,
@@ -305,6 +320,10 @@ export default function DocumentEditor({
       void refreshDocumentRevisions(documentId)
     }
   }, [documentId, refreshDocumentRevisions])
+
+  useEffect(() => {
+    refreshReviewRequests(documentId)
+  }, [documentId, refreshReviewRequests])
 
   useEffect(() => {
     return () => {
@@ -675,6 +694,76 @@ export default function DocumentEditor({
       true,
     ).finally(() => setRevisionActionPending(false))
   }, [activeSectionId, flushSerialize, saveDocumentRevisionPoint])
+
+  const handleCreateReviewRequest = useCallback(async (input: {
+    sectionId: string | null
+    note: string
+  }): Promise<void> => {
+    const latestDocument = flushSerialize(activeSectionId ?? undefined) ?? docRef.current
+    if (!latestDocument) {
+      toast.error('현재 문서를 찾을 수 없습니다')
+      return
+    }
+    if (documentConflictRef.current !== null) {
+      toast.warning('문서 충돌을 먼저 해결한 뒤 수정 요청을 추가하세요')
+      return
+    }
+    if (!canPersistDocumentReviewRequests()) {
+      toast.error('로컬 저장이 꺼져 있어 수정 요청을 저장할 수 없습니다')
+      return
+    }
+
+    try {
+      const targetSection = input.sectionId
+        ? latestDocument.sections.find((section) => section.id === input.sectionId) ?? null
+        : null
+      const request = createDocumentReviewRequest({
+        documentId: latestDocument.id,
+        projectId: latestDocument.projectId,
+        sectionId: input.sectionId,
+        sectionTitle: targetSection?.title ?? null,
+        note: input.note,
+      })
+      if (!request) {
+        toast.error('수정 요청을 저장하지 못했습니다')
+        return
+      }
+      const baselineRevision = await createDocumentRevision(latestDocument, {
+        reason: 'review-request-baseline',
+        label: '수정 요청 접수 전 저장 지점',
+      })
+      const requestWithBaseline = attachDocumentReviewRequestBaseline(request.id, baselineRevision.id)
+      refreshReviewRequests(latestDocument.id)
+      if (revisionHistoryOpen) {
+        await refreshDocumentRevisions(latestDocument.id)
+      }
+      toast.success(
+        requestWithBaseline
+          ? '수정 요청을 추가하고 기준 저장 지점을 남겼습니다'
+          : '수정 요청을 추가했지만 기준 저장 지점 연결은 실패했습니다',
+      )
+    } catch {
+      toast.error('수정 요청을 추가하지 못했습니다')
+    }
+  }, [
+    activeSectionId,
+    flushSerialize,
+    refreshDocumentRevisions,
+    refreshReviewRequests,
+    revisionHistoryOpen,
+  ])
+
+  const handleUpdateReviewRequestStatus = useCallback((
+    requestId: string,
+    status: DocumentReviewRequestStatus,
+  ): void => {
+    const updated = updateDocumentReviewRequestStatus(requestId, status)
+    if (!updated) {
+      toast.error('수정 요청 상태를 바꾸지 못했습니다')
+      return
+    }
+    refreshReviewRequests(updated.documentId)
+  }, [refreshReviewRequests])
 
   const handleRestoreRevision = useCallback((revisionId: string): void => {
     if (revisionActionPending) return
@@ -1182,6 +1271,14 @@ export default function DocumentEditor({
           onOpenChange={handleRevisionHistoryOpenChange}
           onCreateSnapshot={handleCreateManualRevision}
           onRestoreRevision={handleRestoreRevision}
+        />
+        <DocumentReviewRequestsSheet
+          sections={doc.sections}
+          activeSectionId={activeSectionId}
+          requests={reviewRequests}
+          disabled={documentConflict !== null}
+          onCreateRequest={handleCreateReviewRequest}
+          onUpdateStatus={handleUpdateReviewRequestStatus}
         />
         <Button
           variant={needsReassemble ? 'secondary' : 'outline'}

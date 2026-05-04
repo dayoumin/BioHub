@@ -8,7 +8,10 @@ import {
   createDocumentSourceRef,
   type DocumentBlueprint,
 } from '@/lib/research/document-blueprint-types'
-import { createDocumentRevision } from '@/lib/research/document-blueprint-revisions'
+import {
+  createDocumentRevision,
+  listDocumentRevisions,
+} from '@/lib/research/document-blueprint-revisions'
 import { DocumentBlueprintConflictError } from '@/lib/research/document-blueprint-storage'
 import type { AssemblerDataSources } from '@/lib/research/document-assembler'
 import type { CitationRecord } from '@/lib/research/citation-types'
@@ -259,6 +262,7 @@ describe('DocumentEditor export freshness', () => {
     mockSetValue.mockClear()
     mockLoadBioToolHistory.mockReset()
     mockLoadGeneticsHistory.mockReset()
+    localStorage.clear()
 
     mockSaveDocumentBlueprint.mockImplementation(async (doc: DocumentBlueprint) => doc)
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('이전 내용'))
@@ -1200,6 +1204,34 @@ describe('DocumentEditor export freshness', () => {
     const [restoredDocument] = mockSaveDocumentBlueprint.mock.calls[1] as [DocumentBlueprint]
     expect(pendingSaveDocument.sections[0]?.content).toBe('복원 전 미저장 편집')
     expect(restoredDocument.sections[0]?.content).toBe('복원 대상 본문')
+  })
+
+  it('tracks review requests with a baseline revision point', async () => {
+    const user = userEvent.setup()
+    const documentId = 'doc-review-request'
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('심사 전 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:02.000Z',
+    }))
+
+    render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getByRole('button', { name: '수정 요청' }))
+    await screen.findByText('수정 요청 작업대')
+    await user.type(
+      screen.getByPlaceholderText(/심사위원 2 의견/),
+      '결과 해석에서 효과크기와 p-value를 함께 설명해 주세요.',
+    )
+    await user.click(screen.getByRole('button', { name: '요청 추가' }))
+
+    await screen.findByText('결과 해석에서 효과크기와 p-value를 함께 설명해 주세요.')
+    expect(screen.getAllByText('결과').length).toBeGreaterThan(0)
+    expect(screen.getByText(/기준 저장 지점 있음/)).toBeInTheDocument()
+    expect(screen.getAllByText('대기').length).toBeGreaterThan(0)
+
+    const revisions = await listDocumentRevisions(documentId)
+    expect(revisions[0]?.reason).toBe('review-request-baseline')
   })
 
   it('keeps the conflict banner when revision restore hits a newer saved document', async () => {

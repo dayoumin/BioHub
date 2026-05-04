@@ -23,6 +23,7 @@ export type DocumentRevisionReason =
   | 'before-section-regeneration'
   | 'before-export'
   | 'before-restore'
+  | 'review-request-baseline'
 
 export interface DocumentBlueprintRevision {
   id: string

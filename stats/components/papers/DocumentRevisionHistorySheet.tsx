@@ -55,6 +55,7 @@ const REVISION_REASON_LABELS: Record<DocumentRevisionReason, string> = {
   'before-section-regeneration': '섹션 재생성 전',
   'before-export': '내보내기 전',
   'before-restore': '복원 전',
+  'review-request-baseline': '수정 요청 기준',
 }
 
 function formatRevisionTime(value: string): string {
