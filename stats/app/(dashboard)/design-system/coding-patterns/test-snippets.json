@@ -1373,6 +1373,19 @@
             "localStorage",
             "browser regression"
           ]
+        },
+        {
+          "name": "Autosave/reload E2E는 저장소와 실제 editor DOM을 함께 검증",
+          "purpose": "정적 export 기반 Playwright에서 autosave 완료 전 reload하거나 IndexedDB만 확인해 false positive가 생기는 문제를 방지",
+          "code": "await page.locator('[contenteditable=\"true\"]').first().fill('Autosave reload body');\nawait expect(page.getByText('변경됨')).toBeVisible();\nawait waitForPersistedDocumentContent(page, 'methods', 'Autosave reload body');\nawait waitForPersistedDocumentPlateValue(page, 'methods', 'Autosave reload body');\nawait expect(page.getByText('저장됨')).toBeVisible();\n\nawait page.reload({ waitUntil: 'domcontentloaded' });\nawait expect(page.locator('[contenteditable=\"true\"]').first()).toContainText('Autosave reload body');",
+          "keywords": [
+            "Playwright",
+            "autosave",
+            "IndexedDB",
+            "contenteditable",
+            "static export",
+            "reload regression"
+          ]
         }
       ]
     }
