@@ -30,9 +30,18 @@ interface DocumentReviewRequestsSheetProps {
   sections: DocumentSection[]
   activeSectionId: string | null
   requests: DocumentReviewRequest[]
+  baselinePreviews: Record<string, DocumentReviewRequestBaselinePreview>
   disabled?: boolean
   onCreateRequest: (input: { sectionId: string | null; note: string }) => Promise<void>
   onUpdateStatus: (requestId: string, status: DocumentReviewRequestStatus) => void
+  onRestoreBaselineSection: (requestId: string) => void
+}
+
+export interface DocumentReviewRequestBaselinePreview {
+  currentExcerpt: string
+  baselineExcerpt: string
+  changed: boolean
+  unavailableReason?: string
 }
 
 const STATUS_LABELS: Record<DocumentReviewRequestStatus, string> = {
@@ -68,9 +77,11 @@ export default function DocumentReviewRequestsSheet({
   sections,
   activeSectionId,
   requests,
+  baselinePreviews,
   disabled,
   onCreateRequest,
   onUpdateStatus,
+  onRestoreBaselineSection,
 }: DocumentReviewRequestsSheetProps): React.ReactElement {
   const [open, setOpen] = useState(false)
   const [selectedSectionId, setSelectedSectionId] = useState<string>(activeSectionId ?? 'document')
@@ -178,6 +189,9 @@ export default function DocumentReviewRequestsSheet({
             <div className="space-y-2">
               {requests.map((request) => (
                 <div key={request.id} className="rounded-2xl bg-surface-container px-4 py-3">
+                  {(() => {
+                    const baselinePreview = baselinePreviews[request.id]
+                    return (
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -193,6 +207,43 @@ export default function DocumentReviewRequestsSheet({
                         {formatRequestTime(request.createdAt)}
                         {request.baselineRevisionId ? ' · 기준 저장 지점 있음' : ''}
                       </p>
+                      {baselinePreview && (
+                        <div className="mt-2 rounded-xl bg-surface-container-lowest px-3 py-2">
+                          {baselinePreview.unavailableReason ? (
+                            <p className="text-[11px] leading-4 text-muted-foreground">
+                              {baselinePreview.unavailableReason}
+                            </p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <p className="text-[11px] font-medium text-muted-foreground">
+                                기준 지점 비교
+                              </p>
+                              <div className="grid gap-1 text-[11px] leading-4 text-muted-foreground">
+                                <p>
+                                  <span className="font-medium text-foreground">현재</span>
+                                  {' '}
+                                  {baselinePreview.currentExcerpt}
+                                </p>
+                                <p>
+                                  <span className="font-medium text-foreground">기준</span>
+                                  {' '}
+                                  {baselinePreview.baselineExcerpt}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                className="mt-1 h-7 text-xs"
+                                disabled={disabled || !baselinePreview.changed}
+                                onClick={() => onRestoreBaselineSection(request.id)}
+                              >
+                                이 섹션만 기준 지점으로 복원
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <Select
                       value={request.status}
@@ -215,6 +266,8 @@ export default function DocumentReviewRequestsSheet({
                       </SelectContent>
                     </Select>
                   </div>
+                    )
+                  })()}
                 </div>
               ))}
             </div>

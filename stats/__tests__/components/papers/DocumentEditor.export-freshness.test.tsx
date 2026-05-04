@@ -12,6 +12,7 @@ import {
   createDocumentRevision,
   listDocumentRevisions,
 } from '@/lib/research/document-blueprint-revisions'
+import { createDocumentReviewRequest } from '@/lib/research/document-review-requests'
 import { DocumentBlueprintConflictError } from '@/lib/research/document-blueprint-storage'
 import type { AssemblerDataSources } from '@/lib/research/document-assembler'
 import type { CitationRecord } from '@/lib/research/citation-types'
@@ -1217,7 +1218,7 @@ describe('DocumentEditor export freshness', () => {
     render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
 
     await screen.findByText('테스트 문서')
-    await user.click(screen.getByRole('button', { name: '수정 요청' }))
+    await user.click(screen.getByRole('button', { name: /수정 요청/ }))
     await screen.findByText('수정 요청 작업대')
     await user.type(
       screen.getByPlaceholderText(/심사위원 2 의견/),
@@ -1227,11 +1228,51 @@ describe('DocumentEditor export freshness', () => {
 
     await screen.findByText('결과 해석에서 효과크기와 p-value를 함께 설명해 주세요.')
     expect(screen.getAllByText('결과').length).toBeGreaterThan(0)
-    expect(screen.getByText(/기준 저장 지점 있음/)).toBeInTheDocument()
+    await screen.findByText(/기준 저장 지점 있음/)
     expect(screen.getAllByText('대기').length).toBeGreaterThan(0)
 
     const revisions = await listDocumentRevisions(documentId)
     expect(revisions[0]?.reason).toBe('review-request-baseline')
+  })
+
+  it('restores only the requested section from its baseline revision', async () => {
+    const user = userEvent.setup()
+    const documentId = 'doc-review-partial-restore'
+    const baselineDocument = makeDocument('기준 결과 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:01.000Z',
+    })
+    const currentDocument = makeDocument('현재 결과 본문', {
+      id: documentId,
+      updatedAt: '2026-04-21T00:00:02.000Z',
+    })
+    const baselineRevision = await createDocumentRevision(baselineDocument, {
+      reason: 'review-request-baseline',
+      label: '수정 요청 접수 전 저장 지점',
+    })
+    createDocumentReviewRequest({
+      documentId,
+      projectId: currentDocument.projectId,
+      sectionId: 'results',
+      sectionTitle: '결과',
+      note: '결과 문구를 기준 지점과 비교',
+      baselineRevisionId: baselineRevision.id,
+    })
+    mockLoadDocumentBlueprint.mockResolvedValue(currentDocument)
+
+    render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getByRole('button', { name: /수정 요청/ }))
+    await screen.findByText('기준 지점 비교')
+    expect(screen.getByText('현재 결과 본문')).toBeInTheDocument()
+    expect(screen.getByText('기준 결과 본문')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }))
+
+    await waitFor(() => {
+      const lastCall = mockSaveDocumentBlueprint.mock.calls.at(-1) as [DocumentBlueprint] | undefined
+      expect(lastCall?.[0].sections[0]?.content).toBe('기준 결과 본문')
+    }, { timeout: 3_000 })
   })
 
   it('keeps the conflict banner when revision restore hits a newer saved document', async () => {

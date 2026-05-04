@@ -375,6 +375,19 @@
           ]
         },
         {
+          "name": "수정 요청 섹션 부분 복원 테스트",
+          "purpose": "수정 요청의 기준 저장 지점에서 문서 전체가 아니라 대상 섹션만 복원하고, 복원 전 현재 문서를 별도 저장 지점으로 남기는지 검증",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport DocumentEditor from '@/components/papers/DocumentEditor';\n\nit('수정 요청 기준 지점에서 대상 섹션만 복원한다', async () => {\n  const user = userEvent.setup();\n  const baselineRevision = await createDocumentRevision(makeDocument('기준 결과 본문'), {\n    reason: 'review-request-baseline',\n    label: '수정 요청 접수 전 저장 지점',\n  });\n  createDocumentReviewRequest({\n    documentId: 'doc-review',\n    projectId: 'project-1',\n    sectionId: 'results',\n    sectionTitle: '결과',\n    note: '결과 문구 비교',\n    baselineRevisionId: baselineRevision.id,\n  });\n  mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('현재 결과 본문'));\n\n  render(<DocumentEditor documentId=\"doc-review\" onBack={vi.fn()} />);\n\n  await screen.findByText('테스트 문서');\n  await user.click(screen.getByRole('button', { name: /수정 요청/ }));\n  await screen.findByText('기준 지점 비교');\n  await user.click(screen.getByRole('button', { name: '이 섹션만 기준 지점으로 복원' }));\n\n  await waitFor(() => {\n    const lastCall = mockSaveDocumentBlueprint.mock.calls.at(-1);\n    expect(lastCall?.[0].sections[0]?.content).toBe('기준 결과 본문');\n  }, { timeout: 3000 });\n});",
+          "keywords": [
+            "DocumentEditor",
+            "review request",
+            "partial restore",
+            "section restore",
+            "baseline revision",
+            "before-restore"
+          ]
+        },
+        {
           "name": "localStorage 작업 큐 저장소 테스트",
           "purpose": "브라우저 로컬 저장소에 보관하는 작업 큐가 문서별 필터링, 상태 정렬, 깨진 payload 방어를 유지하는지 검증",
           "code": "import { beforeEach, describe, expect, it } from 'vitest';\nimport { createDocumentReviewRequest, listDocumentReviewRequests, updateDocumentReviewRequestStatus } from '@/lib/research/document-review-requests';\n\ndescribe('document review requests', () => {\n  beforeEach(() => localStorage.clear());\n\n  it('현재 문서 요청만 active 상태 우선으로 정렬한다', () => {\n    const done = createDocumentReviewRequest({ documentId: 'doc-1', projectId: 'project-1', sectionId: 'results', sectionTitle: '결과', note: '결과 보완' });\n    const active = createDocumentReviewRequest({ documentId: 'doc-1', projectId: 'project-1', sectionId: null, sectionTitle: null, note: '전체 문체 점검' });\n    createDocumentReviewRequest({ documentId: 'doc-2', projectId: 'project-1', sectionId: null, sectionTitle: null, note: '다른 문서 요청' });\n\n    updateDocumentReviewRequestStatus(done.id, 'done');\n    updateDocumentReviewRequestStatus(active.id, 'in-progress');\n\n    const requests = listDocumentReviewRequests('doc-1');\n    expect(requests.map((request) => request.note)).toEqual(['전체 문체 점검', '결과 보완']);\n  });\n\n  it('깨진 localStorage payload는 editor를 중단시키지 않는다', () => {\n    localStorage.setItem('paper_document_review_requests_v1', '{broken');\n    expect(listDocumentReviewRequests('doc-1')).toEqual([]);\n  });\n});",
@@ -970,7 +983,7 @@
           ]
         },
         {
-          "name": "Service 계�� (pyodide-statistics.ts)",
+          "name": "Service 계층 (pyodide-statistics.ts)",
           "purpose": "Python Worker 호출 래퍼 레이어 이해",
           "code": "// === pyodide-statistics.ts ===\n// 파일: lib/services/pyodide-statistics.ts\n// 역할: TypeScript에서 Python 함수를 호출하기 위한 래퍼\n\n// ⚠️ 주의사항 (파일 상단 주석)\n// - 새 메서드를 이 파일에 직접 구현하지 말 것!\n// - Python Worker 파일에 함수 추가 후 래퍼만 추가\n\n// 예시: tTest 메서드\nasync tTest(group1: number[], group2: number[], options?) {\n  // 내부적으로 PyodideCoreService 호출\n  return this.core.callWorkerMethod<StatisticsResult>(\n    2,                    // Worker 2 (hypothesis)\n    't_test_two_sample',  // Python 함수명\n    { group1, group2, equal_var: options?.equalVar }\n  )\n}\n\n// pyodideStats 싱글톤 인스턴스\nexport const pyodideStats = PyodideStatistics.getInstance()\n\n// 사용 예시 (Handler에서)\nconst result = await pyodideStats.tTest(group1, group2, { paired: false })\nconst stats = await pyodideStats.descriptiveStats(values)\nconst anova = await pyodideStats.anova(groups, { type: 'one-way' })",
           "keywords": [

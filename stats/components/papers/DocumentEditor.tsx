@@ -88,9 +88,11 @@ import { useDocumentSectionRegeneration } from './useDocumentSectionRegeneration
 import { useDocumentBlueprintSaveQueue } from './useDocumentBlueprintSaveQueue'
 import DocumentRevisionHistorySheet from './DocumentRevisionHistorySheet'
 import DocumentReviewRequestsSheet from './DocumentReviewRequestsSheet'
+import type { DocumentReviewRequestBaselinePreview } from './DocumentReviewRequestsSheet'
 import {
   createDocumentRevision,
   listDocumentRevisions,
+  loadDocumentRevision,
   restoreDocumentRevision,
   type DocumentBlueprintRevision,
   type DocumentRevisionReason,
@@ -149,6 +151,20 @@ function getInitialEditorValue(section: DocumentSection | null): Value {
   return EMPTY_EDITOR_VALUE
 }
 
+function getReviewSectionText(section: DocumentSection | undefined): string {
+  return section?.content.replace(/\s+/g, ' ').trim() ?? ''
+}
+
+function getReviewSectionExcerpt(section: DocumentSection | undefined): string {
+  const text = getReviewSectionText(section)
+  if (!text) return '본문이 없습니다.'
+  return text.length > 100 ? `${text.slice(0, 100)}...` : text
+}
+
+function cloneDocumentSection(section: DocumentSection): DocumentSection {
+  return JSON.parse(JSON.stringify(section)) as DocumentSection
+}
+
 function getReadinessBadgeClass(readiness: DocumentWritingSourceReadiness): string {
   switch (readiness.status) {
     case 'ready':
@@ -193,6 +209,7 @@ export default function DocumentEditor({
   const [revisionHistoryOpen, setRevisionHistoryOpen] = useState(false)
   const [documentRevisions, setDocumentRevisions] = useState<DocumentBlueprintRevision[]>([])
   const [reviewRequests, setReviewRequests] = useState<DocumentReviewRequest[]>([])
+  const [reviewRequestBaselinePreviews, setReviewRequestBaselinePreviews] = useState<Record<string, DocumentReviewRequestBaselinePreview>>({})
   const [revisionHistoryLoading, setRevisionHistoryLoading] = useState(false)
   const [revisionActionPending, setRevisionActionPending] = useState(false)
   const [editorRenderKey, setEditorRenderKey] = useState(0)
@@ -324,6 +341,60 @@ export default function DocumentEditor({
   useEffect(() => {
     refreshReviewRequests(documentId)
   }, [documentId, refreshReviewRequests])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void (async (): Promise<void> => {
+      const currentDocument = docRef.current
+      if (!currentDocument) {
+        if (!cancelled) setReviewRequestBaselinePreviews({})
+        return
+      }
+
+      const entries = await Promise.all(reviewRequests.map(async (request) => {
+        if (!request.baselineRevisionId || !request.sectionId) {
+          return [request.id, undefined] as const
+        }
+
+        const revision = await loadDocumentRevision(request.baselineRevisionId)
+        const baselineSection = revision?.snapshot.sections.find((section) => section.id === request.sectionId)
+        const currentSection = currentDocument.sections.find((section) => section.id === request.sectionId)
+
+        if (!revision || !baselineSection) {
+          return [request.id, {
+            currentExcerpt: '',
+            baselineExcerpt: '',
+            changed: false,
+            unavailableReason: '기준 저장 지점에서 이 섹션을 찾지 못했습니다.',
+          } satisfies DocumentReviewRequestBaselinePreview] as const
+        }
+        if (!currentSection) {
+          return [request.id, {
+            currentExcerpt: '',
+            baselineExcerpt: getReviewSectionExcerpt(baselineSection),
+            changed: false,
+            unavailableReason: '현재 문서에서 대상 섹션을 찾지 못했습니다.',
+          } satisfies DocumentReviewRequestBaselinePreview] as const
+        }
+
+        return [request.id, {
+          currentExcerpt: getReviewSectionExcerpt(currentSection),
+          baselineExcerpt: getReviewSectionExcerpt(baselineSection),
+          changed: getReviewSectionText(currentSection) !== getReviewSectionText(baselineSection),
+        } satisfies DocumentReviewRequestBaselinePreview] as const
+      }))
+
+      if (cancelled) return
+      setReviewRequestBaselinePreviews(Object.fromEntries(
+        entries.filter((entry): entry is readonly [string, DocumentReviewRequestBaselinePreview] => entry[1] !== undefined),
+      ))
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [doc, reviewRequests])
 
   useEffect(() => {
     return () => {
@@ -764,6 +835,70 @@ export default function DocumentEditor({
     }
     refreshReviewRequests(updated.documentId)
   }, [refreshReviewRequests])
+
+  const handleRestoreReviewRequestBaselineSection = useCallback((requestId: string): void => {
+    if (documentConflictRef.current !== null) {
+      toast.warning('문서 충돌을 먼저 해결한 뒤 섹션을 복원하세요')
+      return
+    }
+
+    void (async (): Promise<void> => {
+      const latestDocument = flushSerialize(activeSectionId ?? undefined) ?? docRef.current
+      if (!latestDocument) {
+        toast.error('현재 문서를 찾을 수 없습니다')
+        return
+      }
+
+      const request = reviewRequests.find((item) => item.id === requestId)
+      if (!request?.baselineRevisionId || !request.sectionId) {
+        toast.error('복원할 섹션 기준 지점을 찾지 못했습니다')
+        return
+      }
+
+      const revision = await loadDocumentRevision(request.baselineRevisionId)
+      const baselineSection = revision?.snapshot.sections.find((section) => section.id === request.sectionId)
+      if (!baselineSection) {
+        toast.error('기준 저장 지점에서 대상 섹션을 찾지 못했습니다')
+        return
+      }
+      if (!latestDocument.sections.some((section) => section.id === request.sectionId)) {
+        toast.error('현재 문서에서 대상 섹션을 찾지 못했습니다')
+        return
+      }
+
+      await createDocumentRevision(latestDocument, {
+        reason: 'before-restore',
+        label: `${request.sectionTitle ?? '섹션'} 부분 복원 전 저장 지점`,
+      })
+
+      const restoredSection = cloneDocumentSection(baselineSection)
+      const updatedDocument: DocumentBlueprint = {
+        ...latestDocument,
+        sections: latestDocument.sections.map((section) => (
+          section.id === request.sectionId ? restoredSection : section
+        )),
+        updatedAt: new Date().toISOString(),
+      }
+
+      setDoc(updatedDocument)
+      docRef.current = updatedDocument
+      loadedSectionRef.current = null
+      setEditorLoadRevision((current) => current + 1)
+      setActiveSectionId(request.sectionId)
+      scheduleSave(updatedDocument)
+      if (revisionHistoryOpen) {
+        await refreshDocumentRevisions(updatedDocument.id)
+      }
+      toast.success('대상 섹션을 기준 저장 지점으로 복원했습니다')
+    })()
+  }, [
+    activeSectionId,
+    flushSerialize,
+    refreshDocumentRevisions,
+    reviewRequests,
+    revisionHistoryOpen,
+    scheduleSave,
+  ])
 
   const handleRestoreRevision = useCallback((revisionId: string): void => {
     if (revisionActionPending) return
@@ -1276,9 +1411,11 @@ export default function DocumentEditor({
           sections={doc.sections}
           activeSectionId={activeSectionId}
           requests={reviewRequests}
+          baselinePreviews={reviewRequestBaselinePreviews}
           disabled={documentConflict !== null}
           onCreateRequest={handleCreateReviewRequest}
           onUpdateStatus={handleUpdateReviewRequestStatus}
+          onRestoreBaselineSection={handleRestoreReviewRequestBaselineSection}
         />
         <Button
           variant={needsReassemble ? 'secondary' : 'outline'}

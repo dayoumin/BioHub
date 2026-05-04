@@ -344,6 +344,7 @@
 - [x] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, 저장 지점 미리보기를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다. (2026-05-04)
 - [ ] 자료 작성 심사/학위 수정 요청 대응 UX: revision snapshot을 기반으로 수정 요청 단위의 작업 메모, 대상 섹션, 변경 전후 비교, 완료/보류 상태를 추적하고, 특정 섹션만 이전 snapshot에서 복원하거나 현재 문서에 반영할 수 있게 한다.
 - [x] 자료 작성 심사/학위 수정 요청 작업대 1차: 문서 상단 `수정 요청` 패널에서 문서 전체/섹션별 피드백 메모를 등록하고, 요청 생성 시 현재 문서 기준 저장 지점을 자동 생성하며, 대기/수정 중/완료/보류 상태를 추적한다. 섹션 단위 diff/부분 복원은 후속 단계로 둔다. (2026-05-04)
+- [x] 자료 작성 심사/학위 수정 요청 작업대 2차: 섹션 대상 요청에서 기준 저장 지점과 현재 섹션의 짧은 비교를 표시하고, 현재 문서 전체를 복원 전 저장 지점으로 남긴 뒤 해당 섹션만 기준 저장 지점 내용으로 복원할 수 있게 한다. (2026-05-04)
 - [ ] 기존 논문 기반 유사 논문 파생 생성: 완성된 `DocumentBlueprint`를 템플릿/파생 원본으로 선택해 섹션 구조·문체·표/그림 배치 패턴은 재사용하되, sourceRefs와 evidence는 새 프로젝트 기준으로 재매핑/재조립하도록 한다. 복사된 해석 본문은 자동 확정하지 않고 사용자 검토 상태로 표시한다.
 - [x] 자료 작성 revision retention 개선: 자동 저장 지점 반복이 사용자 수동 저장 지점을 밀어내지 않도록 manual revision을 보호하고, 자동 생성 revision만 최대 20개로 정리한다. (2026-05-04)
 - [x] 자료 작성 export 안전성 개선: HTML export의 title/content/caption/table cell/provenance를 escape/sanitize하고, empty-but-reassemblable 문서와 HWPX/clipboard prepared-document export path를 테스트로 고정 (2026-04-30)
