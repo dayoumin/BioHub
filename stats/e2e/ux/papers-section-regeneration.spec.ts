@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { S } from '../selectors'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 6
+const DB_VERSION = 8
 const DOCUMENT_ID = 'e2e-section-regeneration-doc'
 
 interface SeedDocument {
@@ -87,6 +87,20 @@ async function openSeedDb(page: Page): Promise<void> {
           revisionStore.createIndex('documentId', 'documentId', { unique: false })
           revisionStore.createIndex('projectId', 'projectId', { unique: false })
           revisionStore.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+        if (!db.objectStoreNames.contains('document-quality-reports')) {
+          const qualityReportStore = db.createObjectStore('document-quality-reports', { keyPath: 'id' })
+          qualityReportStore.createIndex('documentId', 'documentId', { unique: false })
+          qualityReportStore.createIndex('projectId', 'projectId', { unique: false })
+          qualityReportStore.createIndex('status', 'status', { unique: false })
+          qualityReportStore.createIndex('updatedAt', 'updatedAt', { unique: false })
+        }
+        if (!db.objectStoreNames.contains('document-review-jobs')) {
+          const reviewJobStore = db.createObjectStore('document-review-jobs', { keyPath: 'id' })
+          reviewJobStore.createIndex('documentId', 'documentId', { unique: false })
+          reviewJobStore.createIndex('projectId', 'projectId', { unique: false })
+          reviewJobStore.createIndex('status', 'status', { unique: false })
+          reviewJobStore.createIndex('updatedAt', 'updatedAt', { unique: false })
         }
       }
       request.onsuccess = () => {
@@ -174,7 +188,7 @@ async function seedPaperDocument(page: Page): Promise<void> {
     paperDraft: null,
   }
 
-  await page.evaluate(async ({ seedDocument, seedAnalysis }) => {
+  await page.evaluate(async ({ seedDocument, seedAnalysis, dbVersion }) => {
     sessionStorage.clear()
     const now = seedDocument.createdAt
 
@@ -201,7 +215,7 @@ async function seedPaperDocument(page: Page): Promise<void> {
     ]))
 
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('analysis-history', 6)
+      const request = indexedDB.open('analysis-history', dbVersion)
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error ?? new Error('Failed to open analysis-history DB'))
     })
@@ -223,7 +237,7 @@ async function seedPaperDocument(page: Page): Promise<void> {
     } finally {
       db.close()
     }
-  }, { seedDocument: document, seedAnalysis: analysis })
+  }, { seedDocument: document, seedAnalysis: analysis, dbVersion: DB_VERSION })
 }
 
 async function waitForPersistedDocumentContent(page: Page, sectionId: string, expectedContent: string): Promise<void> {
@@ -353,6 +367,9 @@ test.describe('@papers section regeneration UX', () => {
     await expect(page.getByRole('table', { name: '표 2. 검정 결과' })).toBeVisible()
     await expect(page.getByRole('cell', { name: '5.200' })).toBeVisible()
 
+    page.once('dialog', async (dialog) => {
+      await dialog.accept()
+    })
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('button', { name: 'HTML 다운로드' }).click()
     const download = await downloadPromise

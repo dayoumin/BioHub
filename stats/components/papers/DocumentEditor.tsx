@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
+import { Fragment, useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
 import { ArrowLeft, Eye, Info, PenLine, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlateEditor } from 'platejs/react'
@@ -104,9 +104,33 @@ import DocumentExportBar from './DocumentExportBar'
 import DocumentWritingHeaderStatus from './DocumentWritingHeaderStatus'
 import SectionWritingBanner from './SectionWritingBanner'
 import DocumentPreflightPanel from './DocumentPreflightPanel'
+import DocumentSectionRegenerationControls from './DocumentSectionRegenerationControls'
+import DocumentRevisionHistorySheet from './DocumentRevisionHistorySheet'
+import DocumentReviewRequestsSheet from './DocumentReviewRequestsSheet'
+import type { DocumentReviewRequestBaselinePreview } from './DocumentReviewRequestsSheet'
 import { cn } from '@/lib/utils'
 import { generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import { updateDocumentSectionWritingState } from '@/lib/research/document-writing'
+import { isDocumentSectionRegenerationSectionId } from '@/lib/research/document-section-regeneration-contract'
+import { useDocumentSectionRegeneration } from './useDocumentSectionRegeneration'
+import { useDocumentSourceLinks } from './useDocumentSourceLinks'
+import {
+  createDocumentRevision,
+  deleteDocumentRevision,
+  listDocumentRevisions,
+  loadDocumentRevision,
+  restoreDocumentRevision,
+  type DocumentBlueprintRevision,
+  type DocumentRevisionReason,
+} from '@/lib/research/document-blueprint-revisions'
+import {
+  canPersistDocumentReviewRequests,
+  createDocumentReviewRequest,
+  listDocumentReviewRequests,
+  updateDocumentReviewRequestStatus,
+  type DocumentReviewRequest,
+  type DocumentReviewRequestStatus,
+} from '@/lib/research/document-review-requests'
 import { generateId } from '@/lib/utils/generate-id'
 import {
   getDocumentQualityFreshness,
@@ -460,6 +484,37 @@ function documentHasSupplementarySources(document: DocumentBlueprint | null): bo
   ))
 }
 
+function collectPlateVisibleText(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map((item) => collectPlateVisibleText(item)).join(' ')
+  }
+  if (typeof value !== 'object' || value === null) {
+    return ''
+  }
+  const record = value as Record<string, unknown>
+  if (typeof record.text === 'string') {
+    return record.text
+  }
+  return collectPlateVisibleText(record.children)
+}
+
+function getReviewSectionText(section: DocumentSection | undefined): string {
+  if (!section) return ''
+  const plateText = collectPlateVisibleText(section.plateValue).replace(/\s+/g, ' ').trim()
+  if (plateText) return plateText
+  return section.content.replace(/\s+/g, ' ').trim()
+}
+
+function getReviewSectionExcerpt(section: DocumentSection | undefined): string {
+  const text = getReviewSectionText(section)
+  if (!text) return '본문이 없습니다.'
+  return text.length > 100 ? `${text.slice(0, 100)}...` : text
+}
+
+function cloneDocumentSection(section: DocumentSection): DocumentSection {
+  return JSON.parse(JSON.stringify(section)) as DocumentSection
+}
+
 export default function DocumentEditor({
   documentId,
   initialSectionId,
@@ -480,6 +535,13 @@ export default function DocumentEditor({
   const [qualityReport, setQualityReport] = useState<DocumentQualityReport | null>(null)
   const [preflightJobState, setPreflightJobState] = useState<DocumentReviewJobState | null>(null)
   const [preflightInMemoryPending, setPreflightInMemoryPending] = useState(false)
+  const [sourceLinksRefreshKey, setSourceLinksRefreshKey] = useState(0)
+  const [revisionHistoryOpen, setRevisionHistoryOpen] = useState(false)
+  const [documentRevisions, setDocumentRevisions] = useState<DocumentBlueprintRevision[]>([])
+  const [reviewRequests, setReviewRequests] = useState<DocumentReviewRequest[]>([])
+  const [reviewRequestBaselinePreviews, setReviewRequestBaselinePreviews] = useState<Record<string, DocumentReviewRequestBaselinePreview>>({})
+  const [revisionHistoryLoading, setRevisionHistoryLoading] = useState(false)
+  const [revisionActionPending, setRevisionActionPending] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
@@ -566,6 +628,56 @@ export default function DocumentEditor({
     })
   }, [initialSectionId])
 
+  const refreshDocumentRevisions = useCallback(async (targetDocumentId: string): Promise<void> => {
+    setRevisionHistoryLoading(true)
+    try {
+      setDocumentRevisions(await listDocumentRevisions(targetDocumentId))
+    } finally {
+      setRevisionHistoryLoading(false)
+    }
+  }, [])
+
+  const refreshReviewRequests = useCallback((targetDocumentId: string): void => {
+    setReviewRequests(listDocumentReviewRequests(targetDocumentId))
+  }, [])
+
+  const saveDocumentRevisionPoint = useCallback(async (
+    reason: DocumentRevisionReason,
+    label: string,
+    targetDocument?: DocumentBlueprint,
+    showToast = false,
+    requireSuccess = false,
+  ): Promise<boolean> => {
+    const revisionTarget = targetDocument ?? docRef.current
+    if (!revisionTarget) return false
+
+    try {
+      await createDocumentRevision(revisionTarget, { reason, label })
+      if (showToast) {
+        toast.success('문서 복원 지점을 저장했습니다')
+      }
+      if (revisionHistoryOpen) {
+        await refreshDocumentRevisions(revisionTarget.id)
+      }
+      return true
+    } catch {
+      if (showToast) {
+        toast.error('복원 지점을 저장하지 못했습니다')
+      }
+      if (requireSuccess) {
+        throw new Error('복원 지점을 저장하지 못해 작업을 중단했습니다.')
+      }
+      return false
+    }
+  }, [refreshDocumentRevisions, revisionHistoryOpen])
+
+  const handleRevisionHistoryOpenChange = useCallback((open: boolean): void => {
+    setRevisionHistoryOpen(open)
+    if (open) {
+      void refreshDocumentRevisions(documentId)
+    }
+  }, [documentId, refreshDocumentRevisions])
+
   const markDocumentConflict = useCallback((latestDocument: DocumentBlueprint): void => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
@@ -648,6 +760,9 @@ export default function DocumentEditor({
     setActiveSectionId(null)
     setCitations([])
     setNeedsReassemble(false)
+    setDocumentRevisions([])
+    setReviewRequests([])
+    setReviewRequestBaselinePreviews({})
     setQualityReport(null)
     setPreflightJobState(null)
     setPreflightInMemoryPending(false)
@@ -669,6 +784,64 @@ export default function DocumentEditor({
       cancelled = true
     }
   }, [applyLoadedDocument, documentId, initialSectionId])
+
+  useEffect(() => {
+    refreshReviewRequests(documentId)
+  }, [documentId, refreshReviewRequests])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void (async (): Promise<void> => {
+      const currentDocument = docRef.current
+      if (!currentDocument) {
+        if (!cancelled) setReviewRequestBaselinePreviews({})
+        return
+      }
+
+      const entries = await Promise.all(reviewRequests.map(async (request) => {
+        if (!request.baselineRevisionId || !request.sectionId) {
+          return [request.id, undefined] as const
+        }
+
+        const revision = await loadDocumentRevision(request.baselineRevisionId)
+        const baselineSection = revision?.snapshot.sections.find((section) => section.id === request.sectionId)
+        const currentSection = currentDocument.sections.find((section) => section.id === request.sectionId)
+
+        if (!revision || !baselineSection) {
+          return [request.id, {
+            currentExcerpt: '',
+            baselineExcerpt: '',
+            changed: false,
+            unavailableReason: '기준 저장 지점에서 이 섹션을 찾지 못했습니다.',
+          } satisfies DocumentReviewRequestBaselinePreview] as const
+        }
+        if (!currentSection) {
+          return [request.id, {
+            currentExcerpt: '',
+            baselineExcerpt: getReviewSectionExcerpt(baselineSection),
+            changed: false,
+            unavailableReason: '현재 문서에서 대상 섹션을 찾지 못했습니다.',
+          } satisfies DocumentReviewRequestBaselinePreview] as const
+        }
+
+        return [request.id, {
+          currentExcerpt: getReviewSectionExcerpt(currentSection),
+          baselineExcerpt: getReviewSectionExcerpt(baselineSection),
+          changed: getReviewSectionText(currentSection) !== getReviewSectionText(baselineSection),
+        } satisfies DocumentReviewRequestBaselinePreview] as const
+      }))
+
+      if (cancelled) return
+      setReviewRequestBaselinePreviews(Object.fromEntries(
+        entries.filter((entry): entry is readonly [string, DocumentReviewRequestBaselinePreview] => entry[1] !== undefined),
+      ))
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [doc, reviewRequests])
 
   useEffect(() => {
     if (!doc?.id) {
@@ -948,6 +1121,7 @@ export default function DocumentEditor({
       if (!documentHasSupplementarySources(docRef.current)) {
         return
       }
+      setSourceLinksRefreshKey((current) => current + 1)
       setNeedsReassemble(true)
     }
 
@@ -1231,6 +1405,11 @@ export default function DocumentEditor({
 
     const sectionId = pendingSerializeSectionRef.current
     if (!sectionId) {
+      await saveDocumentRevisionPoint(
+        'before-export',
+        '내보내기 전 자동 저장 지점',
+        currentDoc,
+      )
       const exportDoc = needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
       return resolveDocumentInlineCitations(
         applyReferencesSectionContent(exportDoc, latestCitationsRef.current),
@@ -1251,19 +1430,29 @@ export default function DocumentEditor({
       }, latestCitationsRef.current)
       setDoc(updated)
       scheduleSave(updated)
+      await saveDocumentRevisionPoint(
+        'before-export',
+        '내보내기 전 자동 저장 지점',
+        updated,
+      )
       const exportDoc = needsReassemble ? (reassembleCurrentDocument(updated) ?? updated) : updated
       return resolveDocumentInlineCitations(
         applyReferencesSectionContent(exportDoc, latestCitationsRef.current),
         latestCitationsRef.current,
       )
     } catch {
+      await saveDocumentRevisionPoint(
+        'before-export',
+        '내보내기 전 자동 저장 지점',
+        currentDoc,
+      )
       const exportDoc = needsReassemble ? (reassembleCurrentDocument(currentDoc) ?? currentDoc) : currentDoc
       return resolveDocumentInlineCitations(
         applyReferencesSectionContent(exportDoc, latestCitationsRef.current),
         latestCitationsRef.current,
       )
     }
-  }, [editor, needsReassemble, reassembleCurrentDocument, scheduleSave])
+  }, [editor, needsReassemble, reassembleCurrentDocument, saveDocumentRevisionPoint, scheduleSave])
 
   // serialize 타이머 flush — 섹션 전환/언마운트 전에 현재 content 확정
   const pendingSerializeSectionRef = useRef<string | null>(null)
@@ -1450,10 +1639,80 @@ export default function DocumentEditor({
     }
   }, [flushPendingWrites, needsReassemble, preflightPending, reassembleCurrentDocument])
 
+  const getLocalEditRevision = useCallback((): number => (
+    latestScheduledSaveRevisionRef.current
+  ), [])
+
+  const hasPendingSaveOrConflict = useCallback((): boolean => (
+    documentConflictRef.current !== null
+    || pendingSaveRevisionRef.current !== null
+    || hasLocalChangesRef.current
+  ), [])
+
+  const persistLatestDocumentBeforeSectionRegeneration = useCallback(async (): Promise<boolean> => {
+    const flushed = flushSerialize()
+    const latestDocument = flushed ?? docRef.current
+    if (!latestDocument) {
+      return false
+    }
+    await saveDocumentRevisionPoint(
+      'before-section-regeneration',
+      '섹션 재생성 전 자동 저장 지점',
+      latestDocument,
+      false,
+      true,
+    )
+
+    if (documentConflictRef.current !== null) {
+      return false
+    }
+
+    if (pendingSaveRevisionRef.current !== null || flushed) {
+      scheduleImmediateSave(latestDocument)
+    }
+    await saveQueueRef.current.catch(() => undefined)
+
+    return documentConflictRef.current === null
+  }, [flushSerialize, saveDocumentRevisionPoint, scheduleImmediateSave])
+
+  const getCurrentDocumentIdForSectionRegeneration = useCallback((): string | null => (
+    docRef.current?.id ?? null
+  ), [])
+
+  const applyRegeneratedDocument = useCallback((updated: DocumentBlueprint): void => {
+    loadedSectionRef.current = null
+    applyLoadedDocument(updated)
+    setNeedsReassemble(false)
+  }, [applyLoadedDocument])
+
+  const {
+    sectionRegenerationMode,
+    sectionRegenerationModeRef,
+    refreshActiveSectionSources,
+    regenerateActiveSection,
+  } = useDocumentSectionRegeneration({
+    documentId,
+    activeSectionId,
+    getCurrentDocumentId: getCurrentDocumentIdForSectionRegeneration,
+    getLocalEditRevision,
+    hasPendingSaveOrConflict,
+    persistLatestDocument: persistLatestDocumentBeforeSectionRegeneration,
+    applyRegeneratedDocument,
+  })
+
+  const handleRefreshActiveSectionSources = useCallback(async (): Promise<void> => {
+    await refreshActiveSectionSources()
+  }, [refreshActiveSectionSources])
+
+  const handleRegenerateActiveSection = useCallback(async (): Promise<void> => {
+    await regenerateActiveSection()
+  }, [regenerateActiveSection])
+
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
     if (isApplyingRemoteValueRef.current) return
     if (!activeSectionId) return
+    if (sectionRegenerationModeRef.current !== null) return
     const plateValue = editor.children
     if (shouldTakeOwnershipForWritingSection(activeSectionId)) {
       takeSectionOwnershipForEditing(activeSectionId, plateValue)
@@ -1476,7 +1735,7 @@ export default function DocumentEditor({
         // serialize 실패 시 무시
       }
     }, 500)
-  }, [activeSectionId, editor, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
+  }, [activeSectionId, editor, sectionRegenerationModeRef, shouldTakeOwnershipForWritingSection, takeSectionOwnershipForEditing, updateSection])
 
   const handleTakeSectionOwnership = useCallback((): void => {
     if (!activeSectionId) {
@@ -1605,8 +1864,238 @@ export default function DocumentEditor({
   const handleReassemble = useCallback(async () => {
     await pendingCitationReloadRef.current
     const syncedDoc = flushSerialize()
+    const revisionTarget = syncedDoc ?? docRef.current
+    if (revisionTarget) {
+      try {
+        await saveDocumentRevisionPoint(
+          'before-reassemble',
+          '재조립 전 자동 저장 지점',
+          revisionTarget,
+          false,
+          true,
+        )
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : '재조립 전 복원 지점을 저장하지 못했습니다')
+        return
+      }
+    }
     reassembleCurrentDocument(syncedDoc ?? undefined)
-  }, [flushSerialize, reassembleCurrentDocument])
+  }, [flushSerialize, reassembleCurrentDocument, saveDocumentRevisionPoint])
+
+  const handleCreateManualRevision = useCallback((): void => {
+    setRevisionActionPending(true)
+    void saveDocumentRevisionPoint(
+      'manual',
+      '사용자 저장 지점',
+      flushSerialize() ?? docRef.current ?? undefined,
+      true,
+    ).finally(() => setRevisionActionPending(false))
+  }, [flushSerialize, saveDocumentRevisionPoint])
+
+  const handleCreateReviewRequest = useCallback(async (input: {
+    sectionId: string | null
+    note: string
+  }): Promise<void> => {
+    const latestDocument = flushSerialize() ?? docRef.current
+    if (!latestDocument) {
+      toast.error('현재 문서를 찾을 수 없습니다')
+      throw new Error('Current document is unavailable')
+    }
+    if (documentConflictRef.current !== null) {
+      toast.warning('문서 충돌을 먼저 해결한 뒤 수정 요청을 추가하세요')
+      throw new Error('Document conflict must be resolved before adding a review request')
+    }
+    if (!canPersistDocumentReviewRequests()) {
+      toast.error('로컬 저장이 꺼져 있어 수정 요청을 저장할 수 없습니다')
+      throw new Error('Local review request storage is disabled')
+    }
+
+    try {
+      const targetSection = input.sectionId
+        ? latestDocument.sections.find((section) => section.id === input.sectionId) ?? null
+        : null
+      const baselineRevision = await createDocumentRevision(latestDocument, {
+        reason: 'review-request-baseline',
+        label: '수정 요청 접수 전 저장 지점',
+      })
+      const request = createDocumentReviewRequest({
+        documentId: latestDocument.id,
+        projectId: latestDocument.projectId,
+        sectionId: input.sectionId,
+        sectionTitle: targetSection?.title ?? null,
+        note: input.note,
+        baselineRevisionId: baselineRevision.id,
+      })
+      if (!request) {
+        await deleteDocumentRevision(baselineRevision.id)
+        throw new Error('Failed to persist review request')
+      }
+      refreshReviewRequests(latestDocument.id)
+      if (revisionHistoryOpen) {
+        await refreshDocumentRevisions(latestDocument.id)
+      }
+      toast.success('수정 요청을 추가하고 기준 저장 지점을 남겼습니다')
+    } catch (error: unknown) {
+      toast.error('수정 요청을 추가하지 못했습니다')
+      throw error
+    }
+  }, [
+    flushSerialize,
+    refreshDocumentRevisions,
+    refreshReviewRequests,
+    revisionHistoryOpen,
+  ])
+
+  const handleUpdateReviewRequestStatus = useCallback((
+    requestId: string,
+    status: DocumentReviewRequestStatus,
+  ): void => {
+    const updated = updateDocumentReviewRequestStatus(requestId, status)
+    if (!updated) {
+      toast.error('수정 요청 상태를 바꾸지 못했습니다')
+      return
+    }
+    refreshReviewRequests(updated.documentId)
+  }, [refreshReviewRequests])
+
+  const handleRestoreReviewRequestBaselineSection = useCallback((requestId: string): void => {
+    if (documentConflictRef.current !== null) {
+      toast.warning('문서 충돌을 먼저 해결한 뒤 섹션을 복원하세요')
+      return
+    }
+
+    void (async (): Promise<void> => {
+      const latestDocument = flushSerialize() ?? docRef.current
+      if (!latestDocument) {
+        toast.error('현재 문서를 찾을 수 없습니다')
+        return
+      }
+
+      const request = reviewRequests.find((item) => item.id === requestId)
+      if (!request?.baselineRevisionId || !request.sectionId) {
+        toast.error('복원할 섹션 기준 지점을 찾지 못했습니다')
+        return
+      }
+
+      const revision = await loadDocumentRevision(request.baselineRevisionId)
+      const baselineSection = revision?.snapshot.sections.find((section) => section.id === request.sectionId)
+      if (!baselineSection) {
+        toast.error('기준 저장 지점에서 대상 섹션을 찾지 못했습니다')
+        return
+      }
+      if (!latestDocument.sections.some((section) => section.id === request.sectionId)) {
+        toast.error('현재 문서에서 대상 섹션을 찾지 못했습니다')
+        return
+      }
+
+      await saveDocumentRevisionPoint(
+        'before-restore',
+        `${request.sectionTitle ?? '섹션'} 부분 복원 전 저장 지점`,
+        latestDocument,
+        false,
+        true,
+      )
+
+      const restoredSection = cloneDocumentSection(baselineSection)
+      const updatedDocument: DocumentBlueprint = {
+        ...latestDocument,
+        sections: latestDocument.sections.map((section) => (
+          section.id === request.sectionId ? restoredSection : section
+        )),
+        updatedAt: new Date().toISOString(),
+      }
+
+      setDoc(updatedDocument)
+      scheduleImmediateSave(updatedDocument)
+      await saveQueueRef.current.catch(() => undefined)
+      if (documentConflictRef.current !== null) {
+        const conflictDocument = documentConflictRef.current
+        setDoc(conflictDocument)
+        docRef.current = conflictDocument
+        pendingDocRef.current = null
+        pendingSaveRevisionRef.current = null
+        hasLocalChangesRef.current = false
+        lastSavedUpdatedAtRef.current = conflictDocument.updatedAt
+        loadedSectionRef.current = null
+        toast.warning('다른 저장과 충돌했습니다. 최신 버전을 확인한 뒤 다시 복원하세요')
+        return
+      }
+
+      loadedSectionRef.current = null
+      setActiveSectionId(request.sectionId)
+      if (revisionHistoryOpen) {
+        await refreshDocumentRevisions(updatedDocument.id)
+      }
+      toast.success('대상 섹션을 기준 저장 지점으로 복원했습니다')
+    })().catch(() => {
+      toast.error('대상 섹션을 복원하지 못했습니다')
+    })
+  }, [
+    flushSerialize,
+    refreshDocumentRevisions,
+    reviewRequests,
+    revisionHistoryOpen,
+    saveDocumentRevisionPoint,
+    scheduleImmediateSave,
+  ])
+
+  const handleRestoreRevision = useCallback((revisionId: string): void => {
+    if (revisionActionPending) return
+    if (documentConflictRef.current !== null) {
+      toast.warning('문서 충돌을 먼저 해결한 뒤 복원하세요')
+      return
+    }
+
+    setRevisionActionPending(true)
+    void (async (): Promise<void> => {
+      await flushPendingWrites()
+      if (documentConflictRef.current !== null) {
+        toast.warning('문서 충돌을 먼저 해결한 뒤 복원하세요')
+        return
+      }
+
+      const latestDocument = docRef.current
+      if (!latestDocument) {
+        toast.error('현재 문서를 찾을 수 없습니다')
+        return
+      }
+
+      await saveDocumentRevisionPoint(
+        'before-restore',
+        '복원 전 자동 저장 지점',
+        latestDocument,
+        false,
+        true,
+      )
+      const restored = await restoreDocumentRevision(revisionId, {
+        expectedUpdatedAt: lastSavedUpdatedAtRef.current ?? undefined,
+      })
+      if (!restored) {
+        toast.error('복원할 문서 저장 지점을 찾지 못했습니다')
+        return
+      }
+
+      applyLoadedDocument(restored)
+      await refreshDocumentRevisions(restored.id)
+      setRevisionHistoryOpen(false)
+      toast.success('문서를 선택한 복원 기록으로 되돌렸습니다')
+    })().catch((error: unknown) => {
+      if (isDocumentConflictError(error)) {
+        markDocumentConflict(error.latestDocument)
+        toast.warning('다른 저장과 충돌했습니다. 최신 버전을 확인한 뒤 다시 복원하세요')
+        return
+      }
+      toast.error('문서를 복원하지 못했습니다')
+    }).finally(() => setRevisionActionPending(false))
+  }, [
+    applyLoadedDocument,
+    flushPendingWrites,
+    isDocumentConflictError,
+    markDocumentConflict,
+    refreshDocumentRevisions,
+    revisionActionPending,
+    saveDocumentRevisionPoint,
+  ])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
@@ -2273,105 +2762,26 @@ export default function DocumentEditor({
       toast.error('문서 재시도에 실패했습니다.')
     }
   }, [doc, flushPendingWrites])
-  const activeSectionSourceLinks = useMemo(() => {
-    if (!doc || !activeSection) return []
-
-    const projectRefs = listProjectEntityRefs(doc.projectId)
-    const refByEntityId = new Map(projectRefs.map((ref) => [ref.entityId, ref] as const))
-    const historyById = new Map(analysisHistory.map((record) => [record.id, record]))
-    const graphById = new Map(listGraphProjects().map((graph) => [graph.id, graph]))
-    const bioToolById = new Map(loadBioToolHistory().map((entry) => [entry.id, entry] as const))
-    const geneticsById = new Map(loadGeneticsHistory().map((entry) => [entry.id, entry] as const))
-    const links = new Map<string, {
-      key: string
-      label: string
-      href: string
-      kind: 'analysis' | 'figure' | 'supplementary'
-      kindLabel: string
-    }>()
-
-    const inferSupplementaryEntityKind = (sourceId: string): typeof projectRefs[number]['entityKind'] | null => {
-      if (bioToolById.has(sourceId)) {
-        return 'bio-tool-result'
-      }
-      const geneticsEntry = geneticsById.get(sourceId)
-      if (!geneticsEntry) {
-        return null
-      }
-      switch (geneticsEntry.type) {
-        case 'seq-stats':
-          return 'seq-stats-result'
-        case 'similarity':
-          return 'similarity-result'
-        case 'phylogeny':
-          return 'phylogeny-result'
-        case 'bold':
-          return 'bold-result'
-        case 'translation':
-          return 'translation-result'
-        case 'protein':
-          return 'protein-result'
-        default:
-          return 'blast-result'
-      }
-    }
-
-    for (const sourceRef of activeSection.sourceRefs) {
-      const sourceId = getDocumentSourceId(sourceRef)
-      const entityRef = refByEntityId.get(sourceId)
-      const entityKind = entityRef?.entityKind ?? inferSupplementaryEntityKind(sourceId)
-      if (entityKind === 'analysis' || historyById.has(sourceId)) {
-        const record = historyById.get(sourceId)
-        links.set(`analysis:${sourceId}`, {
-          key: `analysis:${sourceId}`,
-          label: record?.method?.name ?? record?.name ?? '원본 분석',
-          href: buildAnalysisHistoryUrl(sourceId),
-          kind: 'analysis',
-          kindLabel: '통계',
-        })
-        continue
-      }
-
-      if (entityKind === 'figure' || graphById.has(sourceId)) {
-        const graph = graphById.get(sourceId)
-        links.set(`figure:${sourceId}`, {
-          key: `figure:${sourceId}`,
-          label: graph?.name ?? 'Graph Studio',
-          href: buildGraphStudioProjectUrl(sourceId),
-          kind: 'figure',
-          kindLabel: '그래프',
-        })
-        continue
-      }
-
-      if (entityKind) {
-        const bioToolEntry = bioToolById.get(sourceId)
-        const geneticsEntry = geneticsById.get(sourceId)
-        const href = buildProjectEntityNavigationUrl(entityKind, sourceId, {
-          bioToolId: bioToolEntry?.toolId,
-        })
-        if (!href) {
-          continue
-        }
-        const tabEntry = getTabEntry(entityKind)
-        const entryLabel = geneticsEntry && 'analysisName' in geneticsEntry
-          ? geneticsEntry.analysisName
-          : geneticsEntry && 'sampleName' in geneticsEntry
-            ? geneticsEntry.sampleName
-            : bioToolEntry?.toolNameKo ?? bioToolEntry?.toolNameEn
-
-        links.set(`supplementary:${sourceId}`, {
-          key: `supplementary:${sourceId}`,
-          label: sourceRef.label ?? entityRef?.label ?? entryLabel ?? sourceId,
-          href,
-          kind: 'supplementary',
-          kindLabel: tabEntry?.label ?? '보조 결과',
-        })
-      }
-    }
-
-    return Array.from(links.values())
-  }, [activeSection, analysisHistory, doc, needsReassemble])
+  const activeSectionSourceLinks = useDocumentSourceLinks({
+    projectId: doc?.projectId ?? null,
+    activeSection,
+    analysisHistory,
+    needsReassemble,
+    refreshKey: sourceLinksRefreshKey,
+  })
+  const activeSectionReviewSourceCount = activeSectionSourceLinks.filter((link) => link.readiness.status !== 'ready').length
+  const canRegenerateActiveSection = activeSection
+    ? isDocumentSectionRegenerationSectionId(activeSection.id)
+    : false
+  const isActiveSectionDrafting = activeSectionWritingState?.status === 'drafting'
+  const hasActiveDocumentWritingJob = ['collecting', 'drafting', 'patching'].includes(documentWritingState?.status ?? 'idle')
+  const isSectionRegenerationPending = sectionRegenerationMode !== null
+  const isSectionRegenerationDisabled = (
+    isActiveSectionDrafting
+    || isSectionRegenerationPending
+    || documentConflict !== null
+    || hasActiveDocumentWritingJob
+  )
 
   useEffect(() => {
     const target = pendingArtifactTargetRef.current
@@ -2427,6 +2837,27 @@ export default function DocumentEditor({
             writingStatusLabel={writingStatusLabel}
             writingStatus={documentWritingState?.status}
             onRetry={handleRetryWriting}
+          />
+          <DocumentRevisionHistorySheet
+            open={revisionHistoryOpen}
+            currentDocument={doc}
+            revisions={documentRevisions}
+            loading={revisionHistoryLoading}
+            actionPending={revisionActionPending}
+            disabled={documentConflict !== null}
+            onOpenChange={handleRevisionHistoryOpenChange}
+            onCreateSnapshot={handleCreateManualRevision}
+            onRestoreRevision={handleRestoreRevision}
+          />
+          <DocumentReviewRequestsSheet
+            sections={doc.sections}
+            activeSectionId={activeSectionId}
+            requests={reviewRequests}
+            baselinePreviews={reviewRequestBaselinePreviews}
+            disabled={documentConflict !== null}
+            onCreateRequest={handleCreateReviewRequest}
+            onUpdateStatus={handleUpdateReviewRequestStatus}
+            onRestoreBaselineSection={handleRestoreReviewRequestBaselineSection}
           />
           <Button
             variant="secondary"
@@ -2593,6 +3024,17 @@ export default function DocumentEditor({
                       그림 {activeSection.figures?.length ?? 0}
                     </Badge>
                   )}
+                  {canRegenerateActiveSection && (
+                    <DocumentSectionRegenerationControls
+                      sectionTitle={activeSection.title}
+                      disabled={isSectionRegenerationDisabled}
+                      pendingMode={sectionRegenerationMode}
+                      reviewSourceCount={activeSectionReviewSourceCount}
+                      hasChangedSources={needsReassemble}
+                      onRefreshLinkedSources={handleRefreshActiveSectionSources}
+                      onRegenerateSection={handleRegenerateActiveSection}
+                    />
+                  )}
                 </div>
                 {sectionWritingStatusLabel && (
                   <Badge
@@ -2620,17 +3062,24 @@ export default function DocumentEditor({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                   {activeSectionSourceLinks.map((link) => (
-                    <Button
-                      key={link.key}
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-8 gap-1 rounded-full bg-surface-container px-3 text-xs"
-                      onClick={() => router.push(link.href)}
-                    >
-                      <span>{link.kindLabel}</span>
-                      <span className="max-w-40 truncate">{link.label}</span>
-                    </Button>
+                    <Fragment key={link.key}>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 gap-1 rounded-full bg-surface-container px-3 text-xs"
+                        onClick={() => router.push(link.href)}
+                      >
+                        <span>{link.kindLabel}</span>
+                        <span className="max-w-40 truncate">{link.label}</span>
+                      </Button>
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-medium text-on-surface-variant"
+                      >
+                        {link.readiness.label}
+                      </Badge>
+                    </Fragment>
                   ))}
                   {needsReassemble && (
                     <Badge
@@ -2760,7 +3209,11 @@ export default function DocumentEditor({
                 </div>
               )}
 
-              {previewMode ? (
+              {sectionRegenerationMode !== null ? (
+                <div className="min-h-[400px] rounded-[24px] bg-surface px-6 py-5 text-sm text-muted-foreground">
+                  섹션 작업이 진행 중입니다. 수동 편집 충돌을 막기 위해 편집기를 잠시 비활성화했습니다.
+                </div>
+              ) : previewMode ? (
                 <div className="prose max-w-none rounded-[24px] bg-surface px-6 py-5">
                   <Suspense fallback={<p className="text-muted-foreground">로딩 중...</p>}>
                     <ReactMarkdown
