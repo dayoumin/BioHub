@@ -355,5 +355,6 @@
 ### 자료 작성 /papers 현재 정리 (2026-05-04)
 - [x] `/papers` 반자동화 트랙 안정화 체크포인트: 문서 작성 세션, source readiness, 섹션 재생성, autosave save queue, revision history, 수정 요청 작업대, 섹션 단위 부분 복원, review request baseline retention을 한 흐름으로 정리했다. 최신 검증은 `3012a479` 커밋 기준 `tsc`, 전체 Vitest, 대표 Playwright E2E 통과.
 - [ ] `/papers` 전체 UX/design polish pass: Papers Hub → DocumentEditor → 원본 자료 → 섹션 재생성 → 복원 기록 → 수정 요청 작업대 흐름을 사용자 관점에서 다시 훑고, Axiom Slate No-Line 원칙과 공통 컴포넌트 재사용 기준으로 중복/톤 불일치를 정리한다.
+- [x] `/papers` 편집기 shell polish: DocumentEditor 상단 바, 좌우 패널, 섹션 목록, 재료 팔레트를 border 기반 구획에서 surface tone 기반 구획으로 정리했다. (2026-05-04)
 - [ ] `/papers` 리팩터링 후보 점검: `DocumentEditor`에 남은 review request/revision action orchestration을 hook 또는 작은 component로 추가 분리할지 판단한다. 단, 기능 안정화가 우선이므로 실제 중복·테스트 비용이 확인될 때만 진행한다.
 - [ ] 다음 대형 후보 선택 전 점검: prompt registry/cross-model review, 기존 논문 기반 파생 생성, Introduction/Discussion 자동화 중 어느 것을 먼저 할지 제품 위험도와 테스트 가능성 기준으로 결정한다.

@@ -87,10 +87,10 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-pointer group',
+        'flex items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer group',
         isActive
-          ? 'border-primary bg-primary/5'
-          : 'border-transparent hover:border-muted-foreground/20 hover:bg-muted/50',
+          ? 'bg-surface-container-high text-foreground'
+          : 'bg-surface-container-lowest hover:bg-surface-container-high',
         isDragging && 'opacity-50',
       )}
       onClick={onSelect}
@@ -129,7 +129,7 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }
           </p>
         )}
       </div>
-      <Badge variant="outline" className="text-[10px] gap-1 shrink-0">
+      <Badge variant="secondary" className="text-[10px] gap-1 shrink-0">
         <MetaIcon className="w-3 h-3" />
         {meta.label}
       </Badge>

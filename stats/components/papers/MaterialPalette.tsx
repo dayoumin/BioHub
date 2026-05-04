@@ -126,7 +126,7 @@ export default function MaterialPalette({
             onClick={() => onInsertAnalysis(record)}
             className={cn(
               'flex items-center gap-2 w-full p-2 rounded-md text-left',
-              'hover:bg-muted/50 transition-colors text-xs',
+              'hover:bg-surface-container-high transition-colors text-xs',
             )}
           >
             <div className="min-w-0 flex-1 truncate">
@@ -153,11 +153,11 @@ export default function MaterialPalette({
             onClick={() => onInsertFigure(graph)}
             className={cn(
               'flex items-center gap-2 w-full p-2 rounded-md text-left',
-              'hover:bg-muted/50 transition-colors text-xs',
+              'hover:bg-surface-container-high transition-colors text-xs',
             )}
           >
             <div className="min-w-0 flex-1 truncate">{graph.name}</div>
-            <Badge variant="outline" className="text-[10px] shrink-0">
+            <Badge variant="secondary" className="text-[10px] shrink-0">
               {graph.chartSpec?.chartType ?? 'chart'}
             </Badge>
             <Plus className="w-3 h-3 shrink-0 text-muted-foreground" />

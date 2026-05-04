@@ -8,7 +8,6 @@ import type { Value } from '@platejs/slate'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   DOCUMENT_BLUEPRINTS_CHANGED_EVENT,
   DocumentBlueprintConflictError,
@@ -1385,14 +1384,13 @@ export default function DocumentEditor({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-64px)] flex-col bg-surface">
       {/* 상단 바 */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
+      <div className="flex shrink-0 items-center gap-3 bg-surface-container-low px-4 py-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
           <ArrowLeft className="w-4 h-4" />
           목록
         </Button>
-        <Separator orientation="vertical" className="h-5" />
         <h1 className="text-sm font-semibold truncate flex-1">{doc.title}</h1>
         <DocumentWritingHeaderStatus
           saveStatus={saveStatus}
@@ -1430,12 +1428,12 @@ export default function DocumentEditor({
           <RefreshCw className="w-3.5 h-3.5" />
           {needsReassemble ? '재조립 필요' : '재조립'}
         </Button>
-        <div className="flex border rounded-md">
+        <div className="flex rounded-md bg-surface-container p-0.5">
           <Button
             variant={previewMode ? 'ghost' : 'secondary'}
             size="sm"
             onClick={() => setPreviewMode(false)}
-            className="gap-1 rounded-r-none"
+            className="gap-1"
           >
             <PenLine className="w-3.5 h-3.5" />
             편집
@@ -1444,7 +1442,7 @@ export default function DocumentEditor({
             variant={previewMode ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => { flushSerialize(activeSectionId ?? undefined); setPreviewMode(true) }}
-            className="gap-1 rounded-l-none"
+            className="gap-1"
           >
             <Eye className="w-3.5 h-3.5" />
             미리보기
@@ -1453,7 +1451,7 @@ export default function DocumentEditor({
       </div>
 
       {isScratchProject && (
-        <div className="shrink-0 border-b bg-surface-container-low px-4 py-3">
+        <div className="shrink-0 bg-surface-container-low px-4 py-3">
           <div className="flex flex-col gap-3 rounded-xl bg-surface-container px-4 py-3 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-sm font-medium text-foreground">
@@ -1518,7 +1516,7 @@ export default function DocumentEditor({
       {/* 메인 영역 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 좌측: 섹션 목록 */}
-        <div className="w-56 shrink-0 border-r p-3 overflow-y-auto">
+        <div className="w-56 shrink-0 overflow-y-auto bg-surface-container-low p-3">
           <DocumentSectionList
             sections={doc.sections}
             activeSectionId={activeSectionId}
@@ -1531,7 +1529,7 @@ export default function DocumentEditor({
         </div>
 
         {/* 중앙: 편집/프리뷰 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto bg-surface p-6">
           {activeSection ? (
             <div className="max-w-3xl mx-auto space-y-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -1653,7 +1651,7 @@ export default function DocumentEditor({
         </div>
 
         {/* 우측: 재료 팔레트 */}
-        <div className="w-52 shrink-0 border-l p-3 overflow-y-auto">
+        <div className="w-52 shrink-0 overflow-y-auto bg-surface-container-low p-3">
           <MaterialPalette
             projectId={doc.projectId}
             onInsertAnalysis={handleInsertAnalysis}
