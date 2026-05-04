@@ -484,6 +484,28 @@ function documentHasSupplementarySources(document: DocumentBlueprint | null): bo
   ))
 }
 
+function documentHasReassemblyTargets(document: DocumentBlueprint | null): boolean {
+  if (!document) {
+    return false
+  }
+
+  const metadata = document.metadata as {
+    authoringPlan?: { sources?: unknown[] }
+    generatedArtifacts?: unknown[]
+  }
+
+  return (
+    (metadata.authoringPlan?.sources?.length ?? 0) > 0
+    || (metadata.generatedArtifacts?.length ?? 0) > 0
+    || document.sections.some((section) => (
+      (section.sourceRefs?.length ?? 0) > 0
+      || (section.sectionSupportBindings?.length ?? 0) > 0
+      || (section.tables?.length ?? 0) > 0
+      || (section.figures?.length ?? 0) > 0
+    ))
+  )
+}
+
 function collectPlateVisibleText(value: unknown): string {
   if (Array.isArray(value)) {
     return value.map((item) => collectPlateVisibleText(item)).join(' ')
@@ -2776,6 +2798,7 @@ export default function DocumentEditor({
   const isActiveSectionDrafting = activeSectionWritingState?.status === 'drafting'
   const hasActiveDocumentWritingJob = ['collecting', 'drafting', 'patching'].includes(documentWritingState?.status ?? 'idle')
   const isSectionRegenerationPending = sectionRegenerationMode !== null
+  const canReassembleDocument = needsReassemble || documentHasReassemblyTargets(doc)
   const isSectionRegenerationDisabled = (
     isActiveSectionDrafting
     || isSectionRegenerationPending
@@ -2859,15 +2882,17 @@ export default function DocumentEditor({
             onUpdateStatus={handleUpdateReviewRequestStatus}
             onRestoreBaselineSection={handleRestoreReviewRequestBaselineSection}
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleReassemble}
-            className="gap-1 rounded-full bg-surface-container-high px-3"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {needsReassemble ? '재조립 필요' : '재조립'}
-          </Button>
+          {canReassembleDocument && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleReassemble}
+              className="gap-1 rounded-full bg-surface-container-high px-3"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {needsReassemble ? '재조립 필요' : '재조립'}
+            </Button>
+          )}
           <div className="flex rounded-full bg-surface-container p-1">
             <Button
               variant={previewMode ? 'ghost' : 'secondary'}

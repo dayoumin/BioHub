@@ -516,7 +516,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           <p className="text-muted-foreground mt-1">
             {activeProject
               ? `${activeProject.presentation?.emoji ?? ''} ${activeProject.name}`
-              : '바로 편집기를 열어 초안을 작성하고, 내용은 이 기기에 로컬 저장됩니다'}
+              : '빈 문서는 바로 시작하고, 프로젝트를 선택하면 결과 기반 문서 작성이 열립니다'}
           </p>
         </div>
       </div>
@@ -527,10 +527,10 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Sparkles className="h-4 w-4 text-primary" />
-                지금 바로 작성 시작
+                프로젝트 없이 빠르게 시작
               </div>
               <p className="text-sm text-muted-foreground">
-                아래 `빈 문서 만들기`를 누르면 임시 작업공간이 자동으로 만들어지고 문서는 브라우저 로컬에만 저장됩니다.
+                빈 문서는 임시 작업공간에 저장됩니다. 통계·그래프 결과를 묶어 작성하려면 왼쪽에서 연구과제를 먼저 선택하세요.
               </p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1">
