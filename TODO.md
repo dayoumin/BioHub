@@ -341,10 +341,10 @@
 - [x] 자료 작성 큰 관점 리뷰 P1 반영: active editor `plateValue`만 최신인 문서도 export/reassemble/revision 직전 강제 serialize하고, `saveDocumentBlueprint`의 optimistic lock을 단일 readwrite transaction compare-and-put으로 변경. 복원-with-pending-autosave/복원-conflict/저장 conflict 회귀 테스트 추가 (2026-04-30)
 - [x] 자료 작성 대표 E2E 확장 마무리: seeded 문서 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → HTML export → revision snapshot 확인 → autosave reload → 좁은 PC viewport smoke를 Playwright로 고정했다. E2E/agent 리뷰에서 드러난 자기 `draft` entity ref 재조립 오탐, 신규 project material stale 감지 누락, failed regeneration success toast, autosave `content`/`plateValue` 정합성 문제를 보강했고, focused Vitest/tsc/build/대표 Playwright 재통과까지 확인했다. (2026-04-30)
 - [x] 자료 작성 autosave/reload 재발 방지 문서화: 정적 export 기반 Playwright, autosave 저장 완료 대기, Plate editor DOM 검증, 섹션 전환 전 flush 기준을 `stats/docs/technical/TROUBLESHOOTING_PAPERS_E2E_AUTOSAVE.md`에 정리하고 AGENTS.md에서 링크했다. (2026-04-30)
-- [ ] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, snapshot excerpt를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다.
+- [x] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, 저장 지점 미리보기를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다. (2026-05-04)
 - [ ] 자료 작성 심사/학위 수정 요청 대응 UX: revision snapshot을 기반으로 수정 요청 단위의 작업 메모, 대상 섹션, 변경 전후 비교, 완료/보류 상태를 추적하고, 특정 섹션만 이전 snapshot에서 복원하거나 현재 문서에 반영할 수 있게 한다.
 - [ ] 기존 논문 기반 유사 논문 파생 생성: 완성된 `DocumentBlueprint`를 템플릿/파생 원본으로 선택해 섹션 구조·문체·표/그림 배치 패턴은 재사용하되, sourceRefs와 evidence는 새 프로젝트 기준으로 재매핑/재조립하도록 한다. 복사된 해석 본문은 자동 확정하지 않고 사용자 검토 상태로 표시한다.
-- [ ] 자료 작성 revision retention 개선: 자동 snapshot 반복이 사용자 수동 저장 지점을 밀어내지 않도록 manual revision 보호 또는 reason별 quota를 적용한다.
+- [x] 자료 작성 revision retention 개선: 자동 저장 지점 반복이 사용자 수동 저장 지점을 밀어내지 않도록 manual revision을 보호하고, 자동 생성 revision만 최대 20개로 정리한다. (2026-05-04)
 - [x] 자료 작성 export 안전성 개선: HTML export의 title/content/caption/table cell/provenance를 escape/sanitize하고, empty-but-reassemblable 문서와 HWPX/clipboard prepared-document export path를 테스트로 고정 (2026-04-30)
 - [x] 자료 작성 export agent 리뷰 반영: `table.htmlContent`를 strict allowlist sanitizer로 제한하고, Markdown/HTML export 준비 실패가 toast 경로로 처리되도록 보강했으며, HWPX provenance fixture 경로를 workspace 하드코딩에서 패키지 기준 경로로 정리 (2026-04-30)
 - [ ] 자료 작성 regeneration guard 테스트 확장: body-preserving refresh, destructive regeneration, conflict before persistLatestDocument, regenerateDocumentSection 이후 concurrent local edit 방어를 통합 테스트로 고정한다.

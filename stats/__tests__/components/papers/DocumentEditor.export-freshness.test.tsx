@@ -1132,11 +1132,21 @@ describe('DocumentEditor export freshness', () => {
 
   it('saves pending editor content before restoring a revision snapshot', async () => {
     const user = userEvent.setup()
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const documentId = 'doc-restore-pending'
     const restoreSnapshot = makeDocument('복원 대상 본문', {
       id: documentId,
       updatedAt: '2026-04-21T00:00:01.000Z',
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '복원 대상 본문',
+          plateValue: [{ type: 'p', children: [{ text: '복원 대상 본문' }] }],
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
     })
     await createDocumentRevision(restoreSnapshot, {
       reason: 'manual',
@@ -1145,38 +1155,55 @@ describe('DocumentEditor export freshness', () => {
     mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('현재 본문', {
       id: documentId,
       updatedAt: '2026-04-21T00:00:02.000Z',
+      sections: [
+        {
+          id: 'results',
+          title: '결과',
+          content: '현재 본문',
+          sourceRefs: [createDocumentSourceRef('analysis', 'analysis-1')],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'appendix',
+          title: '부록',
+          content: '현재 문서에만 있는 부록',
+          sourceRefs: [],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
     }))
     mockSerialize.mockReturnValue('복원 전 미저장 편집')
 
-    try {
-      render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
+    render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
 
-      await screen.findByText('테스트 문서')
-      act(() => {
-        screen.getByTestId('paper-plate-editor').click()
-      })
+    await screen.findByText('테스트 문서')
+    act(() => {
+      screen.getByTestId('paper-plate-editor').click()
+    })
 
-      await user.click(screen.getByRole('button', { name: '복원 기록' }))
-      await screen.findByText('복원 대상')
-      await user.click(screen.getByRole('button', { name: '복원' }))
+    await user.click(screen.getByRole('button', { name: '복원 기록' }))
+    await screen.findByText('복원 대상')
+    await user.click(screen.getByRole('button', { name: '복원 대상 복원' }))
+    await screen.findByRole('alertdialog', { name: '문서 복원 확인' })
+    expect(screen.getByText('복원 대상 본문')).toBeInTheDocument()
+    expect(screen.getByText('부록 (복원 후 제외)')).toBeInTheDocument()
+    expect(screen.getByText('선택한 저장 지점으로 문서 전체를 되돌립니다. 복원 전 현재 상태는 자동으로 되돌림 저장 지점에 저장됩니다.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '복원 실행' }))
 
-      await waitFor(() => {
-        expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(2)
-      })
+    await waitFor(() => {
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(2)
+    })
 
-      const [pendingSaveDocument] = mockSaveDocumentBlueprint.mock.calls[0] as [DocumentBlueprint]
-      const [restoredDocument] = mockSaveDocumentBlueprint.mock.calls[1] as [DocumentBlueprint]
-      expect(pendingSaveDocument.sections[0]?.content).toBe('복원 전 미저장 편집')
-      expect(restoredDocument.sections[0]?.content).toBe('복원 대상 본문')
-      expect(confirmSpy).toHaveBeenCalledTimes(1)
-    } finally {
-      confirmSpy.mockRestore()
-    }
+    const [pendingSaveDocument] = mockSaveDocumentBlueprint.mock.calls[0] as [DocumentBlueprint]
+    const [restoredDocument] = mockSaveDocumentBlueprint.mock.calls[1] as [DocumentBlueprint]
+    expect(pendingSaveDocument.sections[0]?.content).toBe('복원 전 미저장 편집')
+    expect(restoredDocument.sections[0]?.content).toBe('복원 대상 본문')
   })
 
   it('keeps the conflict banner when revision restore hits a newer saved document', async () => {
     const user = userEvent.setup()
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const documentId = 'doc-restore-conflict'
     const latestDocument = makeDocument('다른 탭 최신 본문', {
       id: documentId,
@@ -1195,20 +1222,17 @@ describe('DocumentEditor export freshness', () => {
     }))
     mockSaveDocumentBlueprint.mockRejectedValue(new DocumentBlueprintConflictError(latestDocument))
 
-    try {
-      render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
+    render(<DocumentEditor documentId={documentId} onBack={vi.fn()} />)
 
-      await screen.findByText('테스트 문서')
-      await user.click(screen.getByRole('button', { name: '복원 기록' }))
-      await screen.findByText('충돌 복원 대상')
-      await user.click(screen.getByRole('button', { name: '복원' }))
+    await screen.findByText('테스트 문서')
+    await user.click(screen.getByRole('button', { name: '복원 기록' }))
+    await screen.findByText('충돌 복원 대상')
+    await user.click(screen.getByRole('button', { name: '충돌 복원 대상 복원' }))
+    await screen.findByRole('alertdialog', { name: '문서 복원 확인' })
+    await user.click(screen.getByRole('button', { name: '복원 실행' }))
 
-      await screen.findByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')
-      expect(screen.getByText('충돌')).toBeInTheDocument()
-      expect(confirmSpy).toHaveBeenCalledTimes(1)
-    } finally {
-      confirmSpy.mockRestore()
-    }
+    await screen.findByText('다른 탭에서 이 문서가 먼저 저장되었습니다.')
+    expect(screen.getByText('충돌')).toBeInTheDocument()
   })
 
   it('reloads the latest saved document when the same document changes externally and there are no local edits', async () => {

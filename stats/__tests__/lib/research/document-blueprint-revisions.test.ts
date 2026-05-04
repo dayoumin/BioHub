@@ -137,4 +137,35 @@ describe('document blueprint revisions', () => {
 
     expect(await listDocumentRevisions(documentId)).toHaveLength(0)
   })
+
+  it('keeps manual rollback points when automatic revisions are pruned', async () => {
+    const documentId = 'revision-retention-doc'
+    const document = makeDocument(documentId, '수동 기준점', '2026-04-30T00:00:00.000Z')
+
+    await createDocumentRevision(document, {
+      reason: 'manual',
+      label: '사용자 기준 저장 지점',
+    })
+
+    for (let index = 0; index < 25; index += 1) {
+      await waitForNextTick()
+      await createDocumentRevision(
+        updateDocumentContent(document, `자동 저장 ${index}`, `2026-04-30T00:01:${String(index).padStart(2, '0')}.000Z`),
+        {
+          reason: 'before-export',
+          label: `자동 저장 지점 ${index}`,
+        },
+      )
+    }
+
+    const revisions = await listDocumentRevisions(documentId)
+    const manualRevisions = revisions.filter((revision) => revision.reason === 'manual')
+    const automaticRevisions = revisions.filter((revision) => revision.reason !== 'manual')
+
+    expect(manualRevisions).toHaveLength(1)
+    expect(manualRevisions[0]?.label).toBe('사용자 기준 저장 지점')
+    expect(automaticRevisions).toHaveLength(20)
+    expect(revisions.some((revision) => revision.label === '자동 저장 지점 0')).toBe(false)
+    expect(revisions.some((revision) => revision.label === '자동 저장 지점 24')).toBe(true)
+  })
 })

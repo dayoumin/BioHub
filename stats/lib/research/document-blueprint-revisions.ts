@@ -15,7 +15,7 @@ import {
 import type { SaveDocumentBlueprintOptions } from './document-blueprint-storage'
 
 const STORE_NAME = 'document-blueprint-revisions'
-const MAX_REVISIONS_PER_DOCUMENT = 20
+const MAX_AUTOMATIC_REVISIONS_PER_DOCUMENT = 20
 
 export type DocumentRevisionReason =
   | 'manual'
@@ -51,11 +51,16 @@ function sortRevisionsDescending(
   return [...revisions].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
+function isProtectedRevision(revision: DocumentBlueprintRevision): boolean {
+  return revision.reason === 'manual'
+}
+
 async function pruneDocumentRevisions(documentId: string): Promise<void> {
   const revisions = sortRevisionsDescending(
     await listDocumentRevisions(documentId),
   )
-  const staleRevisions = revisions.slice(MAX_REVISIONS_PER_DOCUMENT)
+  const automaticRevisions = revisions.filter((revision) => !isProtectedRevision(revision))
+  const staleRevisions = automaticRevisions.slice(MAX_AUTOMATIC_REVISIONS_PER_DOCUMENT)
   await Promise.all(staleRevisions.map((revision) => deleteDocumentRevision(revision.id)))
 }
 

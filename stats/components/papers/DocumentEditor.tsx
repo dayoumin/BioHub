@@ -682,9 +682,6 @@ export default function DocumentEditor({
       toast.warning('문서 충돌을 먼저 해결한 뒤 복원하세요')
       return
     }
-    if (!window.confirm('현재 문서를 선택한 복원 기록으로 되돌릴까요? 현재 상태도 복원 전 기록으로 저장됩니다.')) {
-      return
-    }
 
     setRevisionActionPending(true)
     void (async (): Promise<void> => {
@@ -1177,6 +1174,7 @@ export default function DocumentEditor({
         />
         <DocumentRevisionHistorySheet
           open={revisionHistoryOpen}
+          currentDocument={doc}
           revisions={documentRevisions}
           loading={revisionHistoryLoading}
           actionPending={revisionActionPending}

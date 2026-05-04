@@ -362,6 +362,20 @@ test.describe('@papers section regeneration UX', () => {
     await expect(page.getByText('문서 복원 기록')).toBeVisible()
     await expect(page.getByText('내보내기 전 자동 저장 지점')).toBeVisible({ timeout: 30_000 })
     await expect(page.getByText('섹션 재생성 전 자동 저장 지점').first()).toBeVisible()
+
+    await page.getByRole('button', { name: '섹션 재생성 전 자동 저장 지점 복원' }).first().click()
+    await expect(page.getByRole('alertdialog', { name: '문서 복원 확인' })).toBeVisible()
+    await expect(page.getByText('선택한 저장 지점으로 문서 전체를 되돌립니다.')).toBeVisible()
+    await expect(page.getByText('변경될 섹션')).toBeVisible()
+    await expect(page.getByText('결과').last()).toBeVisible()
+    await expect(page.getByText('기존 Results 본문')).toBeVisible()
+
+    await page.getByRole('button', { name: '복원 실행' }).click()
+    await expect(page.getByText('문서를 선택한 복원 기록으로 되돌렸습니다')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('기존 Results 본문')).toBeVisible()
+
+    await page.getByRole('button', { name: '복원 기록' }).click()
+    await expect(page.getByText('복원 전 자동 저장 지점')).toBeVisible({ timeout: 30_000 })
   })
 
   test('autosaves manual edits across reload and keeps controls usable at a narrow desktop viewport', async ({ page }) => {
