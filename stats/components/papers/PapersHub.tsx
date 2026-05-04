@@ -78,8 +78,8 @@ function DocumentCard({ doc, onClick }: DocumentCardProps): React.ReactElement {
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+        'flex items-start gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
@@ -120,8 +120,8 @@ function DraftHistoryCard({ name, method, timestamp, onClick }: DraftHistoryCard
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+        'flex items-center gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg">
@@ -150,8 +150,8 @@ function PackageCard({ pkg, onClick }: PackageCardProps): React.ReactElement {
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
+        'flex items-start gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-2 rounded-lg">
@@ -186,8 +186,8 @@ function WritingSourceCard({ entity, onClick, disabled = false }: WritingSourceC
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
+        'flex items-start gap-3 rounded-2xl bg-surface-container-lowest p-4 w-full text-left',
+        'hover:bg-surface-container-high active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100',
       )}
     >
       <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
@@ -245,19 +245,19 @@ const FEATURES = [
   {
     icon: Table2,
     title: '통계 결과 표',
-    desc: '기술통계, 검정 결과, 사후검정 표를 자동 생성',
+    desc: '검증된 통계값과 표를 문서 source로 연결',
     color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400',
   },
   {
     icon: BarChart3,
     title: '분석 그래프',
-    desc: '분석 차트를 그대로 삽입, PNG 저장',
+    desc: 'Graph Studio figure와 caption 근거를 함께 연결',
     color: 'text-violet-600 bg-violet-100 dark:bg-violet-900/30 dark:text-violet-400',
   },
   {
     icon: FileText,
-    title: '결과 해석 텍스트',
-    desc: 'APA 형식 Methods & Results 자동 작성',
+    title: '보수적 초안 작성',
+    desc: 'Methods·Results는 근거가 있는 범위만 문장화',
     color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400',
   },
 ] as const
@@ -521,7 +521,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
       </div>
 
       {!activeProject && (
-        <Card className="border-dashed bg-surface-container-low">
+        <Card className="border-0 bg-surface-container-low">
           <CardContent className="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -554,7 +554,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
             </p>
             <h2 className="text-lg font-bold text-foreground">작성 시작 방식</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              빈 문서, 프로젝트 결과 조립, 바이오·유전 결과 문서화 중 현재 작업에 맞는 시작 방식을 선택합니다.
+              먼저 문서를 열고, 검증된 원본 자료를 연결한 뒤 필요한 섹션만 보수적으로 작성합니다.
             </p>
           </div>
           {activeProject && (
@@ -584,7 +584,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           <WritingWorkflowCard
             label="Option B"
             title="프로젝트 결과로 조립"
-            description="통계 결과, 그래프, 인용 자료를 한 번에 묶어 문서 skeleton을 만듭니다."
+            description="통계 결과, 그래프, 인용 자료를 묶어 문서 skeleton과 source binding을 만듭니다."
             icon={Plus}
             action={(
               <TooltipProvider>
@@ -613,7 +613,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
           <WritingWorkflowCard
             label="Option C"
             title="바이오·유전 결과 연결"
-            description="Bio-Tools와 유전 분석 결과는 전용 writer가 있는 범위만 보수적으로 문장화합니다."
+            description="Bio-Tools와 유전 분석 결과는 전용 writer가 검증한 수치만 문장화합니다."
             icon={Sparkles}
             action={(
               <div className="rounded-xl bg-surface-container-low px-3 py-2 text-xs text-muted-foreground">
@@ -731,7 +731,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {FEATURES.map(f => (
-            <div key={f.title} className="flex flex-col items-center text-center p-5 rounded-2xl border bg-card">
+            <div key={f.title} className="flex flex-col items-center rounded-2xl bg-surface-container-lowest p-5 text-center">
               <div className={cn('p-3 rounded-xl mb-3', f.color)}>
                 <f.icon className="w-6 h-6" />
               </div>
@@ -745,9 +745,9 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
       {/* 기존: 이전 분석 결과 (보존) */}
       {draftHistories.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-lg font-bold">이전 분석 결과</h2>
+          <h2 className="text-lg font-bold">분석 결과 정리</h2>
           <p className="text-sm text-muted-foreground">
-            분석 결과를 선택하면 결과 정리 패널을 열 수 있습니다
+            분석 결과를 선택하면 결과 정리 패널에서 문서 초안을 검토할 수 있습니다
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {draftHistories.map(h => (

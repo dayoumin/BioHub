@@ -335,7 +335,7 @@
 - [x] `DocumentEditor` 섹션 재생성 실행 로직 1차 분리: 본문 보존 갱신/본문 교체 재생성의 pending mode, 충돌·동시 편집 방어, toast 메시지 처리를 `useDocumentSectionRegeneration`으로 추출 (2026-04-30)
 - [x] `DocumentEditor` artifact 렌더링 1차 분리: section table/figure 목록과 원본 열기 액션을 `DocumentArtifactLists` 컴포넌트로 추출해 에디터 본체 JSX 밀도를 낮춤 (2026-04-30)
 - [x] `DocumentEditor` autosave 리팩터링 전 보호 테스트 추가: in-flight autosave 중 외부 저장 충돌 유지, debounce 전 unmount pending save flush를 회귀 테스트로 고정 (2026-04-30)
-- [ ] `DocumentArtifactLists` 디자인 polish: 현재는 동등성 유지를 위해 기존 border/table cell 스타일을 보존했으나, 후속 UI polish에서 Axiom Slate No-Line 원칙에 맞춰 surface tone 기반 구분으로 전환 검토.
+- [x] `DocumentArtifactLists` 디자인 polish: 기존 border/table cell 스타일을 Axiom Slate No-Line 원칙에 맞춰 surface tone 기반 표/그림 블록으로 전환했다. (2026-05-04)
 - [x] `DocumentEditor` autosave 저장 큐 리팩터링: `useDocumentBlueprintSaveQueue`로 save queue/debounce/immediate save/conflict mark/clear/unmount flush를 분리하고, in-flight save가 충돌 상태를 덮지 못하도록 고정 (2026-04-30)
 - [x] 자료 작성 revision history 1차 구현: autosave가 실수까지 저장할 수 있으므로 문서 snapshot을 IndexedDB에 보관하고, 복원 기록 패널에서 수동 저장 지점 생성과 문서 전체 복원을 제공한다. 재조립/섹션 재생성/export/복원 전 자동 snapshot을 남기고, 섹션 단위 비교·복원은 후속 단계로 둔다. (2026-04-30)
 - [x] 자료 작성 큰 관점 리뷰 P1 반영: active editor `plateValue`만 최신인 문서도 export/reassemble/revision 직전 강제 serialize하고, `saveDocumentBlueprint`의 optimistic lock을 단일 readwrite transaction compare-and-put으로 변경. 복원-with-pending-autosave/복원-conflict/저장 conflict 회귀 테스트 추가 (2026-04-30)

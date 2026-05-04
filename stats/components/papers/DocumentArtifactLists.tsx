@@ -28,9 +28,9 @@ function DocumentTableList({
           <div
             key={table.id ?? index}
             data-doc-target={table.id ? `table:${table.id}` : undefined}
-            className="border rounded-lg overflow-hidden"
+            className="overflow-hidden rounded-2xl bg-surface-container"
           >
-            <div className="flex items-center gap-2 bg-muted/50 p-2">
+            <div className="flex items-center gap-2 bg-surface-container-high px-3 py-2">
               <p className="min-w-0 flex-1 text-xs font-medium">{table.caption}</p>
               {sourceAnalysisId && (
                 <Button
@@ -51,24 +51,37 @@ function DocumentTableList({
             )}
             {table.htmlContent ? (
               <div
-                className="p-2 text-sm overflow-x-auto"
+                className="overflow-x-auto p-3 text-sm"
                 dangerouslySetInnerHTML={{ __html: table.htmlContent }}
               />
             ) : (
-              <div className="p-2 overflow-x-auto">
+              <div className="overflow-x-auto p-3">
                 <table className="text-xs w-full">
                   <thead>
                     <tr>
                       {table.headers.map((header, headerIndex) => (
-                        <th key={headerIndex} className="border px-2 py-1 bg-muted/30 text-left">{header}</th>
+                        <th
+                          key={headerIndex}
+                          className="bg-surface-container-high px-2 py-1.5 text-left font-medium text-muted-foreground first:rounded-l-lg last:rounded-r-lg"
+                        >
+                          {header}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {table.rows.map((row, rowIndex) => (
-                      <tr key={rowIndex}>
+                      <tr
+                        key={rowIndex}
+                        className={rowIndex % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low'}
+                      >
                         {row.map((cell, cellIndex) => (
-                          <td key={cellIndex} className="border px-2 py-1">{cell}</td>
+                          <td
+                            key={cellIndex}
+                            className="px-2 py-1.5 first:rounded-l-lg last:rounded-r-lg"
+                          >
+                            {cell}
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -102,7 +115,7 @@ function DocumentFigureList({
           <div
             key={figure.entityId}
             data-doc-target={`figure:${figure.entityId}`}
-            className="rounded border bg-muted/20 p-2 text-sm"
+            className="rounded-2xl bg-surface-container px-3 py-2 text-sm"
           >
             <div className="flex items-center gap-2">
               <span className="font-medium">{figure.label}</span>
