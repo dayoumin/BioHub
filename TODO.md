@@ -97,6 +97,13 @@
 - [x] `generatePaperDraft()` 직접 사용 경로를 문서 작성 writer 체계와 정리했다. 공식 제품 경로는 `generateAnalysisPaperDraft()` / `generatePaperDraftFromSchema()` / document-writing adapter로 고정한다.
 - [x] supplementary 결과 타입의 전용 writer 우선순위를 다시 정하고, generic fallback에서 어디까지 승격할지 결정했다.
 
+### 자료 작성 review request 후속 정책 (2026-05-04)
+- [x] **기준선 확인**: `DocumentEditor`에 복원 기록, 수정 요청 작업대, 섹션 재생성 UX를 연결하고 autosave/restore 충돌 보호 및 E2E 회귀를 고정했다. (`d43be514`, 2026-05-04)
+- [x] **현재 보존 정책 확인**: 수정 요청 baseline revision은 활성 request가 참조하는 동안 revision pruning에서 보호되고, request 저장 실패 시 생성된 baseline revision은 rollback 삭제된다. 문서 단위 cleanup API(`deleteDocumentReviewRequestsForDocument`)는 존재한다.
+- [ ] **개별 수정 요청 삭제/숨김 UX 검토**: 사용자가 완료·오등록 요청을 제거할 수 있어야 하는지 결정한다. 구현 시 request 삭제와 baseline revision 보호 해제/정리 기준을 함께 정의한다.
+- [ ] **완료된 수정 요청 retention 정책 정의**: `done` 상태 요청을 영구 보존할지, 문서별 최대 개수/기간 기준으로 접을지 결정한다. 논문 심사·학위 수정 이력은 추적 가치가 있으므로 기본은 보수적 보존, 정리는 명시 액션 우선.
+- [ ] **문서 삭제 경로 cleanup 연결 점검**: 문서 삭제 시 `deleteDocumentReviewRequestsForDocument()`와 `deleteDocumentRevisionsForDocument()`가 함께 호출되는지 확인하고, 누락 시 cascade cleanup 테스트를 추가한다.
+
 ### Graph Studio scoring follow-up (2026-04-14, 커밋 `9ae32a41` 후속)
 - [x] **[P1] 기본 차트 타입 휴리스틱 재검토**: 샘플 데이터(`species`/`length_cm`/`weight_g`/`year`)에서 scatter를 기본값으로 선택하도록 `suggestChartType()` 기준을 정리하고 `ChartSetupPanel.defaultType`도 같은 경로를 사용하도록 통일. (`chart-spec-utils.ts`, `ChartSetupPanel.tsx`, `chart-spec-utils.test.ts`, 2026-04-14)
 - [x] **[P1] Auto-color 인코딩 entry point 불일치**: `line`/`scatter` 기본 spec 생성 경로를 `createAutoConfiguredChartSpec()`로 공용화하여 `ChartSetupPanel`, `LeftDataPanel`, `ResultsActionStep`, `use-open-in-graph-studio`, `autoCreateChartSpec`, `createChartSpecFromDataPackage`가 같은 auto-color 규칙을 사용하도록 정리. (`chart-spec-utils.ts`, `ChartSetupPanel.tsx`, `LeftDataPanel.tsx`, `ResultsActionStep.tsx`, `use-open-in-graph-studio.ts`, `chart-spec-utils.test.ts`, 2026-04-14)
