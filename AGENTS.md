@@ -111,6 +111,12 @@ pnpm test:coverage    # 커버리지
 - 생략: UI 컴포넌트(스토어 표시만) / 외부 API 서비스(mock 비용 > 가치) / 기존 테스트가 간접 커버
 - 손으로 재현하기 어려운 타이밍·상태 조합 → 반드시 작성
 
+**Playwright E2E 주의**:
+- `stats/playwright.config.ts`는 `next dev`가 아니라 `stats/out` 정적 export를 서빙한다. 소스 수정 후 E2E를 돌릴 때는 먼저 `pnpm --filter stats build`로 `stats/out`을 갱신할 것.
+- autosave/reload E2E는 IndexedDB 값 확인만으로 완료 판단하지 말고, 사용자에게 보이는 `저장됨` 상태까지 기다린 뒤 reload할 것.
+- Plate 기반 자료 작성 editor는 저장소 값과 화면 DOM이 어긋날 수 있으므로, reload/복원/섹션 전환 회귀는 실제 editor 표시 텍스트까지 확인할 것.
+- 상세: [TROUBLESHOOTING_PAPERS_E2E_AUTOSAVE.md](stats/docs/technical/TROUBLESHOOTING_PAPERS_E2E_AUTOSAVE.md)
+
 ## 코드 스타일
 
 - 식별자에 이모지 금지

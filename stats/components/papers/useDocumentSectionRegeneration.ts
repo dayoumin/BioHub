@@ -56,6 +56,16 @@ function getModeMessages(mode: DocumentSectionRegenerationMode): {
   }
 }
 
+function getFailedSectionMessage(
+  document: DocumentBlueprint,
+  sectionId: string,
+  fallback: string,
+): string {
+  return document.writingState?.sectionStates[sectionId]?.message
+    ?? document.writingState?.errorMessage
+    ?? fallback
+}
+
 export function useDocumentSectionRegeneration({
   documentId,
   activeSectionId,
@@ -98,6 +108,13 @@ export function useDocumentSectionRegeneration({
       }
       if (updated) {
         applyRegeneratedDocument(updated)
+        if (
+          updated.writingState?.status === 'failed'
+          || updated.writingState?.sectionStates[activeSectionId]?.status === 'failed'
+        ) {
+          toast.error(getFailedSectionMessage(updated, activeSectionId, messages.failure))
+          return
+        }
         toast.success(messages.success)
         return
       }

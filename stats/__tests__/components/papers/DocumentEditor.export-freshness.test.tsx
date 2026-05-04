@@ -46,7 +46,7 @@ const {
   mockRetryDocumentWriting: vi.fn(async (_documentId: string) => null),
   mockRouterPush: vi.fn(),
   mockSerialize: vi.fn(() => 'serialized editor content'),
-  mockDeserialize: vi.fn(() => [{ type: 'p', children: [{ text: 'loaded nodes' }] }]),
+  mockDeserialize: vi.fn((markdown = 'loaded nodes') => [{ type: 'p', children: [{ text: markdown }] }]),
   mockSetValue: vi.fn(),
   mockLoadBioToolHistory: vi.fn<() => BioToolHistoryEntry[]>(() => []),
   mockLoadGeneticsHistory: vi.fn<() => GeneticsHistoryEntry[]>(() => []),
@@ -93,15 +93,25 @@ vi.mock('@/components/papers/equation-element', () => ({
 }))
 
 vi.mock('@/components/papers/DocumentSectionList', () => ({
-  default: ({ sections, activeSectionId }: { sections: Array<{ id: string; title: string }>; activeSectionId: string | null }) => (
+  default: ({
+    sections,
+    activeSectionId,
+    onSelectSection,
+  }: {
+    sections: Array<{ id: string; title: string }>
+    activeSectionId: string | null
+    onSelectSection: (id: string) => void
+  }) => (
     <div data-testid="document-section-list">
       {sections.map((section) => (
-        <div
+        <button
+          type="button"
           key={section.id}
           data-active={section.id === activeSectionId ? 'true' : 'false'}
+          onClick={() => onSelectSection(section.id)}
         >
           {section.title}
-        </div>
+        </button>
       ))}
     </div>
   ),
@@ -507,6 +517,36 @@ describe('DocumentEditor export freshness', () => {
     expect(screen.getAllByText('재조립 필요').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('원본 자료 변경이 감지되었습니다. 재조립 후 자동 작성 내용을 다시 확인하세요.')).toBeInTheDocument()
     expect(screen.queryByText('Results 자동 작성 가능')).not.toBeInTheDocument()
+  })
+
+  it('marks the document for reassembly when new project materials are linked', async () => {
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, {
+        detail: { projectIds: ['project-1'], entityIds: ['analysis-2'] },
+      }))
+    })
+
+    await screen.findByText('프로젝트 분석 또는 그래프가 변경되었습니다.')
+    expect(screen.getAllByText('재조립 필요').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('ignores entity ref changes caused only by saving the current draft', async () => {
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(RESEARCH_PROJECT_ENTITY_REFS_CHANGED_EVENT, {
+        detail: { projectIds: ['project-1'], entityIds: ['doc-1'] },
+      }))
+    })
+
+    expect(screen.queryByText('프로젝트 분석 또는 그래프가 변경되었습니다.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '재조립' })).toBeInTheDocument()
   })
 
   it('ignores stale citation reload responses when newer citation changes finish first', async () => {
@@ -963,6 +1003,101 @@ describe('DocumentEditor export freshness', () => {
     expect(mockSaveDocumentBlueprint).toHaveBeenCalledTimes(1)
     const [savedDocument] = mockSaveDocumentBlueprint.mock.calls[0] as [DocumentBlueprint]
     expect(savedDocument.sections[0]?.plateValue).toEqual([{ type: 'p', children: [{ text: 'editor children' }] }])
+  })
+
+  it('keeps plateValue aligned when autosave serializes edited markdown', async () => {
+    mockSerialize.mockReturnValue('serialized editor content')
+    mockDeserialize.mockReturnValue([{ type: 'p', children: [{ text: 'serialized editor content' }] }])
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    vi.useFakeTimers()
+    try {
+      act(() => {
+        screen.getByTestId('paper-plate-editor').click()
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(500)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(1_500)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+      const [savedDocument] = mockSaveDocumentBlueprint.mock.calls.at(-1) as [DocumentBlueprint]
+      expect(savedDocument.sections[0]?.content).toBe('serialized editor content')
+      expect(savedDocument.sections[0]?.plateValue).toEqual([{ type: 'p', children: [{ text: 'serialized editor content' }] }])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('flushes the current editor before switching sections during the serialize debounce', async () => {
+    mockLoadDocumentBlueprint.mockResolvedValue(makeDocument('기존 결과', {
+      sections: [
+        {
+          id: 'methods',
+          title: '연구 방법',
+          content: '기존 방법',
+          sourceRefs: [],
+          editable: true,
+          generatedBy: 'user',
+        },
+        {
+          id: 'results',
+          title: '결과',
+          content: '기존 결과',
+          sourceRefs: [],
+          editable: true,
+          generatedBy: 'user',
+        },
+      ],
+    }))
+    mockDeserialize.mockImplementation((markdown: string) => [{ type: 'p', children: [{ text: markdown }] }])
+    mockSerialize.mockImplementation(() => {
+      const activeEntry = document.querySelector('[data-testid="document-section-list"] [data-active="true"]')
+      return activeEntry?.textContent?.includes('연구 방법')
+        ? 'methods edited before switch'
+        : 'results content should not overwrite methods'
+    })
+
+    render(<DocumentEditor documentId="doc-1" onBack={vi.fn()} />)
+
+    await screen.findByText('테스트 문서')
+
+    vi.useFakeTimers()
+    try {
+      act(() => {
+        screen.getByTestId('paper-plate-editor').click()
+      })
+
+      act(() => {
+        screen.getByRole('button', { name: '결과' }).click()
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(1_500)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(mockSaveDocumentBlueprint).toHaveBeenCalled()
+      const [savedDocument] = mockSaveDocumentBlueprint.mock.calls.at(-1) as [DocumentBlueprint]
+      const methods = savedDocument.sections.find((section) => section.id === 'methods')
+      const results = savedDocument.sections.find((section) => section.id === 'results')
+      expect(methods?.content).toBe('methods edited before switch')
+      expect(methods?.plateValue).toEqual([{ type: 'p', children: [{ text: 'methods edited before switch' }] }])
+      expect(results?.content).toBe('기존 결과')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('exports serialized editor content after reopening a document saved with only plateValue updated', async () => {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import { AlertTriangle, ArrowLeft, CheckCircle2, Eye, PenLine, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlateEditor } from 'platejs/react'
+import type { Value } from '@platejs/slate'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -111,6 +112,32 @@ interface DocumentEditorProps {
 const AUTOSAVE_DELAY = 1500
 const SCRATCH_PROJECT_TAG = 'system:papers-scratch'
 const LOCAL_STORAGE_TOAST_KEY_PREFIX = 'papers-local-storage-toast'
+const EMPTY_EDITOR_VALUE: Value = [{ type: 'p', children: [{ text: '' }] }]
+
+function clonePlateValue(value: unknown): Value | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value)) as Value
+  } catch {
+    return null
+  }
+}
+
+function getInitialEditorValue(section: DocumentSection | null): Value {
+  const plateValue = clonePlateValue(section?.plateValue)
+  if (plateValue) {
+    return plateValue
+  }
+
+  if (section?.content) {
+    return [{ type: 'p', children: [{ text: section.content }] }]
+  }
+
+  return EMPTY_EDITOR_VALUE
+}
 
 function getReadinessBadgeClass(readiness: DocumentWritingSourceReadiness): string {
   switch (readiness.status) {
@@ -157,6 +184,8 @@ export default function DocumentEditor({
   const [documentRevisions, setDocumentRevisions] = useState<DocumentBlueprintRevision[]>([])
   const [revisionHistoryLoading, setRevisionHistoryLoading] = useState(false)
   const [revisionActionPending, setRevisionActionPending] = useState(false)
+  const [editorRenderKey, setEditorRenderKey] = useState(0)
+  const [editorLoadRevision, setEditorLoadRevision] = useState(0)
   const { analysisHistory } = useHistoryStore()
   const docRef = useRef<DocumentBlueprint | null>(null)
   const pendingArtifactTargetRef = useRef<string | null>(null)
@@ -194,17 +223,23 @@ export default function DocumentEditor({
     [doc],
   )
   const isScratchProject = (currentProject?.tags ?? []).includes(SCRATCH_PROJECT_TAG)
+  const activeSection = doc?.sections.find((section) => section.id === activeSectionId) ?? null
+  const editorInitialValue = useMemo(
+    () => getInitialEditorValue(activeSection),
+    [activeSectionId, editorLoadRevision],
+  )
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
   const editor = usePlateEditor({
     plugins: paperPlugins,
+    value: editorInitialValue,
     override: {
       components: {
         [EQUATION_KEY]: EquationElement,
         [INLINE_EQUATION_KEY]: InlineEquationElement,
       },
     },
-  })
+  }, [activeSectionId, editorLoadRevision])
 
   const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -212,6 +247,7 @@ export default function DocumentEditor({
     setDoc(loaded)
     docRef.current = loaded
     loadedSectionRef.current = null
+    setEditorLoadRevision((current) => current + 1)
     resetSavedDocumentState(loaded)
 
     if (loaded.sections.length === 0) {
@@ -388,12 +424,19 @@ export default function DocumentEditor({
 
   useEffect((): (() => void) => {
     const handleEntityRefChange = (event: Event): void => {
-      const currentProjectId = docRef.current?.projectId
+      const currentDoc = docRef.current
+      const currentProjectId = currentDoc?.projectId
       if (!currentProjectId) return
       if (event instanceof CustomEvent) {
         const detail = event.detail as ResearchProjectEntityRefsChangedDetail | undefined
         if (detail && !detail.projectIds.includes(currentProjectId)) {
           return
+        }
+        if (detail && Array.isArray(detail.entityIds) && detail.entityIds.length > 0) {
+          const isCurrentDraftOnly = detail.entityIds.every((entityId) => entityId === currentDoc.id)
+          if (isCurrentDraftOnly) {
+            return
+          }
         }
       }
       setNeedsReassemble(true)
@@ -590,8 +633,9 @@ export default function DocumentEditor({
       const currentDoc = docRef.current
       if (!currentDoc) return null
       const markdown = editor.api.markdown.serialize()
+      const plateValue = editor.api.markdown.deserialize(markdown)
       const newSections = currentDoc.sections.map((section) => (
-        section.id === sectionId ? { ...section, content: markdown } : section
+        section.id === sectionId ? { ...section, content: markdown, plateValue } : section
       ))
       const updated = {
         ...currentDoc,
@@ -801,7 +845,10 @@ export default function DocumentEditor({
       if (!targetSection) return
       try {
         const markdown = editor.api.markdown.serialize()
-        updateSection(targetSection, { content: markdown })
+        updateSection(targetSection, {
+          content: markdown,
+          plateValue: editor.api.markdown.deserialize(markdown),
+        })
       } catch {
         // serialize 실패 시 무시
       }
@@ -833,6 +880,7 @@ export default function DocumentEditor({
     } catch {
       editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }])
     }
+    setEditorRenderKey((current) => current + 1)
   }, [activeSectionId, doc, editor])
 
   // 섹션 순서 변경
@@ -864,8 +912,17 @@ export default function DocumentEditor({
     updateSection(sectionId, { title: newTitle })
   }, [updateSection])
 
+  const handleSelectSection = useCallback((sectionId: string): void => {
+    if (sectionId === activeSectionId) {
+      return
+    }
+    flushSerialize(activeSectionId ?? undefined)
+    setActiveSectionId(sectionId)
+  }, [activeSectionId, flushSerialize])
+
   // 섹션 추가
   const handleAddSection = useCallback(() => {
+    flushSerialize(activeSectionId ?? undefined)
     setDoc(prev => {
       if (!prev) return prev
       const newId = `section-${Date.now()}`
@@ -886,7 +943,7 @@ export default function DocumentEditor({
       scheduleSave(updated)
       return updated
     })
-  }, [scheduleSave])
+  }, [activeSectionId, flushSerialize, scheduleSave])
 
   // 재조립
   const handleReassemble = useCallback(async () => {
@@ -1007,7 +1064,6 @@ export default function DocumentEditor({
     router.push(buildGraphStudioProjectUrl(figureId))
   }, [router])
 
-  const activeSection = doc?.sections.find((section) => section.id === activeSectionId) ?? null
   const documentWritingState = doc?.writingState
   const activeSectionWritingState = activeSection
     ? documentWritingState?.sectionStates[activeSection.id]
@@ -1230,7 +1286,7 @@ export default function DocumentEditor({
           <DocumentSectionList
             sections={doc.sections}
             activeSectionId={activeSectionId}
-            onSelectSection={setActiveSectionId}
+            onSelectSection={handleSelectSection}
             onReorder={handleReorder}
             onDeleteSection={handleDeleteSection}
             onRenameSection={handleRenameSection}
@@ -1339,7 +1395,11 @@ export default function DocumentEditor({
                   </Suspense>
                 </div>
               ) : (
-                <PlateEditor editor={editor} onChange={handlePlateChange} />
+                <PlateEditor
+                  key={`${activeSectionId ?? 'none'}:${editorRenderKey}`}
+                  editor={editor}
+                  onChange={handlePlateChange}
+                />
               )}
 
               <DocumentArtifactLists
