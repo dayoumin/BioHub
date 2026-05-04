@@ -342,7 +342,7 @@
 - [x] 자료 작성 대표 E2E 확장 마무리: seeded 문서 진입 → source readiness 확인 → 본문 보존 갱신/섹션 재생성 차이 → HTML export → revision snapshot 확인 → autosave reload → 좁은 PC viewport smoke를 Playwright로 고정했다. E2E/agent 리뷰에서 드러난 자기 `draft` entity ref 재조립 오탐, 신규 project material stale 감지 누락, failed regeneration success toast, autosave `content`/`plateValue` 정합성 문제를 보강했고, focused Vitest/tsc/build/대표 Playwright 재통과까지 확인했다. (2026-04-30)
 - [x] 자료 작성 autosave/reload 재발 방지 문서화: 정적 export 기반 Playwright, autosave 저장 완료 대기, Plate editor DOM 검증, 섹션 전환 전 flush 기준을 `stats/docs/technical/TROUBLESHOOTING_PAPERS_E2E_AUTOSAVE.md`에 정리하고 AGENTS.md에서 링크했다. (2026-04-30)
 - [x] 자료 작성 revision history 후속 UX: native confirm 대신 변경 섹션 제목, 섹션 수, 저장 지점 미리보기를 보여주는 custom confirmation을 제공하고, 복원 후 before-restore rollback point가 보이는지 Playwright로 검증한다. (2026-05-04)
-- [ ] 자료 작성 심사/학위 수정 요청 대응 UX: revision snapshot을 기반으로 수정 요청 단위의 작업 메모, 대상 섹션, 변경 전후 비교, 완료/보류 상태를 추적하고, 특정 섹션만 이전 snapshot에서 복원하거나 현재 문서에 반영할 수 있게 한다.
+- [x] 자료 작성 심사/학위 수정 요청 대응 UX: revision snapshot을 기반으로 수정 요청 단위의 작업 메모, 대상 섹션, 변경 전후 비교, 완료/보류 상태를 추적하고, 특정 섹션만 이전 snapshot에서 복원하거나 현재 문서에 반영할 수 있게 한다. (`7044ffb2`, `0345cab3`, `3012a479`, 2026-05-04)
 - [x] 자료 작성 심사/학위 수정 요청 작업대 1차: 문서 상단 `수정 요청` 패널에서 문서 전체/섹션별 피드백 메모를 등록하고, 요청 생성 시 현재 문서 기준 저장 지점을 자동 생성하며, 대기/수정 중/완료/보류 상태를 추적한다. 섹션 단위 diff/부분 복원은 후속 단계로 둔다. (2026-05-04)
 - [x] 자료 작성 심사/학위 수정 요청 작업대 2차: 섹션 대상 요청에서 기준 저장 지점과 현재 섹션의 짧은 비교를 표시하고, 현재 문서 전체를 복원 전 저장 지점으로 남긴 뒤 해당 섹션만 기준 저장 지점 내용으로 복원할 수 있게 한다. (2026-05-04)
 - [ ] 기존 논문 기반 유사 논문 파생 생성: 완성된 `DocumentBlueprint`를 템플릿/파생 원본으로 선택해 섹션 구조·문체·표/그림 배치 패턴은 재사용하되, sourceRefs와 evidence는 새 프로젝트 기준으로 재매핑/재조립하도록 한다. 복사된 해석 본문은 자동 확정하지 않고 사용자 검토 상태로 표시한다.
@@ -351,3 +351,9 @@
 - [x] 자료 작성 export agent 리뷰 반영: `table.htmlContent`를 strict allowlist sanitizer로 제한하고, Markdown/HTML export 준비 실패가 toast 경로로 처리되도록 보강했으며, HWPX provenance fixture 경로를 workspace 하드코딩에서 패키지 기준 경로로 정리 (2026-04-30)
 - [ ] 자료 작성 regeneration guard 테스트 확장: body-preserving refresh, destructive regeneration, conflict before persistLatestDocument, regenerateDocumentSection 이후 concurrent local edit 방어를 통합 테스트로 고정한다.
 - [ ] 장기 SSOT 정리: `DOCUMENT_WRITING_ENTITY_KINDS`, source registry kind/type/writer/policy를 descriptor 기반으로 파생해 writer 추가/삭제 drift를 더 줄이고, source loading도 `DocumentEditor`/`useDocumentSourceLinks`/assembler/export provenance에 중복되지 않도록 공통 adapter로 모은다.
+
+### 자료 작성 /papers 현재 정리 (2026-05-04)
+- [x] `/papers` 반자동화 트랙 안정화 체크포인트: 문서 작성 세션, source readiness, 섹션 재생성, autosave save queue, revision history, 수정 요청 작업대, 섹션 단위 부분 복원, review request baseline retention을 한 흐름으로 정리했다. 최신 검증은 `3012a479` 커밋 기준 `tsc`, 전체 Vitest, 대표 Playwright E2E 통과.
+- [ ] `/papers` 전체 UX/design polish pass: Papers Hub → DocumentEditor → 원본 자료 → 섹션 재생성 → 복원 기록 → 수정 요청 작업대 흐름을 사용자 관점에서 다시 훑고, Axiom Slate No-Line 원칙과 공통 컴포넌트 재사용 기준으로 중복/톤 불일치를 정리한다.
+- [ ] `/papers` 리팩터링 후보 점검: `DocumentEditor`에 남은 review request/revision action orchestration을 hook 또는 작은 component로 추가 분리할지 판단한다. 단, 기능 안정화가 우선이므로 실제 중복·테스트 비용이 확인될 때만 진행한다.
+- [ ] 다음 대형 후보 선택 전 점검: prompt registry/cross-model review, 기존 논문 기반 파생 생성, Introduction/Discussion 자동화 중 어느 것을 먼저 할지 제품 위험도와 테스트 가능성 기준으로 결정한다.
